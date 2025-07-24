@@ -1,0 +1,27 @@
+{
+    "/test/api/**": {
+        "target": "http://vivek.mpwin.co.in:5000",
+        "changeOrigin": true,
+        "secure": false,
+        "xfwd"  : true,
+        "logLevel": "debug",
+        "pathRewrite": {
+            "^/test/api" : ""
+        }
+    },
+    
+    "**": {
+        "target": "http://127.0.0.1:5000",
+        "changeOrigin": true,
+        "secure": false,
+        "xfwd"  : true,
+        "logLevel": "debug",
+        "pathRewrite": {
+        "^/api" : ""
+        }
+
+    }
+
+
+
+} 
