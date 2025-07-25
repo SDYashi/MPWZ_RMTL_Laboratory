@@ -8,17 +8,20 @@ import { EffectsModule } from '@ngrx/effects';
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { AuthInterceptorInterceptor } from './core/auth-interceptor.interceptor';
 import { FileSizePipe } from './core/files.pipe';
+import { FormsModule } from '@angular/forms';
 
 @NgModule({
   declarations: [
     AppComponent,
-    FileSizePipe
+    FileSizePipe,
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
+    FormsModule,
     StoreModule.forRoot({}, {}),
-    EffectsModule.forRoot([])
+    EffectsModule.forRoot([]),
+  
   ],
   providers: [
     {

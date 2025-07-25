@@ -1,0 +1,62 @@
+body, html {
+  height: 100%;
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(to bottom right, #2f3a4f, #212529);
+  overflow-x: hidden;
+}
+
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.lab-graphic {
+  width: 250px;
+  transition: transform 0.3s ease-in-out;
+}
+
+.lab-graphic:hover {
+  transform: scale(1.1) rotate(-2deg);
+}
+
+.card {
+  border-radius: 1rem;
+  overflow: hidden;
+  transition: transform 0.3s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+.login-input {
+  transition: border 0.3s ease;
+}
+
+.login-input:focus {
+  border-color: #0dcaf0;
+  box-shadow: 0 0 0 0.2rem rgba(13, 202, 240, 0.25);
+}
+
+.login-btn {
+  font-weight: 600;
+  background: linear-gradient(135deg, #0056b3, #00bfff);
+  border: none;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.login-btn:hover {
+  background: linear-gradient(135deg, #0077ff, #33ccff);
+  transform: scale(1.03);
+}
+
+@media (max-width: 768px) {
+  .lab-graphic {
+    width: 180px;
+    margin-bottom: 1rem;
+  }
+}
