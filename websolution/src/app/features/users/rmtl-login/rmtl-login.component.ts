@@ -6,5 +6,5 @@ import { Component } from '@angular/core';
   styleUrls: ['./rmtl-login.component.css']
 })
 export class RmtlLoginComponent {
-
+ 
 }

@@ -18,10 +18,7 @@ import { FormsModule } from '@angular/forms';
   imports: [
     BrowserModule,
     AppRoutingModule,
-    FormsModule,
-    StoreModule.forRoot({}, {}),
-    EffectsModule.forRoot([]),
-  
+    FormsModule,  
   ],
   providers: [
     {

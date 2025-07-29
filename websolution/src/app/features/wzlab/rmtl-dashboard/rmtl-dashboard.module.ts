@@ -1,14 +1,14 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { MetersRoutingModule } from './meters-routing.module';
+import { RmtlDashboardRoutingModule } from './rmtl-dashboard-routing.module';
 
 
 @NgModule({
   declarations: [],
   imports: [
     CommonModule,
-    MetersRoutingModule
+    RmtlDashboardRoutingModule
   ]
 })
-export class MetersModule { }
+export class RmtlDashboardModule { }
