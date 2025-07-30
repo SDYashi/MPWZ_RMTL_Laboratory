@@ -4,7 +4,8 @@ import { WzlabhomeComponent } from './wzlabhome.component';
 
 const routes: Routes = [
     {
-    path: 'rmtlhome',
+    path: '',
+    //  path: 'rmtlhome',
     component: WzlabhomeComponent, 
     // canActivate: [AuthGuard],
     children: [

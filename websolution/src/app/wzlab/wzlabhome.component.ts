@@ -1,47 +1,54 @@
-import { Component, EventEmitter, HostListener, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, OnInit, Output } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-wzlabhome',
   templateUrl: './wzlabhome.component.html',
   styleUrls: ['./wzlabhome.component.css']
 })
-export class WzlabhomeComponent {
-  isCollapsed = false;
-  activeSubmenu: string | null = null;
+export class WzlabhomeComponent implements OnInit {
+  userManagementExpanded = false;
+  analyticsExpanded = false;
+  settingsExpanded = false;
+  sidebarCollapsed = false;
 
-  toggleSubmenu(menu: string): void {
-    this.activeSubmenu = this.activeSubmenu === menu ? null : menu;
-  }
+  constructor(private router: Router) {}
 
-  isSubmenuActive(menu: string): boolean {
-    return this.activeSubmenu === menu;
+  ngOnInit(): void {
+    this.checkScreenSize();
   }
 
   @HostListener('window:resize', ['$event'])
-  onResize(event: Event): void {
-    const width = (event.target as Window).innerWidth;
-    if (width < 992) {
-      this.isCollapsed = true;
-    } else {
-      this.isCollapsed = false;
-    }
+  onResize(event: any) {
+    this.checkScreenSize();
   }
 
-  ngOnInit(): void {
+  checkScreenSize() {
     if (window.innerWidth < 992) {
-      this.isCollapsed = true;
+      this.sidebarCollapsed = true;
+    } else {
+      this.sidebarCollapsed = false;
     }
   }
 
-  @Output() toggleSidebar = new EventEmitter<void>();
-  isDropdownOpen = false;
-
-  onToggleSidebar(): void {
-    this.toggleSidebar.emit();
+  toggleUserManagement() {
+    this.userManagementExpanded = !this.userManagementExpanded;
   }
 
-  toggleDropdown(): void {
-    this.isDropdownOpen = !this.isDropdownOpen;
+  toggleAnalytics() {
+    this.analyticsExpanded = !this.analyticsExpanded;
   }
-  
+
+  toggleSettings() {
+    this.settingsExpanded = !this.settingsExpanded;
+  }
+
+  toggleSidebar() {
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+  }
+
+  logout() {
+    // Implement logout logic here
+    this.router.navigate(['/login']);
+  }
 }

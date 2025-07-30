@@ -1,118 +1,184 @@
-<div id="app">
-    <div id="app">
+ <div class="dashboard-container">
         <!-- Sidebar -->
-        <nav id="sidebar" class="sidebar">
+        <nav id="sidebar" class="sidebar  overflow-y-auto vh-100"
+         style="background-color: linear-gradient(to bottom, #062064, #b90707);">
             <div class="sidebar-header d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCI+PC9jaXJjbGU+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSIyIj48L2NpcmNsZT48bGluZSB4MT0iMTIiIHkxPSIxNCIgeDI9IjEyIiB5Mj0iMTYiPjwvbGluZT48L3N2Zz4=" alt="Logo">
-                    <span class="fw-bold">RMTL Laboratory</span>
+                    <div class="sidebar-logo">
+                     <img src="../../assets/icons/wzlogo.png" alt="mpwz logo" width="40" height="40">
+                    </div>
+                    <span class="fw-bold fs-5 text-white">RMTL Laboratory</span>
                 </div>
-            </div>
-            <hr>    
-            <div class="sidebar-heading">MAIN NAVIGATION</div>
-            <ul class="list-unstyled">
-                <li>
-                    <a class="text-white d-flex justify-content-between align-items-center text-decoration-none active">
-                        <span><i class="fa fa-tachometer-alt me-2"></i> <span class="menu-text">Dashboard</span></span>
+            </div>            
+            <div class="sidebar-heading px-3">METER MANAGEMENT</div>
+            <ul class="sidebar-menu">
+                  <li class="menu-item">
+                    <a class="menu-link">
+                        <span><i class="fas fa-tachometer-alt me-2"></i> <span class="menu-text">Main Dashboard</span></span>
                     </a>
+                </li>
+                <li class="menu-item">
+                    <a class="menu-link" data-bs-toggle="collapse" href="#userManagement" role="button" aria-expanded="false">
+                        <span><i class="fas fa-user me-2"></i> <span class="menu-text">User Management</span></span>
+                        <i class="fas fa-chevron-down chevron"></i>
+                    </a>
+                    <div class="collapse" id="userManagement">
+                        <div class="submenu">
+                            <a class="submenu-link">Create New User</a>
+                            <a class="submenu-link">Update User Details</a>
+                            <a class="submenu-link">DeActivate User</a>
+                        </div>
+                    </div>
+                </li>
+                
+                <li class="menu-item">
+                    <a class="menu-link" data-bs-toggle="collapse" href="#userAssignments" role="button" aria-expanded="false">
+                        <span><i class="fas fa-window-maximize me-2"></i> <span class="menu-text">User Assignments</span></span>
+                        <i class="fas fa-chevron-down chevron"></i>
+                    </a>
+                    <div class="collapse" id="userAssignments">
+                        <div class="submenu">
+                            <a class="submenu-link">User Assignments Status</a>
+                            <a class="submenu-link">Meters Assign to Users</a>
+                            <a class="submenu-link">Change User Assignments</a>
+                            <a class="submenu-link">Remove User Assignments</a>
+                            <a class="submenu-link">View Assignments History</a>
+                        </div>
+                    </div>
                 </li>
             </ul>
             
-            <div class="sidebar-heading">USER MANAGEMENT</div>
-            <ul class="list-unstyled">
-                <li>
-                    <a class="text-white d-flex justify-content-between align-items-center text-decoration-none"
-                       role="button" onclick="toggleSubmenu(this)">
-                        <span><i class="fa fa-user me-2"></i> <span class="menu-text">USER MANAGEMENT</span></span>
-                        <i class="fa chevron fa-chevron-down"></i>
+            <div class="sidebar-heading px-3">ANALYTICS</div>
+            <ul class="sidebar-menu">
+                <li class="menu-item">
+                    <a class="menu-link" data-bs-toggle="collapse" href="#usageAnalytics" role="button" aria-expanded="false">
+                        <span><i class="fas fa-chart-line me-2"></i> <span class="menu-text">Usage Analytics</span></span>
+                        <i class="fas fa-chevron-down chevron"></i>
                     </a>
-                    <ul class="list-unstyled mt-1">
-                        <li><a class="text-white d-block  text-decoration-none">Create New User</a></li>
-                        <li><a class="text-white d-block  text-decoration-none">Update User Details</a></li>
-                        <li><a class="text-white d-block  text-decoration-none">DeActivate User</a></li>
-                    </ul>
+                    <div class="collapse" id="usageAnalytics">
+                        <div class="submenu">
+                            <a class="submenu-link">Daily Reports</a>
+                            <a class="submenu-link">Weekly Trends</a>
+                            <a class="submenu-link">Monthly Overview</a>
+                            <a class="submenu-link">Annual Summary</a>
+                        </div>
+                    </div>
+                </li>
+                
+                <li class="menu-item">
+                    <a class="menu-link" data-bs-toggle="collapse" href="#alerts" role="button" aria-expanded="false">
+                        <span><i class="fas fa-exclamation-triangle me-2"></i> <span class="menu-text">Alerts</span></span>
+                        <i class="fas fa-chevron-down chevron"></i>
+                    </a>
+                    <div class="collapse" id="alerts">
+                        <div class="submenu">
+                            <a class="submenu-link">Active Alerts</a>
+                            <a class="submenu-link">Alert History</a>
+                            <a class="submenu-link">Configure Alerts</a>
+                        </div>
+                    </div>
                 </li>
             </ul>
             
-            <div class="sidebar-heading">ANALYTICS</div>
-            <ul class="list-unstyled">
-                <li>
-                    <a class="text-white d-flex justify-content-between align-items-center text-decoration-none"
-                       role="button" onclick="toggleSubmenu(this)">
-                        <span><i class="fa fa-chart-line me-2"></i> 
-                            <span class="menu-text">Usage Analytics</span></span>
-                        <i class="fa chevron fa-chevron-down"></i>
-                    </a>
-                    <ul class="list-unstyled ps-4 mt-2">
-                        <li><a class="text-white d-block py-1 text-decoration-none">Daily Reports</a></li>
-                        <li><a class="text-white d-block py-1 text-decoration-none">Weekly Trends</a></li>
-                        <li><a class="text-white d-block py-1 text-decoration-none">Monthly Overview</a></li>
-                        <li><a class="text-white d-block py-1 text-decoration-none">Annual Summary</a></li>
-                    </ul>
-                </li>
-            </ul>
-            
-            <div class="sidebar-heading">SYSTEM SETTINGS</div>
-            <ul class="list-unstyled">
-                <li>
-                    <a class="text-white d-flex justify-content-between align-items-center text-decoration-none"
-                       role="button" onclick="toggleSubmenu(this)">
+            <div class="sidebar-heading px-3">SYSTEM SETTINGS</div>
+            <ul class="sidebar-menu">
+                <li class="menu-item">
+                    <a class="menu-link" data-bs-toggle="collapse" href="#configuration" role="button" aria-expanded="false">
                         <span><i class="fas fa-cog me-2"></i> <span class="menu-text">Configuration</span></span>
-                        <i class="fa chevron fa-chevron-down"></i>
+                        <i class="fas fa-chevron-down chevron"></i>
                     </a>
-                    <ul class="list-unstyled ps-4 mt-2">
-                        <li><a class="text-white d-block py-1 text-decoration-none">Meter Types</a></li>
-                        <li><a class="text-white d-block py-1 text-decoration-none">Device Settings</a></li>
-                        <li><a class="text-white d-block py-1 text-decoration-none">Network Configuration</a></li>
-                    </ul>
+                    <div class="collapse" id="configuration">
+                        <div class="submenu">
+                            <a class="submenu-link">Meter Types</a>
+                            <a class="submenu-link">Device Settings</a>
+                            <a class="submenu-link">Network Configuration</a>
+                        </div>
+                    </div>
+                </li>
+                
+                <li class="menu-item">
+                    <a class="menu-link" data-bs-toggle="collapse" href="#security" role="button" aria-expanded="false">
+                        <span><i class="fas fa-shield-alt me-2"></i> <span class="menu-text">Security</span></span>
+                        <i class="fas fa-chevron-down chevron"></i>
+                    </a>
+                    <div class="collapse" id="security">
+                        <div class="submenu">
+                            <a class="submenu-link">User Roles</a>
+                            <a class="submenu-link">Permissions</a>
+                            <a class="submenu-link">Audit Logs</a>
+                        </div>
+                    </div>
                 </li>
             </ul>
         </nav>
 
         <!-- Main Content -->
-        <div id="page-content-wrapper" class="w-100">
-            <nav class="navbar navbar-expand-lg shadow-sm">
-                <button class="btn btn-outline-secondary py-2" id="sidebarToggle">
-                    <i class="fa fa-bars"></i>
-                </button>
-                <div class="collapse navbar-collapse justify-content-between">
-                    <ul class="navbar-nav">
-                        <li class="nav-item"><a class="nav-link active">.</a></li>
+        <div class="content-wrapper">
+            <!-- Top Navigation -->
+            <!-- <nav class="top-nav bg-dark d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <button class="sidebar-toggle me-3 d-block d-md-none bg-primary" id="sidebarToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+               
+                </div> 
+                <div class="dropdown">
+                    <button class="user-btn dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-user me-2"></i>
+                            <span class="d-none d-md-block fw-medium">Admin User</span>
+                        </div>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                        <li>
+                            <a class="dropdown-item">
+                                <i class="fas fa-user"></i> Profile
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </li>
                     </ul>
-
-                    <!-- User Profile Dropdown -->
-                    <div class="dropdown me-3" id="profileDropdown">
-                        <button class="btn btn-outline-warning d-flex align-items-center dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle me-2"></i>
-                            <span class="d-none d-sm-inline">Admin User</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end mt-3">
-                            <li>
-                                <a class="dropdown-item d-flex justify-content-between align-items-center">
-                                    <span>Profile</span>
-                                    <i class="fa fa-user"></i>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item d-flex justify-content-between align-items-center">
-                                    <span>Settings</span>
-                                    <i class="fa fa-cog"></i>
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item d-flex justify-content-between align-items-center">
-                                    <span>Logout</span>
-                                    <i class="fa fa-sign-out-alt"></i>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
                 </div>
-            </nav>
-  <div id="page-content-wrapper" class="w-100">
-      <router-outlet></router-outlet>
+            </nav> -->
+            <nav class="top-nav  text-white d-flex justify-content-between align-items-center px-3">
+  <div class="d-flex align-items-center">
+    <!-- Sidebar Toggle Button (Visible on small screens) -->
+    <button class="btn sidebar-toggle me-3 d-block d-md-none bg-primary text-white" id="sidebarToggle">
+      <i class="fas fa-bars"></i>
+    </button>
+    <h5 class="mb-0 d-none d-md-block">RMTL Laboratory</h5>
+  </div>
+
+  <!-- Profile Dropdown -->
+  <div class="dropdown">
+    <button class="btn user-btn dropdown-toggle d-flex align-items-center text-white" type="button"
+      id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="fas fa-user me-2"></i>
+      <span class="d-none d-md-block">Admin User</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+      <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+      <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+      <li><hr class="dropdown-divider"></li>
+      <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+    </ul>
+  </div>
+</nav>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <router-outlet></router-outlet>
+            </div>
         </div>
     </div>
-  </div>
-</div>
+
+    
