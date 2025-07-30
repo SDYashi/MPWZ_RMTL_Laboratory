@@ -1,0 +1,118 @@
+<div id="app">
+    <div id="app">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCI+PC9jaXJjbGU+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSIyIj48L2NpcmNsZT48bGluZSB4MT0iMTIiIHkxPSIxNCIgeDI9IjEyIiB5Mj0iMTYiPjwvbGluZT48L3N2Zz4=" alt="Logo">
+                    <span class="fw-bold">RMTL Laboratory</span>
+                </div>
+            </div>
+            <hr>    
+            <div class="sidebar-heading">MAIN NAVIGATION</div>
+            <ul class="list-unstyled">
+                <li>
+                    <a class="text-white d-flex justify-content-between align-items-center text-decoration-none active">
+                        <span><i class="fa fa-tachometer-alt me-2"></i> <span class="menu-text">Dashboard</span></span>
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="sidebar-heading">USER MANAGEMENT</div>
+            <ul class="list-unstyled">
+                <li>
+                    <a class="text-white d-flex justify-content-between align-items-center text-decoration-none"
+                       role="button" onclick="toggleSubmenu(this)">
+                        <span><i class="fa fa-user me-2"></i> <span class="menu-text">USER MANAGEMENT</span></span>
+                        <i class="fa chevron fa-chevron-down"></i>
+                    </a>
+                    <ul class="list-unstyled mt-1">
+                        <li><a class="text-white d-block  text-decoration-none">Create New User</a></li>
+                        <li><a class="text-white d-block  text-decoration-none">Update User Details</a></li>
+                        <li><a class="text-white d-block  text-decoration-none">DeActivate User</a></li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <div class="sidebar-heading">ANALYTICS</div>
+            <ul class="list-unstyled">
+                <li>
+                    <a class="text-white d-flex justify-content-between align-items-center text-decoration-none"
+                       role="button" onclick="toggleSubmenu(this)">
+                        <span><i class="fa fa-chart-line me-2"></i> 
+                            <span class="menu-text">Usage Analytics</span></span>
+                        <i class="fa chevron fa-chevron-down"></i>
+                    </a>
+                    <ul class="list-unstyled ps-4 mt-2">
+                        <li><a class="text-white d-block py-1 text-decoration-none">Daily Reports</a></li>
+                        <li><a class="text-white d-block py-1 text-decoration-none">Weekly Trends</a></li>
+                        <li><a class="text-white d-block py-1 text-decoration-none">Monthly Overview</a></li>
+                        <li><a class="text-white d-block py-1 text-decoration-none">Annual Summary</a></li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <div class="sidebar-heading">SYSTEM SETTINGS</div>
+            <ul class="list-unstyled">
+                <li>
+                    <a class="text-white d-flex justify-content-between align-items-center text-decoration-none"
+                       role="button" onclick="toggleSubmenu(this)">
+                        <span><i class="fas fa-cog me-2"></i> <span class="menu-text">Configuration</span></span>
+                        <i class="fa chevron fa-chevron-down"></i>
+                    </a>
+                    <ul class="list-unstyled ps-4 mt-2">
+                        <li><a class="text-white d-block py-1 text-decoration-none">Meter Types</a></li>
+                        <li><a class="text-white d-block py-1 text-decoration-none">Device Settings</a></li>
+                        <li><a class="text-white d-block py-1 text-decoration-none">Network Configuration</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <div id="page-content-wrapper" class="w-100">
+            <nav class="navbar navbar-expand-lg shadow-sm">
+                <button class="btn btn-outline-secondary py-2" id="sidebarToggle">
+                    <i class="fa fa-bars"></i>
+                </button>
+                <div class="collapse navbar-collapse justify-content-between">
+                    <ul class="navbar-nav">
+                        <li class="nav-item"><a class="nav-link active">.</a></li>
+                    </ul>
+
+                    <!-- User Profile Dropdown -->
+                    <div class="dropdown me-3" id="profileDropdown">
+                        <button class="btn btn-outline-warning d-flex align-items-center dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-2"></i>
+                            <span class="d-none d-sm-inline">Admin User</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end mt-3">
+                            <li>
+                                <a class="dropdown-item d-flex justify-content-between align-items-center">
+                                    <span>Profile</span>
+                                    <i class="fa fa-user"></i>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex justify-content-between align-items-center">
+                                    <span>Settings</span>
+                                    <i class="fa fa-cog"></i>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item d-flex justify-content-between align-items-center">
+                                    <span>Logout</span>
+                                    <i class="fa fa-sign-out-alt"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+  <div id="page-content-wrapper" class="w-100">
+      <router-outlet></router-outlet>
+        </div>
+    </div>
+  </div>
+</div>
