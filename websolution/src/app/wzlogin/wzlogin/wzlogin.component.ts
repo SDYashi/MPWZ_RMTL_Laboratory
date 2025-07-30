@@ -8,33 +8,15 @@ import { Router } from '@angular/router';
   styleUrls: ['./wzlogin.component.css']
 })
 export class WzloginComponent implements OnInit {
-  loginForm!: FormGroup;
-
-  constructor(private fb: FormBuilder,private router: Router) {}
-
   ngOnInit(): void {
-    this.loginForm = this.fb.group({
-      username: ['', Validators.required],
-      password: ['', Validators.required]
-    });
+    throw new Error('Method not implemented.');
   }
+   username: string = '';
+  password: string = '';
 
-  // Optional: Getter for cleaner template
-  get username() {
-    return this.loginForm.get('username');
-  }
-
-  get password() {
-    return this.loginForm.get('password');
-  }
-
-  onSubmit(): void {
-    if (this.loginForm.valid) {
-      // const { username, password } = this.loginForm.value;
-      this.router.navigate(['/wzlab/wzlabhome']);
-      // console.log('Login:', username, password);
-    } else {
-      this.loginForm.markAllAsTouched(); 
-    }
+  onLogin() {
+    console.log('Username:', this.username);
+    console.log('Password:', this.password);
+    // Implement authentication logic here
   }
 }
