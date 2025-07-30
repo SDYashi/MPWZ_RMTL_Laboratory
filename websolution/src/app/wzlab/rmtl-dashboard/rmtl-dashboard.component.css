@@ -65,3 +65,35 @@
     transform: translateY(0);
   }
 }
+ .stat-card {
+    transition: transform 0.2s ease-in-out;
+    border-radius: 12px;
+    background-color: #fff;
+  }
+
+  .hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .icon-wrapper {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .list-group-item {
+    background-color: transparent;
+    border: none;
+    padding: 1rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .list-group-item:last-child {
+    border-bottom: none;
+  }

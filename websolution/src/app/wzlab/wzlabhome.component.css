@@ -89,7 +89,7 @@
         }
         
         .menu-link:hover {
-            background-color:  #b30b0b;
+            background-color:  #0b8460;
             color: white;
               list-style: none;
         }
@@ -131,8 +131,9 @@
         
         .submenu-link:hover {
             color: white;
-            background: rgba(255,255,255,0.1);
+            background: rgba(201, 8, 8, 0.868);
             padding-left: 1.5rem;
+            list-style: none;
         }
         
         .submenu-link:hover::before {

@@ -1,94 +1,105 @@
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
 <div class="container-fluid py-4">
   <!-- Stats Cards -->
-  <div class="row stats-grid mb-4">
-    <div class="col-md-3 mb-3">
-      <div class="stat-card shadow-sm">
-        <div class="stat-icon bg-primary bg-opacity-10 text-primary">
-          <i class="fas fa-tachometer-alt"></i>
+  <div class="row g-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="card stat-card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="icon-wrapper bg-primary text-white">
+            <i class="fas fa-tachometer-alt fa-lg"></i>
+          </div>
+          <div>
+            <h3 class="fw-bold mb-0">1,248</h3>
+            <p class="text-muted mb-0">Total Meters</p>
+          </div>
         </div>
-        <h3 class="stat-value">1,248</h3>
-        <p class="stat-title">Total Meters</p>
       </div>
     </div>
-    <div class="col-md-3 mb-3">
-      <div class="stat-card shadow-sm">
-        <div class="stat-icon bg-success bg-opacity-10 text-success">
-          <i class="fas fa-check-circle"></i>
+    <div class="col-md-3 col-sm-6">
+      <div class="card stat-card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="icon-wrapper bg-success text-white">
+            <i class="fas fa-check-circle fa-lg"></i>
+          </div>
+          <div>
+            <h3 class="fw-bold mb-0">984</h3>
+            <p class="text-muted mb-0">Active Meters</p>
+          </div>
         </div>
-        <h3 class="stat-value">984</h3>
-        <p class="stat-title">Active Meters</p>
       </div>
     </div>
-    <div class="col-md-3 mb-3">
-      <div class="stat-card shadow-sm">
-        <div class="stat-icon bg-warning bg-opacity-10 text-warning">
-          <i class="fas fa-exclamation-triangle"></i>
+    <div class="col-md-3 col-sm-6">
+      <div class="card stat-card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="icon-wrapper bg-warning text-white">
+            <i class="fas fa-exclamation-triangle fa-lg"></i>
+          </div>
+          <div>
+            <h3 class="fw-bold mb-0">42</h3>
+            <p class="text-muted mb-0">Alerts Today</p>
+          </div>
         </div>
-        <h3 class="stat-value">42</h3>
-        <p class="stat-title">Alerts Today</p>
       </div>
     </div>
-    <div class="col-md-3 mb-3">
-      <div class="stat-card shadow-sm">
-        <div class="stat-icon bg-info bg-opacity-10 text-info">
-          <i class="fas fa-users"></i>
+    <div class="col-md-3 col-sm-6">
+      <div class="card stat-card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="icon-wrapper bg-info text-white">
+            <i class="fas fa-users fa-lg"></i>
+          </div>
+          <div>
+            <h3 class="fw-bold mb-0">24</h3>
+            <p class="text-muted mb-0">Active Users</p>
+          </div>
         </div>
-        <h3 class="stat-value">24</h3>
-        <p class="stat-title">Active Users</p>
       </div>
     </div>
   </div>
 
-  <!-- Activity Feed & System Status -->
-  <div class="row">
-    <!-- Recent Activity -->
-    <div class="col-lg-12 mb-4">
-      <div class="activity-card shadow-sm p-3 bg-white rounded">
-        <div class="activity-header d-flex justify-content-between align-items-center mb-3">
+  <!-- Recent Activity -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card shadow-sm border-0 hover-card">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
           <h5 class="mb-0">Recent Activity</h5>
           <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
         </div>
-        <div class="activity-list">
-          <div class="activity-item d-flex mb-3">
-            <div class="activity-badge bg-primary text-white">
-              <i class="fas fa-plus"></i>
-            </div>
-            <div class="ms-3">
-              <h6 class="mb-1">New meter added</h6>
-              <p class="mb-0">Meter ID: MTR-2023-00125 added to the system</p>
-              <small class="text-muted">2 minutes ago</small>
-            </div>
-          </div>
-          <div class="activity-item d-flex mb-3">
-            <div class="activity-badge bg-success text-white">
-              <i class="fas fa-check"></i>
-            </div>
-            <div class="ms-3">
-              <h6 class="mb-1">Test completed</h6>
-              <p class="mb-0">Meter calibration test completed by John Doe</p>
-              <small class="text-muted">45 minutes ago</small>
-            </div>
-          </div>
-          <div class="activity-item d-flex mb-3">
-            <div class="activity-badge bg-warning text-white">
-              <i class="fas fa-exclamation"></i>
-            </div>
-            <div class="ms-3">
-              <h6 class="mb-1">Alert triggered</h6>
-              <p class="mb-0">Abnormal reading detected on Meter MTR-2023-00087</p>
-              <small class="text-muted">1 hour ago</small>
-            </div>
-          </div>
-          <div class="activity-item d-flex">
-            <div class="activity-badge bg-info text-white">
-              <i class="fas fa-user"></i>
-            </div>
-            <div class="ms-3">
-              <h6 class="mb-1">User assigned</h6>
-              <p class="mb-0">Sarah Johnson assigned to Meter Group B</p>
-              <small class="text-muted">3 hours ago</small>
-            </div>
-          </div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex align-items-start gap-3">
+              <span class="badge bg-primary rounded-circle p-3"><i class="fas fa-plus"></i></span>
+              <div>
+                <h6 class="fw-semibold mb-1">New meter added</h6>
+                <p class="mb-0 text-muted">Meter ID: MTR-2023-00125 added</p>
+                <small class="text-muted">2 minutes ago</small>
+              </div>
+            </li>
+            <li class="list-group-item d-flex align-items-start gap-3">
+              <span class="badge bg-success rounded-circle p-3"><i class="fas fa-check"></i></span>
+              <div>
+                <h6 class="fw-semibold mb-1">Test completed</h6>
+                <p class="mb-0 text-muted">Calibration test by John Doe</p>
+                <small class="text-muted">45 minutes ago</small>
+              </div>
+            </li>
+            <li class="list-group-item d-flex align-items-start gap-3">
+              <span class="badge bg-warning rounded-circle p-3"><i class="fas fa-exclamation"></i></span>
+              <div>
+                <h6 class="fw-semibold mb-1">Alert triggered</h6>
+                <p class="mb-0 text-muted">Abnormal reading on Meter MTR-2023-00087</p>
+                <small class="text-muted">1 hour ago</small>
+              </div>
+            </li>
+            <li class="list-group-item d-flex align-items-start gap-3">
+              <span class="badge bg-info rounded-circle p-3"><i class="fas fa-user"></i></span>
+              <div>
+                <h6 class="fw-semibold mb-1">User assigned</h6>
+                <p class="mb-0 text-muted">Sarah Johnson assigned to Group B</p>
+                <small class="text-muted">3 hours ago</small>
+              </div>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
