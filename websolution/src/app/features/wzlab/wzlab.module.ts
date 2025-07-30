@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { WzlabRoutingModule } from './wzlab-routing.module';
 import { RmtlHomeComponent } from './rmtl-home/rmtl-home.component';
 import { RmtlDashboardComponent } from './rmtl-dashboard/rmtl-dashboard.component';
-import { RmtlLoginComponent } from './rmtl-login/rmtl-login.component';
 import { RmtlUsersComponent } from './rmtl-users/rmtl-users.component';
 
 
@@ -12,7 +11,6 @@ import { RmtlUsersComponent } from './rmtl-users/rmtl-users.component';
   declarations: [
     RmtlHomeComponent,
     RmtlDashboardComponent,
-    RmtlLoginComponent,
     RmtlUsersComponent
   ],
   imports: [
