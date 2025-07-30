@@ -5,6 +5,7 @@ const routes: Routes = [
  {path:'',redirectTo:'/wzlogin',pathMatch:'full'},
  {path:'wzlogin',loadChildren:()=>import('../app/wzlogin/wzlogin.module').then(m=>m.WzloginModule)},
  {path:'**',redirectTo:'wzlogin',pathMatch:'full'},
+ {path:'wzlab',loadChildren:()=>import('./wzlab/wzlab.module').then(m=>m.WzlabModule)},
 
 ];
 

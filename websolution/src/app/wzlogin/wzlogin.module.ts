@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { WzloginRoutingModule } from './wzlogin-routing.module';
 import { WzloginComponent } from './wzlogin/wzlogin.component';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 
 @NgModule({
@@ -11,7 +12,9 @@ import { WzloginComponent } from './wzlogin/wzlogin.component';
   ],
   imports: [
     CommonModule,
-    WzloginRoutingModule
+    FormsModule,
+    WzloginRoutingModule,
+    ReactiveFormsModule,
   ]
 })
 export class WzloginModule { }
