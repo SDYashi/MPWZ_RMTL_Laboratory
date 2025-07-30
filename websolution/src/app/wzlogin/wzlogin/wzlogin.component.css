@@ -1,0 +1,47 @@
+  .login-card {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  position: relative;
+  max-width: 500px;
+  margin: auto;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.dark-mode .login-card {
+  background: #2c2c2e;
+  color: white;
+}
+
+.login-card .avatar {
+  /* background: #0c3d4f; */
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  margin: -70px auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card .avatar i {
+  font-size: 2rem;
+  color: white;
+}
+
+.form-control {
+  border-radius: 20px;
+}
+
+.login-btn {
+  border-radius: 20px;
+  padding: 10px;
+  background-color: #0c3d4f;
+  color: white;
+  font-weight: bold;
+}
+
+.login-btn:hover {
+  background-color: #092e3c;
+}
