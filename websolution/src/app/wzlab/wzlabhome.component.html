@@ -13,7 +13,7 @@
             <div class="sidebar-heading px-3">METER MANAGEMENT</div>
             <ul class="sidebar-menu">
                   <li class="menu-item">
-                    <a class="menu-link">
+                    <a class="menu-link" routerLink="/wzlab/dashboard">
                         <span><i class="fas fa-tachometer-alt me-2"></i> <span class="menu-text">Main Dashboard</span></span>
                     </a>
                 </li>
@@ -24,9 +24,10 @@
                     </a>
                     <div class="collapse" id="userManagement">
                         <div class="submenu">
-                            <a class="submenu-link">Create New User</a>
-                            <a class="submenu-link">Update User Details</a>
-                            <a class="submenu-link">DeActivate User</a>
+                            <a class="submenu-link" routerLink="/wzlab/user/create-user">User Details Add</a>
+                            <a class="submenu-link" routerLink="/wzlab/user/edit-user">User Details Edit</a>
+                            <a class="submenu-link" routerLink="/wzlab/user/user-list">User Details List</a>
+                            <a class="submenu-link" routerLink="/wzlab/user/user-access">User Access List</a>
                         </div>
                     </div>
                 </li>
@@ -38,11 +39,10 @@
                     </a>
                     <div class="collapse" id="userAssignments">
                         <div class="submenu">
-                            <a class="submenu-link">User Assignments Status</a>
-                            <a class="submenu-link">Meters Assign to Users</a>
-                            <a class="submenu-link">Change User Assignments</a>
-                            <a class="submenu-link">Remove User Assignments</a>
-                            <a class="submenu-link">View Assignments History</a>
+                            <a class="submenu-link" routerLink="/wzlab/assignement/assignment-dashboard">Assignments Dashboard</a>
+                            <a class="submenu-link" routerLink="/wzlab/assignement/assign-to-user">Meters Assignment</a>
+                            <a class="submenu-link" routerLink="/wzlab/assignement/edit-assignment">Edit Meter Assignments</a>
+                            <a class="submenu-link" routerLink="/wzlab/assignement/assigned-list">View Assignments History</a>
                         </div>
                     </div>
                 </li>
@@ -114,65 +114,30 @@
 
         <!-- Main Content -->
         <div class="content-wrapper">
-            <!-- Top Navigation -->
-            <!-- <nav class="top-nav bg-dark d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <button class="sidebar-toggle me-3 d-block d-md-none bg-primary" id="sidebarToggle">
-                        <i class="fas fa-bars"></i>
-                    </button>
-               
-                </div> 
-                <div class="dropdown">
-                    <button class="user-btn dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-user me-2"></i>
-                            <span class="d-none d-md-block fw-medium">Admin User</span>
-                        </div>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                        <li>
-                            <a class="dropdown-item">
-                                <i class="fas fa-user"></i> Profile
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item">
-                                <i class="fas fa-cog"></i> Settings
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </nav> -->
             <nav class="top-nav  text-white d-flex justify-content-between align-items-center px-3">
-  <div class="d-flex align-items-center">
-    <!-- Sidebar Toggle Button (Visible on small screens) -->
-    <button class="btn sidebar-toggle me-3 d-block d-md-none bg-primary text-white" id="sidebarToggle">
-      <i class="fas fa-bars"></i>
-    </button>
-    <h5 class="mb-0 d-none d-md-block">RMTL Laboratory</h5>
-  </div>
+            <div class="d-flex align-items-center">
+                <!-- Sidebar Toggle Button (Visible on small screens) -->
+                <button class="btn sidebar-toggle me-3 d-block d-md-none bg-primary text-white" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+                </button>
+                <!-- <h5 class="mb-0 d-none d-md-block">RMTL Laboratory</h5> -->
+            </div>
 
-  <!-- Profile Dropdown -->
-  <div class="dropdown">
-    <button class="btn user-btn dropdown-toggle d-flex align-items-center text-white" type="button"
-      id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-      <i class="fas fa-user me-2"></i>
-      <span class="d-none d-md-block">Admin User</span>
-    </button>
-    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-      <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
-      <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
-      <li><hr class="dropdown-divider"></li>
-      <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-    </ul>
-  </div>
-</nav>
+            <!-- Profile Dropdown -->
+            <div class="dropdown">
+                <button class="btn user-btn dropdown-toggle d-flex align-items-center text-white" type="button"
+                id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-user me-2"></i>
+                <span class="d-none d-md-block">Admin User</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                </ul>
+            </div>
+            </nav>
 
             <!-- Page Content -->
             <div class="page-content">

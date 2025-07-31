@@ -30,7 +30,9 @@
         .sidebar {
             width: 260px;
             min-height: 100vh;
+            /* background: #1a2236; */
             background: #1a2236;
+            /* background-image: linear-gradient(to right,  #024730, #17024d); */
             color: white;
             transition: all 0.3s;
             position: fixed;
@@ -131,7 +133,7 @@
         
         .submenu-link:hover {
             color: white;
-            background: rgba(201, 8, 8, 0.868);
+            background: rgba(117, 54, 17, 0.868);
             padding-left: 1.5rem;
             list-style: none;
         }
@@ -162,7 +164,8 @@
     position: sticky;
     top: 0;
     z-index: 1030;
-          background: #1a2236;
+    background: #1a2236;
+    /* background-image: linear-gradient(to right,  #34166d, #17024d); */
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
