@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { WzloginRoutingModule } from './wzlogin-routing.module';
 import { WzloginComponent } from './wzlogin/wzlogin.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
 
 
 @NgModule({
@@ -15,6 +16,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     FormsModule,
     WzloginRoutingModule,
     ReactiveFormsModule,
+    HttpClientModule,
   ]
 })
 export class WzloginModule { }

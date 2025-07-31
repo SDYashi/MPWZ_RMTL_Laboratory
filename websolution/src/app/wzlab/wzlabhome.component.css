@@ -97,9 +97,10 @@
         }
         
         .menu-link.active {
-            background: #4f0303;
+            background: #0b8460;
             color: white;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            list-style: none;
         }
         
         .menu-link.active .menu-text {
@@ -116,7 +117,7 @@
         }
         
         .submenu {
-            padding-left: 2rem;
+            padding-left: 1rem;
             margin-top: 0.5rem;
         }
         
@@ -129,13 +130,16 @@
             font-size: 0.9rem;
             transition: all 0.2s;
             position: relative;
+            list-style: none;
+              text-decoration: none;
         }
         
         .submenu-link:hover {
             color: white;
-            background: rgba(117, 54, 17, 0.868);
+            background: rgba(2, 75, 53, 0.868);
             padding-left: 1.5rem;
             list-style: none;
+            text-decoration: none;
         }
         
         .submenu-link:hover::before {
@@ -148,6 +152,8 @@
             height: 6px;
             background-color: white;
             border-radius: 50%;
+              list-style: none;
+                text-decoration: none;
         }
         
         /* Main Content Styles */

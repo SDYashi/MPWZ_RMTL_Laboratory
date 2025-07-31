@@ -7,6 +7,8 @@
   justify-content: center;
   /* background: linear-gradient(135deg, #f5f7fa 0%, #09234d 100%); */
   background-image: url('../../../assets/bg/login_home.png');
+  background-size: cover;
+  background-position: center;
   padding: 20px;
 }
 

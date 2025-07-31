@@ -1,13 +1,14 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { WzlabhomeComponent } from './wzlabhome.component';
+import { authGuard } from '../core/auth-gaurd.guard';
 
 const routes: Routes = [
     {
     path: '',
     //  path: 'rmtlhome',
     component: WzlabhomeComponent, 
-    // canActivate: [AuthGuard],
+    canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'assignement',loadChildren: () => import('./rmtl-assignment/rmtl-assignment.module').then(m => m.RmtlAssignmentModule) },

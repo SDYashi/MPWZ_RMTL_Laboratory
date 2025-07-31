@@ -1,69 +1,81 @@
 <body>
-
-<div class="login-container">
-  <div class="login-card">
-    <div class="login-header">
-      <img src="../../../assets/icons/wzlogo.png" alt="Company Logo" class="logo">
-      <h2 class="text-center mb-4">WZ RMTL Laboratory</h2>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header text-center">
+        <img src="../../../assets/icons/wzlogo.png" alt="Company Logo" class="logo mb-2">
+        <h2 class="mb-4">WZ RMTL Laboratory</h2>
       </div>
 
-    <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="login-form">
-      <div class="form-group mb-4">
-        <label for="username" class="form-label">Username</label>
-        <div class="input-group">
-          <span class="input-group-text">
-            <i class="fas fa-user"></i>
-          </span>
-          <input type="text" 
-                 id="username" 
-                 formControlName="username"
-                 class="form-control" 
-                 placeholder="Enter your username"
-                 [ngClass]="{'is-invalid': loginForm.get('username')?.invalid && loginForm.get('username')?.touched}">
+      <form #loginForm="ngForm" (ngSubmit)="onLogin(loginForm)">
+        <!-- Username -->
+        <div class="form-group mb-4">
+          <label for="username" class="form-label">Username</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="fas fa-user"></i>
+            </span>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              [(ngModel)]="model.username"
+              required
+              #username="ngModel"
+              class="form-control"
+              [ngClass]="{'is-invalid': username.invalid && username.touched}"
+              placeholder="Enter your username"
+            />
+          </div>
+          <div *ngIf="username.invalid && username.touched" class="invalid-feedback">
+            Username is required
+          </div>
         </div>
-        <div *ngIf="loginForm.get('username')?.invalid && loginForm.get('username')?.touched" class="invalid-feedback">
-          Username is required
+
+        <!-- Password -->
+        <div class="form-group mb-4">
+          <label for="password" class="form-label">Password</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="fas fa-lock"></i>
+            </span>
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              id="password"
+              name="password"
+              [(ngModel)]="model.password"
+              required
+              #password="ngModel"
+              class="form-control"
+              [ngClass]="{'is-invalid': password.invalid && password.touched}"
+              placeholder="Enter your password"
+            />
+            <button class="btn btn-outline-secondary" type="button" (click)="togglePasswordVisibility()">
+              <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
+            </button>
+          </div>
+          <div *ngIf="password.invalid && password.touched" class="invalid-feedback">
+            Password is required
+          </div>
         </div>
+
+        <!-- Remember Me -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div class="form-check">
+            <input type="checkbox" id="remember" name="remember" [(ngModel)]="model.remember" class="form-check-input" />
+            <label class="form-check-label" for="remember">Remember me</label>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn btn-primary w-100 py-2 mb-3" [disabled]="loginForm.invalid || isLoading">
+          <span *ngIf="!isLoading">Sign In</span>
+          <span *ngIf="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        </button>
+      </form>
+
+      <div class="login-footer text-center mt-4">
+        <p class="text-muted small text-center mb-0 fw-semibold text-warning">© 2025 WZ RMTL Laboratory. All rights reserved by <strong class="text-primary fw-bold"> M.P.P.K.V.V.C.Ltd INDORE</strong> .</p>
       </div>
-
-      <div class="form-group mb-4">
-        <label for="password" class="form-label">Password</label>
-        <div class="input-group">
-          <span class="input-group-text">
-            <i class="fas fa-lock"></i>
-          </span>
-          <input type="password" 
-                 id="password" 
-                 formControlName="password"
-                 class="form-control" 
-                 placeholder="Enter your password"
-                 [ngClass]="{'is-invalid': loginForm.get('password')?.invalid && loginForm.get('password')?.touched}">
-          <button class="btn btn-outline-secondary" type="button" (click)="togglePasswordVisibility()">
-            <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
-          </button>
-        </div>
-        <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" class="invalid-feedback">
-          Password is required
-        </div>
-      </div>
-
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="remember" formControlName="remember">
-          <label class="form-check-label" for="remember">Remember me</label>
-        </div>
-        </div>
-
-      <button type="submit" class="btn btn-primary w-100 py-2 mb-3" [disabled]="loginForm.invalid || isLoading">
-        <span *ngIf="!isLoading">Sign In</span>
-        <span *ngIf="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-      </button>
-    </form>
-
-    <div class="login-footer text-center mt-4">
-      <p class="text-muted small">© 2023 WZ RMTL Laboratory. All rights reserved by M.P.P.K.V.V.C.L INDORE.</p>
     </div>
   </div>
-</div>
-  
 </body>

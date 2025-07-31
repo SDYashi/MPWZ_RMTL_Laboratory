@@ -4,6 +4,7 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class AuthService {
+  [x: string]: any;
 
  // Save token to localStorage
   setToken(token: string): void {

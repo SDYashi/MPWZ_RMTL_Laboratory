@@ -9,14 +9,16 @@
                     </div>
                     <span class="fw-bold fs-5 text-white">RMTL Laboratory</span>
                 </div>
-            </div>            
-            <div class="sidebar-heading px-3">METER MANAGEMENT</div>
+            </div>    
             <ul class="sidebar-menu">
                   <li class="menu-item">
-                    <a class="menu-link" routerLink="/wzlab/dashboard">
+                    <a class="menu-link active" routerLink="/wzlab/dashboard">
                         <span><i class="fas fa-tachometer-alt me-2"></i> <span class="menu-text">Main Dashboard</span></span>
                     </a>
-                </li>
+                </li>   
+            </ul>     
+            <div class="sidebar-heading px-3">USER MANAGEMENT</div>
+            <ul class="sidebar-menu">
                 <li class="menu-item">
                     <a class="menu-link" data-bs-toggle="collapse" href="#userManagement" role="button" aria-expanded="false">
                         <span><i class="fas fa-user me-2"></i> <span class="menu-text">User Management</span></span>
@@ -31,7 +33,9 @@
                         </div>
                     </div>
                 </li>
-                
+            </ul>
+            <div class="sidebar-heading px-3">METER ASSIGNMENT</div>
+            <ul class="sidebar-menu">              
                 <li class="menu-item">
                     <a class="menu-link" data-bs-toggle="collapse" href="#userAssignments" role="button" aria-expanded="false">
                         <span><i class="fas fa-window-maximize me-2"></i> <span class="menu-text">User Assignments</span></span>
@@ -48,7 +52,7 @@
                 </li>
             </ul>
             
-            <div class="sidebar-heading px-3">ANALYTICS</div>
+            <div class="sidebar-heading px-3">ANALYTICS & REPORTS</div>
             <ul class="sidebar-menu">
                 <li class="menu-item">
                     <a class="menu-link" data-bs-toggle="collapse" href="#usageAnalytics" role="button" aria-expanded="false">
@@ -61,20 +65,6 @@
                             <a class="submenu-link">Weekly Trends</a>
                             <a class="submenu-link">Monthly Overview</a>
                             <a class="submenu-link">Annual Summary</a>
-                        </div>
-                    </div>
-                </li>
-                
-                <li class="menu-item">
-                    <a class="menu-link" data-bs-toggle="collapse" href="#alerts" role="button" aria-expanded="false">
-                        <span><i class="fas fa-exclamation-triangle me-2"></i> <span class="menu-text">Alerts</span></span>
-                        <i class="fas fa-chevron-down chevron"></i>
-                    </a>
-                    <div class="collapse" id="alerts">
-                        <div class="submenu">
-                            <a class="submenu-link">Active Alerts</a>
-                            <a class="submenu-link">Alert History</a>
-                            <a class="submenu-link">Configure Alerts</a>
                         </div>
                     </div>
                 </li>
@@ -92,20 +82,6 @@
                             <a class="submenu-link">Meter Types</a>
                             <a class="submenu-link">Device Settings</a>
                             <a class="submenu-link">Network Configuration</a>
-                        </div>
-                    </div>
-                </li>
-                
-                <li class="menu-item">
-                    <a class="menu-link" data-bs-toggle="collapse" href="#security" role="button" aria-expanded="false">
-                        <span><i class="fas fa-shield-alt me-2"></i> <span class="menu-text">Security</span></span>
-                        <i class="fas fa-chevron-down chevron"></i>
-                    </a>
-                    <div class="collapse" id="security">
-                        <div class="submenu">
-                            <a class="submenu-link">User Roles</a>
-                            <a class="submenu-link">Permissions</a>
-                            <a class="submenu-link">Audit Logs</a>
                         </div>
                     </div>
                 </li>
