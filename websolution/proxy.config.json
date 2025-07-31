@@ -1,27 +1,11 @@
 {
-    "/test/api/**": {
-        "target": "http://vivek.mpwin.co.in:5000",
-        "changeOrigin": true,
-        "secure": false,
-        "xfwd"  : true,
-        "logLevel": "debug",
-        "pathRewrite": {
-            "^/test/api" : ""
-        }
-    },
-    
-    "**": {
-        "target": "http://10.98.7.218:8000",
-        "changeOrigin": true,
-        "secure": false,
-        "xfwd"  : true,
-        "logLevel": "debug",
-        "pathRewrite": {
-        "^/api" : ""
-        }
-
+  "/api": {
+    "target": "http://10.98.7.218:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/api": ""
     }
-
-
-
-} 
+  }
+}

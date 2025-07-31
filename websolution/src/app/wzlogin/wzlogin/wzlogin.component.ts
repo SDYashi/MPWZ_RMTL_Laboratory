@@ -20,26 +20,25 @@ export class WzloginComponent {
 
   constructor(private apiservice: ApiServicesService, private router: Router) {}
 
-  onLogin(form: NgForm): void {
-    if (form.valid) {
-      this.isLoading = true;
-      const { username, password } = this.model;
-      this.apiservice.getlogin(username, password).subscribe({
-          next: (response) => {
-              console.log('Login successful:', response);
-              localStorage.setItem('token', response.token);
-              this.isLoading = false;
-              this.router.navigate(['/wzlab/dashboard']);
-          },
-          error: (error) => {
-              console.error('Login failed:', error);
-              this.isLoading = false;
-          }
-
-      });
-    
-    }
+ onLogin(form: NgForm): void {
+  if (form.valid) {
+    this.isLoading = true;
+    const { username, password } = this.model;
+    this.apiservice.getlogin(username, password).subscribe({
+      next: (response) => {
+        console.log('Login successful:', response);
+        localStorage.setItem('token', response.access_token);  // use access_token
+        this.isLoading = false;
+        this.router.navigate(['/wzlab/dashboard']);
+      },
+      error: (error) => {
+        console.error('Login failed:', error);
+        this.isLoading = false;
+      }
+    });
   }
+}
+
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;

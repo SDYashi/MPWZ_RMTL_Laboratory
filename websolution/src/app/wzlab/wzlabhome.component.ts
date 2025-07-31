@@ -1,4 +1,4 @@
-import { Component, EventEmitter, HostListener, OnInit, Output } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
 @Component({
@@ -7,28 +7,50 @@ import { Router } from '@angular/router';
   styleUrls: ['./wzlabhome.component.css']
 })
 export class WzlabhomeComponent implements OnInit {
+
+  currentUrl = '';
+  currentUser: any;
+  sidebarCollapsed = false;
+  screenWidth = window.innerWidth; // ✅ Add this
+
   userManagementExpanded = false;
   analyticsExpanded = false;
   settingsExpanded = false;
-  sidebarCollapsed = false;
 
-  constructor(private router: Router) {}
+  
+
+  constructor(private router: Router) {
+    this.currentUrl = this.router.url.replace('/', '');
+  }
 
   ngOnInit(): void {
     this.checkScreenSize();
   }
 
+  ngAfterViewInit(): void {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const tokenData = JSON.parse(atob(token.split('.')[1]));
+      this.currentUser = tokenData.sub;
+    }
+  }
+
+  isRouteActive(paths: string[]): boolean {
+    return paths.some(path => this.router.url.startsWith(path));
+  }
+
   @HostListener('window:resize', ['$event'])
   onResize(event: any) {
+    this.screenWidth = window.innerWidth; // ✅ Keep this updated
     this.checkScreenSize();
   }
 
   checkScreenSize() {
-    if (window.innerWidth < 992) {
-      this.sidebarCollapsed = true;
-    } else {
-      this.sidebarCollapsed = false;
-    }
+    this.sidebarCollapsed = this.screenWidth < 992;
+  }
+
+  toggleSidebar() {
+    this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
   toggleUserManagement() {
@@ -43,12 +65,10 @@ export class WzlabhomeComponent implements OnInit {
     this.settingsExpanded = !this.settingsExpanded;
   }
 
-  toggleSidebar() {
-    this.sidebarCollapsed = !this.sidebarCollapsed;
-  }
+
 
   logout() {
-    // Implement logout logic here
-    this.router.navigate(['/login']);
+    localStorage.removeItem('token');
+    this.router.navigate(['/wzlogin']);
   }
 }

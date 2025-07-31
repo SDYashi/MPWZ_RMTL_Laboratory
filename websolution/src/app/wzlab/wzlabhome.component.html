@@ -1,101 +1,114 @@
  <div class="dashboard-container">
         <!-- Sidebar -->
-        <nav id="sidebar" class="sidebar  overflow-y-auto vh-100"
-         style="background-color: linear-gradient(to bottom, #062064, #b90707);">
-            <div class="sidebar-header d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <div class="sidebar-logo">
-                     <img src="../../assets/icons/wzlogo.png" alt="mpwz logo" width="40" height="40">
-                    </div>
-                    <span class="fw-bold fs-5 text-white">RMTL Laboratory</span>
+    <!-- <nav id="sidebar" class="sidebar overflow-y-auto vh-100"
+     style="background: linear-gradient(to top, #062064, #1b1630);"> -->
+     <nav id="sidebar" class="sidebar overflow-y-auto vh-100"
+     [ngClass]="{ 'collapsed': sidebarCollapsed }"
+ style="background: linear-gradient(to top, #062064, #1b1630);">
+    <div class="sidebar-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <div class="sidebar-logo">
+                <img src="../../assets/icons/wzlogo.png" alt="mpwz logo" width="40" height="40">
+            </div>
+            <span class="fw-bold fs-5 text-white">RMTL Laboratory</span>
+        </div>
+    </div>
+
+    <ul class="sidebar-menu">
+        <li class="menu-item" routerLinkActive="active">
+            <a class="menu-link" routerLink="/wzlab/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+                <span><i class="fas fa-tachometer-alt me-2"></i> <span class="menu-text">Main Dashboard</span></span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="sidebar-heading px-3">USER MANAGEMENT</div>
+    <ul class="sidebar-menu">
+        <li class="menu-item" routerLinkActive="active">
+            <a class="menu-link" data-bs-toggle="collapse" href="#userManagement" role="button"
+               [attr.aria-expanded]="isRouteActive(['/wzlab/user'])"
+               [ngClass]="{ show: isRouteActive(['/wzlab/user']) }">
+                <span><i class="fas fa-user me-2"></i> <span class="menu-text">User Management</span></span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/user']) }" id="userManagement">
+                <div class="submenu">
+                    <a class="submenu-link" routerLink="/wzlab/user/create-user" routerLinkActive="active">User Details Add</a>
+                    <a class="submenu-link" routerLink="/wzlab/user/edit-user" routerLinkActive="active">User Details Edit</a>
+                    <a class="submenu-link" routerLink="/wzlab/user/user-list" routerLinkActive="active">User Details List</a>
+                    <a class="submenu-link" routerLink="/wzlab/user/user-access" routerLinkActive="active">User Access List</a>
                 </div>
-            </div>    
-            <ul class="sidebar-menu">
-                  <li class="menu-item">
-                    <a class="menu-link active" routerLink="/wzlab/dashboard">
-                        <span><i class="fas fa-tachometer-alt me-2"></i> <span class="menu-text">Main Dashboard</span></span>
-                    </a>
-                </li>   
-            </ul>     
-            <div class="sidebar-heading px-3">USER MANAGEMENT</div>
-            <ul class="sidebar-menu">
-                <li class="menu-item">
-                    <a class="menu-link" data-bs-toggle="collapse" href="#userManagement" role="button" aria-expanded="false">
-                        <span><i class="fas fa-user me-2"></i> <span class="menu-text">User Management</span></span>
-                        <i class="fas fa-chevron-down chevron"></i>
-                    </a>
-                    <div class="collapse" id="userManagement">
-                        <div class="submenu">
-                            <a class="submenu-link" routerLink="/wzlab/user/create-user">User Details Add</a>
-                            <a class="submenu-link" routerLink="/wzlab/user/edit-user">User Details Edit</a>
-                            <a class="submenu-link" routerLink="/wzlab/user/user-list">User Details List</a>
-                            <a class="submenu-link" routerLink="/wzlab/user/user-access">User Access List</a>
-                        </div>
-                    </div>
-                </li>
-            </ul>
-            <div class="sidebar-heading px-3">METER ASSIGNMENT</div>
-            <ul class="sidebar-menu">              
-                <li class="menu-item">
-                    <a class="menu-link" data-bs-toggle="collapse" href="#userAssignments" role="button" aria-expanded="false">
-                        <span><i class="fas fa-window-maximize me-2"></i> <span class="menu-text">User Assignments</span></span>
-                        <i class="fas fa-chevron-down chevron"></i>
-                    </a>
-                    <div class="collapse" id="userAssignments">
-                        <div class="submenu">
-                            <a class="submenu-link" routerLink="/wzlab/assignement/assignment-dashboard">Assignments Dashboard</a>
-                            <a class="submenu-link" routerLink="/wzlab/assignement/assign-to-user">Meters Assignment</a>
-                            <a class="submenu-link" routerLink="/wzlab/assignement/edit-assignment">Edit Meter Assignments</a>
-                            <a class="submenu-link" routerLink="/wzlab/assignement/assigned-list">View Assignments History</a>
-                        </div>
-                    </div>
-                </li>
-            </ul>
-            
-            <div class="sidebar-heading px-3">ANALYTICS & REPORTS</div>
-            <ul class="sidebar-menu">
-                <li class="menu-item">
-                    <a class="menu-link" data-bs-toggle="collapse" href="#usageAnalytics" role="button" aria-expanded="false">
-                        <span><i class="fas fa-chart-line me-2"></i> <span class="menu-text">Usage Analytics</span></span>
-                        <i class="fas fa-chevron-down chevron"></i>
-                    </a>
-                    <div class="collapse" id="usageAnalytics">
-                        <div class="submenu">
-                            <a class="submenu-link">Daily Reports</a>
-                            <a class="submenu-link">Weekly Trends</a>
-                            <a class="submenu-link">Monthly Overview</a>
-                            <a class="submenu-link">Annual Summary</a>
-                        </div>
-                    </div>
-                </li>
-            </ul>
-            
-            <div class="sidebar-heading px-3">SYSTEM SETTINGS</div>
-            <ul class="sidebar-menu">
-                <li class="menu-item">
-                    <a class="menu-link" data-bs-toggle="collapse" href="#configuration" role="button" aria-expanded="false">
-                        <span><i class="fas fa-cog me-2"></i> <span class="menu-text">Configuration</span></span>
-                        <i class="fas fa-chevron-down chevron"></i>
-                    </a>
-                    <div class="collapse" id="configuration">
-                        <div class="submenu">
-                            <a class="submenu-link">Meter Types</a>
-                            <a class="submenu-link">Device Settings</a>
-                            <a class="submenu-link">Network Configuration</a>
-                        </div>
-                    </div>
-                </li>
-            </ul>
-        </nav>
+            </div>
+        </li>
+    </ul>
+
+    <div class="sidebar-heading px-3">METER ASSIGNMENT</div>
+    <ul class="sidebar-menu">
+        <li class="menu-item" routerLinkActive="active">
+            <a class="menu-link" data-bs-toggle="collapse" href="#userAssignments" role="button"
+               [attr.aria-expanded]="isRouteActive(['/wzlab/assignement'])"
+               [ngClass]="{ show: isRouteActive(['/wzlab/assignement']) }">
+                <span><i class="fas fa-window-maximize me-2"></i> <span class="menu-text">User Assignments</span></span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/assignement']) }" id="userAssignments">
+                <div class="submenu">
+                    <a class="submenu-link" routerLink="/wzlab/assignement/assignment-dashboard" routerLinkActive="active">Assignments Dashboard</a>
+                    <a class="submenu-link" routerLink="/wzlab/assignement/assign-to-user" routerLinkActive="active">Meters Assignment</a>
+                    <a class="submenu-link" routerLink="/wzlab/assignement/edit-assignment" routerLinkActive="active">Edit Meter Assignments</a>
+                    <a class="submenu-link" routerLink="/wzlab/assignement/assigned-list" routerLinkActive="active">View Assignments History</a>
+                </div>
+            </div>
+        </li>
+    </ul>
+
+    <div class="sidebar-heading px-3">ANALYTICS & REPORTS</div>
+    <ul class="sidebar-menu">
+        <li class="menu-item" routerLinkActive="active">
+            <a class="menu-link" data-bs-toggle="collapse" href="#usageAnalytics" role="button">
+                <span><i class="fas fa-chart-line me-2"></i> <span class="menu-text">Usage Analytics</span></span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse" id="usageAnalytics">
+                <div class="submenu">
+                    <a class="submenu-link">Daily Reports</a>
+                    <a class="submenu-link">Weekly Trends</a>
+                    <a class="submenu-link">Monthly Overview</a>
+                    <a class="submenu-link">Annual Summary</a>
+                </div>
+            </div>
+        </li>
+    </ul>
+
+    <div class="sidebar-heading px-3">SYSTEM SETTINGS</div>
+    <ul class="sidebar-menu">
+        <li class="menu-item" routerLinkActive="active">
+            <a class="menu-link" data-bs-toggle="collapse" href="#configuration" role="button">
+                <span><i class="fas fa-cog me-2"></i> <span class="menu-text">Configuration</span></span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse" id="configuration">
+                <div class="submenu">
+                    <a class="submenu-link">Meter Types</a>
+                    <a class="submenu-link">Device Settings</a>
+                    <a class="submenu-link">Network Configuration</a>
+                </div>
+            </div>
+        </li>
+    </ul>
+</nav>
+
 
         <!-- Main Content -->
         <div class="content-wrapper">
-            <nav class="top-nav  text-white d-flex justify-content-between align-items-center px-3">
+            <nav class="top-nav  text-white d-flex justify-content-between align-items-center px-3"
+             style="background: linear-gradient(to bottom, #081129, #010e38);">
             <div class="d-flex align-items-center">
                 <!-- Sidebar Toggle Button (Visible on small screens) -->
-                <button class="btn sidebar-toggle me-3 d-block d-md-none bg-primary text-white" id="sidebarToggle">
-                <i class="fas fa-bars"></i>
-                </button>
+                    <button class="btn sidebar-toggle me-3 d-block d-lg-none bg-primary text-white"
+                            (click)="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                    </button>
                 <!-- <h5 class="mb-0 d-none d-md-block">RMTL Laboratory</h5> -->
             </div>
 
@@ -103,10 +116,10 @@
             <div class="dropdown">
                 <button class="btn user-btn dropdown-toggle d-flex align-items-center text-white" type="button"
                 id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-user me-2"></i>
-                <span class="d-none d-md-block">Admin User</span>
+                <i class="fas fa-user-circle me-2" aria-hidden="true"></i>
+                <span class="d-none d-md-block fw-bold m-1">{{ currentUser| titlecase }}</span>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                <ul class="dropdown-menu dropdown-menu-end mt-1" aria-labelledby="profileDropdown">
                 <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
                 <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
                 <li><hr class="dropdown-divider"></li>
@@ -114,9 +127,14 @@
                 </ul>
             </div>
             </nav>
+            <!-- Overlay when sidebar is open on mobile -->
+ <div class="sidebar-overlay"
+     *ngIf="!sidebarCollapsed && screenWidth < 992"
+     (click)="toggleSidebar()">
+</div>
 
             <!-- Page Content -->
-            <div class="page-content">
+            <div class="page-content">               
                 <router-outlet></router-outlet>
             </div>
         </div>

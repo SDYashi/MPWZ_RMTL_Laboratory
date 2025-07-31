@@ -3,27 +3,59 @@ import {
   HttpRequest,
   HttpHandler,
   HttpEvent,
-  HttpInterceptor
+  HttpInterceptor,
+  HttpErrorResponse
 } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { AuthService } from './auth.service';
+import { catchError, finalize, Observable, throwError } from 'rxjs';
+import { Router } from '@angular/router';
+import { LoadingService } from '../services/loading.service';
 
 @Injectable()
 export class AuthInterceptorInterceptor implements HttpInterceptor {
 
-   constructor(private auth: AuthService) {}
+  constructor(
+    private router: Router,
+    private loaderService: LoadingService
+  ) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const token = this.auth.getToken();
+    let clonedRequest = req;
+    const access_token = localStorage.getItem('access_token');
+    const isFormData = req.body instanceof FormData;
 
-    if (token) {
-      const authReq = req.clone({
-        setHeaders: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    // 🧠 Avoid overwriting existing Content-Type (e.g., for x-www-form-urlencoded)
+    if (!isFormData && !req.headers.has('Content-Type')) {
+      clonedRequest = clonedRequest.clone({
+        setHeaders: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       });
-      return next.handle(authReq);
     }
 
-    return next.handle(req);
-  
+    // 🔐 Add Authorization only if token exists and NOT for /token login endpoint
+    if (access_token && !req.url.includes('/token')) {
+      clonedRequest = clonedRequest.clone({
+        setHeaders: {
+          Authorization: `Bearer ${access_token}`
+        }
+      });
+    }
+
+    // ⏳ Show loader
+    this.loaderService.show();
+
+    return next.handle(clonedRequest).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401) {
+          this.router.navigate(['/wzlogin']);
+        }
+        return throwError(() => error);
+      }),
+      finalize(() => {
+        // ✅ Hide loader on complete/error
+        this.loaderService.hide();
+      })
+    );
   }
 }
