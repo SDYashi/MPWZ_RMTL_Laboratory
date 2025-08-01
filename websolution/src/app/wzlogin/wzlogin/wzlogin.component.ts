@@ -27,7 +27,7 @@ export class WzloginComponent {
     this.apiservice.getlogin(username, password).subscribe({
       next: (response) => {
         console.log('Login successful:', response);
-        localStorage.setItem('token', response.access_token);  // use access_token
+        localStorage.setItem('access_token', response.access_token);  // use access_token
         this.isLoading = false;
         this.router.navigate(['/wzlab/dashboard']);
       },

@@ -1,1 +1,73 @@
-<p>rmtl-user-list works!</p>
+<div class="container-fluid">
+  <div class="card shadow-sm border-0">
+    <div class="card-header container_header text-white d-flex align-items-center">
+      <i class="fas fa-users me-2"></i>
+      <h5 class="mb-0">List of Laboratories Users</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle mb-0">
+          <thead class="table-light text-center">
+            <tr>
+              <th>S.No</th>
+              <th>Username</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Designation</th>
+              <th>Status</th>
+              <th>Mobile</th>
+              <th>Lab ID</th>
+              <th>Roles</th>
+              <th>Created At</th>
+              <th>Updated At</th>
+              <th>Last Login</th>
+              <th>Update</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of users; let i = index">
+              <td class="text-center">{{ i + 1 }}</td>
+              <td>{{ user.username }}</td>
+              <td>{{ user.name }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.designation }}</td>
+              <td class="text-center">
+                <span [ngClass]="{
+                  'badge bg-success': user.status === 'Active',
+                  'badge bg-danger': user.status === 'Inactive',
+                  'badge bg-warning text-dark': user.status === 'Pending'
+                }">
+                  {{ user.status }}
+                </span>
+              </td>
+              <td>{{ user.mobile }}</td>
+              <td class="text-center">{{ user.lab_id }}</td>
+              <td>
+                <span *ngFor="let role of user.roles" class="badge bg-info text-dark me-1">
+                  {{ role }}
+                </span>
+              </td>
+              <td>{{ user.created_at | date:'dd/MM/yyyy' }}</td>
+              <td>{{ user.updated_at | date:'dd/MM/yyyy' }}</td>
+              <td>{{ user.last_login_at | date:'dd/MM/yyyy' }}</td>
+              <td class="text-center">
+                <!-- <button type="button" class="btn btn-primary btn-sm" (click)="onEdit(user)">
+                  <i class="fas fa-edit me-1"></i> Update
+                </button> -->
+                <button
+                  type="button"
+                  class="btn btn-primary btn-sm"
+                  [routerLink]="['/wzlab/user/edit-user', user.id]"
+                >
+                  <i class="fas fa-edit me-1"></i>
+                </button>
+
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+

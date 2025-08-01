@@ -1,1 +1,58 @@
-<p>lab-create works!</p>
+<div class="container mt-4">
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Create Laboratory</h5>
+    </div>
+    <div class="card-body">
+      <form (ngSubmit)="createLab()" #labForm="ngForm">
+        <div class="mb-3">
+          <label for="lab_name" class="form-label">Lab Name</label>
+          <input
+            type="text"
+            class="form-control"
+            id="lab_name"
+            name="lab_name"
+            [(ngModel)]="lab.lab_name"
+            required
+          />
+        </div>
+
+        <div class="mb-3">
+          <label for="lab_location" class="form-label">Lab Location</label>
+          <input
+            type="text"
+            class="form-control"
+            id="lab_location"
+            name="lab_location"
+            [(ngModel)]="lab.lab_location"
+            required
+          />
+        </div>
+
+        <div class="mb-3">
+          <label for="status" class="form-label">Status</label>
+          <select
+            class="form-select"
+            id="status"
+            name="status"
+            [(ngModel)]="lab.status"
+            required
+          >
+            <option value="" disabled selected>Select status</option>
+            <option value="operational">Operational</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        <button class="btn btn-success" [disabled]="labForm.invalid">Create Lab</button>
+      </form>
+
+      <div *ngIf="response" class="alert alert-success mt-3">
+        ✅ Lab <strong>{{ response.lab_name }}</strong> created successfully at <strong>{{ response.lab_location }}</strong>.
+      </div>
+
+      <div *ngIf="errorMsg" class="alert alert-danger mt-3">
+      </div>
+    </div>
+  </div>
+</div>

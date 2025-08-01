@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { RmtlEditUserRoutingModule } from './rmtl-edit-user-routing.module';
 import { RmtlEditUserComponent } from './rmtl-edit-user/rmtl-edit-user.component';
+import { FormsModule } from '@angular/forms';
 
 
 @NgModule({
@@ -11,7 +12,8 @@ import { RmtlEditUserComponent } from './rmtl-edit-user/rmtl-edit-user.component
   ],
   imports: [
     CommonModule,
-    RmtlEditUserRoutingModule
+    RmtlEditUserRoutingModule,
+    FormsModule,
   ]
 })
 export class RmtlEditUserModule { }

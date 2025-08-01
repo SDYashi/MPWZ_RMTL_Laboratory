@@ -10,6 +10,7 @@ export class ApiServicesService {
 
 constructor( private  http: HttpClient) {} 
 private baseUrl = environment.apiUrl;
+
 getlogin(username: string, password: string): Observable<any> {
   const body = new HttpParams()
     .set('username', username)
@@ -21,7 +22,34 @@ getlogin(username: string, password: string): Observable<any> {
 
   return this.http.post<any>(`${this.baseUrl}/token`, body.toString(), { headers });
 }
+getallUsers(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/users/`);
+}
 
+getUser(id: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/users/${id}`);
+}
+
+updateUser(id: number, user: any): Observable<any> {
+  return this.http.put<any>(`${this.baseUrl}/users/${id}`, user);
+}
+
+createLab(lab: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}/labs`, lab);
+}
+
+getallLabs(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/labs`);
+}
+getLabWithBenches(labId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/labs/${labId}/benches`);
+}
+getLabById(labId: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/labs/${labId}`);
+}
+updateLab(id: number, lab: any): Observable<any> {
+  return this.http.put<any>(`${this.baseUrl}/labs/${id}`, lab);
+}
 
 
 }

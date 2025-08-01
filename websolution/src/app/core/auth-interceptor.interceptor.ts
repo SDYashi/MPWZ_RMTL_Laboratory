@@ -18,14 +18,35 @@ export class AuthInterceptorInterceptor implements HttpInterceptor {
     private loaderService: LoadingService
   ) {}
 
+  // 🔧 Utility: Convert object to URL-encoded string
+  private toUrlEncoded(obj: any): string {
+    return Object.keys(obj)
+      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(obj[key])}`)
+      .join('&');
+  }
+
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     let clonedRequest = req;
     const access_token = localStorage.getItem('access_token');
     const isFormData = req.body instanceof FormData;
 
-    // 🧠 Avoid overwriting existing Content-Type (e.g., for x-www-form-urlencoded)
-    if (!isFormData && !req.headers.has('Content-Type')) {
-      clonedRequest = clonedRequest.clone({
+    // 🧠 Detect /token and encode body
+    const isTokenRequest = req.url.includes('/token') && req.method === 'POST';
+
+    if (isTokenRequest && typeof req.body === 'object') {
+      const encodedBody = this.toUrlEncoded(req.body);
+
+      clonedRequest = req.clone({
+        body: encodedBody,
+        setHeaders: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
+        }
+      });
+    }
+    else if (!isFormData && !req.headers.has('Content-Type')) {
+      // Default for other JSON requests
+      clonedRequest = req.clone({
         setHeaders: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -33,7 +54,6 @@ export class AuthInterceptorInterceptor implements HttpInterceptor {
       });
     }
 
-    // 🔐 Add Authorization only if token exists and NOT for /token login endpoint
     if (access_token && !req.url.includes('/token')) {
       clonedRequest = clonedRequest.clone({
         setHeaders: {
@@ -42,7 +62,6 @@ export class AuthInterceptorInterceptor implements HttpInterceptor {
       });
     }
 
-    // ⏳ Show loader
     this.loaderService.show();
 
     return next.handle(clonedRequest).pipe(
@@ -53,7 +72,6 @@ export class AuthInterceptorInterceptor implements HttpInterceptor {
         return throwError(() => error);
       }),
       finalize(() => {
-        // ✅ Hide loader on complete/error
         this.loaderService.hide();
       })
     );

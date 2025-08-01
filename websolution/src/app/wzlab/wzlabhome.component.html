@@ -22,7 +22,7 @@
         </li>
     </ul>
 
-    <div class="sidebar-heading px-3">USER MANAGEMENT</div>
+    <div class="sidebar-heading px-3">ADMIN MANAGEMENT</div>
     <ul class="sidebar-menu">
         <li class="menu-item" routerLinkActive="active">
             <a class="menu-link" data-bs-toggle="collapse" href="#userManagement" role="button"
@@ -34,9 +34,22 @@
             <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/user']) }" id="userManagement">
                 <div class="submenu">
                     <a class="submenu-link" routerLink="/wzlab/user/create-user" routerLinkActive="active">User Details Add</a>
-                    <a class="submenu-link" routerLink="/wzlab/user/edit-user" routerLinkActive="active">User Details Edit</a>
                     <a class="submenu-link" routerLink="/wzlab/user/user-list" routerLinkActive="active">User Details List</a>
-                    <a class="submenu-link" routerLink="/wzlab/user/user-access" routerLinkActive="active">User Access List</a>
+                </div>
+            </div>
+        </li>
+        <li class="menu-item" routerLinkActive="active">
+            <a class="menu-link" data-bs-toggle="collapse" href="#LABManagement" role="button"
+               [attr.aria-expanded]="isRouteActive(['/wzlab/testing-laboratory'])"
+               [ngClass]="{ show: isRouteActive(['/wzlab/testing-laboratory']) }">
+                <span><i class="fas fa-microscope me-1"></i> <span class="menu-text">Laboratory Management</span></span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/testing-laboratory']) }" id="LABManagement">
+                <div class="submenu">
+                    <a class="submenu-link" routerLink="/wzlab/testing-laboratory/labs-create" routerLinkActive="active">Create Laboratory</a>
+                    <a class="submenu-link" routerLink="/wzlab/testing-laboratory/labs-edit" routerLinkActive="active">Edit Laboratory</a>
+                    <a class="submenu-link" routerLink="/wzlab/testing-laboratory/labs-list" routerLinkActive="active">List Laboratory</a>
                 </div>
             </div>
         </li>
