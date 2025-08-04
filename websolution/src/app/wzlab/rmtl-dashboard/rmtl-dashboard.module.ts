@@ -11,4 +11,8 @@ import { RmtlDashboardRoutingModule } from './rmtl-dashboard-routing.module';
     RmtlDashboardRoutingModule
   ]
 })
-export class RmtlDashboardModule { }
+export class RmtlDashboardModule {
+
+
+
+}

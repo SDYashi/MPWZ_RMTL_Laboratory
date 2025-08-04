@@ -64,12 +64,13 @@ body {
 }
 
 .sidebar-heading {
-  color: rgba(255,255,255,0.6);
-  font-size: 0.8rem;
+  color: rgba(14, 212, 7, 0.6);
+  font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 1px;
   padding: 1rem 1rem 0.5rem;
   margin-top: 0.1rem;
+  font-weight: bold;
 }
 
 .sidebar-menu {

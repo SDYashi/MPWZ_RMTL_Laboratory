@@ -23,6 +23,15 @@ export class RmtlCreateUserComponent {
 
   constructor(private apiservice: ApiServicesService) {}
 
+  statuses: string[] = ['ACTIVE', 'INACTIVE', 'PENDING'];
+  labs: { id: number, name: string }[] = [
+    { id: 1, name: 'Lab1' },
+    { id: 2, name: 'Lab2' },
+    { id: 3, name: 'Lab3' }
+  ];
+  roles: string[] = ['ADMIN', 'OFFICER_INCHARGE', 'USER'];
+
+
   onSubmit(): void {
     const roles = this.user.rolesStr
       ? this.user.rolesStr.split(',').map((r: string) => r.trim())

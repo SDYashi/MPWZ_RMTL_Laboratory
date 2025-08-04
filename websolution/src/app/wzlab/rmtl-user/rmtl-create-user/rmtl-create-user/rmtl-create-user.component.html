@@ -1,7 +1,8 @@
 <div class="container-Fluid mt-1">
   <div class="card shadow-sm border-0">
-    <div class="card-header text-white d-flex align-items-center" style="background: linear-gradient(to bottom, #919194, #584f61);">
-      <h5>Create New User</h5>
+     <div class="card-header text-dark bg-info d-flex align-items-center">
+      <i class="fas fa-users me-2"></i>
+      <h5 class="mb-0">Create New User</h5>
     </div>
 
     <div class="card-body">
@@ -13,7 +14,7 @@
       <form #userForm="ngForm" (ngSubmit)="onSubmit()">
         <div class="row">
 
-          <div class="col-md-6 mb-3">
+          <div class="col-md-4 mb-3">
             <label class="form-label">Username</label>
             <input
               type="text"
@@ -24,7 +25,7 @@
             />
           </div>
 
-          <div class="col-md-6 mb-3">
+          <div class="col-md-4 mb-3">
             <label class="form-label">Password</label>
             <input
               type="password"
@@ -35,7 +36,7 @@
             />
           </div>
 
-          <div class="col-md-6 mb-3">
+          <div class="col-md-4 mb-3">
             <label class="form-label">Full Name</label>
             <input
               type="text"
@@ -46,7 +47,11 @@
             />
           </div>
 
-          <div class="col-md-6 mb-3">
+        </div>
+
+        <div class="row">
+
+          <div class="col-md-4 mb-3">
             <label class="form-label">Email</label>
             <input
               type="email"
@@ -57,7 +62,7 @@
             />
           </div>
 
-          <div class="col-md-6 mb-3">
+          <div class="col-md-4 mb-3">
             <label class="form-label">Designation</label>
             <input
               type="text"
@@ -67,7 +72,7 @@
             />
           </div>
 
-          <div class="col-md-6 mb-3">
+          <div class="col-md-4 mb-3">
             <label class="form-label">Mobile</label>
             <input
               type="text"
@@ -77,48 +82,39 @@
             />
           </div>
 
-          <div class="col-md-6 mb-3">
-            <label class="form-label">Status</label>
+        </div>
+
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Lab ID</label>
             <select
-              name="status"
-              [(ngModel)]="user.status"
-              class="form-select"
+              name="lab_id"
+              [(ngModel)]="user.lab_id"
+              class="form-select"            
             >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="pending">Pending</option>
+              <option *ngFor="let lab of labs" [value]="lab.id">{{ lab.name }}</option>
             </select>
           </div>
 
-          <div class="col-md-6 mb-3">
-            <label class="form-label">Lab ID</label>
-            <input
-              type="text"
-              name="lab_id"
-              [(ngModel)]="user.lab_id"
-              class="form-control"
-              required
-            />
-          </div>
-
-          <div class="col-md-12 mb-3">
+          <div class="col-md-4 mb-3">
             <label class="form-label">Roles</label>
-            <input
-              type="text"
+            <select
               name="rolesStr"
               [(ngModel)]="user.rolesStr"
-              class="form-control"
-              placeholder="e.g. ADMIN,OFFICER_INCHARGE"
-            />
-            <small class="text-muted">Enter comma-separated roles</small>
+              class="form-select" required>
+              <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+            </select>
           </div>
-
         </div>
 
         <button type="submit" class="btn btn-success mt-2">
           <i class="fas fa-save me-1"></i> Submit
         </button>
+        <button type="button" class="btn btn-secondary mt-2 ms-2" (click)="userForm.reset()">
+          <i class="fas fa-undo me-1"></i> Reset
+        </button>
       </form>
     </div>
   </div>
 </div>
+

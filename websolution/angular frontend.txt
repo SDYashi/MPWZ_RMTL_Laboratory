@@ -1,0 +1,603 @@
+
+
+
+
+
+// src/app/components/user-management/user-management.component.ts
+import { Component, OnInit } from '@angular/core';
+import { ApiService } from '../../services/api.service';
+import { UserPublic, UserCreate, UserUpdate } from '../../models';
+import { AuthService } from '../../services/auth.service';
+
+@Component({
+  selector: 'app-user-management',
+  templateUrl: './user-management.component.html',
+  styleUrls: ['./user-management.component.css']
+})
+export class UserManagementComponent implements OnInit {
+  users: UserPublic[] = [];
+  newUser: UserCreate = {
+    username: '',
+    password: '',
+    name: '',
+    email: '',
+    designation: '',
+    mobile: ''
+  };
+  selectedUser: UserPublic | null = null;
+  updateUserData: UserUpdate = {};
+  message: string | null = null;
+  isEditMode = false;
+  currentUser: UserPublic | null = null;
+
+  constructor(private apiService: ApiService, private authService: AuthService) { }
+
+  ngOnInit(): void {
+    this.authService.currentUser.subscribe(user => {
+      this.currentUser = user;
+    });
+    this.loadUsers();
+  }
+
+  loadUsers(): void {
+    this.apiService.getUsers().subscribe({
+      next: (data) => {
+        this.users = data;
+        this.message = null;
+      },
+      error: (err) => {
+        this.message = 'Failed to load users: ' + (err.error?.detail || err.message);
+        console.error('Error loading users:', err);
+      }
+    });
+  }
+
+  createUser(): void {
+    this.message = null;
+    this.apiService.createUser(this.newUser).subscribe({
+      next: (user) => {
+        this.message = `User ${user.username} created successfully!`;
+        this.loadUsers();
+        this.resetNewUserForm();
+      },
+      error: (err) => {
+        this.message = 'Failed to create user: ' + (err.error?.detail || err.message);
+        console.error('Error creating user:', err);
+      }
+    });
+  }
+
+  editUser(user: UserPublic): void {
+    this.selectedUser = { ...user }; // Create a copy to avoid direct modification
+    this.updateUserData = { ...user, password: '' }; // Pre-fill update form, clear password
+    this.isEditMode = true;
+    this.message = null;
+  }
+
+  updateUser(): void {
+    if (!this.selectedUser?.id) {
+      this.message = 'No user selected for update.';
+      return;
+    }
+    this.message = null;
+    // Ensure updated_by is set to the current user's ID
+    if (this.currentUser) {
+      this.updateUserData.updated_by = this.currentUser.id;
+    }
+
+    this.apiService.updateUser(this.selectedUser.id, this.updateUserData).subscribe({
+      next: (user) => {
+        this.message = `User ${user.username} updated successfully!`;
+        this.loadUsers();
+        this.cancelEdit();
+      },
+      error: (err) => {
+        this.message = 'Failed to update user: ' + (err.error?.detail || err.message);
+        console.error('Error updating user:', err);
+      }
+    });
+  }
+
+  deleteUser(id: number): void {
+    if (confirm('Are you sure you want to delete this user?')) {
+      this.message = null;
+      this.apiService.deleteUser(id).subscribe({
+        next: () => {
+          this.message = 'User deleted successfully!';
+          this.loadUsers();
+        },
+        error: (err) => {
+          this.message = 'Failed to delete user: ' + (err.error?.detail || err.message);
+          console.error('Error deleting user:', err);
+        }
+      });
+    }
+  }
+
+  cancelEdit(): void {
+    this.selectedUser = null;
+    this.updateUserData = {};
+    this.isEditMode = false;
+    this.message = null;
+  }
+
+  resetNewUserForm(): void {
+    this.newUser = {
+      username: '',
+      password: '',
+      name: '',
+      email: '',
+      designation: '',
+      mobile: ''
+    };
+  }
+}
+
+
+// src/app/components/user-management/user-management.component.html
+<div class="container mx-auto p-6 bg-gray-50 min-h-screen">
+  <h2 class="text-3xl font-bold text-gray-800 mb-8">User Management</h2>
+
+  <div *ngIf="message" class="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">
+    {{ message }}
+  </div>
+
+  <!-- Create New User Form -->
+  <div class="bg-white shadow-lg rounded-lg p-6 mb-8">
+    <h3 class="text-xl font-semibold text-gray-700 mb-4">Create New User</h3>
+    <form (ngSubmit)="createUser()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label for="newUsername" class="block text-sm font-medium text-gray-700">Username</label>
+        <input type="text" id="newUsername" [(ngModel)]="newUser.username" name="newUsername" required
+               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+      </div>
+      <div>
+        <label for="newPassword" class="block text-sm font-medium text-gray-700">Password</label>
+        <input type="password" id="newPassword" [(ngModel)]="newUser.password" name="newPassword" required
+               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+      </div>
+      <div>
+        <label for="newName" class="block text-sm font-medium text-gray-700">Name</label>
+        <input type="text" id="newName" [(ngModel)]="newUser.name" name="newName" required
+               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+      </div>
+      <div>
+        <label for="newEmail" class="block text-sm font-medium text-gray-700">Email</label>
+        <input type="email" id="newEmail" [(ngModel)]="newUser.email" name="newEmail" required
+               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+      </div>
+      <div>
+        <label for="newDesignation" class="block text-sm font-medium text-gray-700">Designation</label>
+        <input type="text" id="newDesignation" [(ngModel)]="newUser.designation" name="newDesignation" required
+               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+      </div>
+      <div>
+        <label for="newMobile" class="block text-sm font-medium text-gray-700">Mobile</label>
+        <input type="text" id="newMobile" [(ngModel)]="newUser.mobile" name="newMobile" required
+               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+      </div>
+      <div class="md:col-span-2 flex justify-end">
+        <button type="submit"
+                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          Add User
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- User List -->
+  <div class="bg-white shadow-lg rounded-lg p-6">
+    <h3 class="text-xl font-semibold text-gray-700 mb-4">Existing Users</h3>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+        <tr>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Designation</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+        </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+        <tr *ngFor="let user of users">
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.id }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.username }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.name }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.email }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.designation }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.status }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.mobile }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+            <button (click)="editUser(user)" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+            <button (click)="deleteUser(user.id!)" class="text-red-600 hover:text-red-900">Delete</button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Edit User Modal/Form -->
+  <div *ngIf="isEditMode" class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+      <h3 class="text-xl font-semibold text-gray-800 mb-4">Edit User</h3>
+      <form (ngSubmit)="updateUser()" class="space-y-4">
+        <div>
+          <label for="editUsername" class="block text-sm font-medium text-gray-700">Username</label>
+          <input type="text" id="editUsername" [(ngModel)]="updateUserData.username" name="editUsername"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+        </div>
+        <div>
+          <label for="editPassword" class="block text-sm font-medium text-gray-700">Password (leave blank to keep current)</label>
+          <input type="password" id="editPassword" [(ngModel)]="updateUserData.password" name="editPassword"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+        </div>
+        <div>
+          <label for="editName" class="block text-sm font-medium text-gray-700">Name</label>
+          <input type="text" id="editName" [(ngModel)]="updateUserData.name" name="editName"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+        </div>
+        <div>
+          <label for="editEmail" class="block text-sm font-medium text-gray-700">Email</label>
+          <input type="email" id="editEmail" [(ngModel)]="updateUserData.email" name="editEmail"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+        </div>
+        <div>
+          <label for="editDesignation" class="block text-sm font-medium text-gray-700">Designation</label>
+          <input type="text" id="editDesignation" [(ngModel)]="updateUserData.designation" name="editDesignation"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+        </div>
+        <div>
+          <label for="editMobile" class="block text-sm font-medium text-gray-700">Mobile</label>
+          <input type="text" id="editMobile" [(ngModel)]="updateUserData.mobile" name="editMobile"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button type="button" (click)="cancelEdit()"
+                  class="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+// src/app/components/user-management/user-management.component.css
+/* No specific component CSS needed if using Tailwind extensively */
+
+
+// src/app/components/lab-management/lab-management.component.ts
+import { Component, OnInit } from '@angular/core';
+import { ApiService } from '../../services/api.service';
+import { Lab } from '../../models';
+import { AuthService } from '../../services/auth.service';
+import { UserPublic } from '../../models';
+
+@Component({
+  selector: 'app-lab-management',
+  templateUrl: './lab-management.component.html',
+  styleUrls: ['./lab-management.component.css']
+})
+export class LabManagementComponent implements OnInit {
+  labs: Lab[] = [];
+  newLab: Lab = { lab_name: '', lab_location: '', status: 'operational' };
+  selectedLab: Lab | null = null;
+  updateLabData: Lab = {};
+  message: string | null = null;
+  isEditMode = false;
+  currentUser: UserPublic | null = null;
+
+
+  constructor(private apiService: ApiService, private authService: AuthService) { }
+
+  ngOnInit(): void {
+    this.authService.currentUser.subscribe(user => {
+      this.currentUser = user;
+    });
+    this.loadLabs();
+  }
+
+  loadLabs(): void {
+    this.apiService.getLabs().subscribe({
+      next: (data) => {
+        this.labs = data;
+        this.message = null;
+      },
+      error: (err) => {
+        this.message = 'Failed to load labs: ' + (err.error?.detail || err.message);
+        console.error('Error loading labs:', err);
+      }
+    });
+  }
+
+  createLab(): void {
+    this.message = null;
+    if (this.currentUser) {
+      this.newLab.created_by = this.currentUser.id;
+    }
+    this.apiService.createLab(this.newLab).subscribe({
+      next: (lab) => {
+        this.message = `Lab ${lab.lab_name} created successfully!`;
+        this.loadLabs();
+        this.resetNewLabForm();
+      },
+      error: (err) => {
+        this.message = 'Failed to create lab: ' + (err.error?.detail || err.message);
+        console.error('Error creating lab:', err);
+      }
+    });
+  }
+
+  editLab(lab: Lab): void {
+    this.selectedLab = { ...lab }; // Create a copy
+    this.updateLabData = { ...lab }; // Pre-fill update form
+    this.isEditMode = true;
+    this.message = null;
+  }
+
+  updateLab(): void {
+    if (!this.selectedLab?.id) {
+      this.message = 'No lab selected for update.';
+      return;
+    }
+    this.message = null;
+    if (this.currentUser) {
+      this.updateLabData.updated_by = this.currentUser.id;
+    }
+
+    this.apiService.updateLab(this.selectedLab.id, this.updateLabData).subscribe({
+      next: (lab) => {
+        this.message = `Lab ${lab.lab_name} updated successfully!`;
+        this.loadLabs();
+        this.cancelEdit();
+      },
+      error: (err) => {
+        this.message = 'Failed to update lab: ' + (err.error?.detail || err.message);
+        console.error('Error updating lab:', err);
+      }
+    });
+  }
+
+  deleteLab(id: number): void {
+    if (confirm('Are you sure you want to delete this lab?')) {
+      this.message = null;
+      this.apiService.deleteLab(id).subscribe({
+        next: () => {
+          this.message = 'Lab deleted successfully!';
+          this.loadLabs();
+        },
+        error: (err) => {
+          this.message = 'Failed to delete lab: ' + (err.error?.detail || err.message);
+          console.error('Error deleting lab:', err);
+        }
+      });
+    }
+  }
+
+  cancelEdit(): void {
+    this.selectedLab = null;
+    this.updateLabData = {};
+    this.isEditMode = false;
+    this.message = null;
+  }
+
+  resetNewLabForm(): void {
+    this.newLab = { lab_name: '', lab_location: '', status: 'operational' };
+  }
+}
+
+
+// src/app/components/lab-management/lab-management.component.html
+<div class="container mx-auto p-6 bg-gray-50 min-h-screen">
+  <h2 class="text-3xl font-bold text-gray-800 mb-8">Lab Management</h2>
+
+  <div *ngIf="message" class="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">
+    {{ message }}
+  </div>
+
+  <!-- Create New Lab Form -->
+  <div class="bg-white shadow-lg rounded-lg p-6 mb-8">
+    <h3 class="text-xl font-semibold text-gray-700 mb-4">Create New Lab</h3>
+    <form (ngSubmit)="createLab()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label for="newLabName" class="block text-sm font-medium text-gray-700">Lab Name</label>
+        <input type="text" id="newLabName" [(ngModel)]="newLab.lab_name" name="newLabName" required
+               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+      </div>
+      <div>
+        <label for="newLabLocation" class="block text-sm font-medium text-gray-700">Location</label>
+        <input type="text" id="newLabLocation" [(ngModel)]="newLab.lab_location" name="newLabLocation" required
+               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+      </div>
+      <div class="md:col-span-2 flex justify-end">
+        <button type="submit"
+                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          Add Lab
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Lab List -->
+  <div class="bg-white shadow-lg rounded-lg p-6">
+    <h3 class="text-xl font-semibold text-gray-700 mb-4">Existing Labs</h3>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+        <tr>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab Name</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+        </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+        <tr *ngFor="let lab of labs">
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ lab.id }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ lab.lab_name }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ lab.lab_location }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ lab.status }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+            <button (click)="editLab(lab)" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+            <button (click)="deleteLab(lab.id!)" class="text-red-600 hover:text-red-900">Delete</button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Edit Lab Modal/Form -->
+  <div *ngIf="isEditMode" class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+      <h3 class="text-xl font-semibold text-gray-800 mb-4">Edit Lab</h3>
+      <form (ngSubmit)="updateLab()" class="space-y-4">
+        <div>
+          <label for="editLabName" class="block text-sm font-medium text-gray-700">Lab Name</label>
+          <input type="text" id="editLabName" [(ngModel)]="updateLabData.lab_name" name="editLabName"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+        </div>
+        <div>
+          <label for="editLabLocation" class="block text-sm font-medium text-gray-700">Location</label>
+          <input type="text" id="editLabLocation" [(ngModel)]="updateLabData.lab_location" name="editLabLocation"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+        </div>
+        <div>
+          <label for="editLabStatus" class="block text-sm font-medium text-gray-700">Status</label>
+          <select id="editLabStatus" [(ngModel)]="updateLabData.status" name="editLabStatus"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+            <option value="operational">Operational</option>
+            <option value="non_operational">Non-Operational</option>
+          </select>
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button type="button" (click)="cancelEdit()"
+                  class="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+// src/app/components/lab-management/lab-management.component.css
+/* No specific component CSS needed if using Tailwind extensively */
+
+
+// src/app/app-routing.module.ts
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { LoginComponent } from './components/login/login.component';
+import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { UserManagementComponent } from './components/user-management/user-management.component';
+import { LabManagementComponent } from './components/lab-management/lab-management.component';
+import { AuthGuard } from './auth.guard';
+
+const routes: Routes = [
+  { path: 'login', component: LoginComponent },
+  { path: 'dashboard', component: DashboardComponent, canActivate: [AuthGuard] },
+  { path: 'users', component: UserManagementComponent, canActivate: [AuthGuard] },
+  { path: 'labs', component: LabManagementComponent, canActivate: [AuthGuard] },
+  // Add more routes for other entities here, protected by AuthGuard
+  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
+  { path: '**', redirectTo: '/dashboard' } // Wildcard route for any unmatched URL
+];
+
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule]
+})
+export class AppRoutingModule { }
+
+
+// src/app/app.module.ts
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { FormsModule } from '@angular/forms'; // Import FormsModule for ngModel
+
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { LoginComponent } from './components/login/login.component';
+import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { UserManagementComponent } from './components/user-management/user-management.component';
+import { LabManagementComponent } from './components/lab-management/lab-management.component';
+import { TokenInterceptor } from './token.interceptor';
+import { AuthGuard } from './auth.guard';
+import { AuthService } from './services/auth.service';
+import { ApiService } from './services/api.service';
+
+
+@NgModule({
+  declarations: [
+    AppComponent,
+    LoginComponent,
+    DashboardComponent,
+    UserManagementComponent,
+    LabManagementComponent
+  ],
+  imports: [
+    BrowserModule,
+    AppRoutingModule,
+    HttpClientModule,
+    FormsModule // Add FormsModule here
+  ],
+  providers: [
+    AuthService,
+    ApiService,
+    AuthGuard,
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: TokenInterceptor,
+      multi: true
+    }
+  ],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+
+
+// src/app/app.component.ts
+import { Component } from '@angular/core';
+import { AuthService } from './services/auth.service';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  title = 'fastapi-angular-app';
+
+  constructor(public authService: AuthService, private router: Router) {}
+
+  onLogout(): void {
+    this.authService.logout();
+  }
+}
+
+
+// src/app/app.component.html
+<div class="h-screen flex flex-col">
+  <!-- Main content area where router outlets will be displayed -->
+  <router-outlet></router-outlet>
+</div>
+
+// src/app/app.component.css
+/* No specific component CSS needed if using Tailwind extensively */
