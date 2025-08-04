@@ -1,32 +1,38 @@
-<div class="container mt-4">
+<div class="container-fluid mt-1">
   <div class="card shadow-sm border-0">
-    <div class="card-header bg-primary text-white">
+      <div class="card-header container_header text-white d-flex align-items-center">
       <h5 class="mb-0">Create Laboratory</h5>
     </div>
     <div class="card-body">
       <form (ngSubmit)="createLab()" #labForm="ngForm">
-        <div class="mb-3">
-          <label for="lab_name" class="form-label">Lab Name</label>
-          <input
-            type="text"
-            class="form-control"
-            id="lab_name"
-            name="lab_name"
-            [(ngModel)]="lab.lab_name"
-            required
-          />
-        </div>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="lab_name" class="form-label">Lab Name</label>
+              <input
+                type="text"
+                class="form-control"
+                id="lab_name"
+                name="lab_name"
+                [(ngModel)]="lab.lab_name"
+                required
+              />
+            </div>
+          </div>
 
-        <div class="mb-3">
-          <label for="lab_location" class="form-label">Lab Location</label>
-          <input
-            type="text"
-            class="form-control"
-            id="lab_location"
-            name="lab_location"
-            [(ngModel)]="lab.lab_location"
-            required
-          />
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="lab_location" class="form-label">Lab Location</label>
+              <input
+                type="text"
+                class="form-control"
+                id="lab_location"
+                name="lab_location"
+                [(ngModel)]="lab.lab_location"
+                required
+              />
+            </div>
+          </div>
         </div>
 
         <div class="mb-3">
@@ -48,11 +54,13 @@
       </form>
 
       <div *ngIf="response" class="alert alert-success mt-3">
-        ✅ Lab <strong>{{ response.lab_name }}</strong> created successfully at <strong>{{ response.lab_location }}</strong>.
+         Lab <strong>{{ response.lab_name }}</strong> created successfully at <strong>{{ response.lab_location }}</strong>.
       </div>
 
       <div *ngIf="errorMsg" class="alert alert-danger mt-3">
+        {{ errorMsg }}
       </div>
     </div>
   </div>
 </div>
+

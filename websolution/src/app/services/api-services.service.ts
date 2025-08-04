@@ -50,6 +50,9 @@ getLabById(labId: number): Observable<any> {
 updateLab(id: number, lab: any): Observable<any> {
   return this.http.put<any>(`${this.baseUrl}/labs/${id}`, lab);
 }
+createUser(user: any): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}/users`, user);
+}
 
 
 }
