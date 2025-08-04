@@ -23,8 +23,8 @@ export class AuthInterceptorInterceptor implements HttpInterceptor {
     const token = localStorage.getItem('access_token');
 
     const isFormData = req.body instanceof FormData;
-    const hasBody = ['POST', 'PUT', 'PATCH'].includes(req.method);
-    const isLogin = /\/token(?:$|[/?#])/i.test(req.url); // true only for login endpoint
+    const hasBody = ['GET','POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+    const isLogin = /\/token(?:$|[/?#])/i.test(req.url); // login
 
     // Set Content-Type only if:
     // - request has a body
@@ -71,3 +71,4 @@ export class AuthInterceptorInterceptor implements HttpInterceptor {
     );
   }
 }
+

@@ -1,5 +1,5 @@
 import { Component, HostListener, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 
 @Component({
   selector: 'app-wzlabhome',
@@ -7,31 +7,39 @@ import { Router } from '@angular/router';
   styleUrls: ['./wzlabhome.component.css']
 })
 export class WzlabhomeComponent implements OnInit {
-
   currentUrl = '';
-  currentUser: any;
+  currentUser: string | null = null;
+
   sidebarCollapsed = false;
-  screenWidth = window.innerWidth; // ✅ Add this
+  screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
 
   userManagementExpanded = false;
   analyticsExpanded = false;
   settingsExpanded = false;
 
-  
-
   constructor(private router: Router) {
+    // set early so first CD sees a stable value
     this.currentUrl = this.router.url.replace('/', '');
   }
 
   ngOnInit(): void {
+  
+
+    // set currentUser BEFORE first check to avoid ExpressionChanged
+    const token = localStorage.getItem('access_token'); // <-- use the same key everywhere
+    this.currentUser = token ? this.getUserFromToken(token) : null;
+
     this.checkScreenSize();
   }
 
-  ngAfterViewInit(): void {
-    const token = localStorage.getItem('token');
-    if (token) {
-      const tokenData = JSON.parse(atob(token.split('.')[1]));
-      this.currentUser = tokenData.sub;
+  // moved out of ngAfterViewInit; you can remove that hook entirely
+  private getUserFromToken(token: string): string | null {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      // adjust if your claim is different, e.g., payload.username or payload.name
+      return payload?.sub ?? null;
+    } catch {
+      return null;
     }
   }
 
@@ -39,9 +47,9 @@ export class WzlabhomeComponent implements OnInit {
     return paths.some(path => this.router.url.startsWith(path));
   }
 
-  @HostListener('window:resize', ['$event'])
-  onResize(event: any) {
-    this.screenWidth = window.innerWidth; // ✅ Keep this updated
+  @HostListener('window:resize')
+  onResize() {
+    this.screenWidth = typeof window !== 'undefined' ? window.innerWidth : this.screenWidth;
     this.checkScreenSize();
   }
 
@@ -65,10 +73,9 @@ export class WzlabhomeComponent implements OnInit {
     this.settingsExpanded = !this.settingsExpanded;
   }
 
-
-
   logout() {
-    localStorage.removeItem('token');
+    // use the same storage key as above
+    localStorage.removeItem('access_token');
     this.router.navigate(['/wzlogin']);
   }
 }

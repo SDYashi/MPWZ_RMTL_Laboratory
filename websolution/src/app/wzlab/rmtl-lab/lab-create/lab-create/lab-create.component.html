@@ -1,0 +1,50 @@
+<div class="container my-4">
+  <div class="card shadow border-0">
+    <div class="card-header bg-success text-white">
+      <h4 class="mb-0">Create New Lab</h4>
+    </div>
+    <div class="card-body">
+      <form #labForm="ngForm" (ngSubmit)="onSubmit(labForm)" novalidate>
+
+        <!-- Lab Name -->
+        <div class="mb-3">
+          <label for="lab_name" class="form-label">Lab Name</label>
+          <input type="text" class="form-control" id="lab_name" name="lab_name" [(ngModel)]="lab.lab_name" required>
+          <div *ngIf="labForm.submitted && !lab.lab_name" class="text-danger">Lab Name is required.</div>
+        </div>
+
+        <!-- Lab Location -->
+        <div class="mb-3">
+          <label for="lab_location" class="form-label">Lab Location</label>
+          <input type="text" class="form-control" id="lab_location" name="lab_location" [(ngModel)]="lab.lab_location" required>
+          <div *ngIf="labForm.submitted && !lab.lab_location" class="text-danger">Lab Location is required.</div>
+        </div>
+
+        <!-- Status -->
+        <div class="mb-3">
+          <label for="status" class="form-label">Status</label>
+          <select class="form-select" id="status" name="status" [(ngModel)]="lab.status" required>
+            <option value="" disabled selected>Select status</option>
+            <option value="OPERATIONAL">Operational</option>
+            <option value="INACTIVE">Inactive</option>
+            <option value="MAINTENANCE">Maintenance</option>
+          </select>
+          <div *ngIf="labForm.submitted && !lab.status" class="text-danger">Status is required.</div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn btn-success" [disabled]="loading">Create Lab</button>
+        <div *ngIf="loading" class="spinner-border spinner-border-sm text-success ms-2" role="status"></div>
+
+        <!-- Response Message -->
+        <div *ngIf="responseMessage" class="mt-3 alert" [ngClass]="{
+          'alert-success': responseSuccess,
+          'alert-danger': !responseSuccess
+        }">
+          {{ responseMessage }}
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>

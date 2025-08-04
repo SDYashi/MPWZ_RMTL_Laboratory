@@ -2,8 +2,6 @@
   "/api": {
     "target": "http://10.98.7.218:8000",
     "secure": false,
-    "changeOrigin": true,
-    "logLevel": "debug",
-    "pathRewrite": { "^/api": "" }
+    "pathRewrite": {"^/api": ""}
   }
 }

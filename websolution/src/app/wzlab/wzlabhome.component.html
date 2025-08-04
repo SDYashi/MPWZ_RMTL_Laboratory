@@ -23,20 +23,6 @@
     <div class="sidebar-heading px-3">ADMIN MANAGEMENT</div>
     <ul class="sidebar-menu">
         <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" data-bs-toggle="collapse" href="#userManagement" role="button"
-               [attr.aria-expanded]="isRouteActive(['/wzlab/user'])"
-               [ngClass]="{ show: isRouteActive(['/wzlab/user']) }">
-                <span><i class="fas fa-user me-2"></i> <span class="menu-text">User Management</span></span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/user']) }" id="userManagement">
-                <div class="submenu">
-                    <a class="submenu-link" routerLink="/wzlab/user/create-user" routerLinkActive="active">Add Laboratory User Account</a>
-                    <a class="submenu-link" routerLink="/wzlab/user/user-list" routerLinkActive="active">List Laboratory Users</a>
-                </div>
-            </div>
-        </li>
-        <li class="menu-item" routerLinkActive="active">
             <a class="menu-link" data-bs-toggle="collapse" href="#LABManagement" role="button"
                [attr.aria-expanded]="isRouteActive(['/wzlab/testing-laboratory'])"
                [ngClass]="{ show: isRouteActive(['/wzlab/testing-laboratory']) }">
@@ -52,10 +38,24 @@
             </div>
         </li>
         <li class="menu-item" routerLinkActive="active">
+            <a class="menu-link" data-bs-toggle="collapse" href="#userManagement" role="button"
+               [attr.aria-expanded]="isRouteActive(['/wzlab/user'])"
+               [ngClass]="{ show: isRouteActive(['/wzlab/user']) }">
+                <span><i class="fas fa-user me-2"></i> <span class="menu-text">User Management</span></span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/user']) }" id="userManagement">
+                <div class="submenu">
+                    <a class="submenu-link" routerLink="/wzlab/user/create-user" routerLinkActive="active">Add Laboratory User Account</a>
+                    <a class="submenu-link" routerLink="/wzlab/user/user-list" routerLinkActive="active">List Laboratory Users</a>
+                </div>
+            </div>
+        </li>
+        <li class="menu-item" routerLinkActive="active">
             <a class="menu-link" data-bs-toggle="collapse" href="#benchManagement" role="button"
                [attr.aria-expanded]="isRouteActive(['/wzlab/testing-bench'])"
                [ngClass]="{ show: isRouteActive(['/wzlab/testing-bench']) }">
-                <span><i class="fas fa-microscope me-1"></i> <span class="menu-text">Bench Management</span></span>
+                <span><i class="fas fa-table me-1"></i> <span class="menu-text">TestingBench Management</span></span>
                 <i class="fas fa-chevron-down chevron"></i>
             </a>
             <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/testing-bench']) }" id="benchManagement">
@@ -63,6 +63,34 @@
                     <a class="submenu-link" routerLink="/wzlab/testing-bench/benches-create" routerLinkActive="active">Add New Testing Bench</a>
                     <a class="submenu-link" routerLink="/wzlab/testing-bench/benches-edit" routerLinkActive="active">Edit Bench information</a>
                     <a class="submenu-link" routerLink="/wzlab/testing-bench/benches-list" routerLinkActive="active">List Existing Benches</a>
+                </div>
+            </div>
+        </li>
+        <li class="menu-item" routerLinkActive="active">
+            <a class="menu-link" data-bs-toggle="collapse" href="#vendorManagement" role="button"
+               [attr.aria-expanded]="isRouteActive(['/wzlab/vendor'])"
+               [ngClass]="{ show: isRouteActive(['/wzlab/vendor']) }">
+                <span><i class="fas fa-users me-2"></i> <span class="menu-text">Vendor Management</span></span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/vendor']) }" id="vendorManagement">
+                <div class="submenu">
+                    <a class="submenu-link" routerLink="/wzlab/vendor/add-vendor" routerLinkActive="active">Add Vendor</a>
+                    <a class="submenu-link" routerLink="/wzlab/vendor/list-vendor" routerLinkActive="active">List Vendors</a>
+                </div>
+            </div>
+        </li>
+        <li class="menu-item" routerLinkActive="active">
+            <a class="menu-link" data-bs-toggle="collapse" href="#storeManagement" role="button"
+               [attr.aria-expanded]="isRouteActive(['/wzlab/store'])"
+               [ngClass]="{ show: isRouteActive(['/wzlab/store']) }">
+                <span><i class="fas fa-store me-2"></i> <span class="menu-text">Store Management</span></span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </a>
+            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/store']) }" id="storeManagement">
+                <div class="submenu">
+                    <a class="submenu-link" routerLink="/wzlab/store/add-store" routerLinkActive="active">Add Source Store </a>
+                    <a class="submenu-link" routerLink="/wzlab/store/list-store" routerLinkActive="active">List Source Stores</a>
                 </div>
             </div>
         </li>
@@ -104,7 +132,7 @@
         </li>
         <li class="menu-item" routerLinkActive="active">
             <a class="menu-link" data-bs-toggle="collapse" href="#testingActivities" role="button">
-                <span><i class="fas fa-flask me-2"></i> <span class="menu-text">Meter Testing Activities</span></span>
+                <span><i class="fas fa-cogs me-2"></i> <span class="menu-text">Device Testing Icons</span></span>
                 <i class="fas fa-chevron-down chevron"></i>
             </a>
             <div class="collapse" id="testingActivities">
@@ -174,8 +202,7 @@
                 <span class="d-none d-md-block fw-bold m-1">{{ currentUser| titlecase }}</span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end mt-1" aria-labelledby="profileDropdown">
-                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
-                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                <li><a class="dropdown-item" routerLink="/wzlab/user/user-profile"><i class="fas fa-user me-2"></i>Profile</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                 </ul>

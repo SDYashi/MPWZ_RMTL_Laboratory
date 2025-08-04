@@ -5,9 +5,9 @@ const routes: Routes = [
   {path:'',redirectTo:'user-list',pathMatch:'full'},
   {path:'user-list',loadChildren:()=>import('./rmtl-user-list/rmtl-user-list.module').then(m=>m.RmtlUserListModule)},
   {path:'create-user',loadChildren:()=>import('./rmtl-create-user/rmtl-create-user.module').then(m=>m.RmtlCreateUserModule)},
-  // {path:'edit-user',loadChildren:()=>import('./rmtl-edit-user/rmtl-edit-user.module').then(m=>m.RmtlEditUserModule)},
   {path:'edit-user/:id',loadChildren:()=>import('./rmtl-edit-user/rmtl-edit-user.module').then(m=>m.RmtlEditUserModule)},
   {path:'user-access',loadChildren:()=>import('./rmtl-user-acess/rmtl-user-acess.module').then(m=>m.RmtlUserAcessModule)},
+  {path:'user-profile',loadChildren:()=>import('./rmtl-userprofile/rmtl-userprofile.module').then(m=>m.RmtlUserprofileModule)},
   
 ];
 
