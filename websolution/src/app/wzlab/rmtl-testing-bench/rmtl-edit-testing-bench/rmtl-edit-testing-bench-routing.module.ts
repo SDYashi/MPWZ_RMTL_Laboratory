@@ -1,13 +1,13 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { RmtlDeleteBenchComponent } from './rmtl-delete-bench/rmtl-delete-bench.component';
+import { RmtlEditTestingBenchComponent } from './rmtl-edit-testing-bench/rmtl-edit-testing-bench.component';
 
 const routes: Routes = [
-  {path:'',component:RmtlDeleteBenchComponent},
+  {path:'',component:RmtlEditTestingBenchComponent},
 ];
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],
   exports: [RouterModule]
 })
-export class RmtlDeleteBenchRoutingModule { }
+export class RmtlEditTestingBenchRoutingModule { }

@@ -68,6 +68,7 @@ createUser(user: UserCreate): Observable<UserPublic> {
 
 updateUser(id: number, user: UserUpdate): Observable<UserPublic> {
   return this.http.put<UserPublic>(`${this.baseUrl}/users/${id}`, user);
+  
 }
 
 deleteUser(id: number): Observable<any> {
@@ -118,7 +119,7 @@ deleteDevice(id: number): Observable<any> {
 
 // --- Testing Bench Endpoints ---
 getTestingBenches(): Observable<TestingBench[]> {
-  return this.http.get<TestingBench[]>(`${this.baseUrl}/testing-benches`);
+  return this.http.get<TestingBench[]>(`${this.baseUrl}/testing-benches/`);
 }
 
 getTestingBench(id: number): Observable<TestingBench> {
@@ -126,7 +127,7 @@ getTestingBench(id: number): Observable<TestingBench> {
 }
 
 createTestingBench(testingBench: TestingBench): Observable<TestingBench> {
-  return this.http.post<TestingBench>(`${this.baseUrl}/testing-benches`, testingBench);
+  return this.http.post<TestingBench>(`${this.baseUrl}/testing-benches/`, testingBench);
 }
 
 updateTestingBench(id: number, testingBench: TestingBench): Observable<TestingBench> {

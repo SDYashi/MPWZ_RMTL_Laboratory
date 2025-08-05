@@ -1,1 +1,50 @@
-<p>rmtl-testing-bench-list works!</p>
+<div class="container-fluid mt-2">
+  <table class="table table-bordered table-striped table-hover">
+    <thead class="table-light">
+      <tr>
+        <th>S.No</th>
+        <th>Bench Name</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Operation</th>
+        <th>Phase</th>
+        <th>Last Calibration</th>
+        <th>Next Calibration Due</th>
+        <th>Maintenance</th>
+        <th>Lab ID</th>
+        <th>Created At</th>
+        <th>Updated At</th>
+        <th>Edit</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let bench of benches; let i = index">
+        <td>{{ i + 1 }}</td>
+        <td>{{ bench.bench_name }}</td>
+        <td>{{ bench.type }}</td>
+        <td>{{ bench.status }}</td>
+        <td>{{ bench.operation_type }}</td>
+        <td>{{ bench.phase }}</td>
+        <td>{{ bench.last_calibration_date | date }}</td>
+        <td>{{ bench.next_calibration_due | date }}</td>
+        <td>{{ bench.maintenance_status }}</td>
+        <td>{{ bench.lab_id }}</td>
+        <td>{{ bench.created_at | date:'short' }}</td>
+        <td>{{ bench.updated_at | date:'short' }}</td>
+        <td>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            [routerLink]="['/wzlab/testing-bench/edit-bench', bench.id]"
+          >
+            <i class="fas fa-edit me-1"></i>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="benches.length === 0" class="text-muted mt-2 text-center bold">
+    No testing benches found.
+  </div>
+</div>
