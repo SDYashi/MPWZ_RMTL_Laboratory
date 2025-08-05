@@ -7,8 +7,10 @@
     <div class="card-body bg-light">
       <form (ngSubmit)="onUpdate()" #labForm="ngForm">
         <div class="row mb-3">
-          <label for="lab_name" class="col-sm-2 col-form-label fw-bold">Lab Name</label>
-          <div class="col-sm-10">
+          <div class="col-md-3 text-md-end">
+            <label for="lab_name" class="col-form-label fw-bold">Lab Name</label>
+          </div>
+          <div class="col-md-9">
             <input
               type="text"
               id="lab_name"
@@ -21,8 +23,10 @@
         </div>
 
         <div class="row mb-3">
-          <label for="lab_location" class="col-sm-2 col-form-label fw-bold">Location</label>
-          <div class="col-sm-10">
+          <div class="col-md-3 text-md-end">
+            <label for="lab_location" class="col-form-label fw-bold">Location</label>
+          </div>
+          <div class="col-md-9">
             <input
               type="text"
               id="lab_location"
@@ -35,8 +39,10 @@
         </div>
 
         <div class="row mb-3">
-          <label for="status" class="col-sm-2 col-form-label fw-bold">Status</label>
-          <div class="col-sm-10">
+          <div class="col-md-3 text-md-end">
+            <label for="status" class="col-form-label fw-bold">Status</label>
+          </div>
+          <div class="col-md-9">
             <select
               id="status"
               name="status"
@@ -49,13 +55,15 @@
           </div>
         </div>
 
-        <div class="text-end">
-          <button type="submit" class="btn btn-success me-2" [disabled]="labForm.invalid">
-            <i class="fas fa-save"></i> Update
-          </button>
-          <button type="button" class="btn btn-secondary" (click)="cancel()">
-            <i class="fas fa-times"></i> Cancel
-          </button>
+        <div class="row">
+          <div class="col-md-9 offset-md-3 text-end">
+            <button type="submit" class="btn btn-success me-2" [disabled]="labForm.invalid">
+              <i class="fas fa-save"></i> Update
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="cancel()">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+          </div>
         </div>
       </form>
     </div>
