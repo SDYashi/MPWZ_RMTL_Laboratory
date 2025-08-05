@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthService } from 'src/app/core/auth.service';
 import { UserPublic } from 'src/app/interface/models';
 import { ApiServicesService } from 'src/app/services/api-services.service';
@@ -29,7 +30,7 @@ export class LabViewListComponent implements OnInit {
   currentUser: UserPublic | null = null;
 
 
-  constructor(private apiService: ApiServicesService, private authService: AuthService) { }
+  constructor(private apiService: ApiServicesService, private authService: AuthService, private router: Router) { }
   ngOnInit(): void {
     this.authService.currentUser.subscribe(user => {
       this.currentUser = user;
@@ -49,6 +50,17 @@ export class LabViewListComponent implements OnInit {
       }
     });
   }
+
+// editLab(lab: any) {
+//   // this.router.navigate(['labs-edit', lab.id]);
+//    this.router.navigate(['wzlab/lab/labs-edit'], { state: { lab: lab.id } });
+// }
+
+editLab(lab: any) {
+  // this.router.navigate(['wzlab/lab/labs-edit'], { state: { lab } });
+  this.router.navigate(['wzlab/lab/labs-edit'], { state: { labId: lab.id } });
+
+}
 
 
 

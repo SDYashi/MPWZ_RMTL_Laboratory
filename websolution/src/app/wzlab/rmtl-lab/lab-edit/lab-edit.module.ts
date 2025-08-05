@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { LabEditRoutingModule } from './lab-edit-routing.module';
 import { LabEditComponent } from './lab-edit/lab-edit.component';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 
 @NgModule({
@@ -11,7 +12,9 @@ import { LabEditComponent } from './lab-edit/lab-edit.component';
   ],
   imports: [
     CommonModule,
-    LabEditRoutingModule
+    LabEditRoutingModule,
+    FormsModule,
+    ReactiveFormsModule,
   ]
 })
 export class LabEditModule { }

@@ -37,13 +37,16 @@ getLabs(): Observable<Lab[]> {
 getLab(id: number): Observable<Lab> {
   return this.http.get<Lab>(`${this.baseUrl}/labs/${id}`);
 }
+getlabstatus(): Observable<Lab[]> {
+  return this.http.get<Lab[]>(`${this.baseUrl}/labs/`);
+}
 
 createLab(lab: Lab): Observable<Lab> {
   return this.http.post<Lab>(`${this.baseUrl}/labs/`, lab);
 }
 
-updateLab(id: number, lab: Lab): Observable<Lab> {
-  return this.http.put<Lab>(`${this.baseUrl}/labs/${id}`, lab);
+updateLab(lab_id: number, lab: Lab): Observable<Lab> {
+  return this.http.put<Lab>(`${this.baseUrl}/labs/${lab_id}`, lab);
 }
 
 deleteLab(id: number): Observable<any> {
@@ -237,6 +240,10 @@ updateGatePass(id: number, gatepass: GatePass): Observable<GatePass> {
 
 deleteGatePass(id: number): Observable<any> {
   return this.http.delete(`${this.baseUrl}/gatepasses/${id}`);
+}
+// --- Enums Endpoints ---
+getEnums(): Observable<any> {
+  return this.http.get(`${this.baseUrl}/enums/all`);
 }
 
 }

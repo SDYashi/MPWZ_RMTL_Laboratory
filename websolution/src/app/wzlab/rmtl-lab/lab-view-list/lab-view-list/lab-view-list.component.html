@@ -1,7 +1,7 @@
 <div class="container-fluid mt-2">
   <div class="card shadow">
     <div class="card-header tilte_header" style="  background-color:#262554; color: rgb(242, 236, 236); font-weight: bold;">
-      <h5 class="mb-0">Existing Labs</h5>
+      <h6 class="mb-0">Existing Labs List</h6>
     </div>
     <div class="card-body" style="background-color: whitesmoke;">
       <div class="table-responsive">
@@ -22,12 +22,8 @@
               <td>{{ lab.lab_location }}</td>
               <td>{{ lab.status }}</td>
               <td>
-                <!-- <button class="btn btn-sm btn-primary me-2" (click)="editLab(lab)">
-                  <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn btn-sm btn-danger" (click)="deleteLab(lab.id)">
-                  <i class="fas fa-trash-alt"></i> Delete
-                </button> -->
+                <button class="btn btn-sm btn-primary me-2" (click)="editLab(lab)">
+                  <i class="fas fa-edit"></i>                 </button>
               </td>
             </tr>
             <tr *ngIf="labs.length === 0">

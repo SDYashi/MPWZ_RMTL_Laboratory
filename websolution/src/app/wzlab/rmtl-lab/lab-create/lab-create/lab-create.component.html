@@ -1,7 +1,7 @@
 <div class="container-fluid mt-2">
   <div class="card shadow">
     <div class="card-header tilte_header" style="  background-color:#262554; color: rgb(242, 236, 236); font-weight: bold;">
-      <h4 class="mb-0">Create New Lab</h4>
+      <h6 class="mb-0">Create New Lab</h6>
     </div>
     <div class="card-body">
       <form #labForm="ngForm" (ngSubmit)="onSubmit(labForm)" novalidate>
@@ -23,12 +23,15 @@
         <!-- Status -->
         <div class="mb-3">
           <label for="status" class="form-label">Status</label>
-          <select class="form-select" id="status" name="status" [(ngModel)]="lab.status" required>
+          <!-- <select class="form-select" id="status" name="status" [(ngModel)]="lab.status" required>
             <option value="" disabled selected>Select status</option>
-            <option value="OPERATIONAL">Operational</option>
-            <option value="INACTIVE">Inactive</option>
-            <option value="MAINTENANCE">Maintenance</option>
-          </select>
+            <option *ngFor="let status of lab" [value]="status.status">{{ status.status }}</option>
+          </select> -->
+            <select id="status" name="status" class="form-select" [(ngModel)]="lab.status"  required>
+              <option *ngFor="let status of lab_statuses" [value]="status">
+                {{ status }}
+              </option>
+            </select>
           <div *ngIf="labForm.submitted && !lab.status" class="text-danger">Status is required.</div>
         </div>
 

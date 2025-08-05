@@ -20,6 +20,7 @@ const routes: Routes = [
       { path: 'testing-bench',loadChildren: () => import('./rmtl-testing-bench/rmtl-testing-bench.module').then(m => m.RmtlTestingBenchModule) },  
       { path: 'user',loadChildren:()=>import('./rmtl-user/rmtl-user.module').then(m=>m.RmtlUserModule)},
       { path: 'supply-vendors',loadChildren:()=>import('./rmtl-vendors/rmtl-vendors.module').then(m=>m.RmtlVendorsModule)},
+      { path: 'lab', loadChildren: () => import('./rmtl-lab/rmtl-lab.module').then(m => m.RmtlLabModule) },
     ]
   },
 ];

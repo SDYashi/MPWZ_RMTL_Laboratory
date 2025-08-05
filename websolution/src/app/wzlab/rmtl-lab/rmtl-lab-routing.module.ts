@@ -6,6 +6,7 @@ const routes: Routes = [
   {path:'labs-list',loadChildren:()=>import('./lab-view-list/lab-view-list.module').then(m=>m.LabViewListModule)},
   {path:'labs-create',loadChildren:()=>import('./lab-create/lab-create.module').then(m=>m.LabCreateModule)},
   {path:'labs-edit',loadChildren:()=>import('./lab-edit/lab-edit.module').then(m=>m.LabEditModule)},
+  {path:'labs-edit/:id',loadChildren:()=>import('./lab-edit/lab-edit.module').then(m=>m.LabEditModule)},
 ];
 
 @NgModule({

@@ -10,15 +10,36 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
   templateUrl: './lab-create.component.html',
   styleUrls: ['./lab-create.component.css']
 })
-export class LabCreateComponent {  
+export class LabCreateComponent implements OnInit {
+ 
 
   loading = false;
   responseMessage = '';
   responseSuccess = false;
-  lab: Lab = {} as Lab 
+  lab:any = [];
 
   constructor(private http: HttpClient, private apiservies: ApiServicesService) {}
- 
+lab_statuses: string[] = [];
+
+ngOnInit(): void {
+  // Replace this with your real API call
+  this.apiservies.getEnums().subscribe({
+    next: (res) => {
+      this.lab_statuses = res.lab_statuses || [];
+    },
+    error: (err) => {
+      console.error('Failed to load master data', err);
+    }
+  });
+
+  // Existing logic
+  const labState = history.state.lab;
+  if (labState && labState.id) {
+    this.lab = labState;
+  } else {
+    // fallback logic
+  }
+}
 
   onSubmit(form: NgForm): void {
     if (form.invalid) return;
