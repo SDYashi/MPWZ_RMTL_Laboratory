@@ -66,7 +66,7 @@ export class AuthService {
   logout(): void {
     this.removeToken();
     this.currentUserSubject.next(null);
-    this.router.navigate(['/login']);
+    this.router.navigate(['/wzlogin']);
   }
 
   // Fetches the current user's details using their token

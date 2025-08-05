@@ -11,7 +11,8 @@ import { Router } from '@angular/router';
 import { LoadingService } from '../services/loading.service';
 
 @Injectable()
-export class AuthInterceptorInterceptor implements HttpInterceptor {
+export class AuthInterceptor implements HttpInterceptor {
+
 
   constructor(
     private router: Router,
@@ -20,41 +21,36 @@ export class AuthInterceptorInterceptor implements HttpInterceptor {
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     let cloned = req;
+
     const token = localStorage.getItem('access_token');
-
     const isFormData = req.body instanceof FormData;
-    const hasBody = ['GET','POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
-    const isLogin = /\/token(?:$|[/?#])/i.test(req.url); // login
+    const hasBody = req.body != null; // safer than checking method
+    const isLogin = /\/token(?:$|[/?#])/i.test(req.url);
 
-    // Set Content-Type only if:
-    // - request has a body
-    // - header not already set
-    // - not FormData (browser sets its own boundary)
-    if (hasBody && !isFormData && !req.headers.has('Content-Type')) {
-      if (isLogin) {
-        // Only login uses x-www-form-urlencoded
-        cloned = cloned.clone({
-          setHeaders: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/json'
-          }
-        });
-      } else {
-        // Everything else uses JSON
-        cloned = cloned.clone({
-          setHeaders: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        });
-      }
+    const setHeaders: Record<string, string> = {};
+
+    // Default Accept if not set anywhere
+    if (!req.headers.has('Accept')) {
+      setHeaders['Accept'] = 'application/json';
     }
 
-    // Add Authorization for all calls except the login endpoint
-    if (token && !isLogin) {
-      cloned = cloned.clone({
-        setHeaders: { Authorization: `Bearer ${token}` }
-      });
+    // Content-Type:
+    // - only when request has a body
+    // - not FormData (browser sets boundary)
+    // - only if header not already set by the caller
+    if (hasBody && !isFormData && !req.headers.has('Content-Type')) {
+      setHeaders['Content-Type'] = isLogin
+        ? 'application/x-www-form-urlencoded'
+        : 'application/json';
+    }
+
+    // Authorization: add if we have a token, not login, and not already set
+    if (token && !isLogin && !req.headers.has('Authorization')) {
+      setHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
+    if (Object.keys(setHeaders).length > 0) {
+      cloned = req.clone({ setHeaders });
     }
 
     // loader
@@ -71,4 +67,3 @@ export class AuthInterceptorInterceptor implements HttpInterceptor {
     );
   }
 }
-

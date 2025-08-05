@@ -7,3 +7,6 @@ body {
 .container_header{
   background: linear-gradient(to bottom, #062064, #1d0101);
 }
+.tilte_header{
+  background-color:#262554; color: rgb(242, 236, 236); font-weight: bold;
+}

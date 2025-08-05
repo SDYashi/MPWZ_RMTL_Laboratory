@@ -10,7 +10,7 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
   templateUrl: './lab-create.component.html',
   styleUrls: ['./lab-create.component.css']
 })
-export class LabCreateComponent  implements OnInit {  
+export class LabCreateComponent {  
 
   loading = false;
   responseMessage = '';
@@ -18,9 +18,7 @@ export class LabCreateComponent  implements OnInit {
   lab: Lab = {} as Lab 
 
   constructor(private http: HttpClient, private apiservies: ApiServicesService) {}
-  ngOnInit(): void {
-    throw new Error('Method not implemented.');
-  }
+ 
 
   onSubmit(form: NgForm): void {
     if (form.invalid) return;

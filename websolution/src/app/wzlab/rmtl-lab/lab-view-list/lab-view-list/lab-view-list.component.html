@@ -1,0 +1,41 @@
+<div class="container-fluid mt-2">
+  <div class="card shadow">
+    <div class="card-header tilte_header" style="  background-color:#262554; color: rgb(242, 236, 236); font-weight: bold;">
+      <h5 class="mb-0">Existing Labs</h5>
+    </div>
+    <div class="card-body" style="background-color: whitesmoke;">
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered">
+          <thead>
+            <tr style="background-color:#705211; color: white ; font-weight: bold;">
+              <th>ID</th>
+              <th>Lab Name</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let lab of labs">
+              <td>{{ lab.id }}</td>
+              <td>{{ lab.lab_name }}</td>
+              <td>{{ lab.lab_location }}</td>
+              <td>{{ lab.status }}</td>
+              <td>
+                <!-- <button class="btn btn-sm btn-primary me-2" (click)="editLab(lab)">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-danger" (click)="deleteLab(lab.id)">
+                  <i class="fas fa-trash-alt"></i> Delete
+                </button> -->
+              </td>
+            </tr>
+            <tr *ngIf="labs.length === 0">
+              <td colspan="5" class="text-center text-muted">No labs found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
