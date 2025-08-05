@@ -1,11 +1,10 @@
 import { Injectable } from '@angular/core';
-import{ HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, tap, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { Token } from '../interface/models';
-import { UserPublic } from '../interface/models';
 import { environment } from 'src/environment/environment';
+import { UserPublic, Token } from '../interface/models'; 
 
 @Injectable({
   providedIn: 'root'
@@ -17,9 +16,8 @@ export class AuthService {
   public currentUser: Observable<UserPublic | null>;
 
   constructor(private http: HttpClient, private router: Router) {
-    this.currentUserSubject = new BehaviorSubject<UserPublic | null>(null); // Initialize with null
+    this.currentUserSubject = new BehaviorSubject<UserPublic | null>(this.getUserFromToken());
     this.currentUser = this.currentUserSubject.asObservable();
-    this.loadCurrentUser(); // Attempt to load user on service init
   }
 
   public get currentUserValue(): UserPublic | null {
@@ -32,10 +30,12 @@ export class AuthService {
 
   setToken(token: string): void {
     localStorage.setItem(this.tokenKey, token);
+    this.currentUserSubject.next(this.getUserFromToken());
   }
 
   removeToken(): void {
     localStorage.removeItem(this.tokenKey);
+    this.currentUserSubject.next(null);
   }
 
   login(username: string, password: string): Observable<Token> {
@@ -45,60 +45,61 @@ export class AuthService {
     return this.http.post<Token>(`${this.apiUrl}/token`, body, { headers }).pipe(
       tap(response => {
         this.setToken(response.access_token);
-        // After successful login, fetch the current user details
-        this.fetchCurrentUserDetails().subscribe({
-          next: (user) => {
-            this.currentUserSubject.next(user);
-          },
-          error: (err) => {
-            console.error('Failed to fetch current user details after login:', err);
-            this.logout(); // Logout if user details can't be fetched
-          }
-        });
-      }),
-      catchError(error => {
-        console.error('Login failed:', error);
-        return throwError(() => new Error('Invalid credentials'));
       })
     );
   }
 
   logout(): void {
     this.removeToken();
-    this.currentUserSubject.next(null);
     this.router.navigate(['/wzlogin']);
-  }
-
-  // Fetches the current user's details using their token
-  private fetchCurrentUserDetails(): Observable<UserPublic> {
-    const token = this.getToken();
-    if (!token) {
-      return throwError(() => new Error('No token found'));
-    }
-    return this.http.get<UserPublic>(`${this.apiUrl}/users/me`).pipe(
-      catchError(error => {
-        console.error('Error fetching current user details:', error);
-        return throwError(() => new Error('Failed to fetch user details'));
-      })
-    );
-  }
-
-  private loadCurrentUser(): void {
-    const token = this.getToken();
-    if (token) {
-      this.fetchCurrentUserDetails().subscribe({
-        next: (user) => {
-          this.currentUserSubject.next(user);
-        },
-        error: (err) => {
-          console.error('Auto-login failed:', err);
-          this.logout(); // Clear invalid token
-        }
-      });
-    }
   }
 
   isLoggedIn(): boolean {
     return !!this.getToken();
+  }
+
+  // Decode JWT token
+  private decodeToken(): any | null {
+    const token = this.getToken();
+    if (!token) return null;
+
+    try {
+      const payload = token.split('.')[1];
+      const decodedPayload = atob(payload);
+      return JSON.parse(decodedPayload);
+    } catch (e) {
+      console.error('Failed to decode token:', e);
+      return null;
+    }
+  }
+
+  // Get user data from token
+  private getUserFromToken(): UserPublic | null {
+    const decoded = this.decodeToken();
+    if (!decoded) return null;
+
+    // Customize this based on your token's payload structure
+    return {
+      id: decoded.id || 0,
+      name: decoded.name || decoded.username || '',
+      username: decoded.username || '',
+      email: decoded.email || '',
+      roles: decoded.roles || [],
+      designation: decoded.designation || '',
+      status: decoded.status || '',
+      mobile: decoded.mobile || '',
+      created_at: decoded.created_at || '',
+      updated_at: decoded.updated_at || '',
+    };
+  }
+
+  getUserNameFromToken(): string | null {
+    const decoded = this.decodeToken();
+    return decoded?.name || decoded?.username || null;
+  }
+
+  getUserRolesFromToken(): string[] | null {
+    const decoded = this.decodeToken();
+    return decoded?.roles || null;
   }
 }

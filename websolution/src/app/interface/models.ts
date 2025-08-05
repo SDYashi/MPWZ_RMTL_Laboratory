@@ -15,12 +15,13 @@ export interface UserPublic {
   name: string;
   email: string;
   designation: string;
-  status: 'active' | 'inactive';
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
   mobile: string;
   lab_id?: number;
   created_at: string;
   updated_at: string;
   last_login_at?: string;
+  roles: string[];
 }
 
 export interface UserCreate {
