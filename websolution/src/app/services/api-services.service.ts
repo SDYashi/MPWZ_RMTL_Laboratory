@@ -140,7 +140,7 @@ deleteTestingBench(id: number): Observable<any> {
 
 // --- Vendor Endpoints ---
 getVendors(): Observable<Vendor[]> {
-  return this.http.get<Vendor[]>(`${this.baseUrl}/vendors`);
+  return this.http.get<Vendor[]>(`${this.baseUrl}/vendors/`);
 }
 
 getVendor(id: number): Observable<Vendor> {
@@ -148,7 +148,7 @@ getVendor(id: number): Observable<Vendor> {
 }
 
 createVendor(vendor: Vendor): Observable<Vendor> {
-  return this.http.post<Vendor>(`${this.baseUrl}/vendors`, vendor);
+  return this.http.post<Vendor>(`${this.baseUrl}/vendors/`, vendor);
 }
 
 updateVendor(id: number, vendor: Vendor): Observable<Vendor> {
