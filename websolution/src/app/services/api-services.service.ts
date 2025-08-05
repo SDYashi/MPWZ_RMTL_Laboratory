@@ -63,7 +63,7 @@ getUser(id: number): Observable<UserPublic> {
 }
 
 createUser(user: UserCreate): Observable<UserPublic> {
-  return this.http.post<UserPublic>(`${this.baseUrl}/users`, user);
+  return this.http.post<UserPublic>(`${this.baseUrl}/users/`, user);
 }
 
 updateUser(id: number, user: UserUpdate): Observable<UserPublic> {

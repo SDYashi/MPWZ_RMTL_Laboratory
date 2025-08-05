@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { Lab } from 'src/app/interface/models';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
 @Component({
@@ -6,7 +7,7 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
   templateUrl: './rmtl-create-user.component.html',
   styleUrls: ['./rmtl-create-user.component.css']
 })
-export class RmtlCreateUserComponent {
+export class RmtlCreateUserComponent implements OnInit {
   user: any = {
     lab_id: '',
     username: '',
@@ -14,23 +15,39 @@ export class RmtlCreateUserComponent {
     name: '',
     email: '',
     designation: '',
-    status: 'active',
+    status: 'ACTIVE',
     mobile: '',
     rolesStr: ''
   };
+  
   availableRoles: string[] = ['admin', 'user'];
   response_msg: any;
+  response_success: any;
 
   constructor(private apiservice: ApiServicesService) {}
 
   statuses: string[] = ['ACTIVE', 'INACTIVE', 'PENDING'];
-  labs: { id: number, name: string }[] = [
-    { id: 1, name: 'Lab1' },
-    { id: 2, name: 'Lab2' },
-    { id: 3, name: 'Lab3' }
-  ];
-  roles: string[] = ['ADMIN', 'OFFICER_INCHARGE', 'USER'];
+  labs:Lab[] = [];
+  roles: string[] = ['ADMIN', 'OFFICER_INCHARGE'];
 
+  ngOnInit(): void {
+    this.apiservice.getLabs().subscribe({
+      next: (response) => {
+        this.labs = response;
+      },
+      error: (error) => {
+        console.error('Error fetching labs:', error);
+      }
+    });
+    this.apiservice.getEnums().subscribe({
+      next: (response) => {
+        this.roles = response.roles;
+      },
+      error: (error) => {
+        console.error('Error fetching users:', error);
+      }
+    })
+  }
 
   onSubmit(): void {
     const roles = this.user.rolesStr
@@ -60,14 +77,16 @@ export class RmtlCreateUserComponent {
           name: '',
           email: '',
           designation: '',
-          status: 'active',
+          status:'ACTIVE',
           mobile: '',
           rolesStr: ''
         };
+        this.response_success = true
       },
       error: (error) => {
         console.error('User creation failed:', error);
         this.response_msg = 'Error: ' + (error?.error?.message || error.message);
+         this.response_success = false
       }
     });
   }

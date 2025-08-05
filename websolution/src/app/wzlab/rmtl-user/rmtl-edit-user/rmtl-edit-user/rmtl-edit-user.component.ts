@@ -9,8 +9,10 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
   styleUrls: ['./rmtl-edit-user.component.css']
 })
 export class RmtlEditUserComponent {
- userId!: any;
+  userId!: any;
   user: any = {};
+  statuses: any;
+
 
   constructor(
     private route: ActivatedRoute,
@@ -21,6 +23,14 @@ export class RmtlEditUserComponent {
   ngOnInit(): void {
     this.userId = this.route.snapshot.paramMap.get('id')!;
     this.getUserById(this.userId);
+    this.api.getEnums().subscribe({
+      next: (res) => {
+        this.statuses = res.user_statuses;
+      },
+      error: (err) => {
+        console.error('Failed to fetch labs', err);
+      }
+    })
   }
 
   getUserById(id: any): void {

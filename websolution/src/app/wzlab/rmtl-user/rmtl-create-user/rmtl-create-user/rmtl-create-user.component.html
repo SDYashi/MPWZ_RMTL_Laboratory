@@ -6,10 +6,6 @@
     </div>
 
     <div class="card-body">
-      <!-- Success/Error Message -->
-      <div *ngIf="response_msg" class="alert alert-info" role="alert">
-        {{ response_msg }}
-      </div>
 
       <form #userForm="ngForm" (ngSubmit)="onSubmit()">
         <div class="row">
@@ -92,7 +88,7 @@
               [(ngModel)]="user.lab_id"
               class="form-select"            
             >
-              <option *ngFor="let lab of labs" [value]="lab.id">{{ lab.name }}</option>
+              <option *ngFor="let lab of labs" [value]="lab.id">{{ lab.lab_name }}</option>
             </select>
           </div>
 
@@ -115,6 +111,10 @@
         </button>
       </form>
     </div>
+          <!-- Success/Error Message -->
+      <div *ngIf="response_msg" class="alert alert-{{ response_success ? 'success' : 'danger' }}" role="alert">
+        {{ response_msg }}
+      </div>
   </div>
 </div>
 

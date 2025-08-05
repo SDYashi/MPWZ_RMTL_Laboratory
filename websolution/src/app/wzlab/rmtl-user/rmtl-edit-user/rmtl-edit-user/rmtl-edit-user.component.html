@@ -1,7 +1,8 @@
 <div class="container-fluid mt-1">
   <div class="card shadow">
-    <div class="card-header bg-success text-white">
-      <h5><i class="fas fa-user-edit me-2"></i> Edit User</h5>
+     <div class="card-header text-dark d-flex align-items-center">
+      <i class="fas fa-users me-2"></i>
+      <h5 class="mb-0">Edit User Profile information</h5>
     </div>
     <div class="card-body">
       <form #editForm="ngForm" (ngSubmit)="onSubmit()">
@@ -36,9 +37,7 @@
             <div class="mb-3">
               <label class="form-label">Status</label>
               <select name="status" [(ngModel)]="user.status" class="form-select">
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="Pending">Pending</option>
+                <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
               </select>
             </div>
 
