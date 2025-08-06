@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import * as bootstrap from 'bootstrap';
+import { AuthService } from 'src/app/core/auth.service';
 import { Assignment } from 'src/app/interface/models';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 @Component({
@@ -8,30 +9,69 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
   styleUrls: ['./rmtl-assign-to-user.component.css']
 })
 export class RmtlAssignToUserComponent {
-inward_nos = ['INW-1001', 'INW-1002', 'INW-1003'];
-  device_statuses = ['ASSIGNED', 'UNASSIGNED', 'PENDING', 'COMPLETED', 'NON_FUNCTIONAL'];
-  devices = [
+inward_nos = ['INW-1001'];
+device_statuses = [];
+benches:any = [];
+devices = [
     { id: 1, name: 'Meter A', status: 'UNASSIGNED', selected: false },
     { id: 2, name: 'Meter B', status: 'PENDING', selected: false },
     { id: 3, name: 'Meter C', status: 'UNASSIGNED', selected: false }
   ];
   payload :any;
-  users = ['user1', 'user2', 'user3'];
-
+  users:any = [];
+   responseMessage = '';
+   responseSuccess = false;
   selectedInward: string = '';
   selectedStatus: string = 'UNASSIGNED';
   assignedUser: string = '';
+  assignedBench: string = '';
+  currentuser: string = 'SYSADMIN';
 
   filteredDevices: any[] = [];
 
-  constructor(private api: ApiServicesService) {}
+  constructor(private api: ApiServicesService, private authapi: AuthService) {}
 
   ngOnInit(): void {
-    this.filterDevices();
+    // this.filterDevices();
+    this.filterinwordno();
+    this.api.getEnums().subscribe({
+      next: (res) => {
+        this.device_statuses = res.assignment_statuses;
+        this.responseSuccess = true;
+      },
+      error: (err) => {
+        console.error('Failed to fetch labs', err);
+        this.responseSuccess = false;
+      }
+    })
+  }
+  filterinwordno(): void {
+   this.api.getdistinctinwordno().subscribe({
+    next: (res) => {
+      this.inward_nos = res;
+      this.responseMessage= 'Data fetched successfully!';
+       this.responseSuccess = true;
+    },
+    error: (err) => {
+       this.responseMessage= err?.error?.details || 'Failed to fetch data.';
+        this.responseSuccess = false;
+    }
+   })
   }
 
   filterDevices(): void {
-    this.filteredDevices = this.devices.filter(d => d.status === this.selectedStatus);
+    // this.filteredDevices = this.devices.filter(d => d.status === this.selectedStatus);    
+    this.api.getDevicelistbyinwordno(this.selectedInward).pipe().subscribe({
+      next: (res) => {
+        this.filteredDevices = res;
+        this.responseMessage= 'Data fetched successfully!';
+       this.responseSuccess = true;
+      },
+      error: (err) => {
+       this.responseMessage= err?.error?.details || 'Failed to fetch data.';
+        this.responseSuccess = false;
+      }
+    })
   }
 
   toggleAllDevices(event: any): void {
@@ -44,21 +84,40 @@ inward_nos = ['INW-1001', 'INW-1002', 'INW-1003'];
   }
 
   openAssignModal(): void {
+    this.api.getUsers().subscribe({
+      next: (res) => {
+        this.users = res;
+      },
+      error: (err) => {
+        console.error('Failed to fetch users', err);
+      }
+    })
+    this.api.getTestingBenches().subscribe({
+      next: (res) => {
+        this.benches = res;
+      },
+      error: (err) => {
+        console.error('Failed to fetch devices', err);
+      }
+    })
     const modal = new bootstrap.Modal(document.getElementById('assignModal')!);
     modal.show();
   }
 
   submitAssignment(): void {
+    this.currentuser = this.authapi.getUserNameFromToken() ?? '';
     const selectedDeviceIds = this.filteredDevices
       .filter(d => d.selected)
-      .map(d => d.id);
+      .map(d => d.id);   
 
      this.payload= {
       inward_no: this.selectedInward,
       assigned_to: this.assignedUser,
       device_id: selectedDeviceIds[0],
-      user_id: 1,
-      assigned_by: 1
+      user_id: this.assignedUser,
+      assigned_by: 1,
+      bench_id: parseInt(this.assignedBench, 10)
+
     };
 
     this.api.createAssignment(this.payload).subscribe({

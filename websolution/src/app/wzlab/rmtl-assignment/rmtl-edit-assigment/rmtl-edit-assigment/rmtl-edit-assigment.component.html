@@ -27,44 +27,118 @@
       </div>
 
       <!-- Device Table -->
-      <div class="table-responsive mb-3">
-        <table class="table table-bordered table-hover">
-          <thead class="table-light">
-            <tr>
-              <th><input type="checkbox" (change)="toggleAllDevices($event)" /></th>
-              <th>#</th>
-              <th>Device Name</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let device of filteredDevices; let i = index">
-              <td><input type="checkbox" [(ngModel)]="device.selected" name="chk{{ i }}"></td>
-              <td>{{ i + 1 }}</td>
-              <td>{{ device.name }}</td>
-              <td>{{ device.status }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Assign To -->
-      <div class="mb-4">
+<div class="table-responsive">
+  <table class="table table-bordered table-hover">
+    <thead class="table-light text-center">
+      <tr>
+        <th><input type="checkbox" (change)="toggleAllDevices($event)" /></th>
+        <th>#</th>
+        <th>Inward No</th>
+        <th>Make & Serial No</th>
+        <th>Device Type</th>
+        <th>Category</th>
+        <th>Phase</th>
+        <th>Meter Type</th>
+        <th>Status</th>
+        <th>Connection</th>
+        <th>Location</th>
+        <th>Consumer</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let device of filteredDevices; let i = index">
+        <td class="text-center">
+          <input type="checkbox" [(ngModel)]="device.selected" name="chk{{ i }}">
+        </td>
+        <td class="text-center">{{ i + 1 }}</td>
+        <td>{{ device.inward_number }}</td>
+        <td>{{ device.make }}<br><small class="text-muted">{{ device.serial_number }}</small></td>
+        <td>{{ device.device_type }}</td>
+        <td>{{ device.meter_category }}</td>
+        <td>{{ device.phase }}</td>
+        <td>{{ device.meter_type }}</td>
+        <td>
+          <span class="badge"
+                [ngClass]="{
+                  'bg-primary': device.device_status === 'ASSIGNED',
+                  'bg-warning text-dark': device.device_status === 'PENDING',
+                  'bg-secondary': device.device_status === 'UNASSIGNED',
+                  'bg-success': device.device_status === 'COMPLETED',
+                  'bg-danger': device.device_status === 'NON_FUNCTIONAL',
+                  'bg-info text-dark': device.device_status === 'INWARDED'
+                }">
+            {{ device.device_status }}
+          </span>
+        </td>
+        <td>{{ device.connection_type }}</td>
+        <td>{{ device.location_name }}</td>
+        <td>
+          <strong>{{ device.consumer_name }}</strong><br>
+          <small class="text-muted">{{ device.consumer_no }}</small>
+        </td>
+      </tr>
+      <tr *ngIf="filteredDevices.length === 0">
+        <td colspan="12" class="text-center text-muted">No devices found.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+      <!-- <div class="mb-4">
         <label class="form-label fw-bold">Assigned To</label>
-        <select class="form-select" [(ngModel)]="assignment.assigned_to" name="assigned_to">
-          <option *ngFor="let user of users" [value]="user">{{ user }}</option>
-        </select>
-      </div>
-
+        <div class="input-group">
+          <input type="text" class="form-control" [(ngModel)]="assignment.assigned_to" name="assigned_to" (click)="openAssignModal()">
+          <button class="btn btn-outline-secondary" type="button" (click)="openAssignModal()">
+            <i class="fas fa-user-plus"></i>
+          </button>
+        </div>
+      </div> -->
       <!-- Submit -->
       <div class="text-end">
-        <button class="btn btn-success" (click)="onUpdate()" [disabled]="!hasSelectedDevices()">
+        <button class="btn btn-success"  (click)="openAssignModal()" [disabled]="!hasSelectedDevices()">
           <i class="fas fa-save"></i> Update Assignment
         </button>
         <button class="btn btn-secondary ms-2" (click)="cancel()">
           <i class="fas fa-times"></i> Cancel
         </button>
       </div>
+
+
+      <!-- Modal -->
+      <div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Assign To</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <label class="form-label">Select User</label>
+                  <select class="form-select" [(ngModel)]="selectedUser" name="user">
+                    <option *ngFor="let user of users" [value]="user.id">{{ user.name }}</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Select Bench</label>
+                  <select class="form-select" [(ngModel)]="selectedBench" name="bench">
+                    <option *ngFor="let bench of benches" [value]="bench.id">{{ bench.bench_name }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="button" class="btn btn-primary" (click)="onUpdate()">Assign Devices</button>
+            </div>
+          </div>
+        </div>
+
     </div>
   </div>
 </div>
+
+
+
+      <!-- Assign To -->
+

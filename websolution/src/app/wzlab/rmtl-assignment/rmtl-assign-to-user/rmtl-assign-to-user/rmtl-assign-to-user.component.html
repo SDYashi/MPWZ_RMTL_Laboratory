@@ -5,49 +5,79 @@
     </div>
     <div class="card-body">
       <div class="row">
+          <!-- Inward No -->           
         <div class="col-md-6">
-          <!-- Inward No -->
           <div class="mb-3">
             <label class="form-label fw-bold">Inward No</label>
-            <select class="form-select" [(ngModel)]="selectedInward" name="inward">
+            <select class="form-select" [(ngModel)]="selectedInward" name="inward" (change)="filterDevices()">
               <option *ngFor="let inw of inward_nos" [value]="inw">{{ inw }}</option>
             </select>
           </div>
         </div>
-        <div class="col-md-6">
-          <!-- Device Status -->
-          <div class="mb-3">
-            <label class="form-label fw-bold">Device Status</label>
-            <select class="form-select" [(ngModel)]="selectedStatus" name="status" (change)="filterDevices()">
-              <option *ngFor="let status of device_statuses" [value]="status">{{ status }}</option>
-            </select>
-          </div>
+        <div class="{{responseSuccess ? 'alert-success' : 'alert-danger'}}" role="alert" *ngIf="responseMessage">
+          <i class="fas {{responseSuccess ? 'fa-check-circle' : 'fa-exclamation-triangle'}} me-2"></i>
+          {{responseMessage}}
         </div>
+        <br><br>
       </div>
 
       <!-- Devices Table -->
-      <div class="table-responsive">
-        <table class="table table-bordered table-hover">
-          <thead class="table-light">
-            <tr>
-              <th><input type="checkbox" (change)="toggleAllDevices($event)" /></th>
-              <th>#</th>
-              <th>Device Name</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let device of filteredDevices; let i = index">
-              <td>
-                <input type="checkbox" [(ngModel)]="device.selected" name="chk{{ i }}">
-              </td>
-              <td>{{ i + 1 }}</td>
-              <td>{{ device.name }}</td>
-              <td>{{ device.status }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+<div class="table-responsive">
+  <table class="table table-bordered table-hover">
+    <thead class="table-light text-center">
+      <tr>
+        <th><input type="checkbox" (change)="toggleAllDevices($event)" /></th>
+        <th>#</th>
+        <th>Inward No</th>
+        <th>Make & Serial No</th>
+        <th>Device Type</th>
+        <th>Category</th>
+        <th>Phase</th>
+        <th>Meter Type</th>
+        <th>Status</th>
+        <th>Connection</th>
+        <th>Location</th>
+        <th>Consumer</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let device of filteredDevices; let i = index">
+        <td class="text-center">
+          <input type="checkbox" [(ngModel)]="device.selected" name="chk{{ i }}">
+        </td>
+        <td class="text-center">{{ i + 1 }}</td>
+        <td>{{ device.inward_number }}</td>
+        <td>{{ device.make }}<br><small class="text-muted">{{ device.serial_number }}</small></td>
+        <td>{{ device.device_type }}</td>
+        <td>{{ device.meter_category }}</td>
+        <td>{{ device.phase }}</td>
+        <td>{{ device.meter_type }}</td>
+        <td>
+          <span class="badge"
+                [ngClass]="{
+                  'bg-primary': device.device_status === 'ASSIGNED',
+                  'bg-warning text-dark': device.device_status === 'PENDING',
+                  'bg-secondary': device.device_status === 'UNASSIGNED',
+                  'bg-success': device.device_status === 'COMPLETED',
+                  'bg-danger': device.device_status === 'NON_FUNCTIONAL',
+                  'bg-info text-dark': device.device_status === 'INWARDED'
+                }">
+            {{ device.device_status }}
+          </span>
+        </td>
+        <td>{{ device.connection_type }}</td>
+        <td>{{ device.location_name }}</td>
+        <td>
+          <strong>{{ device.consumer_name }}</strong><br>
+          <small class="text-muted">{{ device.consumer_no }}</small>
+        </td>
+      </tr>
+      <tr *ngIf="filteredDevices.length === 0">
+        <td colspan="12" class="text-center text-muted">No devices found.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
       <!-- Assign Button -->
       <div class="mt-3 text-end">
@@ -62,15 +92,25 @@
   <div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
-        <div class="modal-header bg-dark text-white">
-          <h5 class="modal-title"><i class="fas fa-user"></i> Assign Devices</h5>
+        <div class="modal-header text-white"style=" background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;">
+          <h5 class="modal-title">Assign Devices to Bench & User </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <label class="form-label fw-bold">Select User</label>
-          <select class="form-select" [(ngModel)]="assignedUser">
-            <option *ngFor="let user of users" [value]="user">{{ user }}</option>
-          </select>
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Select Bench</label>
+              <select class="form-select" [(ngModel)]="assignedBench">
+                <option *ngFor="let bench of benches" [value]="bench.id">{{ bench.bench_name }}</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Select User</label>
+              <select class="form-select" [(ngModel)]="assignedUser">
+                <option *ngFor="let user of users" [value]="user.id">{{ user.name }}</option>
+              </select>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-success" (click)="submitAssignment()">Submit</button>

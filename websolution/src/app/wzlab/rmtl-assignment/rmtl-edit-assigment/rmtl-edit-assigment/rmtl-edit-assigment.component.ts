@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import * as bootstrap from 'bootstrap';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
 @Component({
@@ -9,43 +10,70 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
 })
 export class RmtlEditAssigmentComponent {
 
-  inward_nos = ['INW-1001', 'INW-1002', 'INW-1003'];
-  device_statuses = ['ASSIGNED', 'UNASSIGNED', 'PENDING', 'COMPLETED', 'NON_FUNCTIONAL'];
-  users = ['user1', 'user2', 'user3'];
-
+  inward_nos:any = [];
+  device_statuses = [];
+  users: any[] = [];
+benches : any[] = [];
+selectedUser: string = '';
+selectedBench: string = '';
   devices: any[] = [];
   filteredDevices: any[] = [];
 
   assignment = {
+    id: '',
     inward_no: '',
     device_status: '',
     assigned_to: '',
-    device_ids: [] as number[]
+    device_ids: [] as number[],
+    assignment_id: '', 
+
   };
+  responseSuccess: boolean = false;
+  responseMessage: string = '';
 
   constructor(
     private api: ApiServicesService
   ) {}
 
   ngOnInit(): void { 
-    const selectedInward = this.inward_nos[0];
-    const selectedStatus = this.device_statuses[0];
-    this.loadDevices(selectedInward, selectedStatus);
-  }
 
-  loadDevices(inward_no: string, device_status: string): void {
-    this.api.getDevices().subscribe({
-      next: (data) => {
-        this.devices = data.filter(d => d.inward_no === inward_no && d.status === device_status);
-
-        this.filterDevices();
+        this.api.getEnums().subscribe({
+      next: (res) => {
+        this.device_statuses = res.assignment_statuses;
+        this.responseSuccess = true;
       },
-      error: (err) => console.error('Failed to load devices:', err)
+      error: (err) => {
+        console.error('Failed to fetch labs', err);
+        this.responseSuccess = false;
+      }
     });
-  }
+       this.api.getdistinctinwordno().subscribe({
+    next: (res) => {
+      this.inward_nos = res;
+      this.responseMessage= 'Data fetched successfully!';
+       this.responseSuccess = true;
+    },
+    error: (err) => {
+       this.responseMessage= err?.error?.details || 'Failed to fetch data.';
+        this.responseSuccess = false;
+    }
+   })
+  }  
+
 
   filterDevices(): void {
-    this.filteredDevices = this.devices.filter(d => d.status === this.assignment.device_status);
+    // this.filteredDevices = this.devices.filter(d => d.status === this.assignment.device_status);
+    this.api.getDevicesByInwardAndAssignmentStatus(this.assignment.inward_no, this.assignment.device_status).subscribe({
+      next: (res) => {
+        this.filteredDevices = res;
+        this.responseMessage= 'Data fetched successfully!';
+        this.responseSuccess = true;
+      },
+      error: (err) => {
+        this.responseMessage= err?.error?.details || 'Failed to fetch data.';
+        this.responseSuccess = false;
+      }
+    })
   }
 
   toggleAllDevices(event: any): void {
@@ -63,12 +91,17 @@ export class RmtlEditAssigmentComponent {
 
      this.payload = {
       inward_no: this.assignment.inward_no,
-      assigned_to: this.assignment.assigned_to,
+      assigned_to: this.selectedUser,
       device_status: this.assignment.device_status,
-      device_ids: selectedDeviceIds
+      device_ids: selectedDeviceIds,
+      user_id: this.selectedUser,
+      assigned_by: 1,
+      bench_id: parseInt(this.selectedBench, 10),
+      assignment_id: parseInt(this.assignment.id, 10)
+
     };
 
-    this.api.updateAssignment(1, this.payload).subscribe({
+    this.api.updateAssignment(parseInt(this.assignment.id, 10), this.payload).subscribe({
       next: () => {
         alert('Assignment updated successfully!');
       },
@@ -79,6 +112,31 @@ export class RmtlEditAssigmentComponent {
   }
 
   cancel(): void {
+  }
+
+  openAssignModal(): void {
+        this.api.getUsers().subscribe({
+      next: (res) => {
+        this.users = res;
+      },
+      error: (err) => {
+        console.error('Failed to fetch users', err);
+      }
+    })
+    this.api.getTestingBenches().subscribe({
+      next: (res) => {
+        this.benches = res;
+      },
+      error: (err) => {
+        console.error('Failed to fetch devices', err);
+      }
+    })
+    const modal = new bootstrap.Modal(document.getElementById('assignModal')!);
+    modal.show();
+  }
+  assign(): void {
+    const modal = new bootstrap.Modal(document.getElementById('assignModal')!);
+    modal.hide();
   }
 }
 

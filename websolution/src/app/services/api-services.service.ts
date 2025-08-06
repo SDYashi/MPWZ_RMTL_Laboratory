@@ -55,7 +55,7 @@ deleteLab(id: number): Observable<any> {
 
 // --- User Endpoints ---
 getUsers(): Observable<UserPublic[]> {
-  return this.http.get<UserPublic[]>(`${this.baseUrl}/users`);
+  return this.http.get<UserPublic[]>(`${this.baseUrl}/users/`);
 }
 
 getUser(id: number): Observable<UserPublic> {
@@ -199,6 +199,18 @@ updateAssignment(id: number, assignment: Assignment): Observable<Assignment> {
 
 deleteAssignment(id: number): Observable<any> {
   return this.http.delete(`${this.baseUrl}/assignments/${id}`);
+}
+getDistinctinwordnobyAssignmentStatus(assign_status: string): Observable<string[]> {
+  return this.http.get<string[]>(`${this.baseUrl}/distinct-inward/assignment-status?assignment_status=${assign_status}`);
+}
+getDevicesByInwardAndAssignmentStatus(inward_number: string, assignment_status: string): Observable<Device[]> {
+  return this.http.get<Device[]>(`${this.baseUrl}/devices-by-inward-and-assignment-status?inward_number=${inward_number}&assignment_status=${assignment_status}`);
+}
+getdistinctinwordno(): Observable<string[]> {
+  return this.http.get<string[]>(`${this.baseUrl}/distinct-inward/devices-unassigned`);
+}
+getDevicelistbyinwordno(inward_number: string): Observable<string[]> {  
+  return this.http.get<string[]>(`${this.baseUrl}/devices-unassigned?inward_number=${inward_number}`);
 }
 
 // --- Testing Endpoints ---
