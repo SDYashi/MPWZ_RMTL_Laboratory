@@ -190,7 +190,7 @@ getAssignment(id: number): Observable<Assignment> {
 }
 
 createAssignment(assignment: Assignment): Observable<Assignment> {
-  return this.http.post<Assignment>(`${this.baseUrl}/assignments`, assignment);
+  return this.http.post<Assignment>(`${this.baseUrl}/assignments/`, assignment);
 }
 
 updateAssignment(id: number, assignment: Assignment): Observable<Assignment> {

@@ -59,6 +59,8 @@ export interface UserRoleLink {
 }
 
 export interface Device {
+  status: string;
+  inward_no: string;
   id?: number;
   inward_number: string;
   device_type: 'meter' | 'ct';
@@ -137,7 +139,13 @@ export interface Store {
 }
 
 export interface Assignment {
+  all_devices: any;
+  device_ids: number[];
+  assigned_to: string;
+  device_status: string;
   id?: number;
+  inward_no: string;
+  devices?: Device[];
   device_id: number;
   user_id: number;
   bench_id?: number;

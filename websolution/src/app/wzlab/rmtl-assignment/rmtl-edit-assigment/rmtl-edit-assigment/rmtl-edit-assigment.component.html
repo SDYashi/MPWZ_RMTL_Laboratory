@@ -1,1 +1,70 @@
-<p>rmtl-edit-assigment works!</p>
+<div class="container-fluid mt-4">
+  <div class="card shadow">
+        <div class="card-header text-white" style=" background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;">
+      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Edit Assignment of Testing Users</h5>
+    </div>
+
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <!-- Inward No -->
+          <div class="mb-3">
+            <label class="form-label fw-bold">Inward No</label>
+            <select class="form-select" [(ngModel)]="assignment.inward_no" name="inward_no">
+              <option *ngFor="let inw of inward_nos" [value]="inw">{{ inw }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <!-- Device Status -->
+          <div class="mb-3">
+            <label class="form-label fw-bold">Device Status</label>
+            <select class="form-select" [(ngModel)]="assignment.device_status" name="device_status" (change)="filterDevices()">
+              <option *ngFor="let status of device_statuses" [value]="status">{{ status }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Device Table -->
+      <div class="table-responsive mb-3">
+        <table class="table table-bordered table-hover">
+          <thead class="table-light">
+            <tr>
+              <th><input type="checkbox" (change)="toggleAllDevices($event)" /></th>
+              <th>#</th>
+              <th>Device Name</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let device of filteredDevices; let i = index">
+              <td><input type="checkbox" [(ngModel)]="device.selected" name="chk{{ i }}"></td>
+              <td>{{ i + 1 }}</td>
+              <td>{{ device.name }}</td>
+              <td>{{ device.status }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Assign To -->
+      <div class="mb-4">
+        <label class="form-label fw-bold">Assigned To</label>
+        <select class="form-select" [(ngModel)]="assignment.assigned_to" name="assigned_to">
+          <option *ngFor="let user of users" [value]="user">{{ user }}</option>
+        </select>
+      </div>
+
+      <!-- Submit -->
+      <div class="text-end">
+        <button class="btn btn-success" (click)="onUpdate()" [disabled]="!hasSelectedDevices()">
+          <i class="fas fa-save"></i> Update Assignment
+        </button>
+        <button class="btn btn-secondary ms-2" (click)="cancel()">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

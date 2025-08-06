@@ -64,4 +64,7 @@ assignments: any[] = [];
     assignment.status = 'Completed';
     this.updateSummary();
   }
+
+
+  
 }
