@@ -1,67 +1,79 @@
 <div class="container-fluid mt-2">
   <div class="card shadow">
-    <div class="card-header text-white" style=" background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;">
-      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Edit Laboratory Information </h5>
+    <div class="card-header text-white" style="background-color: #151433; font-weight: bold;">
+      <h5 class="mb-0"><i class="fas fa-list me-2"></i> Edit Laboratory Information</h5>
     </div>
 
     <div class="card-body bg-light">
       <form (ngSubmit)="onUpdate()" #labForm="ngForm">
-        <div class="row mb-3">
-          <div class="col-md-3 text-md-end">
-            <label for="lab_name" class="col-form-label fw-bold">Lab Name</label>
+        <div class="row">
+          <div class="col-md-6">
+            <!-- Lab Name -->
+            <div class="row mb-3">
+              <div class="col-md-3 text-md-end">
+                <label for="lab_name" class="col-form-label fw-bold">Lab Name</label>
+              </div>
+              <div class="col-md-9">
+                <input
+                  type="text"
+                  id="lab_name"
+                  name="lab_name"
+                  [(ngModel)]="lab.lab_name"
+                  class="form-control"
+                  required
+                  placeholder="Enter lab name" />
+              </div>
+            </div>
           </div>
-          <div class="col-md-9">
-            <input
-              type="text"
-              id="lab_name"
-              name="lab_name"
-              [(ngModel)]="lab.lab_name"
-              class="form-control"
-              required
-              value="indore" />
+
+          <div class="col-md-6">
+            <!-- Location -->
+            <div class="row mb-3">
+              <div class="col-md-3 text-md-end">
+                <label for="lab_location" class="col-form-label fw-bold">Location</label>
+              </div>
+              <div class="col-md-9">
+                <input
+                  type="text"
+                  id="lab_location"
+                  name="lab_location"
+                  [(ngModel)]="lab.lab_location"
+                  class="form-control"
+                  required
+                  placeholder="Enter location" />
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <!-- Status -->
+            <div class="row mb-3">
+              <div class="col-md-3 text-md-end">
+                <label for="status" class="col-form-label fw-bold">Status</label>
+              </div>
+              <div class="col-md-9">
+                <select
+                  id="status"
+                  name="status"
+                  [(ngModel)]="lab.status"
+                  class="form-select"
+                  required>
+                  <option value="" disabled selected>Select status</option>
+                  <option value="OPERATIONAL">Operational</option>
+                  <option value="NON_OPERATIONAL">Non Operational</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="row mb-3">
-          <div class="col-md-3 text-md-end">
-            <label for="lab_location" class="col-form-label fw-bold">Location</label>
-          </div>
-          <div class="col-md-9">
-            <input
-              type="text"
-              id="lab_location"
-              name="lab_location"
-              [(ngModel)]="lab.lab_location"
-              class="form-control"
-              required
-              value="indore" />
-          </div>
-        </div>
-
-        <div class="row mb-3">
-          <div class="col-md-3 text-md-end">
-            <label for="status" class="col-form-label fw-bold">Status</label>
-          </div>
-          <div class="col-md-9">
-            <select
-              id="status"
-              name="status"
-              [(ngModel)]="lab.status"
-              class="form-select"
-              required>
-              <option value="OPERATIONAL" selected>Operational</option>
-              <option value="NON_OPERATIONAL">Non Operational</option>
-            </select>
-          </div>
-        </div>
-
+        <!-- Buttons -->
         <div class="row">
           <div class="col-md-9 offset-md-3 text-end">
             <button type="submit" class="btn btn-success me-2" [disabled]="labForm.invalid">
-              <i class="fas fa-save"></i> Update
+              <i class="fas fa-save me-1"></i> Update
             </button>
             <button type="button" class="btn btn-secondary" (click)="cancel()">
-              <i class="fas fa-times"></i> Cancel
+              <i class="fas fa-times me-1"></i> Cancel
             </button>
           </div>
         </div>
@@ -69,4 +81,3 @@
     </div>
   </div>
 </div>
-

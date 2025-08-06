@@ -29,7 +29,7 @@ body {
 }
 
 .sidebar {
-  width: 290px;
+  width: 320px;
   position: fixed;
   left: 0;
   top: 0;
@@ -193,7 +193,7 @@ body {
 /* Content layout */
 .content-wrapper {
   flex: 1;
-  margin-left:290px;
+  margin-left:320px;
   transition: margin-left 0.3s ease-in-out;
 }
 

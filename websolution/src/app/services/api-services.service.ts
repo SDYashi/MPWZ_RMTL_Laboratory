@@ -161,7 +161,7 @@ deleteVendor(id: number): Observable<any> {
 
 // --- Store Endpoints ---
 getStores(): Observable<Store[]> {
-  return this.http.get<Store[]>(`${this.baseUrl}/stores`);
+  return this.http.get<Store[]>(`${this.baseUrl}/stores/`);
 }
 
 getStore(id: number): Observable<Store> {

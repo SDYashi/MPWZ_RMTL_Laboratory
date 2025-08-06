@@ -21,6 +21,7 @@ const routes: Routes = [
       { path: 'user',loadChildren:()=>import('./rmtl-user/rmtl-user.module').then(m=>m.RmtlUserModule)},
       { path: 'supply-vendors',loadChildren:()=>import('./rmtl-vendors/rmtl-vendors.module').then(m=>m.RmtlVendorsModule)},
       { path: 'lab', loadChildren: () => import('./rmtl-lab/rmtl-lab.module').then(m => m.RmtlLabModule) },
+      { path:'store',loadChildren:()=>import('./rmtl-store/rmtl-store.module').then(m=>m.RmtlStoreModule)},
     ]
   },
 ];

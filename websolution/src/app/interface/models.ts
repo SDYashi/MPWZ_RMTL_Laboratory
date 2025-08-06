@@ -124,8 +124,16 @@ export interface Vendor {
 
 export interface Store {
   id?: number;
+  code: string;
   name: string;
-  location: string;
+  division_code: number;
+  division_name: string;
+  circle_code: number;
+  circle_name: string;
+  region_code: number;
+  region_name: string;
+  org_code: number;
+  org_name: string;
 }
 
 export interface Assignment {

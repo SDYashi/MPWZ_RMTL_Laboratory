@@ -54,7 +54,7 @@
             <a class="menu-link" data-bs-toggle="collapse" href="#benchManagement" role="button"
                [attr.aria-expanded]="isRouteActive(['/wzlab/testing-bench'])"
                [ngClass]="{ show: isRouteActive(['/wzlab/testing-bench']) }">
-                <span><i class="fas fa-table me-1"></i> <span class="menu-text">TestingBench Management</span></span>
+                <span><i class="fas fa-table me-1"></i> <span class="menu-text">Testing Bench Management</span></span>
                 <i class="fas fa-chevron-down chevron"></i>
             </a>
             <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/testing-bench']) }" id="benchManagement">
@@ -87,8 +87,7 @@
             </a>
             <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/store']) }" id="storeManagement">
                 <div class="submenu">
-                    <a class="submenu-link" routerLink="/wzlab/store/add-store" routerLinkActive="active">Add Source Store </a>
-                    <a class="submenu-link" routerLink="/wzlab/store/list-store" routerLinkActive="active">List Source Stores</a>
+                    <a class="submenu-link" routerLink="/wzlab/store/view-store-list" routerLinkActive="active">View Source Stores</a>
                 </div>
             </div>
         </li>
