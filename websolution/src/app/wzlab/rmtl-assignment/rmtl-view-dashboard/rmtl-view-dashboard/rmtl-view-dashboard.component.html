@@ -1,1 +1,85 @@
-<p>rmtl-view-dashboard works!</p>
+<div class="container-fluid mt-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold"><i class="fas fa-tasks me-2"></i> Assignment Dashboard</h4>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card shadow-lg border-0">
+        <div class="card-body bg-light text-center rounded">
+          <h6 class="text-muted">Pending Assignments</h6>
+          <h4 class="fw-bold text-primary">{{ summary.pending }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card shadow-lg border-0">
+        <div class="card-body bg-light text-center rounded">
+          <h6 class="text-muted">Completed Assignments</h6>
+          <h4 class="fw-bold text-success">{{ summary.completed }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card shadow-lg border-0">
+        <div class="card-body bg-light text-center rounded">
+          <h6 class="text-muted">Overdue Assignments</h6>
+          <h4 class="fw-bold text-danger">{{ summary.overdue }}</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assignment Table -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-dark text-white">
+      <h6 class="mb-0"><i class="fas fa-list me-2"></i> Assignment List</h6>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-striped table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Title</th>
+            <th>Assigned To</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let assignment of assignments; let i = index">
+            <td>{{ i + 1 }}</td>
+            <td>{{ assignment.title }}</td>
+            <td>{{ assignment.assigned_to }}</td>
+            <td>{{ assignment.due_date | date: 'shortDate' }}</td>
+            <td>
+              <span [ngClass]="{
+                'badge bg-warning': assignment.status === 'Pending',
+                'badge bg-success': assignment.status === 'Completed',
+                'badge bg-danger': assignment.status === 'Overdue'
+              }">
+                {{ assignment.status }}
+              </span>
+            </td>
+            <td>{{ assignment.priority }}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary me-2" (click)="viewAssignment(assignment)">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-success" (click)="markCompleted(assignment)">
+                <i class="fas fa-check"></i>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="assignments.length === 0">
+            <td colspan="7" class="text-center text-muted p-3">No assignments available.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
