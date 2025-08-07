@@ -1,5 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
+
+interface Source {
+  id: number;
+  name: string;
+}
+type SourceType = 'STORE' | 'VENDOR' | 'OFFICE';
 
 @Component({
   selector: 'app-rmtl-add-devices',
@@ -7,67 +13,143 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
   styleUrls: ['./rmtl-add-devices.component.css']
 })
 export class RmtlAddDevicesComponent {
+  
+  sourceTypes: SourceType[] = ['STORE', 'VENDOR', 'OFFICE'];
+  selectedSourceType: SourceType = 'STORE';
+  selectedSourceId: any;
+  payload: any;
 
- // Common fields shared across all devices
-  commonFields = {
-    lab_id: 0,
-    office_type: 'STORE',
-    device_status: 'INWARDED'
+  // Mock source list
+  allSources: Record<SourceType, Source[]> = {
+    STORE: [{ id: 1, name: 'Indore Store' }, { id: 2, name: 'Bhopal Store' }],
+    VENDOR: [{ id: 3, name: 'Tata Vendor' }, { id: 4, name: 'ABB Vendor' }],
+    OFFICE: [{ id: 5, name: 'Zone HQ' }, { id: 6, name: 'Regional Office' }]
   };
-  payload: any[] = [];
+  filteredSources: Source[] = [];
 
-  // Devices array
-  devices: any[] = [
-    { serial_number: '', make: 'HPL', capacity: '5-30 AMPERE', phase: '1P', connection_type: 'HT', meter_category: 'DLMS', meter_type: 'NET METER' }
-  ];
+  // Devices
+  devices: any[] = [];
 
-  constructor(private deviceService: ApiServicesService) {}
+
+  // Dropdown options
+makes = ['HPL', 'Secure', 'Genus'];
+capacities = ['5-30 AMPERE', '10-60 AMPERE'];
+phases = ['1P', '3P'];
+categories = ['DLMS', 'NON-DLMS'];
+meterTypes = ['NET METER', 'STATIC METER'];
+
+// Range form model
+serialRange = {
+  start: null,
+  end: null,
+  make: 'HPL',
+  capacity: '5-30 AMPERE',
+  phase: '1P',
+  connection_type: 'HT',
+  meter_category: 'DLMS',
+  meter_type: 'NET METER'
+};
+
+
+  constructor(private deviceService: ApiServicesService) {
+    this.onSourceTypeChange(); // Initialize filtered list
+  }
+  OnInit(): void {
+   this.deviceService.getDevices().subscribe({
+     next: (data) => this.devices = data,
+     error: (err) => {
+       console.error('Failed to load devices', err);
+       alert('Could not load devices'+err);
+     }
+   });
+
+  }
+
+  onSourceTypeChange(): void {
+    this.filteredSources = this.allSources[this.selectedSourceType];
+    this.selectedSourceId = this.filteredSources?.[0]?.id || '';
+  }
 
   addDevice(): void {
-    this.devices.push({ serial_number: '', make: '', capacity: '', phase: '', connection_type: 'HT', meter_category: '', meter_type: '' });
+    this.devices.push({
+      serial_number: '',
+      make: '',
+      capacity: '',
+      phase: '',
+      connection_type: 'HT',
+      meter_category: '',
+      meter_type: ''
+    });
   }
 
   removeDevice(index: number): void {
     this.devices.splice(index, 1);
   }
 
+  handleCSVUpload(event: any): void {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const lines = e.target.result.split('\n');
+      for (let line of lines.slice(1)) {
+        const [serial_number, make, capacity, phase, connection_type, meter_category, meter_type] = line.split(',');
+        if (serial_number) {
+          this.devices.push({ serial_number, make, capacity, phase, connection_type, meter_category, meter_type });
+        }
+      }
+    };
+    reader.readAsText(file);
+  }
+
+addSerialRange(): void {
+  const { start, end } = this.serialRange;
+  if (!start || !end || start > end) {
+    alert("Invalid serial number range.");
+    return;
+  }
+
+  for (let i = start; i <= end; i++) {
+    this.devices.push({
+      serial_number: `SN${i}`,
+      make: this.serialRange.make,
+      capacity: this.serialRange.capacity,
+      phase: this.serialRange.phase,
+      connection_type: this.serialRange.connection_type,
+      meter_category: this.serialRange.meter_category,
+      meter_type: this.serialRange.meter_type
+    });
+  }
+
+  this.serialRange.start = null;
+  this.serialRange.end = null;
+}
+
   submitDevices(): void {
-    this.payload = this.devices.map(device => ({
-      user: null, // Assign appropriate user value
-      assigned_to: 0, // Assign appropriate assigned_to value
-      status: this.commonFields.device_status,
-      inward_no: '', // Assign appropriate inward_no value
-      id: undefined,
-      inward_number: '', // Assign appropriate inward_number value
-      device_type: 'meter', // Assign appropriate device_type value
+     this.payload = this.devices.map(device => ({
       serial_number: device.serial_number,
       make: device.make,
       capacity: device.capacity,
-      date_of_entry: new Date().toISOString().split('T')[0],
       phase: device.phase,
-      // Add other fields as necessary
-      lab_id: this.commonFields.lab_id,
       connection_type: device.connection_type,
       meter_category: device.meter_category,
       meter_type: device.meter_type,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      created_by: 0,
-      updated_by: 0,
-      transaction_amount: 0,
-      transaction_datetime: new Date().toISOString(),
+      source_type: this.selectedSourceType,
+      source_id: this.selectedSourceId,
+      created_at: new Date().toISOString()
     }));
 
-    // Send to backend
-    this.deviceService.createDevice(this.payload[0]).subscribe({
-      next: (response) => {
-        alert('Devices added successfully!');
-        this.devices = [{ serial_number: '', make: 'HPL', capacity: '5-30 AMPERE', phase: '1P', connection_type: 'HT', meter_category: 'DLMS', meter_type: 'NET METER' }];
+    this.deviceService.createDevice(this.payload).subscribe({
+      next: () => {
+        alert('Devices added!');
+        this.devices = [];
       },
       error: (err) => {
-        console.error('Error adding devices', err);
-        alert('Failed to add devices.');
+        console.error(err);
+        alert('Error while submitting devices');
       }
     });
   }
 }
+

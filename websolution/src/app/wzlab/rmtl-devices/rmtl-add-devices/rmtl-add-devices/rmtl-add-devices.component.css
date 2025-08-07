@@ -1,0 +1,32 @@
+/* Tab styling */
+.custom-tabs .nav-link {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  color: #0d6efd;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.custom-tabs .nav-link:hover {
+  background-color: #e9ecef;
+  color: #0a58ca;
+}
+
+.custom-tabs .nav-link.active {
+  background-color: #ffffff;
+  border-bottom: 2px solid #0d6efd;
+  color: #0d6efd;
+  font-weight: bold;
+  border-radius: 5px 5px 0 0;
+}
+
+/* Tab content */
+.custom-tab-content .tab-pane {
+  transition: all 0.3s ease;
+}
+
+/* Input field focus */
+input.form-control:focus, select.form-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
