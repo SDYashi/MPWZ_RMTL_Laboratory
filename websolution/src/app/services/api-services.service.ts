@@ -98,8 +98,9 @@ deleteUserRole(id: number): Observable<any> {
 
 // --- Device Endpoints ---
 getDevices(): Observable<Device[]> {
-  return this.http.get<Device[]>(`${this.baseUrl}/devices`);
+  return this.http.get<Device[]>(`${this.baseUrl}/devices/`);
 }
+
 
 getDevice(id: number): Observable<Device> {
   return this.http.get<Device>(`${this.baseUrl}/devices/${id}`);
@@ -107,6 +108,9 @@ getDevice(id: number): Observable<Device> {
 
 createDevice(device: Device): Observable<Device> {
   return this.http.post<Device>(`${this.baseUrl}/devices`, device);
+}
+addnewdevice(device: Device): Observable<Device> {
+  return this.http.post<Device>(`${this.baseUrl}/devices/inward/`, device);
 }
 
 updateDevice(id: number, device: Device): Observable<Device> {
