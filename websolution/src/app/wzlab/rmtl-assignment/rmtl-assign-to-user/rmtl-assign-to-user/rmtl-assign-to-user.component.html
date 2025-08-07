@@ -14,7 +14,7 @@
             </select>
           </div>
         </div>
-        <div class="{{responseSuccess ? 'alert-success' : 'alert-danger'}}" role="alert" *ngIf="responseMessage">
+        <div class=" {{responseSuccess ? 'alert-success' : 'alert-danger'}}" role="alert" *ngIf="responseMessage">
           <i class="fas {{responseSuccess ? 'fa-check-circle' : 'fa-exclamation-triangle'}} me-2"></i>
           {{responseMessage}}
         </div>
@@ -22,7 +22,7 @@
       </div>
 
       <!-- Devices Table -->
-<div class="table-responsive">
+<div class="table-responsive" *ngIf="filteredDevices.length > 0">
   <table class="table table-bordered table-hover">
     <thead class="table-light text-center">
       <tr>

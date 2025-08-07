@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { RmtlEditDevicesRoutingModule } from './rmtl-edit-devices-routing.module';
 import { RmtlEditDevicesComponent } from './rmtl-edit-devices/rmtl-edit-devices.component';
+import { FormsModule } from '@angular/forms';
 
 
 @NgModule({
@@ -11,7 +12,8 @@ import { RmtlEditDevicesComponent } from './rmtl-edit-devices/rmtl-edit-devices.
   ],
   imports: [
     CommonModule,
-    RmtlEditDevicesRoutingModule
+    RmtlEditDevicesRoutingModule,
+    FormsModule
   ]
 })
 export class RmtlEditDevicesModule { }

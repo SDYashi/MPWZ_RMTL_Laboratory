@@ -1,171 +1,135 @@
-<div class="container-fluid mt-4">
-  <div class="card shadow">
-        <div class="card-header text-white" style=" background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;">
-      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Edit Assignment of Testing Users</h5>
+<div class="container-fluid py-4">
+  <div class="card shadow-lg border-0">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Assignment</h5>
     </div>
-
     <div class="card-body">
-      <div class="row">
+      <div class="row g-4">
         <div class="col-md-4">
-          <!-- Device Status -->
-          <div class="mb-3">
-            <label class="form-label fw-bold">Device Status</label>
-            <select class="form-select" [(ngModel)]="assignment.device_status" name="device_status" (change)="filterinword()">
-              <option *ngFor="let status of device_statuses" [value]="status">{{ status }}</option>
-            </select>
-          </div>
+          <label class="form-label fw-bold">Device Status</label>
+          <select class="form-select" [(ngModel)]="assignment.device_status" (change)="filterinword()">
+            <option *ngFor="let status of device_statuses" [value]="status">{{ status }}</option>
+          </select>
         </div>
-        <div class="col-md-4">
-          <!-- Inward No -->
-          <div class="mb-3">
-            <label class="form-label fw-bold">Inward No</label>
-            <select class="form-select" [(ngModel)]="assignment.inward_no" name="inward_no" (change)="filterUsers()">
-              <option *ngFor="let inw of inward_nos" [value]="inw">{{ inw }}</option>
-            </select>
-          </div>
-        </div>
-<div class="col-md-4">
-  <!-- User Selection -->
-  <div class="mb-3">
-    <label class="form-label fw-bold">Select User</label>
-    <select class="form-select" [(ngModel)]="assignment.selected_user" name="selected_user"  (change)="filterDevices()">
-      <option *ngFor="let user of users_for_inward" [value]="user.id">{{ user.name }}</option>
-    </select>
-  </div>
-</div>
 
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Inward No</label>
+          <select class="form-select" [(ngModel)]="assignment.inward_no" (change)="filterUsers()">
+            <option *ngFor="let inw of inward_nos" [value]="inw">{{ inw }}</option>
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Select User</label>
+          <select class="form-select" [(ngModel)]="assignment.selected_user" (change)="filterDevices()">
+            <option *ngFor="let user of users_for_inward" [value]="user.id">{{ user.name }}</option>
+          </select>
+        </div>
       </div>
 
-      <!-- Device Table -->
-<div class="container-fluid mt-4">
-  <div class="card shadow">
-    <div class="card-header bg-dark text-white">
-      <h5 class="mb-0"><i class="fas fa-history me-2"></i>Assignment History</h5>
-    </div>
+      <div class="table-responsive mt-4" *ngIf="devices.length > 0">
+        <table class="table table-hover table-bordered text-center">
+<thead class="table-dark">
+  <tr>
+    <th>
+      <input type="checkbox" (change)="toggleAllDevices($event)" />
+    </th>
+    <th>Serial No.</th>
+    <th>Make</th>
+    <th>Device Type</th>
+    <th>Phase</th>
+    <th>Connection</th>
+    <th>Consumer</th>
+    <th>Assigned To</th>
+    <th>Assigned By</th>
+    <th>Bench</th>
+    <th>Status</th>
+    <th>Assigned At</th>
+  </tr>
+</thead>
+<tbody>
+  <tr *ngFor="let entry of devices; let i = index">
+    <td>
+      <input type="checkbox" [(ngModel)]="entry.selected" />
+    </td>
+    <td>{{ entry.device.serial_number }}</td>
+    <td>{{ entry.device.make }}</td>
+    <td>{{ entry.device.device_type }}</td>
+    <td>{{ entry.device.phase }}</td>
+    <td>{{ entry.device.connection_type }}</td>
+    <td>
+      <strong>{{ entry.device.consumer_name }}</strong><br />
+      <small class="text-muted">{{ entry.device.consumer_no }}</small>
+    </td>
+    <td>
+      {{ entry.user.name }}<br />
+      <small class="text-muted">{{ entry.user.designation }}</small>
+    </td>
+    <td>
+      {{ entry.assigned_by_user.name }}<br />
+      <small class="text-muted">{{ entry.assigned_by_user.designation }}</small>
+    </td>
+    <td>{{ entry.bench.bench_name }}</td>
+    <td>
+      <span class="badge" [ngClass]="{
+        'bg-success': entry.assignment.assignment_status === 'ASSIGNED',
+        'bg-secondary': entry.assignment.assignment_status === 'UNASSIGNED',
+        'bg-warning text-dark': entry.assignment.assignment_status === 'PENDING',
+        'bg-info text-dark': entry.assignment.assignment_status === 'COMPLETED',
+        'bg-danger': entry.assignment.assignment_status === 'NON_FUNCTIONAL'
+      }">
+        {{ entry.assignment.assignment_status }}
+      </span>
+    </td>
+    <td>{{ entry.assignment.assigned_datetime | date:'medium' }}</td>
+  </tr>
+</tbody>
 
-    <div class="card-body table-responsive">
-      <table class="table table-bordered table-hover">
-        <thead class="table-light text-center">
-          <tr>
-            <th>#</th>
-            <th>Assigned User</th>
-            <th>Bench</th>
-            <th>Assigned By</th>
-            <th>Assigned Date</th>
-            <th>Inward No</th>
-            <th>Make & Serial</th>
-            <th>Device Type</th>
-            <th>Meter Category</th>
-            <th>Status</th>
-            <th>Location</th>
-            <th>Consumer</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let item of filteredDevices; let i = index">
-            <td class="text-center">{{ i + 1 }}</td>
-            <td>
-              <strong>{{ item.user.name }}</strong><br>
-              <small class="text-muted">{{ item.user.username }}</small>
-            </td>
-            <td>{{ item.bench.bench_name }}</td>
-            <td>
-              {{ item.assigned_by_user.name }}<br>
-              <small class="text-muted">{{ item.assigned_by_user.username }}</small>
-            </td>
-            <td>{{ item.assignment.assigned_datetime | date: 'medium' }}</td>
-            <td>{{ item.device.inward_number }}</td>
-            <td>
-              {{ item.device.make }}<br>
-              <small class="text-muted">{{ item.device.serial_number }}</small>
-            </td>
-            <td>{{ item.device.device_type }}</td>
-            <td>{{ item.device.meter_category }}</td>
-            <td>
-              <span class="badge"
-                [ngClass]="{
-                  'bg-primary': item.device.device_status === 'ASSIGNED',
-                  'bg-warning text-dark': item.device.device_status === 'PENDING',
-                  'bg-secondary': item.device.device_status === 'UNASSIGNED',
-                  'bg-success': item.device.device_status === 'COMPLETED',
-                  'bg-danger': item.device.device_status === 'NON_FUNCTIONAL',
-                  'bg-info text-dark': item.device.device_status === 'INWARDED'
-                }">
-                {{ item.device.device_status }}
-              </span>
-            </td>
-            <td>{{ item.device.location_name }}</td>
-            <td>
-              <strong>{{ item.device.consumer_name }}</strong><br>
-              <small class="text-muted">{{ item.device.consumer_no }}</small>
-            </td>
-          </tr>
+        </table>
+      </div>
 
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-
-
-
-      <!-- <div class="mb-4">
-        <label class="form-label fw-bold">Assigned To</label>
-        <div class="input-group">
-          <input type="text" class="form-control" [(ngModel)]="assignment.assigned_to" name="assigned_to" (click)="openAssignModal()">
-          <button class="btn btn-outline-secondary" type="button" (click)="openAssignModal()">
-            <i class="fas fa-user-plus"></i>
-          </button>
-        </div>
-      </div> -->
-      <!-- Submit -->
-      <div class="text-end">
-        <button class="btn btn-success"  (click)="openAssignModal()" [disabled]="!hasSelectedDevices()">
-          <i class="fas fa-save"></i> Update Assignment
+      <div class="d-flex justify-content-end mt-3">
+        <button class="btn btn-success me-2" (click)="openAssignModal()" [disabled]="!hasSelectedDevices()">
+          <i class="fas fa-check-circle"></i> Update Assignment
         </button>
-        <button class="btn btn-secondary ms-2" (click)="cancel()">
+        <button class="btn btn-outline-secondary" (click)="cancel()">
           <i class="fas fa-times"></i> Cancel
         </button>
       </div>
+    </div>
+  </div>
 
-
-      <!-- Modal -->
-      <div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Assign To</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  <!-- Modal -->
+  <div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Assign Devices</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Select User</label>
+              <select class="form-select" [(ngModel)]="selectedUser">
+                <option *ngFor="let user of users" [value]="user.id">{{ user.name }}</option>
+              </select>
             </div>
-            <div class="modal-body">
-              <div class="row">
-                <div class="col-md-6">
-                  <label class="form-label">Select User</label>
-                  <select class="form-select" [(ngModel)]="selectedUser" name="user">
-                    <option *ngFor="let user of users" [value]="user.id">{{ user.name }}</option>
-                  </select>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Select Bench</label>
-                  <select class="form-select" [(ngModel)]="selectedBench" name="bench">
-                    <option *ngFor="let bench of benches" [value]="bench.id">{{ bench.bench_name }}</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-              <button type="button" class="btn btn-primary" (click)="onUpdate()">Assign Devices</button>
+            <div class="col-md-6">
+              <label class="form-label">Select Bench</label>
+              <select class="form-select" [(ngModel)]="selectedBench">
+                <option *ngFor="let bench of benches" [value]="bench.id">{{ bench.bench_name }}</option>
+              </select>
             </div>
           </div>
         </div>
-
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button class="btn btn-primary" (click)="onUpdate()">
+            <i class="fas fa-save"></i> Confirm Assignment
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
-
-
-
-      <!-- Assign To -->
-

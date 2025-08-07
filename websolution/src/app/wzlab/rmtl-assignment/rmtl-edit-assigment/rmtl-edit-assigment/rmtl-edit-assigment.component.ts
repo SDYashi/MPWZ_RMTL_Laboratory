@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import * as bootstrap from 'bootstrap';
+import modal from 'bootstrap/js/dist/modal';
 import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
@@ -11,13 +12,12 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
 })
 export class RmtlEditAssigmentComponent {
   currentuser: string = 'SYSADMIN';
-  inward_nos:any = [];
-  device_statuses = [];
+  inward_nos: any[] = [];
+  device_statuses: any[] = [];
   users: any[] = [];
-benches : any[] = [];
-selectedUser: string = '';
-selectedBench: string = '';
-selected_user: string = '';
+  benches: any[] = [];
+  selectedUser: string = '';
+  selectedBench: string = '';
   devices: any[] = [];
   filteredDevices: any[] = [];
   users_for_inward: any[] = [];
@@ -28,44 +28,65 @@ selected_user: string = '';
     device_status: '',
     assigned_to: '',
     device_ids: [] as number[],
-    assignment_id:  [] as number[],
+    assignment_id: [] as number[],
     selected_user: '',
-
   };
+
   responseSuccess: boolean = false;
   responseMessage: string = '';
+  payload: any;
 
   constructor(
     private api: ApiServicesService,
     private authapi: AuthService
   ) {}
 
-  ngOnInit(): void { 
+  ngOnInit(): void {
+    this.fetchEnums();
+    this.fetchDistinctInwardNos();
+  }
 
-  this.api.getEnums().subscribe({
+  fetchEnums(): void {
+    this.api.getEnums().subscribe({
       next: (res) => {
         this.device_statuses = res.assignment_statuses;
         this.responseSuccess = true;
       },
       error: (err) => {
-        console.error('Failed to fetch labs', err);
+        console.error('Failed to fetch enums', err);
         this.responseSuccess = false;
       }
     });
+  }
 
-  this.api.getdistinctinwordno().subscribe({
-    next: (res) => {
-      this.inward_nos = res;
-      this.responseMessage= 'Data fetched successfully!';
-       this.responseSuccess = true;
-    },
-    error: (err) => {
-       this.responseMessage= err?.error?.details || 'Failed to fetch data.';
+  fetchDistinctInwardNos(): void {
+    this.api.getdistinctinwordno().subscribe({
+      next: (res) => {
+        this.inward_nos = res;
+        this.responseMessage = 'Inward numbers fetched successfully';
+        this.responseSuccess = true;
+      },
+      error: (err) => {
+        this.responseMessage = err?.error?.details || 'Failed to fetch inward numbers';
         this.responseSuccess = false;
-    }
-   })
-  }  
- 
+      }
+    });
+  }
+
+  filterinword(): void {
+    this.api.getDistinctinwordnobyAssignmentStatus(this.assignment.device_status).subscribe({
+      next: (res) => {
+        this.inward_nos = res;
+        this.responseMessage = 'Filtered inward numbers';
+        this.responseSuccess = true;
+      },
+      error: (err) => {
+        this.responseMessage = err?.error?.details || 'Failed to filter inward numbers';
+        this.responseSuccess = false;
+      }
+    });
+  }
+
   filterUsers(): void {
     this.api.getUsers().subscribe({
       next: (res) => {
@@ -76,73 +97,41 @@ selected_user: string = '';
       }
     });
   }
- 
-  filterinword(): void {
-    this.api.getDistinctinwordnobyAssignmentStatus(this.assignment.device_status).pipe().subscribe({
-      next: (res) => {
-        this.inward_nos = res;
-        this.responseMessage= 'Data fetched successfully!';
-        this.responseSuccess = true;
-      },
-      error: (err) => {
-        this.responseMessage= err?.error?.details || 'Failed to fetch data.';
-        this.responseSuccess = false;
-      }
-    })
-  }
 
-  filterDevices(): void {
-    this.api.getDevicesByInwardAndAssignmentStatus(this.assignment.inward_no, this.assignment.device_status).subscribe({
-      next: (res) => {
-        this.filteredDevices = res.filter(d => d.user.username === this.selectedUser);
-        this.responseMessage= 'Data fetched successfully!';
-        this.responseSuccess = true;
-      },
-      error: (err) => {
-        this.responseMessage= err?.error?.details || 'Failed to fetch data.';
-        this.responseSuccess = false;
-      }
-    })
-  }
-
-  toggleAllDevices(event: any): void {
-    const checked = event.target.checked;
-    this.filteredDevices.forEach(d => d.selected = checked);
-  }
-
-  hasSelectedDevices(): boolean {
-    return this.filteredDevices.some(d => d.selected);
-  }
-
-  payload :any;
-  onUpdate(): void {
-    this.currentuser = this.authapi.getUserNameFromToken() ?? '';
-    const selectedDeviceIds = this.filteredDevices.filter(d => d.selected).map(d => d.id);
-    const filteredDevices = this.filteredDevices.filter(d => d.selected)
-    // .map(d => d.assignment_id)[0];  
-    this.payload= {
-      assignment_ids: filteredDevices.map(d => d.assignment_id),
-      user_id: parseInt(this.selectedUser, 10),
-      bench_id: parseInt(this.selectedBench, 10),
-      assignment_type: this.assignment.device_status
+  // filterDevices(): void {
+  //   this.api.getDevicesByInwardAndAssignmentStatus(this.assignment.inward_no, this.assignment.device_status).subscribe({
+  //     next: (res) => {
+  //       this.filteredDevices = res.filter(d => d.user.username === this.assignment.selected_user);
+  //       this.responseMessage = 'Devices filtered successfully';
+  //       this.responseSuccess = true;
+  //     },
+  //     error: (err) => {
+  //       this.responseMessage = err?.error?.details || 'Failed to fetch devices';
+  //       this.responseSuccess = false;
+  //     }
+  //   });
+  // }
+filterDevices(): void {
+  this.api.getDevicesByInwardAndAssignmentStatus(this.assignment.inward_no, this.assignment.device_status).subscribe({
+    next: (res) => {
+      this.devices = res.map((d: any) => ({ ...d, selected: false }));
+      this.responseSuccess = true;
+    },
+    error: () => {
+      this.responseSuccess = false;
     }
+  });
+}
 
 
-    this.api.updateAssignment(this.payload).subscribe({
-      next: () => {
-        alert('Assignment updated successfully!');
-      },
-      error: (err) => {
-        console.error('Update failed:', err);
-      }
-    });
-  }
 
-  cancel(): void {
-  }
+hasSelectedDevices(): boolean {
+  return this.devices.some(d => d.selected);
+}
+
 
   openAssignModal(): void {
-        this.api.getUsers().subscribe({
+    this.api.getUsers().subscribe({
       next: (res) => {
         this.users = res;
       },
@@ -150,20 +139,66 @@ selected_user: string = '';
         console.error('Failed to fetch users', err);
       }
     });
+
     this.api.getTestingBenches().subscribe({
       next: (res) => {
         this.benches = res;
       },
       error: (err) => {
-        console.error('Failed to fetch devices', err);
+        console.error('Failed to fetch benches', err);
       }
-    })
+    });
+
     const modal = new bootstrap.Modal(document.getElementById('assignModal')!);
     modal.show();
   }
-  assign(): void {
-    const modal = new bootstrap.Modal(document.getElementById('assignModal')!);
-    modal.hide();
+
+onUpdate(): void {
+  const selectedEntries = this.devices.filter(d => d.selected);
+
+  if (!selectedEntries.length) {
+    alert('Please select at least one device to update.');
+    return;
   }
+
+  this.currentuser = this.authapi.getUserNameFromToken() ?? '';
+
+  this.payload = {
+    assignment_ids: selectedEntries.map(d => d.assignment.id),
+    user_id: parseInt(this.selectedUser, 10),
+    bench_id: parseInt(this.selectedBench, 10),
+    assignment_type: this.assignment.device_status
+  };
+
+  this.api.updateAssignment(this.payload).subscribe({
+    next: () => {
+      alert('Assignment updated successfully!');
+      const modal = bootstrap.Modal.getInstance(document.getElementById('assignModal')!);
+      modal?.hide();
+       this.devices=[];
+      
+
+    },
+    error: (err) => {
+      console.error('Update failed:', err);
+      alert('Assignment update failed!');
+    }
+  });
 }
 
+
+  cancel(): void {
+    // Resetting form or navigating away logic if needed
+  }
+
+toggleAllDevices(event: any): void {
+  const checked = event.target.checked;
+  this.devices.forEach(d => d.selected = checked);
+}
+
+
+  assign(): void {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('assignModal')!);
+    modal?.hide();
+  }
+}

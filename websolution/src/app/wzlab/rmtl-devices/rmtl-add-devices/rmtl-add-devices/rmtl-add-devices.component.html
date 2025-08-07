@@ -1,1 +1,79 @@
-<p>rmtl-add-devices works!</p>
+<div class="container-fluid mt-4">
+  <div class="card shadow">
+    <div class="card-header  text-white" style=" background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;">
+      <h5 class="mb-0">Bulk Device Entry Form</h5>
+    </div>
+    <div class="card-body">
+      <form (ngSubmit)="submitDevices()" #deviceForm="ngForm">
+
+        <!-- Common Fields -->
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label>Lab ID</label>
+            <input type="number" [(ngModel)]="commonFields.lab_id" name="lab_id" class="form-control" required>
+          </div>
+          <div class="col-md-4">
+            <label>Office Type</label>
+            <select class="form-select" [(ngModel)]="commonFields.office_type" name="office_type" required>
+              <option value="STORE">STORE</option>
+              <option value="ZONE">ZONE</option>
+              <option value="VENDOR">VENDOR</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label>Device Status</label>
+            <select class="form-select" [(ngModel)]="commonFields.device_status" name="device_status" required>
+              <option value="INWARDED">INWARDED</option>
+              <option value="DISPATCHED">DISPATCHED</option>
+            </select>
+          </div>
+        </div>
+
+        <hr>
+
+        <!-- Bulk Entry Table -->
+        <div class="table-responsive mb-3">
+          <table class="table table-bordered align-middle">
+            <thead class="table-light text-center">
+              <tr>
+                <th>#</th>
+                <th>Serial No</th>
+                <th>Make</th>
+                <th>Capacity</th>
+                <th>Phase</th>
+                <th>Conn. Type</th>
+                <th>Category</th>
+                <th>Meter Type</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let device of devices; let i = index">
+                <td class="text-center">{{ i + 1 }}</td>
+                <td><input type="text" [(ngModel)]="device.serial_number" name="serial{{i}}" class="form-control" required></td>
+                <td><input type="text" [(ngModel)]="device.make" name="make{{i}}" class="form-control" required></td>
+                <td><input type="text" [(ngModel)]="device.capacity" name="capacity{{i}}" class="form-control"></td>
+                <td><input type="text" [(ngModel)]="device.phase" name="phase{{i}}" class="form-control"></td>
+                <td>
+                  <select class="form-select" [(ngModel)]="device.connection_type" name="connType{{i}}">
+                    <option value="HT">HT</option>
+                    <option value="LT">LT</option>
+                  </select>
+                </td>
+                <td><input type="text" [(ngModel)]="device.meter_category" name="category{{i}}" class="form-control"></td>
+                <td><input type="text" [(ngModel)]="device.meter_type" name="type{{i}}" class="form-control"></td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm btn-danger" (click)="removeDevice(i)">×</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button type="button" class="btn btn-outline-success mb-3" (click)="addDevice()">+ Add Device</button>
+        <br>
+        <button type="submit" class="btn btn-primary">Submit Devices</button>
+      </form>
+    </div>
+  </div>
+</div>

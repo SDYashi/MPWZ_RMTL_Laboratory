@@ -185,6 +185,14 @@ getAssignments(): Observable<Assignment[]> {
   return this.http.get<Assignment[]>(`${this.baseUrl}/assignments/`);
 }
 
+getAssignmentsByStatus (assignment_status: string): Observable<Assignment[]> {
+  return this.http.get<Assignment[]>(`${this.baseUrl}/assignments-by-status?assignment_status=${assignment_status}`);
+}
+
+// getAssignmentsByStatus(query: string = ''): Observable<Assignment[]> {
+//   return this.http.get<Assignment[]>(`${this.baseUrl}/assignments-by-status${query}`);
+// }
+
 getAssignment(id: number): Observable<Assignment> {
   return this.http.get<Assignment>(`${this.baseUrl}/assignments/${id}`);
 }
@@ -194,7 +202,7 @@ createAssignment(assignment: Assignment): Observable<Assignment> {
 }
 
 updateAssignment( updateData: { assignment_ids: number[], user_id: number, bench_id: number, assignment_type: string }): Observable<Assignment> {
-  return this.http.put<Assignment>(`${this.baseUrl}/assign-devices/update/`, updateData);
+  return this.http.put<Assignment>(`${this.baseUrl}/assign-devices/update`, updateData);
 }
 
 deleteAssignment(id: number): Observable<any> {

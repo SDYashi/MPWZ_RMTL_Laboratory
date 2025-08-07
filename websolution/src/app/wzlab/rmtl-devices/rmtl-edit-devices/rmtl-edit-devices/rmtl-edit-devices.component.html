@@ -1,1 +1,77 @@
-<p>rmtl-edit-devices works!</p>
+<div class="container-fluid mt-4">
+  <div class="card shadow-sm">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Bulk Edit Devices</h5>
+      <button class="btn btn-success" (click)="submitBulkUpdate()">Save Changes</button>
+    </div>
+
+    <div class="card-body table-responsive">
+      <table class="table table-bordered table-hover align-middle">
+        <thead class="table-light text-center">
+          <tr>
+            <th>#</th>
+            <th>Serial Number</th>
+            <th>Make</th>
+            <th>Capacity</th>
+            <th>Phase</th>
+            <th>Status</th>
+            <th>Connection</th>
+            <th>Consumer</th>
+            <th>Assigned To</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let device of devices; let i = index">
+            <td class="text-center">{{ i + 1 }}</td>
+
+            <td>
+              <input type="text" class="form-control" [(ngModel)]="device.serial_number" name="sn{{ i }}">
+            </td>
+
+            <td>
+              <input type="text" class="form-control" [(ngModel)]="device.make" name="make{{ i }}">
+            </td>
+
+            <td>
+              <input type="text" class="form-control" [(ngModel)]="device.capacity" name="cap{{ i }}">
+            </td>
+
+            <td>
+              <select class="form-select" [(ngModel)]="device.phase" name="phase{{ i }}">
+                <option value="1P">1P</option>
+                <option value="3P">3P</option>
+              </select>
+            </td>
+
+            <td>
+              <select class="form-select" [(ngModel)]="device.device_status" name="status{{ i }}">
+                <option value="INWARDED">INWARDED</option>
+                <option value="DISPATCHED">DISPATCHED</option>
+              </select>
+            </td>
+
+            <td>
+              <select class="form-select" [(ngModel)]="device.connection_type" name="conn{{ i }}">
+                <option value="HT">HT</option>
+                <option value="LT">LT</option>
+              </select>
+            </td>
+
+            <td>
+              <input type="text" class="form-control" [(ngModel)]="device.consumer_name" name="consumer{{ i }}">
+            </td>
+
+            <td>
+              <input type="text" class="form-control" [(ngModel)]="device.assignment.user.name" name="assignee{{ i }}">
+            </td>
+
+          </tr>
+
+          <tr *ngIf="devices.length === 0">
+            <td colspan="9" class="text-center text-muted">No devices to edit.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
