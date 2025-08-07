@@ -107,8 +107,9 @@ getDevice(id: number): Observable<Device> {
 }
 
 createDevice(device: Device): Observable<Device> {
-  return this.http.post<Device>(`${this.baseUrl}/devices`, device);
+  return this.http.post<Device>(`${this.baseUrl}/devices/`, device);
 }
+
 addnewdevice(device: Device): Observable<Device> {
   return this.http.post<Device>(`${this.baseUrl}/devices/inward/`, device);
 }
@@ -182,6 +183,9 @@ updateStore(id: number, store: Store): Observable<Store> {
 
 deleteStore(id: number): Observable<any> {
   return this.http.delete(`${this.baseUrl}/stores/${id}`);
+}
+getOffices(target_type: string, target_code: string ): Observable<any[]> {
+  return this.http.get<any[]>(`${this.baseUrl}/get-office-details/${target_type}/${target_code}`);
 }
 
 // --- Assignment Endpoints ---

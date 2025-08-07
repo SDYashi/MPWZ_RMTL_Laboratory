@@ -3,163 +3,301 @@
     <div class="card-header text-white" style="background-color:#151433;">
       <h5 class="mb-0">Bulk Device Entry</h5>
     </div>
-    <div class="card-body">
-      <form (ngSubmit)="submitDevices()" #deviceForm="ngForm">
+    <ul class="nav nav-tabs custom-tabs mt-4" id="myTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="meter-tab" data-bs-toggle="tab" data-bs-target="#meter" type="button" role="tab" aria-controls="meter" aria-selected="true">METERS</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="ct-tab" data-bs-toggle="tab" data-bs-target="#ct" type="button" role="tab" aria-controls="ct" aria-selected="false">CTs</button>
+      </li>
+    </ul>
+    <div class="tab-content mt-3" id="myTabContent">
+      <div class="tab-pane fade show active" id="meter" role="tabpanel" aria-labelledby="csv-tab">
+        <h4 class="card-title mb-3 ml-3 p-2 bg-info text-white fw-bold text-primary rounded shadow border">Add Bulk Meters</h4>
+        <div class="card-body">
+          <form  #deviceForm="ngForm">
+            <!-- Source Type Selection -->
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <label>Source Type</label>
+                <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type" (change)="onSourceTypeChange()" required>
+                  <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label><strong>Location/Store/Vendor Code</strong></label>
+                <input type="text" class="form-control" [(ngModel)]="selectedSourceName" name="source_name" required (keydown.enter)="fetchButtonData()">
+              </div>
+              <div class="col-md-2 mt-4">
+                      <button type="button" class="btn btn-primary" (click)="fetchButtonData()">Fetch</button>
+              </div>
+            <table class="table table-striped table-bordered mt-3" *ngIf="selectedSourceName">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Division Name</th>
+                  <th>Code</th>
+                  <th>Circle Name</th>
+                  <th>Region Name</th>
+                  <th>Org Name</th>
+                  <th>Division Code</th>
+                  <th>Circle Code</th>
+                  <th>Region Code</th>
+                  <th>Org Code</th>
+                </tr>
+              </thead>
+          <tbody *ngIf="filteredSources">
+                <tr>
+                  <td>{{ filteredSources.name }}</td>
+                  <td>{{ filteredSources.division_name }}</td>
+                  <td>{{ filteredSources.code }}</td>
+                  <td>{{ filteredSources.circle_name }}</td>
+                  <td>{{ filteredSources.region_name }}</td>
+                  <td>{{ filteredSources.org_name }}</td>
+                  <td>{{ filteredSources.division_code }}</td>
+                  <td>{{ filteredSources.circle_code }}</td>
+                  <td>{{ filteredSources.region_code }}</td>
+                  <td>{{ filteredSources.org_code }}</td>
+                </tr>
+              </tbody>
 
-        <!-- Source Type Selection -->
-        <div class="row mb-3">
-          <div class="col-md-4">
-            <label>Source Type</label>
-            <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type" (change)="onSourceTypeChange()" required>
-              <option *ngFor="let type of sourceTypes" [value]="type">{{ type }}</option>
+            </table>
+              
+            </div>
+    <div class="container mt-4 bg-light">
+    <!-- Tabs -->
+    <ul class="nav nav-tabs custom-tabs mb-3 mt-4" id="entryTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="csv-tab" data-bs-toggle="tab" data-bs-target="#csv" type="button" role="tab" aria-controls="csv" aria-selected="true">
+          📄 Upload CSV
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="range-tab" data-bs-toggle="tab" data-bs-target="#range" type="button" role="tab" aria-controls="range" aria-selected="false">
+          🔢 Serial No Range
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content custom-tab-content" id="entryTabContent">
+      <!-- CSV Upload Tab -->
+      <div class="tab-pane fade show active" id="csv" role="tabpanel" aria-labelledby="csv-tab">
+        <div class="p-4 bg-white rounded shadow-sm border">
+          <h6 class="mb-3 text-primary fw-bold">Upload Device List (CSV)</h6>
+          <input type="file" accept=".csv" (change)="handleCSVUpload($event)" class="form-control border-info">
+        </div>
+      </div>
+
+      <!-- Serial No Range Tab -->
+    <!-- Serial No Range Tab -->
+    <div class="tab-pane fade" id="range" role="tabpanel" aria-labelledby="range-tab">
+      <div class="p-4 bg-white rounded shadow-sm border">
+        <h6 class="mb-3 text-primary fw-bold">Add Devices by Serial Number Range</h6>
+        
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Start Serial</label>
+            <input type="number" [(ngModel)]="serialRange.start" name="serial_start" class="form-control border-info">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">End Serial</label>
+            <input type="number" [(ngModel)]="serialRange.end" name="serial_end" class="form-control border-info">
+          </div>
+        </div>
+
+        <div class="row g-3 mt-3">
+          <div class="col-md-2">
+            <label class="form-label">Make</label>
+            <select class="form-select" [(ngModel)]="serialRange.make" name="range_make">
+              <option *ngFor="let option of makes" [value]="option">{{ option }}</option>
             </select>
           </div>
-          <div class="col-md-4">
-            <label>Select Source</label>
-            <select class="form-select" [(ngModel)]="selectedSourceId" name="source_id" required>
-              <option *ngFor="let source of filteredSources" [value]="source.id">{{ source.name }}</option>
+          <div class="col-md-2">
+            <label class="form-label">Capacity</label>
+            <select class="form-select" [(ngModel)]="serialRange.capacity" name="range_capacity">
+              <option *ngFor="let option of capacities" [value]="option">{{ option }}</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Phase</label>
+            <select class="form-select" [(ngModel)]="serialRange.phase" name="range_phase">
+              <option *ngFor="let option of phases" [value]="option">{{ option }}</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Conn. Type</label>
+            <select class="form-select" [(ngModel)]="serialRange.connection_type" name="range_conn_type">
+              <option value="HT">HT</option>
+              <option value="LT">LT</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Category</label>
+            <select class="form-select" [(ngModel)]="serialRange.meter_category" name="range_category">
+              <option *ngFor="let option of meter_categories" [value]="option">{{ option }}</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Meter Type</label>
+            <select class="form-select" [(ngModel)]="serialRange.meter_type" name="range_type">
+              <option *ngFor="let option of meterTypes" [value]="option">{{ option }}</option>
             </select>
           </div>
         </div>
 
-<!-- Tabs -->
-<ul class="nav nav-tabs custom-tabs mb-3" id="entryTab" role="tablist">
-  <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="csv-tab" data-bs-toggle="tab" data-bs-target="#csv" type="button" role="tab" aria-controls="csv" aria-selected="true">
-      📄 Upload CSV
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" id="range-tab" data-bs-toggle="tab" data-bs-target="#range" type="button" role="tab" aria-controls="range" aria-selected="false">
-      🔢 Serial No Range
-    </button>
-  </li>
-</ul>
-
-<!-- Tab Content -->
-<div class="tab-content custom-tab-content" id="entryTabContent">
-  <!-- CSV Upload Tab -->
-  <div class="tab-pane fade show active" id="csv" role="tabpanel" aria-labelledby="csv-tab">
-    <div class="p-4 bg-white rounded shadow-sm border">
-      <h6 class="mb-3 text-primary fw-bold">Upload Device List (CSV)</h6>
-      <input type="file" accept=".csv" (change)="handleCSVUpload($event)" class="form-control border-info">
-    </div>
-  </div>
-
-  <!-- Serial No Range Tab -->
-<!-- Serial No Range Tab -->
-<div class="tab-pane fade" id="range" role="tabpanel" aria-labelledby="range-tab">
-  <div class="p-4 bg-white rounded shadow-sm border">
-    <h6 class="mb-3 text-primary fw-bold">Add Devices by Serial Number Range</h6>
-    
-    <div class="row g-3">
-      <div class="col-md-3">
-        <label class="form-label">Start Serial</label>
-        <input type="number" [(ngModel)]="serialRange.start" name="serial_start" class="form-control border-info">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">End Serial</label>
-        <input type="number" [(ngModel)]="serialRange.end" name="serial_end" class="form-control border-info">
+        <div class="row mt-3">
+          <div class="col-md-3 offset-md-9">
+            <button type="button" class="btn btn-outline-primary w-100" (click)="addSerialRange()">➕ Add Range</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="row g-3 mt-3">
-      <div class="col-md-2">
-        <label class="form-label">Make</label>
-        <select class="form-select" [(ngModel)]="serialRange.make" name="range_make">
-          <option *ngFor="let option of makes" [value]="option">{{ option }}</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Capacity</label>
-        <select class="form-select" [(ngModel)]="serialRange.capacity" name="range_capacity">
-          <option *ngFor="let option of capacities" [value]="option">{{ option }}</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Phase</label>
-        <select class="form-select" [(ngModel)]="serialRange.phase" name="range_phase">
-          <option *ngFor="let option of phases" [value]="option">{{ option }}</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Conn. Type</label>
-        <select class="form-select" [(ngModel)]="serialRange.connection_type" name="range_conn_type">
-          <option value="HT">HT</option>
-          <option value="LT">LT</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Category</label>
-        <select class="form-select" [(ngModel)]="serialRange.meter_category" name="range_category">
-          <option *ngFor="let option of categories" [value]="option">{{ option }}</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Meter Type</label>
-        <select class="form-select" [(ngModel)]="serialRange.meter_type" name="range_type">
-          <option *ngFor="let option of meterTypes" [value]="option">{{ option }}</option>
-        </select>
-      </div>
+    </div>
     </div>
 
-    <div class="row mt-3">
-      <div class="col-md-3 offset-md-9">
-        <button type="button" class="btn btn-outline-primary w-100" (click)="addSerialRange()">➕ Add Range</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-</div>
 
 
+            <hr class="my-4">
 
+            <!-- Manual Entry Table -->
+            <div class="table-responsive">
+              <table class="table table-bordered align-middle">
+                <thead class="table-light text-center">
+                  <tr>
+                    <th>#</th>
+                    <th>Serial No</th>
+                    <th>Make</th>
+                    <th>Capacity</th>
+                    <th>Phase</th>
+                    <th>Conn. Type</th>
+                    <th>Category</th>
+                    <th>Meter Type</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let device of devices; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td><input type="text" [(ngModel)]="device.serial_number" name="serial{{i}}" class="form-control" required></td>
+                    <td><input type="text" [(ngModel)]="device.make" name="make{{i}}" class="form-control" required></td>
+                    <td><input type="text" [(ngModel)]="device.capacity" name="capacity{{i}}" class="form-control"></td>
+                    <td><input type="text" [(ngModel)]="device.phase" name="phase{{i}}" class="form-control"></td>
+                    <td>
+                      <select class="form-select" [(ngModel)]="device.connection_type" name="connType{{i}}">
+                        <option value="HT">HT</option>
+                        <option value="LT">LT</option>
+                      </select>
+                    </td>
+                    <td><input type="text" [(ngModel)]="device.meter_category" name="category{{i}}" class="form-control"></td>
+                    <td><input type="text" [(ngModel)]="device.meter_type" name="type{{i}}" class="form-control"></td>
+                    <td class="text-center">
+                      <button type="button" class="btn btn-sm btn-danger" (click)="removeDevice(i)">×</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-        <hr class="my-4">
+            <button type="button" class="btn btn-outline-success my-3" (click)="addDevice()">+ Add Device</button>
+            <button type="submit" class="btn btn-primary float-end" [disabled]="!devices.length" (click)="submitDevices()">Add Devices</button>
+          </form>
+        </div>
+     </div>
+     <div class="tab-pane fade" id="ct" role="tabpanel" aria-labelledby="ct-tab">
+  <h4 class="card-title mb-3 ml-3 p-2 bg-info text-white fw-bold text-primary rounded shadow border">Add Bulk CTs</h4>
+  <div class="card-body">
+    <form #ctForm="ngForm">
+      <!-- CSV & Range Tabs -->
+      <ul class="nav nav-tabs custom-tabs mb-3 mt-4" id="ctEntryTab" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="ct-csv-tab" data-bs-toggle="tab" data-bs-target="#ct-csv" type="button" role="tab">📄 Upload CSV</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="ct-range-tab" data-bs-toggle="tab" data-bs-target="#ct-range" type="button" role="tab">🔢 Serial No Range</button>
+        </li>
+      </ul>
 
-        <!-- Manual Entry Table -->
-        <div class="table-responsive">
-          <table class="table table-bordered align-middle">
-            <thead class="table-light text-center">
-              <tr>
-                <th>#</th>
-                <th>Serial No</th>
-                <th>Make</th>
-                <th>Capacity</th>
-                <th>Phase</th>
-                <th>Conn. Type</th>
-                <th>Category</th>
-                <th>Meter Type</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let device of devices; let i = index">
-                <td>{{ i + 1 }}</td>
-                <td><input type="text" [(ngModel)]="device.serial_number" name="serial{{i}}" class="form-control" required></td>
-                <td><input type="text" [(ngModel)]="device.make" name="make{{i}}" class="form-control" required></td>
-                <td><input type="text" [(ngModel)]="device.capacity" name="capacity{{i}}" class="form-control"></td>
-                <td><input type="text" [(ngModel)]="device.phase" name="phase{{i}}" class="form-control"></td>
-                <td>
-                  <select class="form-select" [(ngModel)]="device.connection_type" name="connType{{i}}">
-                    <option value="HT">HT</option>
-                    <option value="LT">LT</option>
-                  </select>
-                </td>
-                <td><input type="text" [(ngModel)]="device.meter_category" name="category{{i}}" class="form-control"></td>
-                <td><input type="text" [(ngModel)]="device.meter_type" name="type{{i}}" class="form-control"></td>
-                <td class="text-center">
-                  <button type="button" class="btn btn-sm btn-danger" (click)="removeDevice(i)">×</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="tab-content" id="ctEntryTabContent">
+        <!-- CT CSV Upload -->
+        <div class="tab-pane fade show active" id="ct-csv" role="tabpanel">
+          <div class="p-4 bg-white rounded shadow-sm border">
+            <h6 class="mb-3 text-primary fw-bold">Upload CT List (CSV)</h6>
+            <input type="file" accept=".csv" (change)="handleCTCSVUpload($event)" class="form-control border-info">
+          </div>
         </div>
 
-        <button type="button" class="btn btn-outline-success my-3" (click)="addDevice()">+ Add Device</button>
-        <button type="submit" class="btn btn-primary float-end">Submit Devices</button>
-      </form>
-    </div>
+        <!-- CT Serial No Range -->
+        <div class="tab-pane fade" id="ct-range" role="tabpanel">
+          <div class="p-4 bg-white rounded shadow-sm border">
+            <h6 class="mb-3 text-primary fw-bold">Add CTs by Serial Number Range</h6>
+            <div class="row g-3">
+              <div class="col-md-3">
+                <label class="form-label">Start Serial</label>
+                <input type="number" [(ngModel)]="ctRange.start" name="ct_start" class="form-control border-info">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">End Serial</label>
+                <input type="number" [(ngModel)]="ctRange.end" name="ct_end" class="form-control border-info">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">CT Class</label>
+                <input type="text" [(ngModel)]="ctRange.ct_class" name="ct_class" class="form-control">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">CT Ratio</label>
+                <input type="text" [(ngModel)]="ctRange.ct_ratio" name="ct_ratio" class="form-control">
+              </div>
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-md-3 offset-md-9">
+                <button type="button" class="btn btn-outline-primary w-100" (click)="addCTSerialRange()">➕ Add Range</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <!-- CT Manual Table -->
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+          <thead class="table-light text-center">
+            <tr>
+              <th>#</th>
+              <th>Serial No</th>
+              <th>CT Class</th>
+              <th>CT Ratio</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let ct of cts; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td><input type="text" [(ngModel)]="ct.serial_number" name="ct_serial{{i}}" class="form-control" required></td>
+              <td><input type="text" [(ngModel)]="ct.ct_class" name="ct_class{{i}}" class="form-control" required></td>
+              <td><input type="text" [(ngModel)]="ct.ct_ratio" name="ct_ratio{{i}}" class="form-control"></td>
+              <td class="text-center">
+                <button type="button" class="btn btn-sm btn-danger" (click)="removeCT(i)">×</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <button type="button" class="btn btn-outline-success my-3" (click)="addCT()">+ Add CT</button>
+      <button type="submit" class="btn btn-primary float-end" [disabled]="!cts.length" (click)="submitCTs()">Add CTs</button>
+    </form>
   </div>
 </div>
+
+    </div>
+
+</div>
+
+
+
+
