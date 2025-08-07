@@ -59,6 +59,8 @@ export interface UserRoleLink {
 }
 
 export interface Device {
+  user: any;
+  assigned_to: number;
   status: string;
   inward_no: string;
   id?: number;

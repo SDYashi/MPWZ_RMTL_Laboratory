@@ -182,7 +182,7 @@ deleteStore(id: number): Observable<any> {
 
 // --- Assignment Endpoints ---
 getAssignments(): Observable<Assignment[]> {
-  return this.http.get<Assignment[]>(`${this.baseUrl}/assignments`);
+  return this.http.get<Assignment[]>(`${this.baseUrl}/assignments/`);
 }
 
 getAssignment(id: number): Observable<Assignment> {
@@ -193,8 +193,8 @@ createAssignment(assignment: Assignment): Observable<Assignment> {
   return this.http.post<Assignment>(`${this.baseUrl}/assignments/`, assignment);
 }
 
-updateAssignment(id: number, assignment: Assignment): Observable<Assignment> {
-  return this.http.put<Assignment>(`${this.baseUrl}/assignments/${id}`, assignment);
+updateAssignment( updateData: { assignment_ids: number[], user_id: number, bench_id: number, assignment_type: string }): Observable<Assignment> {
+  return this.http.put<Assignment>(`${this.baseUrl}/assign-devices/update/`, updateData);
 }
 
 deleteAssignment(id: number): Observable<any> {
@@ -209,6 +209,7 @@ getDevicesByInwardAndAssignmentStatus(inward_number: string, assignment_status: 
 getdistinctinwordno(): Observable<string[]> {
   return this.http.get<string[]>(`${this.baseUrl}/distinct-inward/devices-unassigned`);
 }
+
 getDevicelistbyinwordno(inward_number: string): Observable<string[]> {  
   return this.http.get<string[]>(`${this.baseUrl}/devices-unassigned?inward_number=${inward_number}`);
 }

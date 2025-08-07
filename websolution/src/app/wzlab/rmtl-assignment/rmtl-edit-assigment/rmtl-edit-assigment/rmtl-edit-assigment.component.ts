@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import * as bootstrap from 'bootstrap';
+import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
 @Component({
@@ -9,15 +10,17 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
   styleUrls: ['./rmtl-edit-assigment.component.css']
 })
 export class RmtlEditAssigmentComponent {
-
+  currentuser: string = 'SYSADMIN';
   inward_nos:any = [];
   device_statuses = [];
   users: any[] = [];
 benches : any[] = [];
 selectedUser: string = '';
 selectedBench: string = '';
+selected_user: string = '';
   devices: any[] = [];
   filteredDevices: any[] = [];
+  users_for_inward: any[] = [];
 
   assignment = {
     id: '',
@@ -25,19 +28,21 @@ selectedBench: string = '';
     device_status: '',
     assigned_to: '',
     device_ids: [] as number[],
-    assignment_id: '', 
+    assignment_id:  [] as number[],
+    selected_user: '',
 
   };
   responseSuccess: boolean = false;
   responseMessage: string = '';
 
   constructor(
-    private api: ApiServicesService
+    private api: ApiServicesService,
+    private authapi: AuthService
   ) {}
 
   ngOnInit(): void { 
 
-        this.api.getEnums().subscribe({
+  this.api.getEnums().subscribe({
       next: (res) => {
         this.device_statuses = res.assignment_statuses;
         this.responseSuccess = true;
@@ -47,7 +52,8 @@ selectedBench: string = '';
         this.responseSuccess = false;
       }
     });
-       this.api.getdistinctinwordno().subscribe({
+
+  this.api.getdistinctinwordno().subscribe({
     next: (res) => {
       this.inward_nos = res;
       this.responseMessage= 'Data fetched successfully!';
@@ -59,13 +65,36 @@ selectedBench: string = '';
     }
    })
   }  
-
+ 
+  filterUsers(): void {
+    this.api.getUsers().subscribe({
+      next: (res) => {
+        this.users_for_inward = res;
+      },
+      error: (err) => {
+        console.error('Failed to fetch users', err);
+      }
+    });
+  }
+ 
+  filterinword(): void {
+    this.api.getDistinctinwordnobyAssignmentStatus(this.assignment.device_status).pipe().subscribe({
+      next: (res) => {
+        this.inward_nos = res;
+        this.responseMessage= 'Data fetched successfully!';
+        this.responseSuccess = true;
+      },
+      error: (err) => {
+        this.responseMessage= err?.error?.details || 'Failed to fetch data.';
+        this.responseSuccess = false;
+      }
+    })
+  }
 
   filterDevices(): void {
-    // this.filteredDevices = this.devices.filter(d => d.status === this.assignment.device_status);
     this.api.getDevicesByInwardAndAssignmentStatus(this.assignment.inward_no, this.assignment.device_status).subscribe({
       next: (res) => {
-        this.filteredDevices = res;
+        this.filteredDevices = res.filter(d => d.user.username === this.selectedUser);
         this.responseMessage= 'Data fetched successfully!';
         this.responseSuccess = true;
       },
@@ -87,21 +116,19 @@ selectedBench: string = '';
 
   payload :any;
   onUpdate(): void {
+    this.currentuser = this.authapi.getUserNameFromToken() ?? '';
     const selectedDeviceIds = this.filteredDevices.filter(d => d.selected).map(d => d.id);
-
-     this.payload = {
-      inward_no: this.assignment.inward_no,
-      assigned_to: this.selectedUser,
-      device_status: this.assignment.device_status,
-      device_ids: selectedDeviceIds,
-      user_id: this.selectedUser,
-      assigned_by: 1,
+    const filteredDevices = this.filteredDevices.filter(d => d.selected)
+    // .map(d => d.assignment_id)[0];  
+    this.payload= {
+      assignment_ids: filteredDevices.map(d => d.assignment_id),
+      user_id: parseInt(this.selectedUser, 10),
       bench_id: parseInt(this.selectedBench, 10),
-      assignment_id: parseInt(this.assignment.id, 10)
+      assignment_type: this.assignment.device_status
+    }
 
-    };
 
-    this.api.updateAssignment(parseInt(this.assignment.id, 10), this.payload).subscribe({
+    this.api.updateAssignment(this.payload).subscribe({
       next: () => {
         alert('Assignment updated successfully!');
       },
@@ -122,7 +149,7 @@ selectedBench: string = '';
       error: (err) => {
         console.error('Failed to fetch users', err);
       }
-    })
+    });
     this.api.getTestingBenches().subscribe({
       next: (res) => {
         this.benches = res;
