@@ -1,77 +1,81 @@
 <div class="container-fluid mt-4">
-  <div class="card shadow-sm">
-    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Bulk Edit Devices</h5>
-      <button class="btn btn-success" (click)="submitBulkUpdate()">Save Changes</button>
+  <div class="card shadow">
+    <div class="card-header text-white" style="background-color:#0d2b45;">
+      <h5 class="mb-0">Edit Bulk Devices</h5>
     </div>
+    <div class="card-body">
+      <form (ngSubmit)="updateDevices()" #editForm="ngForm">
 
-    <div class="card-body table-responsive">
-      <table class="table table-bordered table-hover align-middle">
-        <thead class="table-light text-center">
-          <tr>
-            <th>#</th>
-            <th>Serial Number</th>
-            <th>Make</th>
-            <th>Capacity</th>
-            <th>Phase</th>
-            <th>Status</th>
-            <th>Connection</th>
-            <th>Consumer</th>
-            <th>Assigned To</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let device of devices; let i = index">
-            <td class="text-center">{{ i + 1 }}</td>
+        <!-- Inward Number Dropdown -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <label class="form-label">Select Inward Number</label>
+            <select class="form-select" [(ngModel)]="selectedInwardNo" name="inward_no" (change)="onInwardChange()" required>
+              <option value="" disabled selected>-- Select Inward No --</option>
+              <option *ngFor="let inward of inwardList" [value]="inward">{{ inward }}</option>
+            </select>
+          </div>
+        </div>
 
-            <td>
-              <input type="text" class="form-control" [(ngModel)]="device.serial_number" name="sn{{ i }}">
-            </td>
+        <!-- Source Type & Name Display -->
+        <div class="row mb-3" *ngIf="selectedSourceType && selectedSourceName">
+          <div class="col-md-4">
+            <label>Source Type</label>
+            <input type="text" class="form-control" [value]="selectedSourceType" disabled>
+          </div>
+          <div class="col-md-6">
+            <label>Source Name/Code</label>
+            <input type="text" class="form-control" [value]="selectedSourceName" disabled>
+          </div>
+        </div>
 
-            <td>
-              <input type="text" class="form-control" [(ngModel)]="device.make" name="make{{ i }}">
-            </td>
+        <hr *ngIf="devices.length" />
 
-            <td>
-              <input type="text" class="form-control" [(ngModel)]="device.capacity" name="cap{{ i }}">
-            </td>
+        <!-- Device Edit Table -->
+        <div class="table-responsive" *ngIf="devices.length">
+          <table class="table table-bordered align-middle">
+            <thead class="table-light text-center">
+              <tr>
+                <th>#</th>
+                <th>Serial No</th>
+                <th>Make</th>
+                <th>Capacity</th>
+                <th>Phase</th>
+                <th>Conn. Type</th>
+                <th>Category</th>
+                <th>Meter Type</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let device of devices; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td><input type="text" [(ngModel)]="device.serial_number" name="serial{{i}}" class="form-control" required></td>
+                <td><input type="text" [(ngModel)]="device.make" name="make{{i}}" class="form-control" required></td>
+                <td><input type="text" [(ngModel)]="device.capacity" name="capacity{{i}}" class="form-control"></td>
+                <td><input type="text" [(ngModel)]="device.phase" name="phase{{i}}" class="form-control"></td>
+                <td>
+                  <select class="form-select" [(ngModel)]="device.connection_type" name="connType{{i}}">
+                    <option value="HT">HT</option>
+                    <option value="LT">LT</option>
+                  </select>
+                </td>
+                <td><input type="text" [(ngModel)]="device.meter_category" name="category{{i}}" class="form-control"></td>
+                <td><input type="text" [(ngModel)]="device.meter_type" name="type{{i}}" class="form-control"></td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm btn-danger" (click)="removeDevice(i)">×</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-            <td>
-              <select class="form-select" [(ngModel)]="device.phase" name="phase{{ i }}">
-                <option value="1P">1P</option>
-                <option value="3P">3P</option>
-              </select>
-            </td>
-
-            <td>
-              <select class="form-select" [(ngModel)]="device.device_status" name="status{{ i }}">
-                <option value="INWARDED">INWARDED</option>
-                <option value="DISPATCHED">DISPATCHED</option>
-              </select>
-            </td>
-
-            <td>
-              <select class="form-select" [(ngModel)]="device.connection_type" name="conn{{ i }}">
-                <option value="HT">HT</option>
-                <option value="LT">LT</option>
-              </select>
-            </td>
-
-            <td>
-              <input type="text" class="form-control" [(ngModel)]="device.consumer_name" name="consumer{{ i }}">
-            </td>
-
-            <td>
-              <input type="text" class="form-control" [(ngModel)]="device.assignment.user.name" name="assignee{{ i }}">
-            </td>
-
-          </tr>
-
-          <tr *ngIf="devices.length === 0">
-            <td colspan="9" class="text-center text-muted">No devices to edit.</td>
-          </tr>
-        </tbody>
-      </table>
+        <!-- Add/Update Buttons -->
+        <div *ngIf="devices.length">
+          <button type="button" class="btn btn-outline-success my-3" (click)="addDevice()">+ Add Row</button>
+          <button type="submit" class="btn btn-primary float-end" [disabled]="!devices.length">Update Devices</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

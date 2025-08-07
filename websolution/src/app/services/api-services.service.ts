@@ -102,6 +102,11 @@ getDevices(): Observable<Device[]> {
 }
 
 
+getDevices_by_source(sourceType: string, sourceId: string) {
+  return this.http.get(`/api/devices?source_type=${sourceType}&source_id=${sourceId}`);
+}
+
+
 getDevice(id: number): Observable<Device> {
   return this.http.get<Device>(`${this.baseUrl}/devices/${id}`);
 }
@@ -121,6 +126,18 @@ updateDevice(id: number, device: Device): Observable<Device> {
 deleteDevice(id: number): Observable<any> {
   return this.http.delete(`${this.baseUrl}/devices/${id}`);
 }
+updateDeviceList(payload: any) {
+  return this.http.post(`/api/devices/update`, payload);  // adjust endpoint if needed
+}
+
+getAllInwardNumbers() {
+  return this.http.get<any>('/api/inward-numbers');
+}
+
+getDevicesByInwardNo(inward_no: string) {
+  return this.http.get<any>(`/api/devices/by-inward/${inward_no}`);
+}
+
 
 // --- Testing Bench Endpoints ---
 getTestingBenches(): Observable<TestingBench[]> {
