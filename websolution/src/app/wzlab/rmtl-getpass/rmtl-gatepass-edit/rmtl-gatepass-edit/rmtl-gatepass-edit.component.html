@@ -1,1 +1,60 @@
-<p>rmtl-gatepass-edit works!</p>
+<div class="container mt-4">
+  <div class="card shadow">
+    <div class="card-header text-white bg-secondary">
+      <h5 class="mb-0">Edit Gatepass</h5>
+    </div>
+
+    <div class="card-body">
+      <!-- Gatepass ID Selection -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Select Gatepass ID</label>
+          <select class="form-select" [(ngModel)]="selectedGatepassId" (change)="loadGatepass()" name="gatepass_id" required>
+            <option value="" disabled selected>Select Gatepass</option>
+            <option *ngFor="let g of gatepassList" [value]="g">{{ g }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Gatepass Detail -->
+      <div *ngIf="gatepassData">
+        <p><strong>Inward No:</strong> {{ gatepassData.inward_no }}</p>
+        <p><strong>Date:</strong> {{ gatepassData.date }}</p>
+
+        <div class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" [(ngModel)]="selectAll" (change)="toggleAll()" id="selectAllChk">
+          <label class="form-check-label" for="selectAllChk">Select All</label>
+        </div>
+
+        <!-- Device Table -->
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle text-center">
+            <thead class="table-light">
+              <tr>
+                <th>Select</th>
+                <th>Serial No</th>
+                <th>Make</th>
+                <th>Category</th>
+                <th>Phase</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of devices">
+                <td><input type="checkbox" [(ngModel)]="d.selected"></td>
+                <td>{{ d.serial_number }}</td>
+                <td>{{ d.make }}</td>
+                <td>{{ d.meter_category }}</td>
+                <td>{{ d.phase }}</td>
+                <td>{{ d.meter_type }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button class="btn btn-primary mt-3" (click)="updateGatepass()" [disabled]="!devices.length">Update Gatepass</button>
+        <button class="btn btn-outline-secondary mt-3 ms-2" (click)="printGatepass()">🖨️ Print</button>
+      </div>
+    </div>
+  </div>
+</div>

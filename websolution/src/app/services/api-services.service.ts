@@ -293,4 +293,26 @@ getEnums(): Observable<any> {
   return this.http.get(`${this.baseUrl}/enums/all`);
 }
 
+
+getTestedDevicesByInward(inward_no: string) {
+  return this.http.get<any>(`/api/devices/tested/${inward_no}`);
+}
+
+postGatepass(payload: any) {
+  return this.http.post<any>('/api/gatepass/generate', payload);
+}
+
+getAllGatepassIds() {
+  return this.http.get<any>('/api/gatepasses');
+}
+
+getGatepassById(gatepassId: string) {
+  return this.http.get<any>(`/api/gatepass/${gatepassId}`);
+}
+
+updateGatepass(payload: any) {
+  return this.http.put<any>('/api/gatepass/update', payload);
+}
+
+
 }
