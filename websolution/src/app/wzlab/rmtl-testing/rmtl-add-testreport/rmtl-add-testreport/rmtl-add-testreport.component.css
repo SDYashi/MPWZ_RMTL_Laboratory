@@ -1,0 +1,21 @@
+
+/* A4 sizing for print */
+.paper.a4 {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+}
+
+.sig-line {
+  border-top: 1px solid #333;
+  padding-top: 4px;
+  min-width: 180px;
+}
+
+@media print {
+  .d-print-none { display:none !important; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .paper.a4 { box-shadow:none !important; }
+  .table { font-size: 12px; }
+  .small { font-size: 12px; }
+}

@@ -1,1 +1,159 @@
-<p>rmtl-dashboard-testreport works!</p>
+<div class="container-fluid mt-4">
+  <div class="card shadow">
+    <div class="card-header text-white" style="background:#151433">
+      <h5 class="mb-0">RMTL — Test Report Dashboard</h5>
+    </div>
+
+    <div class="card-body">
+
+      <!-- Filters -->
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">From Date</label>
+          <input type="date" class="form-control" [(ngModel)]="filters.from" (change)="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">To Date</label>
+          <input type="date" class="form-control" [(ngModel)]="filters.to" (change)="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Device Type</label>
+          <select class="form-select" [(ngModel)]="filters.device_type" (change)="applyFilters()">
+            <option value="">All</option>
+            <option value="METER">METER</option>
+            <option value="CT">CT</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Search</label>
+          <input class="form-control" placeholder="Make / Category / Type"
+                 [(ngModel)]="filters.search" (input)="applyFilters()">
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-end mt-3">
+        <button class="btn btn-outline-secondary" (click)="resetFilters()">Reset</button>
+        <button class="btn btn-dark" (click)="print()">Print</button>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="row row-cols-1 row-cols-md-2 row-cols-xl-5 g-3 mt-3">
+        <div class="col" *ngFor="let kpi of kpis">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <div class="small text-muted">{{ kpi.label }}</div>
+              <div class="d-flex align-items-baseline gap-2">
+                <div class="display-6 fw-bold">{{ kpi.value }}</div>
+                <span class="badge" [ngClass]="kpi.delta >= 0 ? 'bg-success' : 'bg-danger'">
+                  {{ kpi.delta >= 0 ? '+' : ''}}{{ kpi.delta }}%
+                </span>
+              </div>
+              <div class="progress mt-2" style="height:6px;">
+                <div class="progress-bar" role="progressbar" [style.width.%]="kpi.progress"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <!-- Two columns: Status breakdown + Bench utilization -->
+      <div class="row g-3">
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-light"><strong>Status Breakdown</strong></div>
+            <div class="card-body">
+              <div class="mb-2">Pass Rate</div>
+              <div class="progress mb-3">
+                <div class="progress-bar bg-success" role="progressbar" [style.width.%]="metrics.passRate">{{ metrics.passRate }}%</div>
+              </div>
+              <div class="mb-2">Fail Rate</div>
+              <div class="progress mb-3">
+                <div class="progress-bar bg-danger" role="progressbar" [style.width.%]="metrics.failRate">{{ metrics.failRate }}%</div>
+              </div>
+              <div class="mb-2">Pending</div>
+              <div class="progress">
+                <div class="progress-bar bg-warning text-dark" role="progressbar" [style.width.%]="metrics.pendingRate">{{ metrics.pendingRate }}%</div>
+              </div>
+              <div class="mt-3 small text-muted">
+                Total Tested: {{ totals.tested }} | Passed: {{ totals.passed }} | Failed: {{ totals.failed }} | Pending: {{ totals.pending }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-light"><strong>Bench Utilization (sample)</strong></div>
+            <div class="card-body">
+              <div *ngFor="let b of benchUtilization" class="mb-3">
+                <div class="d-flex justify-content-between">
+                  <span class="fw-semibold">{{ b.bench }}</span>
+                  <span class="small text-muted">{{ b.utilization }}%</span>
+                </div>
+                <div class="progress" style="height:6px;">
+                  <div class="progress-bar" role="progressbar" [style.width.%]="b.utilization"></div>
+                </div>
+              </div>
+              <div class="small text-muted">* Approximate for demo; connect to your live metrics later.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <!-- Recent Tests -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <strong>Recent Tests</strong>
+          <div>
+            <button class="btn btn-sm btn-outline-success" (click)="exportRecentCSV()">Export CSV</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle text-center mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Device Type</th>
+                <th>Serial No</th>
+                <th>Make</th>
+                <th>Category/Class</th>
+                <th>Phase/Ratio</th>
+                <th>Meter Type</th>
+                <th>Result</th>
+                <th>Inward No</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of recentFiltered; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td>{{ r.date | date:'yyyy-MM-dd' }}</td>
+                <td>{{ r.device_type }}</td>
+                <td>{{ r.serial_number }}</td>
+                <td>{{ r.make }}</td>
+                <td>{{ r.meter_category || r.ct_class }}</td>
+                <td>{{ r.phase || r.ct_ratio }}</td>
+                <td>{{ r.meter_type || '-' }}</td>
+                <td>
+                  <span class="badge"
+                        [ngClass]="{'bg-success': r.result==='PASS', 'bg-danger': r.result==='FAIL', 'bg-warning text-dark': r.result==='PENDING'}">
+                    {{ r.result }}
+                  </span>
+                </td>
+                <td>{{ r.inward_no }}</td>
+              </tr>
+              <tr *ngIf="!recentFiltered.length">
+                <td colspan="10" class="text-muted">No matching tests</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
