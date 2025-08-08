@@ -7,8 +7,7 @@ const routes: Routes = [
   {path:'add-testreports',loadChildren: () => import('./rmtl-add-testreport/rmtl-add-testreport.module').then(m => m.RmtlAddTestreportModule) },
   {path:'view-testreports',loadChildren: () => import('./rmtl-view-testreport/rmtl-view-testreport.module').then(m => m.RmtlViewTestreportModule) },
   {path:'edit-testreports',loadChildren: () => import('./rmtl-edit-testreport/rmtl-edit-testreport.module').then(m => m.RmtlEditTestreportModule) },
-  {path:'delete-testreports',loadChildren: () => import('./rmtl-delete-testreport/rmtl-delete-testreport.module').then(m => m.RmtlDeleteTestreportModule) },
-
+ 
 ];
 
 @NgModule({

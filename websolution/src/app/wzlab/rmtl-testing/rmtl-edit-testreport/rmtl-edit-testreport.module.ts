@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { RmtlEditTestreportRoutingModule } from './rmtl-edit-testreport-routing.module';
 import { RmtlEditTestreportComponent } from './rmtl-edit-testreport/rmtl-edit-testreport.component';
+import { FormsModule } from '@angular/forms';
 
 
 @NgModule({
@@ -11,7 +12,8 @@ import { RmtlEditTestreportComponent } from './rmtl-edit-testreport/rmtl-edit-te
   ],
   imports: [
     CommonModule,
-    RmtlEditTestreportRoutingModule
+    RmtlEditTestreportRoutingModule,
+    FormsModule
   ]
 })
 export class RmtlEditTestreportModule { }

@@ -1,1 +1,195 @@
-<p>rmtl-view-testreport works!</p>
+<div class="container-fluid mt-4">
+  <div class="card shadow">
+    <div class="card-header text-white" style="background:#151433">
+      <h5 class="mb-0">RMTL — View Test Reports</h5>
+    </div>
+
+    <div class="card-body">
+
+      <!-- Filters -->
+      <div class="row g-3 align-items-end">
+        <div class="col-md-2">
+          <label class="form-label">From</label>
+          <input type="date" class="form-control" [(ngModel)]="filters.from" (change)="applyFilters()">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">To</label>
+          <input type="date" class="form-control" [(ngModel)]="filters.to" (change)="applyFilters()">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Device</label>
+          <select class="form-select" [(ngModel)]="filters.device_type" (change)="applyFilters()">
+            <option value="">All</option>
+            <option value="METER">METER</option>
+            <option value="CT">CT</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Report Type</label>
+          <select class="form-select" [(ngModel)]="filters.report_type" (change)="applyFilters()">
+            <option value="">All</option>
+            <option *ngFor="let rt of reportTypes" [value]="rt">{{ rt }}</option>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <label class="form-label">Result</label>
+          <select class="form-select" [(ngModel)]="filters.result" (change)="applyFilters()">
+            <option value="">All</option>
+            <option>PASS</option>
+            <option>FAIL</option>
+            <option>PENDING</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Inward No</label>
+          <input class="form-control" [(ngModel)]="filters.inward" (input)="applyFilters()" placeholder="INW...">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Search</label>
+          <input class="form-control" [(ngModel)]="filters.search" (input)="applyFilters()" placeholder="Serial / Make / Type / IVRS">
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-end mt-3">
+        <button class="btn btn-outline-secondary" (click)="resetFilters()">Reset</button>
+        <button class="btn btn-outline-success" (click)="exportCSV()">Export CSV</button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-responsive mt-3">
+        <table class="table table-bordered align-middle text-center">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>Report ID</th>
+              <th>Device</th>
+              <th>Serial</th>
+              <th>Make</th>
+              <th>Report Type</th>
+              <th>Result</th>
+              <th>Inward</th>
+              <th style="width:180px;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of pageRows; let i=index">
+              <td>{{ (page-1)*pageSize + i + 1 }}</td>
+              <td>{{ r.tested_date | date:'yyyy-MM-dd' }}</td>
+              <td class="text-start">{{ r.id }}</td>
+              <td>{{ r.device_type }}</td>
+              <td class="text-start">{{ r.serial_number }}</td>
+              <td>{{ r.make }}</td>
+              <td class="text-start">{{ r.report_type }}</td>
+              <td>
+                <span class="badge"
+                  [ngClass]="{'bg-success': r.result==='PASS', 'bg-danger': r.result==='FAIL', 'bg-warning text-dark': r.result==='PENDING'}">
+                  {{ r.result }}
+                </span>
+              </td>
+              <td>{{ r.inward_no || '-' }}</td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-primary" (click)="openDetails(r)" data-bs-toggle="offcanvas" data-bs-target="#detailsCanvas">Details</button>
+                  <button class="btn btn-outline-secondary" (click)="edit(r)">Edit</button>
+                  <button class="btn btn-outline-dark" (click)="print(r)">Print</button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="!pageRows.length">
+              <td colspan="10" class="text-muted">No reports found</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="small text-muted">
+          Showing {{ (page-1)*pageSize + 1 }}–{{ Math.min(page*pageSize, filtered.length) }} of {{ filtered.length }}
+        </div>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="page===1"><a class="page-link" (click)="goto(page-1)">Prev</a></li>
+            <li class="page-item" *ngFor="let p of pages" [class.active]="p===page">
+              <a class="page-link" (click)="goto(p)">{{ p }}</a>
+            </li>
+            <li class="page-item" [class.disabled]="page===pages[pages.length-1]"><a class="page-link" (click)="goto(page+1)">Next</a></li>
+          </ul>
+        </nav>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Offcanvas: Details -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="detailsCanvas">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Report Details</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body" *ngIf="selected">
+    <div class="small text-muted mb-2">ID: {{ selected.id }}</div>
+
+    <div class="row g-2">
+      <div class="col-6"><strong>Date:</strong> {{ selected.tested_date | date:'yyyy-MM-dd' }}</div>
+      <div class="col-6"><strong>Inward:</strong> {{ selected.inward_no || '-' }}</div>
+      <div class="col-4"><strong>Device:</strong> {{ selected.device_type }}</div>
+      <div class="col-8"><strong>Report Type:</strong> {{ selected.report_type }}</div>
+      <div class="col-6"><strong>Serial:</strong> {{ selected.serial_number }}</div>
+      <div class="col-6"><strong>Make:</strong> {{ selected.make }}</div>
+      <div class="col-12"><strong>Result:</strong> {{ selected.result }}</div>
+    </div>
+
+    <hr>
+
+    <!-- Device specifics -->
+    <ng-container *ngIf="selected.device_type==='METER'">
+      <div><strong>Category:</strong> {{ selected.meter_category || '-' }}</div>
+      <div><strong>Phase:</strong> {{ selected.phase || '-' }}</div>
+      <div><strong>Meter Type:</strong> {{ selected.meter_type || '-' }}</div>
+    </ng-container>
+
+    <ng-container *ngIf="selected.device_type==='CT'">
+      <div><strong>CT Class:</strong> {{ selected.ct_class || '-' }}</div>
+      <div><strong>CT Ratio:</strong> {{ selected.ct_ratio || '-' }}</div>
+      <div><strong>Burden(VA):</strong> {{ selected.burden_va ?? '-' }}</div>
+    </ng-container>
+
+    <hr>
+
+    <!-- Report-type specific -->
+    <ng-container *ngIf="['stopdefective','contested'].includes(selected.report_type)">
+      <div><strong>Observation:</strong> {{ selected.observation || '-' }}</div>
+      <div><strong>Cause:</strong> {{ selected.cause || '-' }}</div>
+    </ng-container>
+
+    <ng-container *ngIf="['P4_ONM','P4_vig'].includes(selected.report_type)">
+      <div><strong>Site:</strong> {{ selected.site || '-' }}</div>
+      <div><strong>Load(kW):</strong> {{ selected.load_kw ?? '-' }}</div>
+      <div><strong>Inspection Ref:</strong> {{ selected.inspection_ref || '-' }}</div>
+    </ng-container>
+
+    <ng-container *ngIf="['Solar netmeter','Solar Generation Meter'].includes(selected.report_type)">
+      <div><strong>Solar kWp:</strong> {{ selected.solar_kwp ?? '-' }}</div>
+      <div><strong>Inverter Make:</strong> {{ selected.inverter_make || '-' }}</div>
+      <div><strong>Grid Voltage:</strong> {{ selected.grid_voltage ?? '-' }}</div>
+    </ng-container>
+
+    <ng-container *ngIf="selected.report_type==='CT Testing'">
+      <div><strong>Magnetization:</strong> {{ selected.magnetization_test || '-' }}</div>
+      <div><strong>Ratio Error(%):</strong> {{ selected.ratio_error_pct ?? '-' }}</div>
+      <div><strong>Phase Angle(min):</strong> {{ selected.phase_angle_min ?? '-' }}</div>
+    </ng-container>
+
+    <hr>
+    <div><strong>Tested By:</strong> {{ selected.tested_by || '-' }}</div>
+    <div><strong>Remarks:</strong> {{ selected.remarks || '-' }}</div>
+
+    <div class="d-flex gap-2 mt-3">
+      <button class="btn btn-outline-secondary btn-sm" (click)="edit(selected)">Edit</button>
+      <button class="btn btn-dark btn-sm" (click)="print(selected)">Print</button>
+    </div>
+  </div>
+</div>

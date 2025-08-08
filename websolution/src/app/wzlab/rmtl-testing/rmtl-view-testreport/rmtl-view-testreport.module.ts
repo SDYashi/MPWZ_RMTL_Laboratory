@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { RmtlViewTestreportRoutingModule } from './rmtl-view-testreport-routing.module';
 import { RmtlViewTestreportComponent } from './rmtl-view-testreport/rmtl-view-testreport.component';
+import { FormsModule } from '@angular/forms';
 
 
 @NgModule({
@@ -11,7 +12,8 @@ import { RmtlViewTestreportComponent } from './rmtl-view-testreport/rmtl-view-te
   ],
   imports: [
     CommonModule,
-    RmtlViewTestreportRoutingModule
+    RmtlViewTestreportRoutingModule,
+    FormsModule
   ]
 })
 export class RmtlViewTestreportModule { }
