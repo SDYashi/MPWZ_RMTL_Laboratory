@@ -115,8 +115,8 @@ createDevice(device: Device): Observable<Device> {
   return this.http.post<Device>(`${this.baseUrl}/devices/`, device);
 }
 
-addnewdevice(device: Device): Observable<Device> {
-  return this.http.post<Device>(`${this.baseUrl}/devices/inward/`, device);
+addnewdevice(device: any): Observable<Device> {
+  return this.http.post<Device>(`${this.baseUrl}/devices/inward`, device);
 }
 
 updateDevice(id: number, device: Device): Observable<Device> {
@@ -239,8 +239,16 @@ getDistinctinwordnobyAssignmentStatus(assign_status: string): Observable<string[
 getDevicesByInwardAndAssignmentStatus(inward_number: string, assignment_status: string): Observable<Device[]> {
   return this.http.get<Device[]>(`${this.baseUrl}/devices-by-inward-and-assignment-status?inward_number=${inward_number}&assignment_status=${assignment_status}`);
 }
-getdistinctinwordno(): Observable<string[]> {
-  return this.http.get<string[]>(`${this.baseUrl}/distinct-inward/devices-unassigned`);
+getdistinctinwordno(fromDate?: string, toDate?: string): Observable<string[]> {
+  let params = new HttpParams();
+  if (fromDate) {
+    params = params.set('fromDate', fromDate);
+  }
+  if (toDate) {
+    params = params.set('toDate', toDate);
+  }
+
+  return this.http.get<string[]>(`${this.baseUrl}/distinct-inward/devices-unassigned`, { params });
 }
 
 getDevicelistbyinwordno(inward_number: string): Observable<string[]> {  

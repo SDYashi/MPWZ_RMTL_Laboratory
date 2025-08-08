@@ -9,9 +9,13 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
   styleUrls: ['./rmtl-assign-to-user.component.css']
 })
 export class RmtlAssignToUserComponent {
-inward_nos = ['INW-1001'];
+inward_nos : any = [];
 device_statuses = [];
 benches:any = [];
+
+fromDate: string = '';
+toDate: string = '';
+
 devices = [
     { id: 1, name: 'Meter A', status: 'UNASSIGNED', selected: false },
     { id: 2, name: 'Meter B', status: 'PENDING', selected: false },
@@ -46,6 +50,8 @@ devices = [
     })
   }
   filterinwordno(): void {
+
+
    this.api.getdistinctinwordno().subscribe({
     next: (res) => {
       this.inward_nos = res;
@@ -57,6 +63,22 @@ devices = [
         this.responseSuccess = false;
     }
    })
+  }
+
+  fetchfilterinwordno(): void {
+    this.fromDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+    this.toDate = new Date().toISOString().slice(0, 10);
+    this.api.getdistinctinwordno( this.fromDate, this.toDate).subscribe({
+      next: (res) => {
+        this.inward_nos = res;
+        this.responseMessage = `Data fetched successfully from ${this.fromDate} to ${this.toDate}!`;
+        this.responseSuccess = true;
+      },
+      error: (err) => {
+        this.responseMessage = err?.error?.details || `Failed to fetch data from ${this.fromDate} to ${this.toDate}.`;
+        this.responseSuccess = false;
+      }
+    })
   }
 
   filterDevices(): void {
@@ -84,6 +106,7 @@ devices = [
   }
 
   openAssignModal(): void {
+    
     this.api.getUsers().subscribe({
       next: (res) => {
         this.users = res;

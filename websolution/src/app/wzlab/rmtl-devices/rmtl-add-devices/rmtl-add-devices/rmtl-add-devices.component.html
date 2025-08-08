@@ -12,24 +12,24 @@
       </li>
     </ul>
     <div class="tab-content mt-3" id="myTabContent">
-      <div class="tab-pane fade show active" id="meter" role="tabpanel" aria-labelledby="csv-tab">
-        <h4 class="card-title mb-3 ml-3 p-2 bg-info text-white fw-bold text-primary rounded shadow border">Add Bulk Meters</h4>
+      <div class="tab-pane m-3 border fade show active" id="meter" role="tabpanel" aria-labelledby="csv-tab">
+        <h4 class="card-title  p-2 bg-dark text-white fw-bold text-primary rounded shadow border">Add Bulk Meters</h4>
         <div class="card-body">
           <form  #deviceForm="ngForm">
             <!-- Source Type Selection -->
-            <div class="row mb-3">
+            <div class="row mb-3 border p-4">
               <div class="col-md-4">
                 <label class="form-label mt-2 fw-bold">Source Type</label>
                 <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type" (change)="onSourceTypeChange()" required>
                   <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
                 </select>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-4">
                 <label class="form-label mt-2 fw-bold"><strong>Location/Store/Vendor Code</strong></label>
                 <input type="text" class="form-control" [(ngModel)]="selectedSourceName" name="source_name" required (keydown.enter)="fetchButtonData()">
               </div>
-              <div class="col-md-2 mt-4">
-                      <button type="button" class="btn btn-primary" (click)="fetchButtonData()">Fetch</button>
+              <div class="col-md-4" style="margin-top: 14px;">
+                      <button type="button" class="btn btn-primary mt-4" (click)="fetchButtonData()">Fetch</button>
               </div>
             <table class="table table-striped table-bordered mt-3" *ngIf="selectedSourceName">
               <thead>
@@ -64,7 +64,7 @@
             </table>
               
             </div>
-    <div class="container mt-4 bg-light">
+    <div class="container-fluid mt-4 bg-light p-4">
     <!-- Tabs -->
     <ul class="nav nav-tabs custom-tabs mb-3 mt-4" id="entryTab" role="tablist">
       <li class="nav-item" role="presentation">
@@ -205,8 +205,8 @@
           </form>
         </div>
      </div>
-     <div class="tab-pane fade" id="ct" role="tabpanel" aria-labelledby="ct-tab">
-  <h4 class="card-title mb-3 ml-3 p-2 bg-info text-white fw-bold text-primary rounded shadow border">Add Bulk CTs</h4>
+     <div class="tab-pane m-3 border fade" id="ct" role="tabpanel" aria-labelledby="ct-tab">
+  <h4 class="card-title mb-3 ml-3 p-2 bg-dark text-white fw-bold text-primary rounded shadow border">Add Bulk CTs</h4>
   <div class="card-body">
     <form #ctForm="ngForm">
       <!-- CSV & Range Tabs -->
