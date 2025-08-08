@@ -1,1 +1,95 @@
-<p>rmtl-daily-testing-reports works!</p>
+<div class="container-fluid mt-4">
+  <div class="card shadow">
+    <div class="card-header text-white" style="background:#151433">
+      <h5 class="mb-0">RMTL — Daily Testing Reports</h5>
+    </div>
+
+    <div class="card-body">
+      <!-- Filters -->
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">From Date</label>
+          <input type="date" class="form-control" [(ngModel)]="filters.from" (change)="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">To Date</label>
+          <input type="date" class="form-control" [(ngModel)]="filters.to" (change)="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Device Type</label>
+          <select class="form-select" [(ngModel)]="filters.device_type" (change)="applyFilters()">
+            <option value="">All</option>
+            <option value="METER">METER</option>
+            <option value="CT">CT</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Search</label>
+          <input class="form-control" placeholder="Search by make/type" [(ngModel)]="filters.search" (input)="applyFilters()">
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex gap-2 justify-content-end mt-3">
+        <button class="btn btn-outline-secondary" (click)="resetFilters()">Reset</button>
+        <button class="btn btn-outline-success" (click)="exportCSV()">Export CSV</button>
+        <button class="btn btn-dark" (click)="print()">Print</button>
+      </div>
+
+      <!-- Summary Cards -->
+      <!-- <div class="row row-cols-2 row-cols-lg-5 g-3 mt-3">
+        <div class="col" *ngFor="let s of summaryCards">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <div class="small text-muted">{{ s.label }}</div>
+              <div class="display-6 fw-bold">{{ s.value }}</div>
+            </div>
+          </div>
+        </div>
+      </div> -->
+
+      <hr class="my-4">
+
+      <!-- Daily Testing Table -->
+      <div class="table-responsive" id="reportSection">
+        <table class="table table-bordered align-middle text-center">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>Device Type</th>
+              <th>Make</th>
+              <th>Category / Class</th>
+              <th>Phase / Ratio</th>
+              <th>Meter Type</th>
+              <th>Test Result</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of reportFiltered; let i = index">
+              <td>{{ i+1 }}</td>
+              <td>{{ r.date | date:'yyyy-MM-dd' }}</td>
+              <td>{{ r.device_type }}</td>
+              <td>{{ r.make }}</td>
+              <td>{{ r.meter_category || r.ct_class }}</td>
+              <td>{{ r.phase || r.ct_ratio }}</td>
+              <td>{{ r.meter_type || '-' }}</td>
+              <td>
+                <span class="badge"
+                      [ngClass]="{'bg-success': r.result==='PASS', 'bg-danger': r.result==='FAIL', 'bg-warning text-dark': r.result==='PENDING'}">
+                  {{ r.result }}
+                </span>
+              </td>
+              <td>{{ r.remarks || '-' }}</td>
+            </tr>
+            <tr *ngIf="!reportFiltered.length">
+              <td colspan="9" class="text-muted">No records found</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>

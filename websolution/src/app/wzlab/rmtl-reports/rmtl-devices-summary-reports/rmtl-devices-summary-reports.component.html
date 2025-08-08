@@ -1,1 +1,108 @@
-<p>rmtl-devices-summary-reports works!</p>
+<div class="container-fluid mt-4">
+  <div class="card shadow">
+    <div class="card-header text-white" style="background:#151433">
+      <h5 class="mb-0">RMTL — Devices Summary Reports</h5>
+    </div>
+
+    <div class="card-body">
+      <!-- Filters -->
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">From Date</label>
+          <input type="date" class="form-control" [(ngModel)]="filters.from" (change)="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">To Date</label>
+          <input type="date" class="form-control" [(ngModel)]="filters.to" (change)="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Device Type</label>
+          <select class="form-select" [(ngModel)]="filters.device_type" (change)="applyFilters()">
+            <option value="">All</option>
+            <option value="METER">METER</option>
+            <option value="CT">CT</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Search</label>
+          <input class="form-control" placeholder="Make / Category / Type"
+                 [(ngModel)]="filters.search" (input)="applyFilters()">
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="d-flex gap-2 justify-content-end mt-3">
+        <button class="btn btn-outline-secondary" (click)="resetFilters()">Reset</button>
+        <button class="btn btn-outline-success" (click)="exportCSV()">Export CSV</button>
+        <button class="btn btn-dark" (click)="print()">Print</button>
+      </div>
+
+      <!-- Summary cards -->
+      <!-- <div class="row row-cols-2 row-cols-lg-6 g-3 mt-3">
+        <div class="col" *ngFor="let s of summaryCards">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <div class="small text-muted">{{ s.label }}</div>
+              <div class="display-6 fw-bold">{{ s.value }}</div>
+            </div>
+          </div>
+        </div>
+      </div> -->
+
+      <hr class="my-4">
+
+      <!-- Table -->
+      <div class="table-responsive" id="summarySection">
+        <table class="table table-bordered align-middle text-center">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Device Type</th>
+              <th>Make</th>
+              <th>Category / Class</th>
+              <th>Phase / Ratio</th>
+              <th>Meter Type</th>
+              <th>Total Received</th>
+              <th>Tested</th>
+              <th>Passed</th>
+              <th>Failed</th>
+              <th>Dispatched</th>
+              <th>Available Stock</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of reportFiltered; let i = index">
+              <td>{{ i+1 }}</td>
+              <td>{{ r.device_type }}</td>
+              <td>{{ r.make }}</td>
+              <td>{{ r.meter_category || r.ct_class }}</td>
+              <td>{{ r.phase || r.ct_ratio }}</td>
+              <td>{{ r.meter_type || '-' }}</td>
+              <td>{{ r.total_received }}</td>
+              <td>{{ r.tested }}</td>
+              <td>{{ r.passed }}</td>
+              <td>{{ r.failed }}</td>
+              <td>{{ r.dispatched }}</td>
+              <td>{{ r.available_stock }}</td>
+            </tr>
+            <tr *ngIf="!reportFiltered.length">
+              <td colspan="12" class="text-muted">No summary data found</td>
+            </tr>
+          </tbody>
+          <tfoot *ngIf="reportFiltered.length">
+            <tr class="table-secondary fw-bold">
+              <td colspan="6" class="text-end">Totals</td>
+              <td>{{ totals.total_received }}</td>
+              <td>{{ totals.tested }}</td>
+              <td>{{ totals.passed }}</td>
+              <td>{{ totals.failed }}</td>
+              <td>{{ totals.dispatched }}</td>
+              <td>{{ totals.available_stock }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>

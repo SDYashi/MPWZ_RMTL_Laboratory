@@ -1,1 +1,170 @@
-<p>rmtl-usage-stock-reports works!</p>
+<div class="container-fluid mt-4">
+  <div class="card shadow">
+    <div class="card-header text-white" style="background:#151433">
+      <h5 class="mb-0">RMTL — Usage & Stock Reports</h5>
+    </div>
+
+    <div class="card-body">
+      <!-- Filters -->
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">From Date</label>
+          <input type="date" class="form-control" [(ngModel)]="filters.from" (change)="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">To Date</label>
+          <input type="date" class="form-control" [(ngModel)]="filters.to" (change)="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Device Type</label>
+          <select class="form-select" [(ngModel)]="filters.device_type" (change)="applyFilters()">
+            <option value="">All</option>
+            <option value="METER">METER</option>
+            <option value="CT">CT</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Search (make/category/type)</label>
+          <input class="form-control" placeholder="e.g. Genus / DLMS / Cat A"
+                 [(ngModel)]="filters.search" (input)="applyFilters()">
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-end mt-3">
+        <button class="btn btn-outline-secondary" (click)="resetFilters()">Reset</button>
+        <button class="btn btn-outline-success" (click)="exportUsageCSV()">Export Usage CSV</button>
+        <button class="btn btn-outline-primary" (click)="exportStockCSV()">Export Stock CSV</button>
+        <button class="btn btn-dark" (click)="print()">Print</button>
+      </div>
+
+      <!-- Summary Cards -->
+      <!-- <div class="row row-cols-2 row-cols-lg-5 g-3 mt-3">
+        <div class="col" *ngFor="let s of summaryCards">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <div class="small text-muted">{{ s.label }}</div>
+              <div class="display-6 fw-bold">{{ s.value }}</div>
+            </div>
+          </div>
+        </div>
+      </div> -->
+
+      <hr class="my-4">
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#usageTab" type="button" role="tab">
+            Usage Report
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#stockTab" type="button" role="tab">
+            Stock Report
+          </button>
+        </li>
+      </ul>
+
+      <div class="tab-content mt-3">
+        <!-- Usage -->
+        <div class="tab-pane fade show active" id="usageTab" role="tabpanel">
+          <div class="table-responsive" id="usageSection">
+            <table class="table table-bordered align-middle text-center">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>Date</th>
+                  <th>Inward No</th>
+                  <th>Device Type</th>
+                  <th>Make</th>
+                  <th>Category</th>
+                  <th>Phase/Type</th>
+                  <th>Action</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of usageFiltered; let i = index">
+                  <td>{{ i+1 }}</td>
+                  <td>{{ r.date | date:'yyyy-MM-dd' }}</td>
+                  <td>{{ r.inward_no }}</td>
+                  <td>{{ r.device_type }}</td>
+                  <td>{{ r.make }}</td>
+                  <td>{{ r.meter_category || r.ct_class }}</td>
+                  <td>
+                    <ng-container *ngIf="r.device_type==='METER'; else ctInfo">
+                      {{ r.phase }} / {{ r.meter_type }}
+                    </ng-container>
+                    <ng-template #ctInfo>
+                      {{ r.ct_ratio }}
+                    </ng-template>
+                  </td>
+                  <td><span class="badge bg-info text-dark">{{ r.action }}</span></td>
+                  <td class="fw-bold">{{ r.count }}</td>
+                </tr>
+                <tr *ngIf="!usageFiltered.length">
+                  <td colspan="9" class="text-muted">No usage data for selected filters.</td>
+                </tr>
+              </tbody>
+              <tfoot *ngIf="usageFiltered.length">
+                <tr class="table-secondary">
+                  <td colspan="8" class="text-end fw-bold">Total</td>
+                  <td class="fw-bold">{{ totals.usage }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Stock -->
+        <div class="tab-pane fade" id="stockTab" role="tabpanel">
+          <div class="table-responsive" id="stockSection">
+            <table class="table table-bordered align-middle text-center">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>Device Type</th>
+                  <th>Make</th>
+                  <th>Category / CT Class</th>
+                  <th>Phase / CT Ratio</th>
+                  <th>Meter Type</th>
+                  <th>Available</th>
+                  <th>Reserved</th>
+                  <th>Faulty</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of stockFiltered; let i = index">
+                  <td>{{ i+1 }}</td>
+                  <td>{{ s.device_type }}</td>
+                  <td>{{ s.make }}</td>
+                  <td>{{ s.meter_category || s.ct_class }}</td>
+                  <td>{{ s.phase || s.ct_ratio }}</td>
+                  <td>{{ s.meter_type || '-' }}</td>
+                  <td>{{ s.available }}</td>
+                  <td>{{ s.reserved }}</td>
+                  <td>{{ s.faulty }}</td>
+                  <td class="fw-bold">{{ s.available + s.reserved + s.faulty }}</td>
+                </tr>
+                <tr *ngIf="!stockFiltered.length">
+                  <td colspan="10" class="text-muted">No stock data for selected filters.</td>
+                </tr>
+              </tbody>
+              <tfoot *ngIf="stockFiltered.length">
+                <tr class="table-secondary">
+                  <td colspan="6" class="text-end fw-bold">Totals</td>
+                  <td class="fw-bold">{{ totals.available }}</td>
+                  <td class="fw-bold">{{ totals.reserved }}</td>
+                  <td class="fw-bold">{{ totals.faulty }}</td>
+                  <td class="fw-bold">{{ totals.stock }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
