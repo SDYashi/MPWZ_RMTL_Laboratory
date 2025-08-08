@@ -19,13 +19,13 @@
             <!-- Source Type Selection -->
             <div class="row mb-3">
               <div class="col-md-4">
-                <label>Source Type</label>
+                <label class="form-label mt-2 fw-bold">Source Type</label>
                 <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type" (change)="onSourceTypeChange()" required>
                   <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
                 </select>
               </div>
               <div class="col-md-6">
-                <label><strong>Location/Store/Vendor Code</strong></label>
+                <label class="form-label mt-2 fw-bold"><strong>Location/Store/Vendor Code</strong></label>
                 <input type="text" class="form-control" [(ngModel)]="selectedSourceName" name="source_name" required (keydown.enter)="fetchButtonData()">
               </div>
               <div class="col-md-2 mt-4">
@@ -97,49 +97,49 @@
         
         <div class="row g-3">
           <div class="col-md-3">
-            <label class="form-label">Start Serial</label>
+            <label class="form-label mt-2 fw-bold">Start Serial</label>
             <input type="number" [(ngModel)]="serialRange.start" name="serial_start" class="form-control border-info">
           </div>
           <div class="col-md-3">
-            <label class="form-label">End Serial</label>
+            <label class="form-label mt-2 fw-bold">End Serial</label>
             <input type="number" [(ngModel)]="serialRange.end" name="serial_end" class="form-control border-info">
           </div>
         </div>
 
         <div class="row g-3 mt-3">
           <div class="col-md-2">
-            <label class="form-label">Make</label>
+            <label class="form-label mt-2 fw-bold">Make</label>
             <select class="form-select" [(ngModel)]="serialRange.make" name="range_make">
               <option *ngFor="let option of makes" [value]="option">{{ option }}</option>
             </select>
           </div>
           <div class="col-md-2">
-            <label class="form-label">Capacity</label>
+            <label class="form-label mt-2 fw-bold">Capacity</label>
             <select class="form-select" [(ngModel)]="serialRange.capacity" name="range_capacity">
               <option *ngFor="let option of capacities" [value]="option">{{ option }}</option>
             </select>
           </div>
           <div class="col-md-2">
-            <label class="form-label">Phase</label>
+            <label class="form-label mt-2 fw-bold">Phase</label>
             <select class="form-select" [(ngModel)]="serialRange.phase" name="range_phase">
               <option *ngFor="let option of phases" [value]="option">{{ option }}</option>
             </select>
           </div>
           <div class="col-md-2">
-            <label class="form-label">Conn. Type</label>
+            <label class="form-label mt-2 fw-bold">Conn. Type</label>
             <select class="form-select" [(ngModel)]="serialRange.connection_type" name="range_conn_type">
               <option value="HT">HT</option>
               <option value="LT">LT</option>
             </select>
           </div>
           <div class="col-md-2">
-            <label class="form-label">Category</label>
+            <label class="form-label mt-2 fw-bold">Category</label>
             <select class="form-select" [(ngModel)]="serialRange.meter_category" name="range_category">
               <option *ngFor="let option of meter_categories" [value]="option">{{ option }}</option>
             </select>
           </div>
           <div class="col-md-2">
-            <label class="form-label">Meter Type</label>
+            <label class="form-label mt-2 fw-bold">Meter Type</label>
             <select class="form-select" [(ngModel)]="serialRange.meter_type" name="range_type">
               <option *ngFor="let option of meterTypes" [value]="option">{{ option }}</option>
             </select>
@@ -234,19 +234,19 @@
             <h6 class="mb-3 text-primary fw-bold">Add CTs by Serial Number Range</h6>
             <div class="row g-3">
               <div class="col-md-3">
-                <label class="form-label">Start Serial</label>
+                <label class="form-label mt-2 fw-bold">Start Serial</label>
                 <input type="number" [(ngModel)]="ctRange.start" name="ct_start" class="form-control border-info">
               </div>
               <div class="col-md-3">
-                <label class="form-label">End Serial</label>
+                <label class="form-label mt-2 fw-bold">End Serial</label>
                 <input type="number" [(ngModel)]="ctRange.end" name="ct_end" class="form-control border-info">
               </div>
               <div class="col-md-3">
-                <label class="form-label">CT Class</label>
+                <label class="form-label mt-2 fw-bold">CT Class</label>
                 <input type="text" [(ngModel)]="ctRange.ct_class" name="ct_class" class="form-control">
               </div>
               <div class="col-md-3">
-                <label class="form-label">CT Ratio</label>
+                <label class="form-label mt-2 fw-bold">CT Ratio</label>
                 <input type="text" [(ngModel)]="ctRange.ct_ratio" name="ct_ratio" class="form-control">
               </div>
             </div>

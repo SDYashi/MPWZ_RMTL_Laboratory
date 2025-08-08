@@ -8,21 +8,21 @@
 
         <!-- Lab Name -->
         <div class="mb-3">
-          <label for="lab_name" class="form-label">Lab Name</label>
+          <label for="lab_name" class="form-label mt-2 fw-bold">Lab Name</label>
           <input type="text" class="form-control" id="lab_name" name="lab_name" [(ngModel)]="lab.lab_name" required>
           <div *ngIf="labForm.submitted && !lab.lab_name" class="text-danger">Lab Name is required.</div>
         </div>
 
         <!-- Lab Location -->
         <div class="mb-3">
-          <label for="lab_location" class="form-label">Lab Location</label>
+          <label for="lab_location" class="form-label mt-2 fw-bold">Lab Location</label>
           <input type="text" class="form-control" id="lab_location" name="lab_location" [(ngModel)]="lab.lab_location" required>
           <div *ngIf="labForm.submitted && !lab.lab_location" class="text-danger">Lab Location is required.</div>
         </div>
 
         <!-- Status -->
         <div class="mb-3">
-          <label for="status" class="form-label">Status</label>
+          <label for="status" class="form-label mt-2 fw-bold">Status</label>
           <!-- <select class="form-select" id="status" name="status" [(ngModel)]="lab.status" required>
             <option value="" disabled selected>Select status</option>
             <option *ngFor="let status of lab" [value]="status.status">{{ status.status }}</option>

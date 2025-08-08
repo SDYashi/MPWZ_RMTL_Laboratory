@@ -1,4 +1,4 @@
-<div class="container mt-4">
+<div class="container-fluid mt-4">
   <div class="card shadow">
     <div class="card-header text-white bg-secondary">
       <h5 class="mb-0">Edit Gatepass</h5>
@@ -8,7 +8,7 @@
       <!-- Gatepass ID Selection -->
       <div class="row mb-3">
         <div class="col-md-6">
-          <label class="form-label">Select Gatepass ID</label>
+          <label class="form-label mt-2 fw-bold">Select Gatepass ID</label>
           <select class="form-select" [(ngModel)]="selectedGatepassId" (change)="loadGatepass()" name="gatepass_id" required>
             <option value="" disabled selected>Select Gatepass</option>
             <option *ngFor="let g of gatepassList" [value]="g">{{ g }}</option>

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { RmtlGatepassListRoutingModule } from './rmtl-gatepass-list-routing.module';
 import { RmtlGatepassListComponent } from './rmtl-gatepass-list/rmtl-gatepass-list.component';
+import { FormsModule } from '@angular/forms';
 
 
 @NgModule({
@@ -11,7 +12,8 @@ import { RmtlGatepassListComponent } from './rmtl-gatepass-list/rmtl-gatepass-li
   ],
   imports: [
     CommonModule,
-    RmtlGatepassListRoutingModule
+    RmtlGatepassListRoutingModule,
+    FormsModule
   ]
 })
 export class RmtlGatepassListModule { }

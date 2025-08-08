@@ -12,7 +12,9 @@ export class RmtlEditDevicesComponent  implements OnInit {
 
   inwardList: string[] = ['IN001', 'IN002', 'IN003', 'IN004'];
   selectedInwardNo: string = '';
-
+fromDate: string = '';
+  toDate: string = '';
+  
   selectedSourceType: string = '';
   selectedSourceName: string = '';
   devices: any[] = [

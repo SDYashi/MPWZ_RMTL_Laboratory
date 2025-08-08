@@ -110,13 +110,13 @@
         <div class="modal-body">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label">Select User</label>
+              <label class="form-label mt-2 fw-bold">Select User</label>
               <select class="form-select" [(ngModel)]="selectedUser">
                 <option *ngFor="let user of users" [value]="user.id">{{ user.name }}</option>
               </select>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Select Bench</label>
+              <label class="form-label mt-2 fw-bold">Select Bench</label>
               <select class="form-select" [(ngModel)]="selectedBench">
                 <option *ngFor="let bench of benches" [value]="bench.id">{{ bench.bench_name }}</option>
               </select>

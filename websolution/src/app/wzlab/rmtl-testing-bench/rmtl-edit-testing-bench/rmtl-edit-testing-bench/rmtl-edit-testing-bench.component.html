@@ -9,13 +9,13 @@
         <div class="row">
           <div class="col-md-4">
             <div class="mb-3">
-              <label for="bench_name" class="form-label">Bench Name</label>
+              <label for="bench_name" class="form-label mt-2 fw-bold">Bench Name</label>
               <input type="text" id="bench_name" class="form-control" required [(ngModel)]="bench.bench_name" name="bench_name">
             </div>
           </div>
           <div class="col-md-4">
             <div class="mb-3">
-              <label for="type" class="form-label">Bench Type</label>
+              <label for="type" class="form-label mt-2 fw-bold">Bench Type</label>
               <select id="type" class="form-select" required [(ngModel)]="bench.type" name="type">
                 <option *ngFor="let type of testing_bench_types" [value]="type">{{ type }}</option>
               </select>
@@ -23,7 +23,7 @@
           </div>
           <div class="col-md-4">
             <div class="mb-3">
-              <label for="status" class="form-label">Working Status</label>
+              <label for="status" class="form-label mt-2 fw-bold">Working Status</label>
               <select id="status" class="form-select" required [(ngModel)]="bench.status" name="status">
                 <option *ngFor="let status of testing_bench_statuses" [value]="status">{{ status }}</option>
               </select>
@@ -34,7 +34,7 @@
         <div class="row">
           <div class="col-md-4">
             <div class="mb-3">
-              <label for="operation_type" class="form-label">Operation Type</label>
+              <label for="operation_type" class="form-label mt-2 fw-bold">Operation Type</label>
               <select id="operation_type" class="form-select" required [(ngModel)]="bench.operation_type" name="operation_type">
                 <option *ngFor="let op of operation_types" [value]="op">{{ op }}</option>
               </select>
@@ -42,7 +42,7 @@
           </div>
           <div class="col-md-4">
             <div class="mb-3">
-              <label for="phase" class="form-label">Phase</label>
+              <label for="phase" class="form-label mt-2 fw-bold">Phase</label>
               <select id="phase" class="form-select" required [(ngModel)]="bench.phase" name="phase">
                 <option *ngFor="let phase of phases" [value]="phase">{{ phase }}</option>
               </select>
@@ -50,7 +50,7 @@
           </div>
           <div class="col-md-4">
             <div class="mb-3">
-              <label for="last_calibration_date" class="form-label">Last Calibration Date</label>
+              <label for="last_calibration_date" class="form-label mt-2 fw-bold">Last Calibration Date</label>
               <input type="date" id="last_calibration_date" class="form-control" [(ngModel)]="bench.last_calibration_date" name="last_calibration_date">
             </div>
           </div>
@@ -59,13 +59,13 @@
         <div class="row">
           <div class="col-md-4">
             <div class="mb-3">
-              <label for="next_calibration_due" class="form-label">Next Calibration Due</label>
+              <label for="next_calibration_due" class="form-label mt-2 fw-bold">Next Calibration Due</label>
               <input type="date" id="next_calibration_due" class="form-control" [(ngModel)]="bench.next_calibration_due" name="next_calibration_due">
             </div>
           </div>
           <div class="col-md-4">
             <div class="mb-3">
-              <label for="maintenance_status" class="form-label">Maintenance Status</label>
+              <label for="maintenance_status" class="form-label mt-2 fw-bold">Maintenance Status</label>
               <select id="maintenance_status" class="form-select" [(ngModel)]="bench.maintenance_status" name="maintenance_status">
                 <option *ngFor="let status of maintenance_statuses" [value]="status">{{ status }}</option>
               </select>
@@ -73,7 +73,7 @@
           </div>
           <div class="col-md-4">
             <div class="mb-3">
-              <label for="lab_id" class="form-label">Select Lab</label>
+              <label for="lab_id" class="form-label mt-2 fw-bold">Select Lab</label>
               <select id="lab_id" class="form-select" [(ngModel)]="bench.lab_id" name="lab_id">
                 <option *ngFor="let lab of labslist" [value]="lab.id">{{ lab.lab_name }}</option>
               </select>

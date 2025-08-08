@@ -1,1 +1,70 @@
-<p>rmtl-gatepass-list works!</p>
+<div class="container-fluid mt-4">
+  <div class="card shadow">
+    <div class="card-header bg-dark text-white">
+      <h5 class="mb-0">Dispatched Devices List</h5>
+    </div>
+    <div class="card-body">
+      <div class="d-flex justify-content-end mb-3 gap-2">
+  <button class="btn btn-outline-success" (click)="exportToExcel()">⬇ Export to Excel</button>
+  <button class="btn btn-outline-danger" (click)="exportToPDF()">⬇ Export to PDF</button>
+</div>
+
+      <!-- Filters -->
+      <div class="row mb-3">
+        <div class="col-md-3">
+          <label class="form-label mt-2 fw-bold">Start Date</label>
+          <input type="date" class="form-control" [(ngModel)]="startDate" (change)="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label mt-2 fw-bold">End Date</label>
+          <input type="date" class="form-control" [(ngModel)]="endDate" (change)="applyFilters()">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label mt-2 fw-bold">Inward Number</label>
+          <select class="form-select" [(ngModel)]="selectedInward" (change)="applyFilters()">
+            <option value="">-- All --</option>
+            <option *ngFor="let inward of inwardNos" [value]="inward">{{ inward }}</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-outline-secondary w-100" (click)="resetFilters()">Reset</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+<div class="table-responsive" id="printSection">
+  <table class="table table-bordered text-center">
+
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Inward No</th>
+              <th>Serial No</th>
+              <th>Make</th>
+              <th>Category</th>
+              <th>Phase</th>
+              <th>Type</th>
+              <th>Dispatch Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let device of filteredDevices; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td>{{ device.inward_no }}</td>
+              <td>{{ device.serial_number }}</td>
+              <td>{{ device.make }}</td>
+              <td>{{ device.meter_category }}</td>
+              <td>{{ device.phase }}</td>
+              <td>{{ device.meter_type }}</td>
+              <td>{{ device.dispatch_date | date:'yyyy-MM-dd' }}</td>
+            </tr>
+            <tr *ngIf="!filteredDevices.length">
+              <td colspan="8" class="text-center text-muted">No data found</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>

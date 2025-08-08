@@ -8,8 +8,17 @@
 
         <!-- Inward Number Dropdown -->
         <div class="row mb-4">
-          <div class="col-md-6">
-            <label class="form-label">Select Inward Number</label>
+          
+          <div class="col-md-4">
+            <label class="form-label mt-2 fw-bold">From Date</label>
+            <input type="date" class="form-control" [(ngModel)]="fromDate" name="from_date" (change)="onInwardChange()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label mt-2 fw-bold">To Date</label>
+            <input type="date" class="form-control" [(ngModel)]="toDate" name="to_date" (change)="onInwardChange()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label mt-2 fw-bold">Select Inward Number</label>
             <select class="form-select" [(ngModel)]="selectedInwardNo" name="inward_no" (change)="onInwardChange()" required>
               <option value="" disabled selected>-- Select Inward No --</option>
               <option *ngFor="let inward of inwardList" [value]="inward">{{ inward }}</option>
@@ -20,11 +29,11 @@
         <!-- Source Type & Name Display -->
         <div class="row mb-3" *ngIf="selectedSourceType && selectedSourceName">
           <div class="col-md-4">
-            <label>Source Type</label>
+            <label class="form-label mt-2 fw-bold">Source Type</label>
             <input type="text" class="form-control" [value]="selectedSourceType" disabled>
           </div>
           <div class="col-md-6">
-            <label>Source Name/Code</label>
+            <label class="form-label mt-2 fw-bold">Source Name/Code</label>
             <input type="text" class="form-control" [value]="selectedSourceName" disabled>
           </div>
         </div>
