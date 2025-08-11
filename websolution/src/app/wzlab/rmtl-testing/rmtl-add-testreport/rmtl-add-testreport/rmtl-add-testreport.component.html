@@ -1,427 +1,220 @@
 <div class="container-fluid mt-3">
+<div class="container-fluid mt-4">
+  <div class="card shadow">
+    <div class="card-header text-white" style="background:#151433">
+      <h5 class="mb-0">RMTL — Generate Testing Reports</h5>
+    </div>
+
+    <div class="card-body">
   <!-- Top controls -->
   <div class="d-print-none">
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label  fw-bold ">Generate Test Report Type</label>
-            <select class="form-select mb-3 mb-md-0 " [(ngModel)]="reportType" name="reportType">
+        <div class="row g-3 align-items-end">
+          <div class="col-lg-6">
+            <label class="form-label fw-bold">Generate Test Report Type</label>
+            <select class="form-select" [(ngModel)]="reportType" name="reportType">
               <option *ngFor="let t of reportTypes" [value]="t">{{ t }}</option>
             </select>
           </div>
-          <div class="col-md-6 d-flex align-items-end justify-content-end gap-2">
+          <div class="col-lg-6 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary"
+                    (click)="openConfirm('reload')">
+              ⟳ Reload Assigned
+            </button>
             <button class="btn btn-dark" (click)="print()">🖨 Print</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ===== FORMS (not printed) ===================================== -->
-
-    <!-- A) Batch Sheet form -->
+    <!-- ===================== A) Batch Sheet form ====================== -->
     <form class="card shadow-sm mb-3" *ngIf="reportType==='stopdefective' || reportType==='contested'" #batchForm="ngForm">
-      <div class="card-header fw-bold">Stop Defective/Contested — Test Report</div>
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+        <div class="fw-bold">Stop Defective / Contested — Test Report</div>
+        <div class="small text-muted">
+          Total <span class="badge bg-secondary">{{ totalCount }}</span>
+          Matched <span class="badge bg-success">{{ matchedCount }}</span>
+          Unknown <span class="badge bg-danger">{{ unknownCount }}</span>
+        </div>
+      </div>
+
       <div class="card-body">
-        <!-- Common payload controls -->
+        <!-- Top bar -->
         <div class="row g-3 mb-2">
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label fw-bold">Test Method</label>
             <select class="form-select" [(ngModel)]="testMethod" name="b_test_method">
-                  <option [ngValue]="''" disabled>Select...</option>
               <option *ngFor="let method of test_methods" [value]="method">{{ method }}</option>
             </select>
           </div>
-           <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label fw-bold">Test Status</label>
             <select class="form-select" [(ngModel)]="testStatus" name="b_test_status">
-                  <option [ngValue]="''" disabled>Select...</option>
-              <option value="COMPLETED">COMPLETED</option>
-              <option value="PENDING">PENDING</option>
+              <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
             </select>
-          </div>          
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Filter Rows</label>
+            <input class="form-control" [(ngModel)]="filterText" name="filterText"
+                   placeholder="Search serial / make / capacity / remark">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Testing Date</label>
+            <input type="date" class="form-control" [(ngModel)]="batch.header.date" name="batch_date" required>
+          </div>
+        </div>
+
+        <!-- Batch header / source -->
+        <div class="row g-3 mb-2">
           <div class="col-md-4">
-            <label class="form-label fw-bold">Select Device Phase</label>
-            <select class="form-select" [(ngModel)]="batch.header.phase" name="batch_phase" required>
-                <option [ngValue]="''" disabled>Select...</option>
+            <label class="form-label fw-bold">Phase</label>
+            <select class="form-select" [(ngModel)]="batch.header.phase" name="batch_phase">
+              <option [ngValue]="''" disabled>Select…</option>
               <option *ngFor="let phase of phases" [value]="phase">{{ phase }}</option>
             </select>
           </div>
-        </div>
 
-        <!-- Batch header -->
-        <div class="row g-3 mb-2">
           <div class="col-md-4">
-            <label class="form-label mt-2 fw-bold">Source Type</label>
-            <select class="form-select"
-                    [(ngModel)]="selectedSourceType"
-                    name="source_type"
-                    (change)="onSourceTypeChange()"
-                    required>
-              <option [ngValue]="''" disabled>Select...</option>
+            <label class="form-label fw-bold">Source Type</label>
+            <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type" (change)="onSourceTypeChange()">
+              <option [ngValue]="''" disabled>Select…</option>
               <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
             </select>
           </div>
-                    <div class="col-md-4">
-            <label class="form-label mt-2 fw-bold"><strong>Location/Store/Vendor Code</strong></label>
-            <input type="text"
-                   class="form-control"
-                   [(ngModel)]="selectedSourceName"
-                   name="source_name"                
-                   required
-                   (keydown.enter)="fetchButtonData()">
-          </div>
+
           <div class="col-md-4">
-            <label class="form-label  mt-2 fw-bold">Testing Date</label>
-            <input type="date" class="form-control" [(ngModel)]="batch.header.date" name="batch_date" required>
+            <label class="form-label fw-bold">Location/Store/Vendor Code</label>
+            <div class="input-group">
+              <input type="text" class="form-control" [(ngModel)]="selectedSourceName" name="source_name"
+                     (keydown.enter)="openConfirm('fetch')">
+              <button class="btn btn-outline-primary" type="button" (click)="openConfirm('fetch')">Fetch</button>
+            </div>
           </div>
-                    <div class="col-md-12">
-                      <table class="table table-striped table-bordered mt-3" *ngIf="filteredSources">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Division Name</th>
-                <th>Code</th>
-                <th>Circle Name</th>
-                <th>Region Name</th>
-                <th>Org Name</th>
-                <th>Division Code</th>
-                <th>Circle Code</th>
-                <th>Region Code</th>
-                <th>Org Code</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{{ filteredSources?.name }}</td>
-                <td>{{ filteredSources?.division_name }}</td>
-                <td>{{ filteredSources?.code }}</td>
-                <td>{{ filteredSources?.circle_name }}</td>
-                <td>{{ filteredSources?.region_name }}</td>
-                <td>{{ filteredSources?.org_name }}</td>
-                <td>{{ filteredSources?.division_code }}</td>
-                <td>{{ filteredSources?.circle_code }}</td>
-                <td>{{ filteredSources?.region_code }}</td>
-                <td>{{ filteredSources?.org_code }}</td>
-              </tr>
-            </tbody>
-          </table>
+
+          <div class="col-12" *ngIf="filteredSources">
+            <div class="table-responsive">
+              <table class="table table-sm table-striped table-bordered mt-2">
+                <thead class="table-light">
+                  <tr>
+                    <th>Name</th><th>Division Name</th><th>Code</th><th>Circle Name</th>
+                    <th>Region Name</th><th>Org Name</th><th>Division Code</th>
+                    <th>Circle Code</th><th>Region Code</th><th>Org Code</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{{ filteredSources?.name }}</td>
+                    <td>{{ filteredSources?.division_name }}</td>
+                    <td>{{ filteredSources?.code }}</td>
+                    <td>{{ filteredSources?.circle_name }}</td>
+                    <td>{{ filteredSources?.region_name }}</td>
+                    <td>{{ filteredSources?.org_name }}</td>
+                    <td>{{ filteredSources?.division_code }}</td>
+                    <td>{{ filteredSources?.circle_code }}</td>
+                    <td>{{ filteredSources?.region_code }}</td>
+                    <td>{{ filteredSources?.org_code }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
         <!-- Rows -->
         <div class="table-responsive mt-3">
-          <table class="table table-sm table-bordered align-middle">
-            <thead class="table-light text-center">
+          <table class="table table-hover table-bordered align-middle">
+            <thead class="table-light text-center sticky-top" style="top:0; z-index:1;">
               <tr>
-                <th style="width:42px;">S.No</th>
-                <th>Meter Serial</th>
-                <th>Make</th>
-                <th>Capacity</th>
-                <th>Result / Remarks</th>
-                <th class="d-print-none" style="width:64px;">Action</th>
+                <th style="width:64px;">#</th>
+                <th style="min-width:180px;">Meter Serial</th>
+                <th style="min-width:160px;">Make</th>
+                <th style="min-width:140px;">Capacity</th>
+                <th style="min-width:220px;">Result / Remarks</th>
+                <th class="d-print-none" style="width:72px;">Action</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of batch.rows; let i = index">
-                <td class="text-center">{{ i+1 }}</td>
-                <td><input class="form-control form-control-sm" [(ngModel)]="r.serial" name="b_serial_{{i}}" required></td>
-                <td><input class="form-control form-control-sm" [(ngModel)]="r.make" name="b_make_{{i}}"></td>
-                <td><input class="form-control form-control-sm" [(ngModel)]="r.capacity" name="b_capacity_{{i}}"></td>
-                <td><input class="form-control form-control-sm" [(ngModel)]="r.result" name="b_result_{{i}}"></td>
+              <tr *ngFor="let r of displayRows(); let i = index; trackBy: trackRow"
+                  [ngClass]="{'table-danger': r.notFound}">
+                <td class="text-center">
+                  <span class="badge bg-secondary">{{ i + 1 }}</span>
+                </td>
+
+                <td>
+                  <input class="form-control form-control-sm"
+                         [(ngModel)]="r.serial"
+                         [name]="'b_serial_' + i"
+                         (ngModelChange)="onSerialChanged(i, r.serial)"
+                         placeholder="Type serial…"
+                         required>
+                  <div *ngIf="r.notFound" class="form-text text-danger">
+                    Serial not in assigned list
+                  </div>
+                </td>
+
+                <td>
+                  <input class="form-control form-control-sm"
+                         [(ngModel)]="r.make"
+                         [name]="'b_make_' + i"
+                         placeholder="auto-filled (editable)">
+                </td>
+
+                <td>
+                  <input class="form-control form-control-sm"
+                         [(ngModel)]="r.capacity"
+                         [name]="'b_capacity_' + i"
+                         placeholder="auto-filled (editable)">
+                </td>
+
+                <td>
+                  <select class="form-select form-select-sm"
+                          [(ngModel)]="r.result"
+                          [name]="'b_result_' + i">
+                    <option value="">--</option>
+                    <option *ngFor="let option of comment_bytester" [value]="option">{{ option }}</option>
+                  </select>
+                </td>
+
                 <td class="text-center d-print-none">
-                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeBatchRow(i)">✕</button>
+                  <button type="button" class="btn btn-sm btn-outline-danger"
+                          (click)="openConfirm('removeRow', { index: i })">✕</button>
                 </td>
               </tr>
-              <tr *ngIf="!batch.rows?.length">
-                <td colspan="6" class="text-center text-muted">No rows</td>
+
+              <tr *ngIf="!displayRows().length">
+                <td colspan="6" class="text-center text-muted">No rows match your filter.</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div class="d-flex gap-2 d-print-none">
+        <div class="d-flex flex-wrap gap-2 d-print-none">
           <button type="button" class="btn btn-outline-primary" (click)="addBatchRow()">➕ Add Row</button>
-          <button type="button" class="btn btn-outline-secondary" (click)="clearBatchRows()">Clear</button>
-          <button type="button" class="btn btn-primary ms-auto" (click)="submitBatch()">Submit Batch Report</button>
-        </div>
-      </div>
-    </form>
-
-    <!-- B) Consumer/Contested forms -->
-    <form class="card shadow-sm mb-3"
-          *ngIf="reportType==='P4_ONM' || reportType==='P4_vig' || reportType==='Solar netmeter' || reportType==='Solar Generation Meter'"
-          #consForm="ngForm">
-      <div class="card-header fw-semibold">Consumer / Contested — Input</div>
-      <div class="card-body">
-        <!-- Common payload controls -->
-        <div class="row g-3 mb-2">
-        <div class="col-md-4">
-            <label class="form-label fw-bold">Test Method</label>
-            <select class="form-select" [(ngModel)]="testMethod" name="c_test_method">
-              <option value="MANUAL">MANUAL</option>
-              <option value="AUTOMATED">AUTOMATED</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Test Status</label>
-            <select class="form-select" [(ngModel)]="testStatus" name="c_test_status">
-              <option value="COMPLETED">COMPLETED</option>
-              <option value="PENDING">PENDING</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Header -->
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label fw-bold">Name of Consumer</label>
-            <input class="form-control" [(ngModel)]="contested.consumer_name" name="c_name" required>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-bold">Account / IVRS</label>
-            <input class="form-control" [(ngModel)]="contested.ivrs" name="c_ivrs" required>
-          </div>
-          <div class="col-md-8">
-            <label class="form-label fw-bold">Address</label>
-            <input class="form-control" [(ngModel)]="contested.address" name="c_address">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-bold">By</label>
-            <input class="form-control" [(ngModel)]="contested.by_whom" name="c_by">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-bold">MR No / Date</label>
-            <input class="form-control" [(ngModel)]="contested.mr_no" name="c_mrno">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Testing Fees</label>
-            <input class="form-control" [(ngModel)]="contested.fees" name="c_fees">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Date of Testing</label>
-            <input type="date" class="form-control" [(ngModel)]="contested.testing_date" name="c_date" required>
-          </div>
-        </div>
-
-        <hr>
-        <!-- Meter -->
-        <div class="row g-3">
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Meter No</label>
-            <input class="form-control" [(ngModel)]="contested.meter.serial" name="m_serial" required>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Make</label>
-            <input class="form-control" [(ngModel)]="contested.meter.make" name="m_make">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Capacity</label>
-            <input class="form-control" [(ngModel)]="contested.meter.capacity" name="m_capacity">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Reading</label>
-            <input class="form-control" [(ngModel)]="contested.meter.reading" name="m_reading">
-          </div>
-        </div>
-
-        <hr>
-        <!-- Checks -->
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label fw-bold">Physical Condition</label>
-            <input class="form-control" [(ngModel)]="contested.checks.physical" name="ck_physical">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Burnt?</label>
-            <input class="form-control" [(ngModel)]="contested.checks.burnt" name="ck_burnt">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Body Seal</label>
-            <input class="form-control" [(ngModel)]="contested.checks.seal" name="ck_seal">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Glass</label>
-            <input class="form-control" [(ngModel)]="contested.checks.glass" name="ck_glass">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Terminal</label>
-            <input class="form-control" [(ngModel)]="contested.checks.terminal" name="ck_terminal">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Body</label>
-            <input class="form-control" [(ngModel)]="contested.checks.body" name="ck_body">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Any Other</label>
-            <input class="form-control" [(ngModel)]="contested.checks.other" name="ck_other">
-          </div>
-        </div>
-
-        <hr>
-        <!-- Readings & Result -->
-        <div class="row g-3">
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Before Test Reading</label>
-            <input class="form-control" [(ngModel)]="contested.before" name="c_before">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">After Test Reading</label>
-            <input class="form-control" [(ngModel)]="contested.after" name="c_after">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">% Error</label>
-            <input class="form-control" [(ngModel)]="contested.error_pct" name="c_error">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Ref Start</label>
-            <input class="form-control" [(ngModel)]="contested.ref_start" name="c_ref_start">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Ref End</label>
-            <input class="form-control" [(ngModel)]="contested.ref_end" name="c_ref_end">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Starting</label>
-            <input class="form-control" [(ngModel)]="contested.starting" name="c_starting">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Creep</label>
-            <input class="form-control" [(ngModel)]="contested.creep" name="c_creep">
-          </div>
-          <div class="col-12">
-            <label class="form-label fw-bold">Other</label>
-            <input class="form-control" [(ngModel)]="contested.other" name="c_other">
-          </div>
-        </div>
-
-        <div class="d-flex gap-2 d-print-none mt-3">
-          <button type="button" class="btn btn-primary ms-auto" (click)="submitContested()">Submit Test Report</button>
-        </div>
-      </div>
-    </form>
-
-    <!-- C) CT Testing Certificate form -->
-    <form class="card shadow-sm mb-3" *ngIf="reportType==='CT Testing'" #ctForm="ngForm">
-      <div class="card-header fw-semibold">CT Testing Certificate — Input</div>
-      <div class="card-body">
-        <!-- Common payload controls -->
-        <div class="row g-3 mb-2">
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Test Method</label>
-            <select class="form-select" [(ngModel)]="testMethod" name="t_test_method">
-              <option value="MANUAL">MANUAL</option>
-              <option value="AUTOMATED">AUTOMATED</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Test Status</label>
-            <select class="form-select" [(ngModel)]="testStatus" name="t_test_status">
-              <option value="COMPLETED">COMPLETED</option>
-              <option value="PENDING">PENDING</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Header -->
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label fw-bold">Name of Consumer</label>
-            <input class="form-control" [(ngModel)]="ctCert.header.consumer" name="ct_consumer" required>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-bold">Address</label>
-            <input class="form-control" [(ngModel)]="ctCert.header.address" name="ct_address">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">No. of CT</label>
-            <input type="number" class="form-control" [(ngModel)]="ctCert.header.ct_count" name="ct_count" min="1">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">CT Class</label>
-            <input class="form-control" [(ngModel)]="ctCert.header.ct_class" name="ct_class" required>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Date of Testing</label>
-            <input type="date" class="form-control" [(ngModel)]="ctCert.header.testing_date" name="ct_date" required>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">MR/Online Txn</label>
-            <input class="form-control" [(ngModel)]="ctCert.header.txn" name="ct_txn">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Amount</label>
-            <input class="form-control" [(ngModel)]="ctCert.header.amount" name="ct_amount">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Ref Start</label>
-            <input class="form-control" [(ngModel)]="ctCert.ref_start" name="ct_ref_start">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Ref End</label>
-            <input class="form-control" [(ngModel)]="ctCert.ref_end" name="ct_ref_end">
-          </div>
-        </div>
-
-        <!-- Rows -->
-        <div class="table-responsive mt-3">
-          <table class="table table-sm table-bordered align-middle">
-            <thead class="table-light text-center">
-              <tr>
-                <th style="width:42px;">Sr</th>
-                <th>CT No</th>
-                <th>Make</th>
-                <th>Cap.</th>
-                <th>Ratio</th>
-                <th>Polarity</th>
-                <th>Result</th>
-                <th>Remark</th>
-                <th class="d-print-none" style="width:64px;">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let c of ctCert.rows; let i = index">
-                <td class="text-center">{{ i+1 }}</td>
-                <td><input class="form-control form-control-sm" [(ngModel)]="c.ct_no" name="ct_no_{{i}}" required></td>
-                <td><input class="form-control form-control-sm" [(ngModel)]="c.make" name="ct_make_{{i}}"></td>
-                <td><input class="form-control form-control-sm" [(ngModel)]="c.capacity" name="ct_capacity_{{i}}"></td>
-                <td><input class="form-control form-control-sm" [(ngModel)]="c.ratio" name="ct_ratio_{{i}}"></td>
-                <td><input class="form-control form-control-sm" [(ngModel)]="c.polarity" name="ct_polarity_{{i}}"></td>
-                <td><input class="form-control form-control-sm" [(ngModel)]="c.result" name="ct_result_{{i}}"></td>
-                <td><input class="form-control form-control-sm" [(ngModel)]="c.remark" name="ct_remark_{{i}}"></td>
-                <td class="text-center d-print-none">
-                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeCtRow(i)">✕</button>
-                </td>
-              </tr>
-              <tr *ngIf="!ctCert.rows?.length">
-                <td colspan="9" class="text-center text-muted">No rows</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="d-flex gap-2 d-print-none">
-          <button type="button" class="btn btn-outline-primary" (click)="addCtRow()">➕ Add Row</button>
-          <button type="button" class="btn btn-outline-secondary" (click)="clearCtRows()">Clear</button>
-          <button type="button" class="btn btn-primary ms-auto" (click)="submitCtTesting()">Submit CT Reports</button>
+          <button type="button" class="btn btn-outline-secondary" (click)="openConfirm('clear')">Clear</button>
+          <div class="ms-auto"></div>
+          <button type="button" class="btn btn-primary"
+                  [disabled]="submitting || !batch.rows.length"
+                  (click)="openConfirm('submit')">
+            {{ submitting ? 'Submitting…' : 'Submit Batch Report' }}
+          </button>
         </div>
       </div>
     </form>
   </div>
 
-  <!-- ===== PRINT AREA (unchanged) ==================================== -->
+  <!-- ===================== PRINT AREA ====================== -->
   <div id="printArea" class="paper a4 shadow-sm bg-white p-3">
-    <!-- Batch print -->
     <ng-container *ngIf="reportType==='stopdefective' || reportType==='contested'">
       <div class="text-center">
-        <div class="fw-bold" style="font-size:14px;">मध्य प्रदेश पश्चिम क्षेत्र विद्युत वितरण कम्पनी लिमिटेड</div>
-        <div class="fw-bold" style="font-size:13px;">आर.एम.टी.एल., इंदौर</div>
+        <div class="fw-bold" style="font-size:24px;">Madhya Pradesh Pashchim Kshetra Vidyut Vitaran Company Limited</div>
+        <div class="fw-bold" style="font-size:17px;">RMTL TESTING LABORATORY INDORE</div>
       </div>
 
       <div class="row mt-2 small">
-        <div class="col-6"><strong>क्षेत्र/वितरण केन्द्र:</strong> {{ batch.header.zone || '-' }}</div>
-        <div class="col-3"><strong>फेज़:</strong> {{ batch.header.phase || '-' }}</div>
-        <div class="col-3 text-end"><strong>परीक्षण दिनांक:</strong> {{ batch.header.date }}</div>
+        <div class="col-6"><strong>Distrtibution Center/Zone Name:</strong> {{ filteredSources?.name }}</div>
+        <div class="col-3"><strong>Device Phase</strong> {{ batch.header.phase || '-' }}</div>
+        <div class="col-3 text-end"><strong>Testing Date</strong> {{ batch.header.date }}</div>
       </div>
 
       <table class="table table-bordered table-sm mt-2 align-middle">
@@ -435,8 +228,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let r of batch.rows; let i=index">
-            <td class="text-center">{{ i+1 }}</td>
+          <tr *ngFor="let r of batch.rows; let i = index">
+            <td class="text-center">{{ i + 1 }}</td>
             <td>{{ r.serial }}</td>
             <td>{{ r.make }}</td>
             <td>{{ r.capacity }}</td>
@@ -459,125 +252,41 @@
         </div>
       </div>
     </ng-container>
-
-    <!-- Consumer/Contested print -->
-    <ng-container *ngIf="reportType==='P4_ONM' || reportType==='P4_vig' || reportType==='Solar netmeter' || reportType==='Solar Generation Meter'">
-      <div class="text-center fw-bold mb-1">OFFICE OF AE/JE — TEST RESULT FORM</div>
-
-      <div class="border p-2 small">
-        <div class="row">
-          <div class="col-6"><strong>Name of Consumer:</strong> {{ contested.consumer_name }}</div>
-          <div class="col-6"><strong>Account/IVRS:</strong> {{ contested.ivrs }}</div>
-        </div>
-        <div class="row">
-          <div class="col-6"><strong>Address:</strong> {{ contested.address }}</div>
-          <div class="col-6"><strong>By:</strong> {{ contested.by_whom }}</div>
-        </div>
-        <div class="row">
-          <div class="col-4"><strong>MR No/Date:</strong> {{ contested.mr_no }}</div>
-          <div class="col-4"><strong>Testing Fees:</strong> {{ contested.fees }}</div>
-          <div class="col-4"><strong>Date of Testing:</strong> {{ contested.testing_date }}</div>
-        </div>
-      </div>
-
-      <div class="row small mt-2">
-        <div class="col-3"><strong>Meter No:</strong> {{ contested.meter.serial }}</div>
-        <div class="col-3"><strong>Make:</strong> {{ contested.meter.make }}</div>
-        <div class="col-3"><strong>Capacity:</strong> {{ contested.meter.capacity }}</div>
-        <div class="col-3"><strong>Reading:</strong> {{ contested.meter.reading }}</div>
-      </div>
-
-      <table class="table table-sm table-bordered mt-2">
-        <tbody class="small">
-          <tr><th style="width:45%;">Physical Condition</th><td>{{ contested.checks.physical }}</td></tr>
-          <tr><th>Whether Found Burnt</th><td>{{ contested.checks.burnt }}</td></tr>
-          <tr><th>Meter Body Seal</th><td>{{ contested.checks.seal }}</td></tr>
-          <tr><th>Meter Glass Cover</th><td>{{ contested.checks.glass }}</td></tr>
-          <tr><th>Terminal Block</th><td>{{ contested.checks.terminal }}</td></tr>
-          <tr><th>Meter Body</th><td>{{ contested.checks.body }}</td></tr>
-          <tr><th>Any Other</th><td>{{ contested.checks.other }}</td></tr>
-        </tbody>
-      </table>
-
-      <div class="row small">
-        <div class="col-6"><strong>Before Test Reading:</strong> {{ contested.before }}</div>
-        <div class="col-6"><strong>After Test Reading:</strong> {{ contested.after }}</div>
-      </div>
-
-      <div class="row small mt-2">
-        <div class="col-3"><strong>% Error:</strong> {{ contested.error_pct }}</div>
-        <div class="col-3"><strong>Starting Current:</strong> {{ contested.starting }}</div>
-        <div class="col-3"><strong>Creep Test:</strong> {{ contested.creep }}</div>
-        <div class="col-3"><strong>Other:</strong> {{ contested.other }}</div>
-      </div>
-
-      <div class="row mt-4 small">
-        <div class="col-6">
-          <div class="sig-line">JE/AE Sign</div>
-        </div>
-        <div class="col-6 text-end">
-          <div class="sig-line d-inline-block">RMTL — Tested By</div>
-        </div>
-      </div>
-    </ng-container>
-
-    <!-- CT certificate print -->
-    <ng-container *ngIf="deviceType==='CT' && reportType==='CT Testing'">
-      <div class="text-center">
-        <div class="fw-bold">OFFICE OF THE ASSISTANT ENGINEER (R.M.T.L.)</div>
-        <div class="small">CERTIFICATE FOR C.T</div>
-      </div>
-
-      <div class="small mt-2">
-        <div><strong>Name of Consumer:</strong> {{ ctCert.header.consumer }}</div>
-        <div><strong>Address:</strong> {{ ctCert.header.address }}</div>
-        <div class="row">
-          <div class="col-4"><strong>No. of CT:</strong> {{ ctCert.header.ct_count }}</div>
-          <div class="col-4"><strong>CT Class:</strong> {{ ctCert.header.ct_class }}</div>
-          <div class="col-4"><strong>Date of Testing:</strong> {{ ctCert.header.testing_date }}</div>
-        </div>
-        <div class="row">
-          <div class="col-6"><strong>M.R./Online Txn:</strong> {{ ctCert.header.txn }}</div>
-          <div class="col-6"><strong>Amount:</strong> {{ ctCert.header.amount }}</div>
-        </div>
-      </div>
-
-      <table class="table table-bordered table-sm mt-2 align-middle">
-        <thead class="table-light text-center">
-          <tr>
-            <th style="width:42px;">Sr</th>
-            <th>CT No</th>
-            <th>Make</th>
-            <th>Cap.</th>
-            <th>Ratio</th>
-            <th>Polarity</th>
-            <th>Result</th>
-            <th>Remark</th>
-          </tr>
-        </thead>
-        <tbody class="small">
-          <tr *ngFor="let c of ctCert.rows; let i=index">
-            <td class="text-center">{{ i+1 }}</td>
-            <td>{{ c.ct_no }}</td>
-            <td>{{ c.make }}</td>
-            <td>{{ c.capacity }}</td>
-            <td>{{ c.ratio }}</td>
-            <td>{{ c.polarity }}</td>
-            <td>{{ c.result }}</td>
-            <td>{{ c.remark || '-' }}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="row mt-4 small">
-        <div class="col-6">
-          <div class="sig-line">Junior Engineer (RMTL)</div>
-        </div>
-        <div class="col-6 text-end">
-          <div class="sig-line d-inline-block">Assistant Engineer</div>
-        </div>
-      </div>
-    </ng-container>
-
   </div>
+
+  <!-- ===================== Reusable Confirm Modal ====================== -->
+  <div class="modal fade" tabindex="-1"
+       [class.show]="modal.open"
+       [style.display]="modal.open ? 'block' : 'none'"
+       (click)="closeModal()">
+    <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ modal.title }}</h5>
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">{{ modal.message }}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" (click)="closeModal()">Cancel</button>
+          <button class="btn btn-primary" (click)="confirmModal()">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" *ngIf="modal.open"></div>
+
+  <!-- ===================== Loading overlay ====================== -->
+  <div *ngIf="loading" class="position-fixed top-0 start-0 w-100 h-100"
+       style="background:rgba(0,0,0,0.15); z-index: 1080;">
+    <div class="d-flex h-100 align-items-center justify-content-center">
+      <div class="spinner-border" role="status" aria-hidden="true"></div>
+      <span class="ms-2 fw-semibold">Loading…</span>
+    </div>
+  </div>
+
+</div>
+</div>
+</div>
 </div>

@@ -1,7 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import { firstValueFrom, map } from 'rxjs';
-import { AuthService } from 'src/app/core/auth.service';
-import { TestReportPayload } from 'src/app/interface/models';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
 type ReportUnion =
@@ -13,7 +10,63 @@ type ReportUnion =
   | 'Solar Generation Meter'
   | 'CT Testing';
 
+interface MeterDevice {
+  id: number;
+  serial_number: string;
+  make?: string;
+  capacity?: string;
+  phase?: string;
+}
 
+interface AssignmentItem {
+  id: number;              // assignment_id
+  device_id: number;
+  device?: MeterDevice | null;
+}
+
+interface DeviceRow {
+  serial: string;
+  make: string;
+  capacity: string;
+  result: string;
+  device_id: number;
+  assignment_id: number;
+  notFound?: boolean;
+}
+
+export interface TestReportPayload {
+  id: number;
+  device_id: number;
+  assignment_id: number;
+  start_datetime: string;
+  end_datetime: string;
+  physical_condition_of_device: string;
+  seal_status: string;
+  meter_glass_cover: string;
+  terminal_block: string;
+  meter_body: string;
+  other: string;
+  is_burned: boolean;
+  reading_before_test: number;
+  reading_after_test: number;
+  details: string;
+  test_result: 'PASS' | 'FAIL';
+  test_method: 'MANUAL' | 'AUTOMATED';
+  ref_start_reading: number;
+  ref_end_reading: number;
+  test_status: 'COMPLETED' | 'PENDING';
+  error_percentage: number;
+  approver_id: number;
+}
+
+type ModalAction = 'reload' | 'fetch' | 'removeRow' | 'clear' | 'submit';
+interface ModalState {
+  open: boolean;
+  title: string;
+  message: string;
+  action: ModalAction | null;
+  payload?: any;
+}
 
 @Component({
   selector: 'app-rmtl-add-testreport',
@@ -21,187 +74,252 @@ type ReportUnion =
   styleUrls: ['./rmtl-add-testreport.component.css']
 })
 export class RmtlAddTestreportComponent implements OnInit {
+  // Report tabs
   reportType: ReportUnion = 'stopdefective';
   reportTypes: ReportUnion[] = [
     'stopdefective','contested','P4_ONM','P4_vig','Solar netmeter','Solar Generation Meter','CT Testing'
   ];
 
-  // for CT certificate visibility condition already used in your print template
-  deviceType:any;
+  // Common payload controls
+  testMethod: 'MANUAL' | 'AUTOMATED' = 'AUTOMATED';
+  testStatus: 'COMPLETED' | 'PENDING' = 'COMPLETED';
+  comment_bytester:any=['Stop Defective', 'Display Off', 'Ok Found','Phase Mismatch']; ;
+  testresults: 'PASS' | 'FAIL' = 'PASS';
+  approverId = 0;
 
-  // Common selectors/ids for payload
-  testMethod:any;
-  testStatus:any;
-  approverId :any;
-  assignmentId:any;
-
-  // 1) Batch sheet
+  // Header + rows
   batch = {
-    header: { zone: 'M.M.-2', phase: '3Ø', date: '2025-08-06' },
-    rows: [] as { serial: string; make: string; capacity: string; result: string }[]
+    header: { zone: '', phase: '', date: '' },
+    rows: [] as DeviceRow[]
   };
 
-  // 2) Contested/consumer set
-  contested = {
-    consumer_name: 'HITES WORLD',
-    ivrs: 'N3360400844',
-    address: 'NIL',
-    by_whom: 'By Consumer / Electronic Complaint',
-    fees: '1680/-',
-    mr_no: 'Online Txn 2507xxxxxx DT 28/07/2025',
-    testing_date: '2025-07-31',
-    meter: { serial: 'SS22123888', make: 'SECURE', capacity: '3X10-100A', reading: '5523.283' },
-    checks: {
-      physical: 'OK', burnt: 'NO', seal: 'OK', glass: 'OK', terminal: 'OK', body: 'OK', other: '-'
-    },
-    before: '5523.283', after: '5528.295',
-    error_pct: '0.16%',
-    starting: 'OK',
-    creep: 'OK',
-    other: 'Dial Test OK',
-    // optional ref meter readings (added to form)
-    ref_start: '0',
-    ref_end: '0'
-  };
-
-  // 3) CT certificate
-  ctCert = {
-    header: {
-      consumer: 'FOCUS RENEWABLE ENERGY',
-      address: 'NIL',
-      ct_count: 8,
-      ct_class: '0.5',
-      testing_date: '2025-08-02',
-      txn: 'Online Txn 2507xxxxxx DT 24/07/2025',
-      amount: '7360/-'
-    },
-    rows: [
-      { ct_no: '250630314-00067', make: 'ELMEX', capacity: '300/5A', ratio: '300/5', polarity: 'OK', result: 'OK', remark: '' },
-      { ct_no: '250630314-00080', make: 'ELMEX', capacity: '300/5A', ratio: '300/5', polarity: 'OK', result: 'OK', remark: '' },
-      { ct_no: '250630314-00066', make: 'ELMEX', capacity: '300/5A', ratio: '300/5', polarity: 'OK', result: 'OK', remark: '' },
-      { ct_no: '250630314-00076', make: 'ELMEX', capacity: '300/5A', ratio: '300/5', polarity: 'OK', result: 'OK', remark: '' },
-      { ct_no: '250630314-00087', make: 'ELMEX', capacity: '300/5A', ratio: '300/5', polarity: 'OK', result: 'OK', remark: '' },
-      { ct_no: '250630314-00081', make: 'ELMEX', capacity: '300/5A', ratio: '300/5', polarity: 'OK', result: 'OK', remark: '' },
-      { ct_no: '250630314-00098', make: 'ELMEX', capacity: '300/5A', ratio: '300/5', polarity: 'OK', result: 'OK', remark: '' },
-      { ct_no: '250630314-00092', make: 'ELMEX', capacity: '300/5A', ratio: '300/5', polarity: 'OK', result: 'OK', remark: '' }
-    ],
-    // optional ref meter readings for CT test batch
-    ref_start: '0',
-    ref_end: '0'
-  };
-  device_status: string= 'ASSIGNED';
-  test_methods: any;
-  test_statuses: any;
-  phases: any;
+  // Enums
+  device_status = 'ASSIGNED';
+  test_methods: string[] = [];
+  test_statuses: string[] = [];
+  phases: string[] = [];            // use '1P', '3P' to match backend
   office_types: string[] = [];
-  selectedSourceType: string = '';
-  selectedSourceName: string = '';
-  filteredSources: any = null;
-  currentLabId: any;
 
-  constructor(private api: ApiServicesService, private auth: AuthService) {}
+  // Optional office block
+  selectedSourceType = '';
+  selectedSourceName = '';
+  filteredSources: any = null;
+
+  // Index for autofill (by serial)
+  private serialIndex: Record<string, {
+    make?: string;
+    capacity?: string;
+    device_id: number;
+    assignment_id: number;
+    phase?: string;
+  }> = {};
+
+  // Misc / state
+  currentUserId = 0;
+  currentLabId = 0;
+  filterText = '';
+  loading = false;
+  submitting = false;
+
+  // Reusable confirm modal
+  modal: ModalState = { open: false, title: '', message: '', action: null };
+
+  constructor(private api: ApiServicesService) {}
 
   ngOnInit(): void {
+    this.batch.header.date = this.toYMD(new Date());
+
+    // enums
     this.api.getEnums().subscribe({
       next: (data) => {
-        this.device_status = data.device_status;
-        this.test_methods = data.test_methods;
-        this.test_statuses = data.test_statuses;
-        this.phases= data.phases
-        this.office_types = data.office_types;
+        this.device_status = data?.device_status ?? 'ASSIGNED';
+        this.test_methods  = data?.test_methods ?? ['MANUAL', 'AUTOMATED'];
+        this.test_statuses = data?.test_statuses ?? ['COMPLETED', 'PENDING'];
+        this.phases        = data?.phases ?? ['1P', '3P'];
+        this.office_types  = data?.office_types ?? [];
       },
-      error: (err) => {
-        console.log(err);
-      }
+      error: (err) => console.error('Enums error', err)
     });
-   this.assignmentId = localStorage.getItem('currentUserId');
-   this.currentLabId = localStorage.getItem('currentLabId');
-   this.loadBatch();
-  }
-loadBatch() {
-  this.api.getAssignedMeterList('ASSIGNED',this.assignmentId,Number(this.currentLabId)).subscribe({
-    next: (data) => {
-      // this.batch.rows = data.meters.map((m:any) => ({ serial: m.serial_number, make: m.make, capacity: m.capacity, result: '' }));
-      this.batch.rows = data.meters.map((m:any) => ({ serial: m.serial_number, make: m.make, capacity: m.capacity, result: '' }));
-      if (this.batch.rows.length === 0) {
-        this.addBatchRow();
-      }
 
-    },
-    error: (error) => {
-      console.error(error);
-      // this.showAlert('Error', 'Failed to fetch source details. Check the code and try again.');
+    // ids from storage
+    this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
+    this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+
+    // initial load
+    // this.doReloadAssigned();
   }
-})
-}
-  fetchButtonData(): void {
-    if (!this.selectedSourceType || !this.selectedSourceName) {
-      // this.showAlert('Missing Input', 'Please select Source Type and enter Location/Store/Vendor Code.');
-      return;
+
+  // ------- Counters for header badges -------
+  get totalCount(): number { return this.batch?.rows?.length ?? 0; }
+  get matchedCount(): number { return (this.batch?.rows ?? []).filter(r => !!r.serial && !r.notFound).length; }
+  get unknownCount(): number { return (this.batch?.rows ?? []).filter(r => !!r.notFound).length; }
+
+  // ------- Load assignments (NEW mapping) -------
+  private rebuildSerialIndex(assignments: AssignmentItem[]): void {
+    this.serialIndex = {};
+    for (const a of assignments) {
+      const d = a?.device;
+      const serial = (d?.serial_number || '').toUpperCase().trim();
+      if (!serial) continue;
+
+      this.serialIndex[serial] = {
+        make: d?.make || '',
+        capacity: d?.capacity || '',
+        device_id: d?.id ?? a.device_id ?? 0,
+        assignment_id: a?.id ?? 0,
+        phase: d?.phase || ''
+      };
     }
+  }
+
+  doReloadAssigned(): void {
+    this.loading = true;
+    // API still called the same way; the response is now an array of assignments.
+    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
+      next: (data: any) => {
+        const assignments: AssignmentItem[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.results)
+          ? data.results
+          : [];
+
+        // index for fast lookup by serial
+        this.rebuildSerialIndex(assignments);
+
+        // build visible rows from assignments
+        this.batch.rows = assignments.map(a => {
+          const d = a.device || ({} as MeterDevice);
+          return {
+            serial: d.serial_number || '',
+            make: d.make || '',
+            capacity: d.capacity || '',
+            result: '',
+            device_id: d.id ?? a.device_id ?? 0,
+            assignment_id: a.id ?? 0,
+            notFound: false
+          };
+        });
+
+        // keep 1 empty row if nothing
+        if (!this.batch.rows.length) this.addBatchRow();
+
+        // guess consistent phase from devices
+        if (!this.batch.header.phase) {
+          const uniq = new Set(
+            assignments
+              .map(a => (a.device?.phase || '').toUpperCase())
+              .filter(Boolean)
+          );
+          this.batch.header.phase = uniq.size === 1 ? [...uniq][0] : '';
+        }
+      },
+      error: (e) => {
+        console.error('Assigned list error', e);
+        this.batch.rows = [{
+          serial: '', make: '', capacity: '', result: '', device_id: 0, assignment_id: 0, notFound: false
+        }];
+      },
+      complete: () => (this.loading = false)
+    });
+  }
+
+  // ------- Row ops + autofill -------
+  addBatchRow(): void {
+    this.batch.rows.push({
+      serial: '', make: '', capacity: '', result: '', device_id: 0, assignment_id: 0, notFound: false
+    });
+  }
+
+  private doRemoveRow(index: number): void {
+    this.batch.rows.splice(index, 1);
+  }
+  private doClearRows(): void {
+    this.batch.rows = [];
+    this.addBatchRow();
+  }
+
+  onSerialChanged(i: number, serial: string): void {
+    const key = (serial || '').toUpperCase().trim();
+    const row = this.batch.rows[i];
+    const hit = this.serialIndex[key];
+
+    if (hit) {
+      row.make = hit.make || '';
+      row.capacity = hit.capacity || '';
+      row.device_id = hit.device_id || 0;
+      row.assignment_id = hit.assignment_id || 0;
+      row.notFound = false;
+
+      // If header phase not chosen yet, try to use matched device's phase
+      if (!this.batch.header.phase && hit.phase) {
+        this.batch.header.phase = hit.phase.toUpperCase();
+      }
+    } else {
+      row.make = '';
+      row.capacity = '';
+      row.device_id = 0;
+      row.assignment_id = 0;
+      row.notFound = key.length > 0;
+    }
+  }
+
+  displayRows(): DeviceRow[] {
+    const q = this.filterText.trim().toLowerCase();
+    if (!q) return this.batch.rows;
+    return this.batch.rows.filter(r =>
+      (r.serial || '').toLowerCase().includes(q) ||
+      (r.make || '').toLowerCase().includes(q) ||
+      (r.capacity || '').toLowerCase().includes(q) ||
+      (r.result || '').toLowerCase().includes(q)
+    );
+  }
+
+  trackRow(index: number, r: DeviceRow): string {
+    return `${r.assignment_id || 0}_${r.device_id || 0}_${r.serial || ''}_${index}`;
+    // stable key even if user edits serial
+  }
+
+  // ------- Office lookup -------
+  private doFetchOffice(): void {
+    if (!this.selectedSourceType || !this.selectedSourceName) return;
+    this.loading = true;
     this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
       next: (data) => (this.filteredSources = data),
-      error: (error) => {
-        console.error(error);
-        // this.showAlert('Error', 'Failed to fetch source details. Check the code and try again.');
-      }
+      error: (error) => console.error('Fetch source error', error),
+      complete: () => (this.loading = false)
     });
   }
-    onSourceTypeChange(): void {
+  onSourceTypeChange(): void {
     this.selectedSourceName = '';
     this.filteredSources = null;
   }
 
-
-
-  // UI ops
-  addBatchRow(): void { this.batch.rows.push({ serial: '', make: '', capacity: '', result: '' }); }
-  removeBatchRow(i: number): void { this.batch.rows.splice(i, 1); }
-  clearBatchRows(): void { this.batch.rows = []; }
-  addCtRow(): void { this.ctCert.rows.push({ ct_no: '', make: '', capacity: '', ratio: '', polarity: '', result: '', remark: '' }); }
-  removeCtRow(i: number): void { this.ctCert.rows.splice(i, 1); }
-  clearCtRows(): void { this.ctCert.rows = []; }
-
-  print(): void { window.print(); }
-
-  // helpers
+  // ------- Submit -------
+  private passFailFromText(txt: string): 'PASS' | 'FAIL' {
+    return /(^|\W)(ok|pass)(\W|$)/i.test(txt || '') ? 'PASS' : 'FAIL';
+  }
+  private toYMD(d: Date): string {
+    const dt = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return dt.toISOString().slice(0, 10);
+  }
   private isoOn(dateStr?: string): string {
     const d = dateStr ? new Date(dateStr + 'T10:00:00') : new Date();
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString();
   }
-  private toNum(v: any): number { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
-  private passFailFromText(txt: string): 'PASS' | 'FAIL' { return /ok|pass/i.test(txt || '') ? 'PASS' : 'FAIL'; }
-  private passFailFromError(val: string | number): 'PASS' | 'FAIL' {
-    const n = typeof val === 'number' ? val : this.toNum(String(val).replace('%',''));
-    return Math.abs(n) <= 1 ? 'PASS' : 'FAIL'; // adjust tolerance here
-  }
 
-  // ---- API helpers (optional: resolve device ids by serial) ----
-  private async getIdMap(serials: string[]): Promise<Record<string, number>> {
-    try {
-      if (!serials.length) return {};
-      return await firstValueFrom(
-        this.api.getDevicesByInwardNo(serials[0]).pipe(
-          map((devices: any[]) => devices.reduce((acc: any, d: { inward_no: any; id: any; }) => ({ ...acc, [d.inward_no]: d.id }), {} as Record<string, number>))
-        )
-      );
-      
-    } catch { return {}; }
-  }
+  private doSubmitBatch(): void {
+    // Ensure dropdowns are not empty
+    if (!this.testMethod && this.test_methods.length) this.testMethod = this.test_methods[0] as any;
+    if (!this.testStatus && this.test_statuses.length) this.testStatus = this.test_statuses[0] as any;
 
-
-  // ---- SUBMITTERS ------------------------------------------------------
-
-  async submitBatch(): Promise<void> {
-    const serials = (this.batch.rows || []).map(r => r.serial).filter(Boolean);
-    const idMap = await this.getIdMap(serials);
     const when = this.isoOn(this.batch.header.date);
-    const payload: TestReportPayload[] = (this.batch.rows || [])
-      .filter(r => r.serial)
+
+    const payload: TestReportPayload[] = this.batch.rows
+      .filter(r => (r.serial || '').trim())
       .map(r => ({
         id: 0,
-        device_id: idMap[r.serial] ?? 0,
-        assignment_id: this.assignmentId,
+        device_id: r.device_id ?? 0,
+        assignment_id: r.assignment_id ?? 0,   // <-- IMPORTANT: from assignment row, not userId
         start_datetime: when,
         end_datetime: when,
         physical_condition_of_device: '-',
@@ -223,93 +341,62 @@ loadBatch() {
         approver_id: this.approverId
       }));
 
+    this.submitting = true;
     this.api.postTestReports(payload).subscribe({
       next: () => alert('Batch test reports submitted'),
-      error: (e) => { console.error(e); alert('Failed to submit batch test reports'); }
+      error: (e) => { console.error(e); alert('Failed to submit batch test reports'); },
+      complete: () => (this.submitting = false)
     });
   }
 
-  async submitContested(): Promise<void> {
-    const serial = this.contested.meter.serial;
-    const idMap = await this.getIdMap(serial ? [serial] : []);
-    const device_id = serial ? (idMap[serial] ?? 0) : 0;
+  // ------- Confirm modal wiring -------
+  openConfirm(action: ModalAction, payload?: any): void {
+    this.modal.action = action;
+    this.modal.payload = payload;
 
-    const startISO = this.isoOn(this.contested.testing_date);
-    const endISO = startISO;
-    const before = this.toNum(this.contested.before);
-    const after  = this.toNum(this.contested.after);
-    const errPct = this.toNum(String(this.contested.error_pct).replace('%',''));
-    const refStart = this.toNum(this.contested.ref_start);
-    const refEnd   = this.toNum(this.contested.ref_end);
+    switch (action) {
+      case 'reload':
+        this.modal.title = 'Reload Assigned Devices';
+        this.modal.message = 'Replace the table with the latest assigned devices for this user?';
+        break;
+      case 'fetch':
+        this.modal.title = 'Fetch Source Details';
+        this.modal.message = `Fetch details for "${this.selectedSourceType}" / "${this.selectedSourceName}"?`;
+        break;
+      case 'removeRow':
+        this.modal.title = 'Remove Row';
+        this.modal.message = `Remove row #${(payload?.index ?? 0) + 1}?`;
+        break;
+      case 'clear':
+        this.modal.title = 'Clear All Rows';
+        this.modal.message = 'Clear all rows and leave one empty row?';
+        break;
+      case 'submit':
+        this.modal.title = 'Submit Batch Report';
+        this.modal.message = `Submit ${this.matchedCount} matched row(s) and ${this.unknownCount} unknown row(s)?`;
+        break;
+    }
 
-    const payload: TestReportPayload[] = [{
-      id: 0,
-      device_id,
-      assignment_id: this.assignmentId,
-      start_datetime: startISO,
-      end_datetime: endISO,
-      physical_condition_of_device: this.contested.checks.physical || '-',
-      seal_status: this.contested.checks.seal || '-',
-      meter_glass_cover: this.contested.checks.glass || '-',
-      terminal_block: this.contested.checks.terminal || '-',
-      meter_body: this.contested.checks.body || '-',
-      other: this.contested.checks.other || '-',
-      is_burned: /yes|burn/i.test(this.contested.checks.burnt || ''),
-      reading_before_test: before,
-      reading_after_test:  after,
-      details: `By:${this.contested.by_whom} MR:${this.contested.mr_no} Fees:${this.contested.fees}`,
-      test_result: this.passFailFromError(errPct),
-      test_method: this.testMethod,
-      ref_start_reading: refStart,
-      ref_end_reading: refEnd,
-      test_status: this.testStatus,
-      error_percentage: errPct,
-      approver_id: this.approverId
-    }];
-
-    this.api.postTestReports(payload).subscribe({
-      next: () => alert('Contested test report submitted'),
-      error: (e) => { console.error(e); alert('Failed to submit contested report'); }
-    });
+    this.modal.open = true;
   }
-
-  async submitCtTesting(): Promise<void> {
-    const serials = (this.ctCert.rows || []).map(r => r.ct_no).filter(Boolean);
-    const idMap = await this.getIdMap(serials);
-    const when = this.isoOn(this.ctCert.header.testing_date);
-    const refStart = this.toNum(this.ctCert.ref_start);
-    const refEnd   = this.toNum(this.ctCert.ref_end);
-
-    const payload: TestReportPayload[] = (this.ctCert.rows || [])
-      .filter(r => r.ct_no)
-      .map(r => ({
-        id: 0,
-        device_id: idMap[r.ct_no] ?? 0,
-        assignment_id: this.assignmentId,
-        start_datetime: when,
-        end_datetime: when,
-        physical_condition_of_device: '-',
-        seal_status: '-',
-        meter_glass_cover: '-',
-        terminal_block: '-',
-        meter_body: '-',
-        other: r.remark || '-',
-        is_burned: false,
-        reading_before_test: 0,
-        reading_after_test: 0,
-        details: `Ratio:${r.ratio || '-'} Polarity:${r.polarity || '-'}`,
-        test_result: this.passFailFromText(r.result),
-        test_method: this.testMethod,
-        ref_start_reading: refStart,
-        ref_end_reading: refEnd,
-        test_status: this.testStatus,
-        error_percentage: 0,
-        approver_id: this.approverId
-      }));
-
-    this.api.postTestReports(payload).subscribe({
-      next: () => alert('CT test reports submitted'),
-      error: (e) => { console.error(e); alert('Failed to submit CT reports'); }
-    });
+  closeModal(): void {
+    this.modal.open = false;
+    this.modal.action = null;
+    this.modal.payload = undefined;
   }
+  confirmModal(): void {
+    const a = this.modal.action;
+    const p = this.modal.payload;
+    this.closeModal();
+
+    if (a === 'reload') this.doReloadAssigned();
+    if (a === 'fetch') this.doFetchOffice();
+    if (a === 'removeRow') this.doRemoveRow(p?.index);
+    if (a === 'clear') this.doClearRows();
+    if (a === 'submit') this.doSubmitBatch();
+  }
+  
+
+  // ------- Print -------
+  print(): void { window.print(); }
 }
