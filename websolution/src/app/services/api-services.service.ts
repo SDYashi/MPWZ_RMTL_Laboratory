@@ -115,7 +115,7 @@ createDevice(device: Device): Observable<Device> {
   return this.http.post<Device>(`${this.baseUrl}/devices/`, device);
 }
 
-addnewdevice(device: any): Observable<Device> {
+addnewdevice(device: any[]): Observable<Device> {
   return this.http.post<Device>(`${this.baseUrl}/devices/inward`, device);
 }
 
@@ -224,6 +224,9 @@ getAssignment(id: number): Observable<Assignment> {
 
 createAssignment(assignment: Assignment): Observable<Assignment> {
   return this.http.post<Assignment>(`${this.baseUrl}/assignments/`, assignment);
+}
+createAssignmentbulk(assignment: Assignment): Observable<Assignment> {
+  return this.http.post<Assignment>(`${this.baseUrl}/assign-devices/`, assignment);
 }
 
 updateAssignment( updateData: { assignment_ids: number[], user_id: number, bench_id: number, assignment_type: string }): Observable<Assignment> {

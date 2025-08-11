@@ -3,6 +3,25 @@
     <div class="card-header text-white" style="background:#151433">
       <h5 class="mb-0">RMTL — View Inward Devices List</h5>
     </div>
+
+    <!-- Filters -->
+    <div class="card-body pb-0 mb-4">
+      <form class="row g-3 align-items-end">
+        <div class="col-sm-3">
+          <label class="form-label fw-semibold">From date</label>
+          <input type="date" class="form-control" [(ngModel)]="fromDate" name="fromDate">
+        </div>
+        <div class="col-sm-3">
+          <label class="form-label fw-semibold">To date</label>
+          <input type="date" class="form-control" [(ngModel)]="toDate" name="toDate">
+        </div>
+        <div class="col-sm-6 d-flex gap-2">
+          <button type="button" class="btn btn-primary mt-3" (click)="applyFilter()">Apply</button>
+          <button type="button" class="btn btn-outline-primary mt-3" (click)="resetToThisMonth()">Current month</button>
+        </div>
+      </form>
+    </div>
+
     <div class="card-body p-0">
       <div class="table-responsive">
         <table class="table table-bordered table-hover mb-0">
@@ -25,6 +44,9 @@
             </tr>
           </thead>
           <tbody>
+            <tr *ngIf="loading">
+              <td colspan="14" class="text-center text-muted">Loading…</td>
+            </tr>
             <tr *ngFor="let device of devices; let i = index">
               <td class="text-center">{{ i + 1 }}</td>
               <td>{{ device.inward_number }}</td>
@@ -50,12 +72,13 @@
               <td>{{ device.location_name }}</td>
               <td>{{ device.date_of_entry | date: 'dd-MM-yyyy' }}</td>
             </tr>
-            <tr *ngIf="devices.length === 0">
-              <td colspan="14" class="text-center text-muted">No devices available.</td>
+            <tr *ngIf="!loading && devices.length === 0">
+              <td colspan="14" class="text-center text-muted">No devices available for this date range.</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
+
   </div>
 </div>

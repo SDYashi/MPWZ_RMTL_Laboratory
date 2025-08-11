@@ -136,14 +136,15 @@ devices = [
      this.payload= {
       inward_no: this.selectedInward,
       assigned_to: this.assignedUser,
-      device_id: selectedDeviceIds[0],
+      device_ids: selectedDeviceIds,
       user_id: this.assignedUser,
       assigned_by: 1,
       bench_id: parseInt(this.assignedBench, 10)
 
     };
+     alert(this.payload);
+    this.api.createAssignmentbulk(this.payload).subscribe({
 
-    this.api.createAssignment(this.payload).subscribe({
       next: () => {
         alert('Assignment successful!');
         this.filteredDevices.forEach(d => d.selected = false);

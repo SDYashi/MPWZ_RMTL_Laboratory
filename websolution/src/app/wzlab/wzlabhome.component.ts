@@ -1,5 +1,6 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
+import { AuthService } from '../core/auth.service';
 
 @Component({
   selector: 'app-wzlabhome',
@@ -17,19 +18,22 @@ export class WzlabhomeComponent implements OnInit {
   analyticsExpanded = false;
   settingsExpanded = false;
 
-  constructor(private router: Router) {
+  constructor(private router: Router, private authService: AuthService) {
     // set early so first CD sees a stable value
     this.currentUrl = this.router.url.replace('/', '');
   }
 
-  ngOnInit(): void {
-  
+  ngOnInit(): void {  
 
     // set currentUser BEFORE first check to avoid ExpressionChanged
-    const token = localStorage.getItem('access_token'); // <-- use the same key everywhere
+    const token = localStorage.getItem('access_token'); 
     this.currentUser = token ? this.getUserFromToken(token) : null;
-
     this.checkScreenSize();
+    const user = this.authService.getuserfromtoken();
+    const userId = user?.id ?? null;
+    const labId = user?.lab_id ?? null;
+    localStorage.setItem('currentUserId', userId?.toString() ?? '');
+    localStorage.setItem('currentLabId', labId?.toString() ?? '');
   }
 
   // moved out of ngAfterViewInit; you can remove that hook entirely
@@ -72,6 +76,7 @@ export class WzlabhomeComponent implements OnInit {
   toggleSettings() {
     this.settingsExpanded = !this.settingsExpanded;
   }
+  
 
   logout() {
     // use the same storage key as above

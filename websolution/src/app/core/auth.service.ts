@@ -78,18 +78,19 @@ export class AuthService {
     const decoded = this.decodeToken();
     if (!decoded) return null;
 
-    // Customize this based on your token's payload structure
     return {
-      id: decoded.id || 0,
-      name: decoded.name || decoded.username || '',
-      username: decoded.username || '',
-      email: decoded.email || '',
+      id: decoded.user_id || 0,
+      name: decoded.sub || '',
+      username: decoded.sub || '',
+      email: '', // No email in the token payload
       roles: decoded.roles || [],
       designation: decoded.designation || '',
       status: decoded.status || '',
-      mobile: decoded.mobile || '',
-      created_at: decoded.created_at || '',
-      updated_at: decoded.updated_at || '',
+      mobile: '', // No mobile in the token payload
+      created_at: '', // No created_at in the token payload
+      updated_at: '', // No updated_at in the token payload
+      last_login_at: decoded.last_login_at || '',
+      lab_id: decoded.lab_id || undefined
     };
   }
 
@@ -101,5 +102,8 @@ export class AuthService {
   getUserRolesFromToken(): string[] | null {
     const decoded = this.decodeToken();
     return decoded?.roles || null;
+  }
+  getuserfromtoken(): UserPublic | null {
+    return this.getUserFromToken();
   }
 }
