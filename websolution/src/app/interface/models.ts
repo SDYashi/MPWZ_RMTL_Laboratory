@@ -202,3 +202,28 @@ export interface Token {
   access_token: string;
   token_type: string;
 }
+
+export interface TestReportPayload {
+  id: number;
+  device_id: number;
+  assignment_id: number;
+  start_datetime: string;   // ISO
+  end_datetime: string;     // ISO
+  physical_condition_of_device: string;
+  seal_status: string;
+  meter_glass_cover: string;
+  terminal_block: string;
+  meter_body: string;
+  other: string;
+  is_burned: boolean;
+  reading_before_test: number;
+  reading_after_test: number;
+  details: string;
+  test_result: 'PASS' | 'FAIL';
+  test_method: 'MANUAL' | 'AUTOMATED';
+  ref_start_reading: number;
+  ref_end_reading: number;
+  test_status: 'COMPLETED' | 'PENDING';
+  error_percentage: number;
+  approver_id: number;
+}

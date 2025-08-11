@@ -160,6 +160,23 @@
             </div>
         </li>
     </ul>
+<div class="sidebar-heading px-3">APPROVAL MANAGEMENT</div>
+<ul class="sidebar-menu">
+    <li class="menu-item" routerLinkActive="active">
+        <a class="menu-link" data-bs-toggle="collapse" href="#approvalMenu" role="button">
+            <span><i class="fas fa-check-circle me-2"></i> <span class="menu-text">Approve Test Results</span></span>
+            <i class="fas fa-chevron-down chevron"></i>
+        </a>
+        <div class="collapse" id="approvalMenu">
+            <div class="submenu">
+                <!-- <a class="submenu-link" routerLink="/wzlab/approval/pending-list">User Approval Dashboard</a> -->
+                <a class="submenu-link" routerLink="/wzlab/approval/pending-list">Pending Approval List</a>
+                <a class="submenu-link" routerLink="/wzlab/approval/approved-list">Approved Results List</a>
+            </div>
+        </div>
+    </li>
+</ul>
+
 
     <!-- <div class="sidebar-heading px-3">SYSTEM SETTINGS</div>
     <ul class="sidebar-menu">

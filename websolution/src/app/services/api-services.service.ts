@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environment/environment';
-import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass } from '../interface/models';
+import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass, TestReportPayload } from '../interface/models';
 @Injectable({
   providedIn: 'root'
 })
@@ -137,7 +137,13 @@ getAllInwardNumbers() {
 getDevicesByInwardNo(inward_no: string) {
   return this.http.get<any>(`/api/devices/by-inward/${inward_no}`);
 }
-
+// --- Testing Endpoints ---
+postTestReports( payload: TestReportPayload[]): Observable<TestReportPayload[]> {
+  return this.http.post<TestReportPayload[]>(`${this.baseUrl}/testing/bulk/`, payload);
+}
+getAssignedMeterList(assignment_status :String,user_id:number,lab_id:number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/assignments-by-status?assignment_status=${assignment_status}&user_id=${user_id}&lab_id=${lab_id}`);
+}
 
 // --- Testing Bench Endpoints ---
 getTestingBenches(): Observable<TestingBench[]> {
