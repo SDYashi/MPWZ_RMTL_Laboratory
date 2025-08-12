@@ -1,4 +1,3 @@
-<div class="container-fluid mt-3">
 <div class="container-fluid mt-4">
   <div class="card shadow">
     <div class="card-header text-white" style="background:#151433">
@@ -6,252 +5,266 @@
     </div>
 
     <div class="card-body">
-  <!-- Top controls -->
-  <div class="d-print-none">
-    <div class="card shadow-sm mb-3">
-      <div class="card-body">
-        <div class="row g-3 align-items-end">
-          <div class="col-lg-6">
-            <label class="form-label fw-bold">Generate Test Report Type</label>
-            <select class="form-select" [(ngModel)]="reportType" name="reportType">
-              <option *ngFor="let t of reportTypes" [value]="t">{{ t }}</option>
-            </select>
-          </div>
-          <div class="col-lg-6 d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-outline-secondary"
-                    (click)="openConfirm('reload')">
-              ⟳ Reload Assigned
-            </button>
-            <button class="btn btn-dark" (click)="print()">🖨 Print</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===================== A) Batch Sheet form ====================== -->
-    <form class="card shadow-sm mb-3" *ngIf="reportType==='stopdefective' || reportType==='contested'" #batchForm="ngForm">
-      <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
-        <div class="fw-bold">Stop Defective / Contested — Test Report</div>
-        <div class="small text-muted">
-          Total <span class="badge bg-secondary">{{ totalCount }}</span>
-          Matched <span class="badge bg-success">{{ matchedCount }}</span>
-          Unknown <span class="badge bg-danger">{{ unknownCount }}</span>
-        </div>
-      </div>
-
-      <div class="card-body">
-        <!-- Top bar -->
-        <div class="row g-3 mb-2">
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Test Method</label>
-            <select class="form-select" [(ngModel)]="testMethod" name="b_test_method">
-              <option *ngFor="let method of test_methods" [value]="method">{{ method }}</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Test Status</label>
-            <select class="form-select" [(ngModel)]="testStatus" name="b_test_status">
-              <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Filter Rows</label>
-            <input class="form-control" [(ngModel)]="filterText" name="filterText"
-                   placeholder="Search serial / make / capacity / remark">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Testing Date</label>
-            <input type="date" class="form-control" [(ngModel)]="batch.header.date" name="batch_date" required>
+      <!-- Top controls -->
+      <div class="d-print-none">
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <div class="row g-3 align-items-end">
+              <div class="col-lg-6">
+                <label class="form-label fw-bold">Generate Test Report Type</label>
+                <select class="form-select" [(ngModel)]="reportType" name="reportType">
+                  <option *ngFor="let t of reportTypes" [value]="t">{{ t }}</option>
+                </select>
+              </div>
+              <div class="col-lg-6 d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary" (click)="openConfirm('reload')">
+                  ⟳ Reload Assigned
+                </button>
+                <button class="btn btn-dark" (click)="print()">🖨 Print</button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Batch header / source -->
-        <div class="row g-3 mb-2">
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Phase</label>
-            <select class="form-select" [(ngModel)]="batch.header.phase" name="batch_phase">
-              <option [ngValue]="''" disabled>Select…</option>
-              <option *ngFor="let phase of phases" [value]="phase">{{ phase }}</option>
-            </select>
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Source Type</label>
-            <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type" (change)="onSourceTypeChange()">
-              <option [ngValue]="''" disabled>Select…</option>
-              <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
-            </select>
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Location/Store/Vendor Code</label>
-            <div class="input-group">
-              <input type="text" class="form-control" [(ngModel)]="selectedSourceName" name="source_name"
-                     (keydown.enter)="openConfirm('fetch')">
-              <button class="btn btn-outline-primary" type="button" (click)="openConfirm('fetch')">Fetch</button>
+        <!-- ===================== A) Batch Sheet form ====================== -->
+        <form class="card shadow-sm mb-3"
+              *ngIf="reportType==='stopdefective' || reportType==='contested'"
+              #batchForm="ngForm">
+          <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+            <div class="fw-bold">Stop Defective / Contested — Test Report</div>
+            <div class="small text-muted">
+              Total <span class="badge bg-secondary">{{ totalCount }}</span>
+              Matched <span class="badge bg-success">{{ matchedCount }}</span>
+              Unknown <span class="badge bg-danger">{{ unknownCount }}</span>
             </div>
           </div>
 
-          <div class="col-12" *ngIf="filteredSources">
-            <div class="table-responsive">
-              <table class="table table-sm table-striped table-bordered mt-2">
-                <thead class="table-light">
+          <div class="card-body">
+            <!-- Top bar -->
+            <div class="row g-3 mb-2">
+              <div class="col-md-3">
+                <label class="form-label fw-bold">Test Method</label>
+                <select class="form-select" [(ngModel)]="testMethod" name="b_test_method">
+                  <option *ngFor="let method of test_methods" [value]="method">{{ method }}</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold">Test Status</label>
+                <select class="form-select" [(ngModel)]="testStatus" name="b_test_status">
+                  <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold">Filter Rows</label>
+                <input class="form-control" [(ngModel)]="filterText" name="filterText"
+                       placeholder="Search serial / make / capacity / remark">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold">Testing Date</label>
+                <input type="date" class="form-control" [(ngModel)]="batch.header.date" name="batch_date" required>
+              </div>
+            </div>
+
+            <!-- Batch header / source -->
+            <div class="row g-3 mb-2">
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Phase</label>
+                <select class="form-select" [(ngModel)]="batch.header.phase" name="batch_phase">
+                  <option [ngValue]="''" disabled>Select…</option>
+                  <option *ngFor="let phase of phases" [value]="phase">{{ phase }}</option>
+                </select>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Source Type</label>
+                <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type"
+                        (change)="onSourceTypeChange()">
+                  <option [ngValue]="''" disabled>Select…</option>
+                  <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
+                </select>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Location/Store/Vendor Code</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" [(ngModel)]="selectedSourceName" name="source_name"
+                         (keydown.enter)="openConfirm('fetch')">
+                  <button class="btn btn-outline-primary" type="button" (click)="openConfirm('fetch')">Fetch</button>
+                </div>
+              </div>
+
+              <div class="col-12" *ngIf="filteredSources">
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped table-bordered mt-2">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Name</th><th>Division Name</th><th>Code</th><th>Circle Name</th>
+                        <th>Region Name</th><th>Org Name</th><th>Division Code</th>
+                        <th>Circle Code</th><th>Region Code</th><th>Org Code</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>{{ filteredSources?.name }}</td>
+                        <td>{{ filteredSources?.division_name }}</td>
+                        <td>{{ filteredSources?.code }}</td>
+                        <td>{{ filteredSources?.circle_name }}</td>
+                        <td>{{ filteredSources?.region_name }}</td>
+                        <td>{{ filteredSources?.org_name }}</td>
+                        <td>{{ filteredSources?.division_code }}</td>
+                        <td>{{ filteredSources?.circle_code }}</td>
+                        <td>{{ filteredSources?.region_code }}</td>
+                        <td>{{ filteredSources?.org_code }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Rows -->
+            <div class="table-responsive mt-3">
+              <table class="table table-hover table-bordered align-middle">
+                <thead class="table-light text-center sticky-top" style="top:0; z-index:1;">
                   <tr>
-                    <th>Name</th><th>Division Name</th><th>Code</th><th>Circle Name</th>
-                    <th>Region Name</th><th>Org Name</th><th>Division Code</th>
-                    <th>Circle Code</th><th>Region Code</th><th>Org Code</th>
+                    <th style="width:64px;">#</th>
+                    <th style="min-width:180px;">Meter Serial</th>
+                    <th style="min-width:160px;">Make</th>
+                    <th style="min-width:140px;">Capacity</th>
+                    <th style="min-width:220px;">Result / Remarks</th>
+                    <th style="min-width:120px;">Test Result</th>
+                    <th class="d-print-none" style="width:72px;">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>{{ filteredSources?.name }}</td>
-                    <td>{{ filteredSources?.division_name }}</td>
-                    <td>{{ filteredSources?.code }}</td>
-                    <td>{{ filteredSources?.circle_name }}</td>
-                    <td>{{ filteredSources?.region_name }}</td>
-                    <td>{{ filteredSources?.org_name }}</td>
-                    <td>{{ filteredSources?.division_code }}</td>
-                    <td>{{ filteredSources?.circle_code }}</td>
-                    <td>{{ filteredSources?.region_code }}</td>
-                    <td>{{ filteredSources?.org_code }}</td>
+                  <tr *ngFor="let r of displayRows(); let i = index; trackBy: trackRow"
+                      [ngClass]="{'table-danger': r.notFound}">
+                    <td class="text-center">
+                      <span class="badge bg-secondary">{{ i + 1 }}</span>
+                    </td>
+
+                    <td>
+                      <input class="form-control form-control-sm"
+                             [(ngModel)]="r.serial"
+                             [name]="'b_serial_' + i"
+                             (ngModelChange)="onSerialChanged(i, r.serial)"
+                             placeholder="Type serial…"
+                             required>
+                      <div *ngIf="r.notFound" class="form-text text-danger">
+                        Serial not in assigned list
+                      </div>
+                    </td>
+
+                    <td>
+                      <input class="form-control form-control-sm"
+                             [(ngModel)]="r.make"
+                             [name]="'b_make_' + i"
+                             placeholder="auto-filled (editable)">
+                    </td>
+
+                    <td>
+                      <input class="form-control form-control-sm"
+                             [(ngModel)]="r.capacity"
+                             [name]="'b_capacity_' + i"
+                             placeholder="auto-filled (editable)">
+                    </td>
+
+                    <td>
+                      <select class="form-select form-select-sm"
+                              [(ngModel)]="r.result"
+                              [name]="'b_result_' + i">
+                        <option value="">--</option>
+                        <option *ngFor="let option of comment_bytester" [value]="option">{{ option }}</option>
+                      </select>
+                    </td>
+
+                    <td>
+                      <select class="form-select form-select-sm"
+                              [(ngModel)]="r.test_result"
+                              [name]="'b_test_result_' + i">
+                        <option [ngValue]="undefined">--</option>
+                        <option *ngFor="let tr of testResultOptions" [ngValue]="tr">{{ tr }}</option>
+                      </select>
+                    </td>
+
+                    <td class="text-center d-print-none">
+                      <button type="button" class="btn btn-sm btn-outline-danger"
+                              (click)="openConfirm('removeRow', { index: i })">✕</button>
+                    </td>
+                  </tr>
+
+                  <tr *ngIf="!displayRows().length">
+                    <td colspan="7" class="text-center text-muted">No rows match your filter.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
 
-        <!-- Rows -->
-        <div class="table-responsive mt-3">
-          <table class="table table-hover table-bordered align-middle">
-            <thead class="table-light text-center sticky-top" style="top:0; z-index:1;">
+            <div class="d-flex flex-wrap gap-2 d-print-none">
+              <button type="button" class="btn btn-outline-primary" (click)="addBatchRow()">➕ Add Row</button>
+              <button type="button" class="btn btn-outline-secondary" (click)="openConfirm('clear')">Clear</button>
+              <div class="ms-auto"></div>
+              <button type="button" class="btn btn-primary"
+                      [disabled]="submitting || !batch.rows.length"
+                      (click)="openConfirm('submit')">
+                {{ submitting ? 'Submitting…' : 'Submit Batch Report' }}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- ===================== PRINT AREA ====================== -->
+      <div id="printArea" class="paper a4 shadow-sm bg-white p-3">
+        <ng-container *ngIf="report_printing==='stopdefective' && filteredSources">
+          <div class="text-center">
+            <div class="fw-bold" style="font-size:24px;">Madhya Pradesh Pashchim Kshetra Vidyut Vitaran Company Limited</div>
+            <div class="fw-bold" style="font-size:17px;">RMTL TESTING LABORATORY INDORE</div>
+          </div>
+
+          <div class="row mt-2 small">
+            <div class="col-6"><strong>Distribution Center / Zone:</strong> {{ filteredSources?.name || '-' }}</div>
+            <div class="col-3"><strong>Device Phase:</strong> {{ batch.header.phase || '-' }}</div>
+            <div class="col-3 text-end"><strong>Testing Date:</strong> {{ batch.header.date }}</div>
+          </div>
+
+          <table class="table table-bordered table-sm mt-2 align-middle">
+            <thead class="table-light text-center">
               <tr>
-                <th style="width:64px;">#</th>
-                <th style="min-width:180px;">Meter Serial</th>
-                <th style="min-width:160px;">Make</th>
-                <th style="min-width:140px;">Capacity</th>
-                <th style="min-width:220px;">Result / Remarks</th>
-                <th class="d-print-none" style="width:72px;">Action</th>
+                <th style="width:42px;">क्र.</th>
+                <th>मीटर नंबर</th>
+                <th>मेक</th>
+                <th>क्षमता</th>
+                <th>परिणाम / Remarks</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of displayRows(); let i = index; trackBy: trackRow"
-                  [ngClass]="{'table-danger': r.notFound}">
-                <td class="text-center">
-                  <span class="badge bg-secondary">{{ i + 1 }}</span>
-                </td>
-
-                <td>
-                  <input class="form-control form-control-sm"
-                         [(ngModel)]="r.serial"
-                         [name]="'b_serial_' + i"
-                         (ngModelChange)="onSerialChanged(i, r.serial)"
-                         placeholder="Type serial…"
-                         required>
-                  <div *ngIf="r.notFound" class="form-text text-danger">
-                    Serial not in assigned list
-                  </div>
-                </td>
-
-                <td>
-                  <input class="form-control form-control-sm"
-                         [(ngModel)]="r.make"
-                         [name]="'b_make_' + i"
-                         placeholder="auto-filled (editable)">
-                </td>
-
-                <td>
-                  <input class="form-control form-control-sm"
-                         [(ngModel)]="r.capacity"
-                         [name]="'b_capacity_' + i"
-                         placeholder="auto-filled (editable)">
-                </td>
-
-                <td>
-                  <select class="form-select form-select-sm"
-                          [(ngModel)]="r.result"
-                          [name]="'b_result_' + i">
-                    <option value="">--</option>
-                    <option *ngFor="let option of comment_bytester" [value]="option">{{ option }}</option>
-                  </select>
-                </td>
-
-                <td class="text-center d-print-none">
-                  <button type="button" class="btn btn-sm btn-outline-danger"
-                          (click)="openConfirm('removeRow', { index: i })">✕</button>
-                </td>
+              <tr *ngFor="let r of batch.rows; let i = index">
+                <td class="text-center">{{ i + 1 }}</td>
+                <td>{{ r.serial }}</td>
+                <td>{{ r.make }}</td>
+                <td>{{ r.capacity }}</td>
+                <td>{{ r.result }}</td>
               </tr>
-
-              <tr *ngIf="!displayRows().length">
-                <td colspan="6" class="text-center text-muted">No rows match your filter.</td>
+              <tr *ngIf="!batch.rows?.length">
+                <td colspan="5" class="text-center text-muted">No rows</td>
               </tr>
             </tbody>
           </table>
-        </div>
 
-        <div class="d-flex flex-wrap gap-2 d-print-none">
-          <button type="button" class="btn btn-outline-primary" (click)="addBatchRow()">➕ Add Row</button>
-          <button type="button" class="btn btn-outline-secondary" (click)="openConfirm('clear')">Clear</button>
-          <div class="ms-auto"></div>
-          <button type="button" class="btn btn-primary"
-                  [disabled]="submitting || !batch.rows.length"
-                  (click)="openConfirm('submit')">
-            {{ submitting ? 'Submitting…' : 'Submit Batch Report' }}
-          </button>
-        </div>
+          <div class="row mt-4 small">
+            <div class="col-6">
+              <div class="sig-line">Tested by</div>
+              <div>JUNIOR ENGINEER (RMTL)</div>
+            </div>
+            <div class="col-6 text-end">
+              <div class="sig-line d-inline-block">Assistant Engineer</div>
+              <div>R.M.T.L., MPPKVVCL</div>
+            </div>
+          </div>
+        </ng-container>
       </div>
-    </form>
-  </div>
-
-  <!-- ===================== PRINT AREA ====================== -->
-  <div id="printArea" class="paper a4 shadow-sm bg-white p-3">
-    <ng-container *ngIf="reportType==='stopdefective' || reportType==='contested'">
-      <div class="text-center">
-        <div class="fw-bold" style="font-size:24px;">Madhya Pradesh Pashchim Kshetra Vidyut Vitaran Company Limited</div>
-        <div class="fw-bold" style="font-size:17px;">RMTL TESTING LABORATORY INDORE</div>
-      </div>
-
-      <div class="row mt-2 small">
-        <div class="col-6"><strong>Distrtibution Center/Zone Name:</strong> {{ filteredSources?.name }}</div>
-        <div class="col-3"><strong>Device Phase</strong> {{ batch.header.phase || '-' }}</div>
-        <div class="col-3 text-end"><strong>Testing Date</strong> {{ batch.header.date }}</div>
-      </div>
-
-      <table class="table table-bordered table-sm mt-2 align-middle">
-        <thead class="table-light text-center">
-          <tr>
-            <th style="width:42px;">क्र.</th>
-            <th>मीटर नंबर</th>
-            <th>मेक</th>
-            <th>क्षमता</th>
-            <th>परिणाम / Remarks</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let r of batch.rows; let i = index">
-            <td class="text-center">{{ i + 1 }}</td>
-            <td>{{ r.serial }}</td>
-            <td>{{ r.make }}</td>
-            <td>{{ r.capacity }}</td>
-            <td>{{ r.result }}</td>
-          </tr>
-          <tr *ngIf="!batch.rows?.length">
-            <td colspan="5" class="text-center text-muted">No rows</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="row mt-4 small">
-        <div class="col-6">
-          <div class="sig-line">Tested by</div>
-          <div>JUNIOR ENGINEER (RMTL)</div>
-        </div>
-        <div class="col-6 text-end">
-          <div class="sig-line d-inline-block">Assistant Engineer</div>
-          <div>R.M.T.L., MPPKVVCL</div>
-        </div>
-      </div>
-    </ng-container>
+    </div>
   </div>
 
   <!-- ===================== Reusable Confirm Modal ====================== -->
@@ -285,8 +298,4 @@
       <span class="ms-2 fw-semibold">Loading…</span>
     </div>
   </div>
-
-</div>
-</div>
-</div>
 </div>

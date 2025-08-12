@@ -10,6 +10,10 @@ import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingB
 })
 export class ApiServicesService {
 
+getTestReportsForApproval(status: string, arg1: string | null, arg2: string | null, currentLabId: number) {
+  throw new Error('Method not implemented.');
+}
+
 constructor( private  http: HttpClient) {} 
 private baseUrl = environment.apiUrl;
 
@@ -24,6 +28,11 @@ getlogin(username: string, password: string): Observable<any> {
 
   return this.http.post<any>(`${this.baseUrl}/token`, body.toString(), { headers });
 }
+
+approveTestReports(payload: any) {
+  throw new Error('Method not implemented.');
+}
+
   // Generic method to make authenticated requests
 getallUsers(): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}/users/`);

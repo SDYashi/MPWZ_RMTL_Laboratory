@@ -104,7 +104,7 @@
             </a>
             <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/assignement']) }" id="userAssignments">
                 <div class="submenu">
-                    <!-- <a class="submenu-link" routerLink="/wzlab/assignement/assignment-dashboard" routerLinkActive="active">Assignments Dashboard</a> -->
+                    <a class="submenu-link" routerLink="/wzlab/assignement/assignment-dashboard" routerLinkActive="active">Assignments Dashboard</a>
                     <a class="submenu-link" routerLink="/wzlab/assignement/assign-to-user" routerLinkActive="active">Meters Assignment</a>
                     <a class="submenu-link" routerLink="/wzlab/assignement/edit-assignment" routerLinkActive="active">Edit Meter Assignments</a>
                     <a class="submenu-link" routerLink="/wzlab/assignement/assigned-list" routerLinkActive="active">View Assignments History</a>
@@ -118,7 +118,7 @@
             </a>
             <div class="collapse" id="receivedDispatch">
                 <div class="submenu">
-                    <!-- <a class="submenu-link" routerLink="/wzlab/devices/dashboard-devices" routerLinkActive="active">Inventory dashboard</a> -->
+                    <a class="submenu-link" routerLink="/wzlab/devices/dashboard-devices" routerLinkActive="active">Inventory dashboard</a>
                     <a class="submenu-link" routerLink="/wzlab/devices/add-devices" routerLinkActive="active">Receive Devices </a>
                     <!-- <a class="submenu-link" routerLink="/wzlab/devices/edit-devices" routerLinkActive="active">Edit Received Devices </a> -->
                     <a class="submenu-link" routerLink="/wzlab/getpass/gatepass-generate" routerLinkActive="active">Dispatch Devices</a>
@@ -135,7 +135,7 @@
             </a>
             <div class="collapse" id="testingActivities">
                 <div class="submenu">
-                    <!-- <a class="submenu-link" routerLink="/wzlab/testing/view-dashboard" routerLinkActive="active">Testing Activities Dashboard</a> -->
+                    <a class="submenu-link" routerLink="/wzlab/testing/view-dashboard" routerLinkActive="active">Testing Activities Dashboard</a>
                     <a class="submenu-link" routerLink="/wzlab/testing/add-testreports" routerLinkActive="active">Generate Test Reports</a>
                     <!-- <a class="submenu-link" routerLink="/wzlab/testing/edit-testreports" routerLinkActive="active">Edit Test Reports</a> -->
                      <a class="submenu-link" routerLink="/wzlab/testing/view-testreports" routerLinkActive="active">All Test Reports History</a>
@@ -170,8 +170,9 @@
         <div class="collapse" id="approvalMenu">
             <div class="submenu">
                 <!-- <a class="submenu-link" routerLink="/wzlab/approval/pending-list">User Approval Dashboard</a> -->
-                <a class="submenu-link" routerLink="/wzlab/approval/pending-list">Pending Approval List</a>
-                <a class="submenu-link" routerLink="/wzlab/approval/approved-list">Approved Results List</a>
+                <a class="submenu-link" routerLink="/wzlab/approval/view-approval-test-reports">Approve Test Reports</a>
+                <a class="submenu-link" routerLink="/wzlab/approval/view-pending-test-reports">Pending Approval List</a>
+                <a class="submenu-link" routerLink="/wzlab/approval/view-approved-test-reports">Approved Results List</a>
             </div>
         </div>
     </li>

@@ -204,7 +204,6 @@ export interface Token {
 }
 
 export interface TestReportPayload {
-  id: number;
   device_id: number;
   assignment_id: number;
   start_datetime: string;   // ISO
