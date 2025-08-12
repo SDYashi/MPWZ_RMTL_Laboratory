@@ -25,6 +25,14 @@
 
         <div class="row">
           <div class="col-md-4 mb-3">
+              <label class="form-label fw-bold">Vendor List</label>
+              <select class="form-select" [(ngModel)]="client.vendor_category" name="vendor" required>
+                  <option [ngValue]="''" disabled>Select Vendor...</option>
+                  <option *ngFor="let vendor of vendorlist" [value]="vendor">{{ vendor }}</option>
+              </select>
+          </div>
+
+          <div class="col-md-4 mb-3">
             <label class="form-label fw-bold">Contact Person</label>
             <input type="text" class="form-control" [(ngModel)]="client.contact_person" name="contact_person" placeholder="Contact person name">
           </div>
