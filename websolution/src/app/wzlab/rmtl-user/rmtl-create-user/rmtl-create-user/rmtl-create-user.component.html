@@ -1,62 +1,93 @@
-<div class="container-Fluid mt-2">
+<div class="container-fluid mt-2">
   <div class="card shadow-sm border-0 py-2">
-        <div class="card-header text-white" style=" background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;">
-      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Add New User </h5>
+    <div class="card-header text-white" style="background-color:#151433; font-weight:bold;">
+      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Add New User</h5>
     </div>
 
     <div class="card-body">
-
-      <form #userForm="ngForm" (ngSubmit)="onSubmit()">
+      <form #userForm="ngForm" (ngSubmit)="openPreview(userForm)" novalidate>
         <div class="row">
-
+          <!-- Username -->
           <div class="col-md-4 mb-3">
             <label class="form-label mt-2 fw-bold">Username</label>
             <input
               type="text"
               name="username"
               [(ngModel)]="user.username"
+              #username="ngModel"
               class="form-control"
               required
+              minlength="3"
+              placeholder="e.g. d.marskole"
             />
+            <div class="text-danger small mt-1" *ngIf="(userForm.submitted || username.touched) && username.invalid">
+              <span *ngIf="username.errors?.['required']">Username is required.</span>
+              <span *ngIf="username.errors?.['minlength']">At least 3 characters.</span>
+            </div>
           </div>
 
+          <!-- Password -->
           <div class="col-md-4 mb-3">
             <label class="form-label mt-2 fw-bold">Password</label>
-            <input
-              type="password"
-              name="password"
-              [(ngModel)]="user.password"
-              class="form-control"
-              required
-            />
+            <div class="input-group">
+              <input
+                [type]="showPassword ? 'text' : 'password'"
+                name="password"
+                [(ngModel)]="user.password"
+                #password="ngModel"
+                class="form-control"
+                required
+                minlength="6"
+                placeholder="Min 6 characters"
+              />
+              <button class="btn btn-outline-secondary" type="button" (click)="showPassword = !showPassword">
+                <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
+              </button>
+            </div>
+            <div class="text-danger small mt-1" *ngIf="(userForm.submitted || password.touched) && password.invalid">
+              <span *ngIf="password.errors?.['required']">Password is required.</span>
+              <span *ngIf="password.errors?.['minlength']">At least 6 characters.</span>
+            </div>
           </div>
 
+          <!-- Full Name -->
           <div class="col-md-4 mb-3">
             <label class="form-label mt-2 fw-bold">Full Name</label>
             <input
               type="text"
               name="name"
               [(ngModel)]="user.name"
+              #name="ngModel"
               class="form-control"
               required
+              placeholder="e.g. Deepak Marskole"
             />
+            <div class="text-danger small mt-1" *ngIf="(userForm.submitted || name.touched) && name.invalid">
+              <span *ngIf="name.errors?.['required']">Full name is required.</span>
+            </div>
           </div>
-
         </div>
 
         <div class="row">
-
+          <!-- Email -->
           <div class="col-md-4 mb-3">
             <label class="form-label mt-2 fw-bold">Email</label>
             <input
               type="email"
               name="email"
               [(ngModel)]="user.email"
+              #email="ngModel"
               class="form-control"
               required
+              placeholder="name@example.com"
             />
+            <div class="text-danger small mt-1" *ngIf="(userForm.submitted || email.touched) && email.invalid">
+              <span *ngIf="email.errors?.['required']">Email is required.</span>
+              <span *ngIf="email.errors?.['email']">Enter a valid email.</span>
+            </div>
           </div>
 
+          <!-- Designation -->
           <div class="col-md-4 mb-3">
             <label class="form-label mt-2 fw-bold">Designation</label>
             <input
@@ -64,56 +95,159 @@
               name="designation"
               [(ngModel)]="user.designation"
               class="form-control"
+              placeholder="e.g. Testing Assistant"
             />
           </div>
 
+          <!-- Mobile -->
           <div class="col-md-4 mb-3">
             <label class="form-label mt-2 fw-bold">Mobile</label>
             <input
               type="text"
               name="mobile"
               [(ngModel)]="user.mobile"
+              #mobile="ngModel"
               class="form-control"
+              pattern="^[6-9]\d{9}$"
+              placeholder="10-digit mobile (India)"
             />
+            <div class="text-danger small mt-1" *ngIf="(userForm.submitted || mobile.touched) && mobile.invalid">
+              <span *ngIf="mobile.errors?.['pattern']">Enter a valid 10-digit mobile number.</span>
+            </div>
           </div>
-
         </div>
 
         <div class="row">
+          <!-- Lab -->
           <div class="col-md-4 mb-3">
-            <label class="form-label mt-2 fw-bold">Lab ID</label>
+            <label class="form-label mt-2 fw-bold">Lab</label>
             <select
               name="lab_id"
               [(ngModel)]="user.lab_id"
-              class="form-select"            
+              #lab_id="ngModel"
+              class="form-select"
+              required
             >
+              <option value="" disabled>Select lab</option>
               <option *ngFor="let lab of labs" [value]="lab.id">{{ lab.lab_name }}</option>
+            </select>
+            <div class="text-danger small mt-1" *ngIf="(userForm.submitted || lab_id.touched) && lab_id.invalid">
+              <span>Lab is required.</span>
+            </div>
+          </div>
+
+          <!-- Status -->
+          <div class="col-md-4 mb-3">
+            <label class="form-label mt-2 fw-bold">Status</label>
+            <select
+              name="status"
+              [(ngModel)]="user.status"
+              class="form-select"
+              required
+            >
+              <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
             </select>
           </div>
 
+          <!-- Roles (multi-select) -->
           <div class="col-md-4 mb-3">
             <label class="form-label mt-2 fw-bold">Roles</label>
             <select
-              name="rolesStr" 
-              [(ngModel)]="user.rolesStr"
-              class="form-select" required>
+              name="selectedRoles"
+              [(ngModel)]="selectedRoles"
+              #selectedRolesCtl="ngModel"
+              class="form-select"
+              multiple
+              required
+            >
               <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
             </select>
+            <div class="form-text">Hold Ctrl/Cmd to select multiple roles.</div>
+            <div class="text-danger small mt-1" *ngIf="(userForm.submitted || selectedRolesCtl.touched) && selectedRolesCtl.invalid">
+              <span>At least one role is required.</span>
+            </div>
           </div>
         </div>
 
-        <button type="submit" class="btn btn-success mt-2">
-          <i class="fas fa-save me-1"></i> Submit
+        <!-- Actions -->
+        <button type="submit" class="btn btn-success mt-2" [disabled]="loading">
+          <i class="fas fa-eye me-1"></i> Preview
         </button>
-        <button type="button" class="btn btn-secondary mt-2 ms-2" (click)="userForm.reset()">
+        <button type="button" class="btn btn-secondary mt-2 ms-2" [disabled]="loading" (click)="userForm.resetForm(userDefault()); selectedRoles=[]">
           <i class="fas fa-undo me-1"></i> Reset
         </button>
+        <span *ngIf="loading" class="spinner-border spinner-border-sm text-success ms-2" role="status"></span>
       </form>
     </div>
-          <!-- Success/Error Message -->
-      <div *ngIf="response_msg" class="alert alert-{{ response_success ? 'success' : 'danger' }}" role="alert">
-        {{ response_msg }}
-      </div>
+
+    <!-- Simple inline fallback message (kept) -->
+    <div *ngIf="response_msg" class="alert alert-{{ response_success ? 'success' : 'danger' }} m-3" role="alert">
+      {{ response_msg }}
+    </div>
   </div>
 </div>
 
+<!-- Preview Modal -->
+<div class="modal fade" #previewModal tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" id="previewModalLabel">
+          <i class="fas fa-search me-2"></i>Confirm New User Details
+        </h5>
+        <button type="button" class="btn-close" (click)="closePreview()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6"><strong>Username:</strong> {{ user.username || '—' }}</div>
+          <div class="col-md-6"><strong>Password:</strong> {{ maskedPassword }}</div>
+          <div class="col-md-6"><strong>Full Name:</strong> {{ user.name || '—' }}</div>
+          <div class="col-md-6"><strong>Email:</strong> {{ user.email || '—' }}</div>
+          <div class="col-md-6"><strong>Designation:</strong> {{ user.designation || '—' }}</div>
+          <div class="col-md-6"><strong>Mobile:</strong> {{ user.mobile || '—' }}</div>
+          <div class="col-md-6"><strong>Lab:</strong> {{ labName(user.lab_id) || '—' }}</div>
+          <div class="col-md-6"><strong>Status:</strong> <span class="badge bg-info text-dark">{{ user.status }}</span></div>
+          <div class="col-12"><strong>Roles:</strong> <span *ngIf="selectedRoles?.length; else noRoles">{{ selectedRoles.join(', ') }}</span></div>
+          <ng-template #noRoles>—</ng-template>
+        </div>
+
+        <div class="alert alert-warning mt-3 mb-0"
+             *ngIf="!user.username || !user.password || !user.name || !user.email || !user.lab_id || !(selectedRoles?.length)">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          Some required fields are missing. Please close and complete them.
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" (click)="closePreview()">Cancel</button>
+        <button type="button" class="btn btn-success"
+                (click)="onConfirmSubmit()"
+                [disabled]="!user.username || !user.password || !user.name || !user.email || !user.lab_id || !(selectedRoles?.length) || loading">
+          <i class="fas fa-save me-1"></i> Submit
+          <span *ngIf="loading" class="spinner-border spinner-border-sm ms-2" role="status"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Alert Modal (Success / Error) -->
+<div class="modal fade" #alertModal tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" [ngClass]="{ 'border-success': response_success, 'border-danger': !response_success }">
+      <div class="modal-header border-0"
+           [ngClass]="{ 'bg-success bg-opacity-10': response_success, 'bg-danger bg-opacity-10': !response_success }">
+        <h5 class="modal-title fw-bold" id="alertModalLabel">
+          <i class="fas" [ngClass]="response_success ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i>
+          <span class="ms-2">{{ response_success ? 'User Created' : 'Creation Failed' }}</span>
+        </h5>
+        <button type="button" class="btn-close" (click)="closeAlert()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">{{ response_msg }}</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn" [ngClass]="response_success ? 'btn-success' : 'btn-danger'" (click)="closeAlert()">OK</button>
+      </div>
+    </div>
+  </div>
+</div>

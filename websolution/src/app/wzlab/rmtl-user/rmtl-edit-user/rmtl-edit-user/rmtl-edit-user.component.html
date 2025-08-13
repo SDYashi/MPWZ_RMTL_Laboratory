@@ -1,53 +1,116 @@
 <div class="container-fluid mt-1">
   <div class="card shadow">
-      <div class="card-header text-white" style=" background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;">
-      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Edit User Profile information </h5>
+    <div class="card-header text-white" style="background-color:#151433; font-weight:bold;">
+      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Edit User Profile Information</h5>
     </div>
+
     <div class="card-body">
-      <form #editForm="ngForm" (ngSubmit)="onSubmit()">
+      <form #editForm="ngForm" (ngSubmit)="openPreview(editForm)" novalidate>
         <div class="row">
           <div class="col-md-6">
+            <!-- Username (readonly) -->
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Username</label>
               <input name="username" [(ngModel)]="user.username" class="form-control" readonly />
             </div>
 
+            <!-- Name -->
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Name</label>
-              <input name="name" [(ngModel)]="user.name" class="form-control" required />
+              <input
+                name="name"
+                [(ngModel)]="user.name"
+                #name="ngModel"
+                class="form-control"
+                required
+                placeholder="Full name"
+              />
+              <div class="text-danger small mt-1" *ngIf="(editForm.submitted || name.touched) && name.invalid">
+                Name is required.
+              </div>
             </div>
 
+            <!-- Email -->
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Email</label>
-              <input name="email" [(ngModel)]="user.email" class="form-control" required />
+              <input
+                name="email"
+                [(ngModel)]="user.email"
+                #email="ngModel"
+                type="email"
+                class="form-control"
+                required
+                placeholder="name@example.com"
+              />
+              <div class="text-danger small mt-1" *ngIf="(editForm.submitted || email.touched) && email.invalid">
+                <span *ngIf="email.errors?.['required']">Email is required.</span>
+                <span *ngIf="email.errors?.['email']">Enter a valid email.</span>
+              </div>
             </div>
           </div>
+
           <div class="col-md-6">
+            <!-- Designation -->
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Designation</label>
-              <input name="designation" [(ngModel)]="user.designation" class="form-control" />
+              <input name="designation" [(ngModel)]="user.designation" class="form-control" placeholder="Optional" />
             </div>
 
+            <!-- Mobile -->
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Mobile</label>
-              <input name="mobile" [(ngModel)]="user.mobile" class="form-control" />
+              <input
+                name="mobile"
+                [(ngModel)]="user.mobile"
+                #mobile="ngModel"
+                class="form-control"
+                pattern="^[0-9]{7,15}$"
+                placeholder="7–15 digits"
+              />
+              <div class="text-danger small mt-1" *ngIf="(editForm.submitted || mobile.touched) && mobile.invalid">
+                Enter a valid phone number (7–15 digits).
+              </div>
             </div>
 
+            <!-- Status -->
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Status</label>
-              <select name="status" [(ngModel)]="user.status" class="form-select">
+              <select name="status" [(ngModel)]="user.status" #statusCtl="ngModel" class="form-select" required>
+                <option value="" disabled>Select status</option>
                 <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
               </select>
+              <div class="text-danger small mt-1" *ngIf="(editForm.submitted || statusCtl.touched) && statusCtl.invalid">
+                Status is required.
+              </div>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label mt-2 fw-bold">Roles</label>
-              <input name="rolesStr" [(ngModel)]="user.rolesStr" class="form-control" placeholder="comma separated" />
+         
+            <!-- Roles (multi-select) -->
+          <div class="col-md-12 mb-3">
+            <label class="form-label mt-2 fw-bold">Roles</label>
+            <select
+              name="selectedRoles"
+              [(ngModel)]="selectedRoles"
+              #selectedRolesCtl="ngModel"
+              class="form-select"
+              multiple
+              required
+            >
+              <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+            </select>
+            <div class="form-text">Hold Ctrl/Cmd to select multiple roles.</div>
+            <div class="text-danger small mt-1" *ngIf="(editForm.submitted || selectedRolesCtl.touched) && selectedRolesCtl.invalid">
+              <span>At least one role is required.</span>
             </div>
+          </div>
 
-            <button class="btn btn-success" type="submit">
-              <i class="fas fa-save me-1"></i> Save Changes
+            <button class="btn btn-success" type="submit" [disabled]="loading">
+              <i class="fas fa-eye me-1"></i> Preview Changes
             </button>
+            <button class="btn btn-secondary ms-2" type="button" (click)="cancel()" [disabled]="loading">
+              <i class="fas fa-times me-1"></i> Cancel
+            </button>
+            <span *ngIf="loading" class="spinner-border spinner-border-sm text-success ms-2" role="status"></span>
           </div>
         </div>
       </form>
@@ -55,3 +118,74 @@
   </div>
 </div>
 
+<!-- Preview Modal -->
+<div class="modal fade" #previewModal tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" id="previewModalLabel">
+          <i class="fas fa-search me-2"></i>Confirm Profile Changes
+        </h5>
+        <button type="button" class="btn-close" (click)="closePreview()" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6"><strong>Username:</strong> {{ user.username || '—' }}</div>
+          <div class="col-md-6"><strong>Name:</strong> {{ user.name || '—' }}</div>
+          <div class="col-md-6"><strong>Email:</strong> {{ user.email || '—' }}</div>
+          <div class="col-md-6"><strong>Designation:</strong> {{ user.designation || '—' }}</div>
+          <div class="col-md-6"><strong>Mobile:</strong> {{ user.mobile || '—' }}</div>
+          <div class="col-md-6">
+            <strong>Status:</strong>
+            <span *ngIf="user.status; else noStatus" class="badge bg-info text-dark">{{ user.status }}</span>
+            <ng-template #noStatus>—</ng-template>
+          </div>
+          <div class="col-12">
+            <strong>Roles:</strong>
+            <span *ngIf="parsedRoles.length; else noRoles">{{ parsedRoles.join(', ') }}</span>
+            <ng-template #noRoles>—</ng-template>
+          </div>
+        </div>
+
+        <div class="alert alert-warning mt-3 mb-0"
+             *ngIf="!user.name || !user.email || !user.status || !parsedRoles.length">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          Some required fields are missing. Please close and complete them.
+        </div>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" (click)="closePreview()">Cancel</button>
+        <button type="button" class="btn btn-success"
+                (click)="onConfirmUpdate()"
+                [disabled]="!user.name || !user.email || !user.status || !parsedRoles.length || loading">
+          <i class="fas fa-save me-1"></i> Save Changes
+          <span *ngIf="loading" class="spinner-border spinner-border-sm ms-2" role="status"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Alert Modal (Success / Error) -->
+<div class="modal fade" #alertModal tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" [ngClass]="{ 'border-success': responseSuccess, 'border-danger': !responseSuccess }">
+      <div class="modal-header border-0"
+           [ngClass]="{ 'bg-success bg-opacity-10': responseSuccess, 'bg-danger bg-opacity-10': !responseSuccess }">
+        <h5 class="modal-title fw-bold" id="alertModalLabel">
+          <i class="fas" [ngClass]="responseSuccess ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i>
+          <span class="ms-2">{{ responseSuccess ? 'Update Successful' : 'Update Failed' }}</span>
+        </h5>
+        <button type="button" class="btn-close" (click)="closeAlert()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">{{ responseMsg }}</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn" [ngClass]="responseSuccess ? 'btn-success' : 'btn-danger'" (click)="closeAlert()">OK</button>
+      </div>
+    </div>
+  </div>
+</div>

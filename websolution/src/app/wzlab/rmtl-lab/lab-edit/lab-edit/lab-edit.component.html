@@ -5,7 +5,8 @@
     </div>
 
     <div class="card-body bg-light">
-      <form (ngSubmit)="onUpdate()" #labForm="ngForm">
+      <!-- NOTE: use Preview flow -->
+      <form (ngSubmit)="openPreview(labForm)" #labForm="ngForm" novalidate>
         <div class="row">
           <div class="col-md-6">
             <!-- Lab Name -->
@@ -21,7 +22,10 @@
                   [(ngModel)]="lab.lab_name"
                   class="form-control"
                   required
-                  placeholder="Enter lab name" />
+                  placeholder="Enter lab name"
+                  [class.is-invalid]="(labForm.submitted || touched['lab_name']) && !lab.lab_name"
+                  (blur)="touched['lab_name'] = true" />
+                <div class="invalid-feedback">Lab Name is required.</div>
               </div>
             </div>
           </div>
@@ -40,10 +44,14 @@
                   [(ngModel)]="lab.lab_location"
                   class="form-control"
                   required
-                  placeholder="Enter location" />
+                  placeholder="Enter location"
+                  [class.is-invalid]="(labForm.submitted || touched['lab_location']) && !lab.lab_location"
+                  (blur)="touched['lab_location'] = true" />
+                <div class="invalid-feedback">Location is required.</div>
               </div>
             </div>
           </div>
+
           <div class="col-md-6">
             <!-- Status -->
             <div class="row mb-3">
@@ -56,11 +64,13 @@
                   name="status"
                   [(ngModel)]="lab.status"
                   class="form-select"
-                  required>
-                  <option value="" disabled selected>Select status</option>
-                  <option value="OPERATIONAL">Operational</option>
-                  <option value="NON_OPERATIONAL">Non Operational</option>
+                  required
+                  [class.is-invalid]="(labForm.submitted || touched['status']) && !lab.status"
+                  (blur)="touched['status'] = true">
+                  <option value="" disabled>Select status</option>
+                  <option *ngFor="let s of lab_statuses" [value]="s">{{ s | titlecase }}</option>
                 </select>
+                <div class="invalid-feedback">Status is required.</div>
               </div>
             </div>
           </div>
@@ -69,15 +79,97 @@
         <!-- Buttons -->
         <div class="row">
           <div class="col-md-9 offset-md-3 text-end">
-            <button type="submit" class="btn btn-success me-2" [disabled]="labForm.invalid">
-              <i class="fas fa-save me-1"></i> Update
+            <button type="submit" class="btn btn-success me-2" [disabled]="loading">
+              <i class="fas fa-eye me-1"></i> Preview Update
             </button>
-            <button type="button" class="btn btn-secondary" (click)="cancel()">
+            <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="loading">
               <i class="fas fa-times me-1"></i> Cancel
             </button>
+            <span *ngIf="loading" class="spinner-border spinner-border-sm text-success ms-2" role="status"></span>
           </div>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" #previewModal tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" id="previewModalLabel">
+          <i class="fas fa-search me-2"></i>Confirm Changes
+        </h5>
+        <button type="button" class="btn-close" (click)="closePreview()" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="list-group">
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="fw-semibold">Lab Name</span>
+            <span>{{ lab.lab_name || '—' }}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="fw-semibold">Location</span>
+            <span>{{ lab.lab_location || '—' }}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="fw-semibold">Status</span>
+            <span>
+              <span *ngIf="lab.status; else noStatus" class="badge bg-info text-dark">{{ lab.status }}</span>
+              <ng-template #noStatus>—</ng-template>
+            </span>
+          </div>
+        </div>
+
+        <div class="alert alert-warning mt-3 mb-0" *ngIf="!lab.lab_name || !lab.lab_location || !lab.status">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          Some required fields are missing. Please close and complete them.
+        </div>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" (click)="closePreview()">Cancel</button>
+        <button
+          type="button"
+          class="btn btn-success"
+          (click)="onConfirmUpdate()"
+          [disabled]="!lab.lab_name || !lab.lab_location || !lab.status || loading">
+          <i class="fas fa-save me-1"></i> Update
+          <span *ngIf="loading" class="spinner-border spinner-border-sm ms-2" role="status"></span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Alert Modal (Success / Error) -->
+<div class="modal fade" #alertModal tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" [ngClass]="{ 'border-success': responseSuccess, 'border-danger': !responseSuccess }">
+
+      <div class="modal-header border-0"
+           [ngClass]="{ 'bg-success bg-opacity-10': responseSuccess, 'bg-danger bg-opacity-10': !responseSuccess }">
+        <h5 class="modal-title fw-bold" id="alertModalLabel">
+          <i class="fas" [ngClass]="responseSuccess ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i>
+          <span class="ms-2">{{ responseSuccess ? 'Update Successful' : 'Update Failed' }}</span>
+        </h5>
+        <button type="button" class="btn-close" (click)="closeAlert()" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <p class="mb-0">{{ responseMessage }}</p>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button type="button" class="btn" [ngClass]="responseSuccess ? 'btn-success' : 'btn-danger'" (click)="closeAlert()">
+          OK
+        </button>
+      </div>
+
     </div>
   </div>
 </div>

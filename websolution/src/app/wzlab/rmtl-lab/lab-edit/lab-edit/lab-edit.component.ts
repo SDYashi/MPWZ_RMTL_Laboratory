@@ -1,102 +1,170 @@
-import { Component } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, ElementRef, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { ApiServicesService } from 'src/app/services/api-services.service';
-// import { Lab } from 'src/app/interface/models';
+
+declare var bootstrap: any; // ensure bootstrap bundle JS is included in index.html
 
 @Component({
   selector: 'app-lab-edit',
   templateUrl: './lab-edit.component.html',
   styleUrls: ['./lab-edit.component.css']
 })
-export class LabEditComponent {
-lab: any = {
-  id: '',
-  lab_name: '',
-  lab_location: '',
-  status: ''
-};
-Lab: any = []
+export class LabEditComponent implements OnInit, AfterViewInit {
+  lab: any = {
+    id: '',
+    lab_name: '',
+    lab_location: '',
+    status: ''
+  };
 
-constructor(
-  private router: Router,
-  private apiService: ApiServicesService
-) {}
+  // statuses: load from API if available; fallback provided
+  lab_statuses: string[] = ['OPERATIONAL', 'NON_OPERATIONAL'];
 
-ngOnInit(): void {
-  const state = history.state;
+  loading = false;
+  responseMessage = '';
+  responseSuccess = false;
 
-  // Option 1: Full lab object passed from list
-  if (state.lab && state.lab.id) {
-    this.lab = state.lab;
-  } 
-  // Option 2: Only lab ID passed from list
-  else if (state.labId) {
-    this.getLabDetails(state.labId);
-  } 
-  else {
-    alert('No lab data provided.');
-    this.router.navigate(['/wzlab/lab/lab-list']);
-  }
-}
+  // Track touched fields in template-driven form (use bracket syntax in HTML)
+  touched: Record<string, boolean> = {
+    lab_name: false,
+    lab_location: false,
+    status: false
+  };
 
-getLabDetails(id: number) {
-  this.apiService.getLab(id).subscribe({
-    next: (data) => {
-      this.lab = data;
-    },
-    error: (err) => {
-      console.error('Error fetching lab details', err);
-      alert('Lab not found!');
-      this.router.navigate(['/wzlab/lab/lab-list']);
+  // Modals
+  @ViewChild('previewModal') previewModalEl!: ElementRef;
+  @ViewChild('alertModal') alertModalEl!: ElementRef;
+  private previewModal!: any;
+  private alertModal!: any;
+
+  constructor(
+    private router: Router,
+    private apiService: ApiServicesService
+  ) {}
+
+  ngOnInit(): void {
+    // If you have enums, uncomment to load:
+    // this.apiService.getEnums().subscribe({
+    //   next: (res) => this.lab_statuses = res?.lab_statuses?.length ? res.lab_statuses : this.lab_statuses,
+    //   error: () => {}
+    // });
+
+    const state = history.state;
+
+    // Option 1: Full lab object passed from list
+    if (state.lab && state.lab.id) {
+      this.lab = state.lab;
     }
-  });
-}
-
-onUpdate() {
-  const userId = this.getCurrentUserIdFromToken();
-
-  // Clone and sanitize lab object
-  const sanitizedLab: any = { ...this.lab };
-
-  for (const key in sanitizedLab) {
-    if (sanitizedLab[key] === null || sanitizedLab[key] === undefined) {
-      delete sanitizedLab[key];
+    // Option 2: Only lab ID passed from list
+    else if (state.labId) {
+      this.getLabDetails(state.labId);
     }
-  }
-
-  // Set updated_by and updated_at
-  sanitizedLab.updated_by = 1;
-  sanitizedLab.updated_at = new Date().toISOString();
-
-  this.apiService.updateLab(this.lab.id, sanitizedLab).subscribe({
-    next: () => {
-      alert('Lab updated successfully!');
-      this.router.navigate(['/wzlab/lab/lab-list']);
-    },
-    error: (err) => {
-      console.error('Update failed', err);
-      alert('Failed to update lab.');
-    }
-  });
-}
-
-getCurrentUserIdFromToken(): number | null {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload?.user_id || payload?.id || null;
-    } catch (err) {
-      console.error('Invalid token format', err);
+    else {
+      alert('No lab data provided.');
+      this.router.navigate(['/wzlab/testing-laboratory/labs-list']);
     }
   }
-  return null;
-}
 
+  ngAfterViewInit(): void {
+    this.previewModal = new bootstrap.Modal(this.previewModalEl?.nativeElement, { backdrop: 'static' });
+    this.alertModal = new bootstrap.Modal(this.alertModalEl?.nativeElement, { backdrop: 'static' });
+  }
 
+  getLabDetails(id: number) {
+    this.apiService.getLab(id).subscribe({
+      next: (data) => {
+        this.lab = data;
+      },
+      error: (err) => {
+        console.error('Error fetching lab details', err);
+        alert('Lab not found!');
+        this.router.navigate(['/wzlab/testing-laboratory/labs-list']);
+      }
+    });
+  }
 
-cancel() {
-  this.router.navigate(['/wzlab/lab/labs-list']);
-}
+  // Form submit → Preview
+  openPreview(form: any): void {
+    // mark missing as touched for inline invalid styles
+    this.touched['lab_name'] = this.touched['lab_name'] || !this.lab.lab_name;
+    this.touched['lab_location'] = this.touched['lab_location'] || !this.lab.lab_location;
+    this.touched['status'] = this.touched['status'] || !this.lab.status;
 
+    if (form.invalid) {
+      form.control.markAllAsTouched();
+      return;
+    }
+    this.previewModal.show();
+  }
+
+  closePreview(): void {
+    this.previewModal?.hide();
+    
+  }
+
+  closeAlert(): void {
+    this.alertModal?.hide();
+    // Optional: navigate after success
+    if (this.responseSuccess) {
+      this.router.navigate(['/wzlab/testing-laboratory/labs-list']);
+    }
+  }
+
+  // Confirm from modal → Update
+  onConfirmUpdate(): void {
+    this.loading = true;
+    this.responseMessage = '';
+
+    // Optional UX: close preview during request
+    this.closePreview();
+
+    const sanitizedLab: any = { ...this.lab };
+
+    // remove null/undefined
+    for (const key in sanitizedLab) {
+      if (sanitizedLab[key] === null || sanitizedLab[key] === undefined) {
+        delete sanitizedLab[key];
+      }
+    }
+
+    // Attach updater metadata
+    sanitizedLab.updated_by = this.getCurrentUserIdFromToken() ?? 1;
+    sanitizedLab.updated_at = new Date().toISOString();
+
+    this.apiService.updateLab(this.lab.id, sanitizedLab).subscribe({
+      next: () => {
+        this.responseSuccess = true;
+        this.responseMessage = 'Lab updated successfully!';
+        this.loading = false;
+        this.alertModal.show();
+       
+      },
+      error: (err) => {
+        console.error('Update failed', err);
+        this.responseSuccess = false;
+        this.responseMessage = err?.error?.message || 'Failed to update lab.';
+        this.loading = false;
+        this.alertModal.show();
+        
+      }
+    });
+  }
+
+  getCurrentUserIdFromToken(): number | null {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload?.user_id || payload?.id || null;
+      } catch (err) {
+        console.error('Invalid token format', err);
+      }
+    }
+    return null;
+  }
+
+  cancel() {
+    // Fixed route to match others
+    this.router.navigate(['/wzlab/testing-laboratory/labs-list']);
+  }
 }
