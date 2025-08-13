@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
 @Component({
@@ -7,19 +8,31 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
   styleUrls: ['./rmtl-store-view-list.component.css']
 })
 export class RmtlStoreViewListComponent {
+  stores: any[] = [];
+  loading = false;
 
- stores: any[] = [];
-
-  constructor(private api: ApiServicesService) {}
+  constructor(private api: ApiServicesService, private router: Router) {}
 
   ngOnInit(): void {
+    this.loading = true;
     this.api.getStores().subscribe({
-      next: (data) => this.stores = data,
-      error: (err) => console.error('Error fetching stores:', err)
+      next: (data) => {
+        this.stores = data || [];
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Error fetching stores:', err);
+        this.loading = false;
+      }
     });
   }
 
+  /** Only needed if you prefer programmatic navigation (Option B in HTML) */
   editStore(id: number): void {
-    window.location.href = `/stores/edit/${id}`;
+    this.router.navigate(['/wzlab/store/edit-store', id]);
+  }
+
+  trackById(_: number, item: any) {
+    return item?.id ?? _;
   }
 }

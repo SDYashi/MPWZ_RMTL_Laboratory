@@ -1,1 +1,265 @@
-<p>rmtl-store-edit works!</p>
+<div class="container-fluid mt-4" *ngIf="store">
+  <div class="card shadow-lg border-0">
+    <div class="card-header text-white" style="background-color:#151433; font-weight:bold;">
+      <h5 class="mb-0"><i class="fas fa-list me-2"></i> Edit Store / Organization Unit</h5>
+    </div>
+
+    <div class="card-body">
+      <form #storeForm="ngForm" (ngSubmit)="openPreview(storeForm)" novalidate>
+        <!-- Row 1 -->
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Code</label>
+            <input
+              type="text"
+              class="form-control"
+              name="code"
+              [(ngModel)]="store.code"
+              #code="ngModel"
+              required
+              maxlength="40"
+              placeholder="Unique code"
+            />
+            <div class="text-danger small mt-1" *ngIf="(storeForm.submitted || code.touched) && code.invalid">
+              Code is required.
+            </div>
+          </div>
+
+          <div class="col-md-8 mb-3">
+            <label class="form-label fw-bold">Name</label>
+            <input
+              type="text"
+              class="form-control"
+              name="name"
+              [(ngModel)]="store.name"
+              #name="ngModel"
+              required
+              maxlength="120"
+              placeholder="Store / Organization name"
+            />
+            <div class="text-danger small mt-1" *ngIf="(storeForm.submitted || name.touched) && name.invalid">
+              Name is required.
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Division -->
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Division Code</label>
+            <input
+              type="number"
+              class="form-control"
+              name="division_code"
+              [(ngModel)]="store.division_code"
+              #division_code="ngModel"
+              min="0"
+              step="1"
+              placeholder="e.g. 10"
+            />
+            <div class="text-danger small mt-1" *ngIf="division_code.touched && division_code.errors?.['min']">
+              Must be 0 or greater.
+            </div>
+          </div>
+
+          <div class="col-md-8 mb-3">
+            <label class="form-label fw-bold">Division Name</label>
+            <input
+              type="text"
+              class="form-control"
+              name="division_name"
+              [(ngModel)]="store.division_name"
+              maxlength="120"
+              placeholder="e.g. North Division"
+            />
+          </div>
+        </div>
+
+        <!-- Row 3: Circle -->
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Circle Code</label>
+            <input
+              type="number"
+              class="form-control"
+              name="circle_code"
+              [(ngModel)]="store.circle_code"
+              #circle_code="ngModel"
+              min="0"
+              step="1"
+              placeholder="e.g. 20"
+            />
+            <div class="text-danger small mt-1" *ngIf="circle_code.touched && circle_code.errors?.['min']">
+              Must be 0 or greater.
+            </div>
+          </div>
+
+          <div class="col-md-8 mb-3">
+            <label class="form-label fw-bold">Circle Name</label>
+            <input
+              type="text"
+              class="form-control"
+              name="circle_name"
+              [(ngModel)]="store.circle_name"
+              maxlength="120"
+              placeholder="e.g. Central Circle"
+            />
+          </div>
+        </div>
+
+        <!-- Row 4: Region -->
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Region Code</label>
+            <input
+              type="number"
+              class="form-control"
+              name="region_code"
+              [(ngModel)]="store.region_code"
+              #region_code="ngModel"
+              min="0"
+              step="1"
+              placeholder="e.g. 30"
+            />
+            <div class="text-danger small mt-1" *ngIf="region_code.touched && region_code.errors?.['min']">
+              Must be 0 or greater.
+            </div>
+          </div>
+
+          <div class="col-md-8 mb-3">
+            <label class="form-label fw-bold">Region Name</label>
+            <input
+              type="text"
+              class="form-control"
+              name="region_name"
+              [(ngModel)]="store.region_name"
+              maxlength="120"
+              placeholder="e.g. Western Region"
+            />
+          </div>
+        </div>
+
+        <!-- Row 5: Organization -->
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Org Code</label>
+            <input
+              type="number"
+              class="form-control"
+              name="org_code"
+              [(ngModel)]="store.org_code"
+              #org_code="ngModel"
+              min="0"
+              step="1"
+              placeholder="e.g. 99"
+            />
+            <div class="text-danger small mt-1" *ngIf="org_code.touched && org_code.errors?.['min']">
+              Must be 0 or greater.
+            </div>
+          </div>
+
+          <div class="col-md-8 mb-3">
+            <label class="form-label fw-bold">Org Name</label>
+            <input
+              type="text"
+              class="form-control"
+              name="org_name"
+              [(ngModel)]="store.org_name"
+              maxlength="120"
+              placeholder="e.g. ACME Corp."
+            />
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex justify-content-start">
+          <button type="submit" class="btn btn-success me-2" [disabled]="loading">
+            <i class="fas fa-eye me-1"></i> Preview Update
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="cancelEdit()" [disabled]="loading">
+            <i class="fas fa-times me-1"></i> Cancel
+          </button>
+          <span *ngIf="loading" class="spinner-border spinner-border-sm text-success ms-2" role="status"></span>
+        </div>
+      </form>
+
+      <!-- Inline fallback alert -->
+      <!-- <div class="mt-3 w-100" *ngIf="response_msg">
+        <div class="alert" [ngClass]="response_success ? 'alert-success' : 'alert-danger'" role="alert">
+          <div class="d-flex justify-content-center">
+            <i class="fas me-2" [ngClass]="response_success ? 'fa-check-circle' : 'fa-exclamation-triangle'"></i>
+            <div>{{ response_msg }}</div>
+          </div>
+        </div>
+      </div> -->
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" #previewModal tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" id="previewModalLabel">
+          <i class="fas fa-search me-2"></i>Confirm Store Updates
+        </h5>
+        <button type="button" class="btn-close" (click)="closePreview()" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6"><strong>Code:</strong> {{ store.code || '—' }}</div>
+          <div class="col-md-6"><strong>Name:</strong> {{ store.name || '—' }}</div>
+
+          <div class="col-md-6"><strong>Division Code:</strong> {{ store.division_code ?? '—' }}</div>
+          <div class="col-md-6"><strong>Division Name:</strong> {{ store.division_name || '—' }}</div>
+
+          <div class="col-md-6"><strong>Circle Code:</strong> {{ store.circle_code ?? '—' }}</div>
+          <div class="col-md-6"><strong>Circle Name:</strong> {{ store.circle_name || '—' }}</div>
+
+          <div class="col-md-6"><strong>Region Code:</strong> {{ store.region_code ?? '—' }}</div>
+          <div class="col-md-6"><strong>Region Name:</strong> {{ store.region_name || '—' }}</div>
+
+          <div class="col-md-6"><strong>Org Code:</strong> {{ store.org_code ?? '—' }}</div>
+          <div class="col-md-6"><strong>Org Name:</strong> {{ store.org_name || '—' }}</div>
+        </div>
+
+        <div class="alert alert-warning mt-3 mb-0" *ngIf="!canSubmitPreview()">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          Required fields missing or invalid. Please close and complete them.
+        </div>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" (click)="closePreview()">Cancel</button>
+        <button type="button" class="btn btn-success" (click)="onConfirmUpdate()" [disabled]="!canSubmitPreview() || loading">
+          <i class="fas fa-save me-1"></i> Save Changes
+          <span *ngIf="loading" class="spinner-border spinner-border-sm ms-2" role="status"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Alert Modal (Success / Error) -->
+<div class="modal fade" #alertModal tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" [ngClass]="{ 'border-success': response_success, 'border-danger': !response_success }">
+      <div class="modal-header border-0"
+           [ngClass]="{ 'bg-success bg-opacity-10': response_success, 'bg-danger bg-opacity-10': !response_success }">
+        <h5 class="modal-title fw-bold" id="alertModalLabel">
+          <i class="fas" [ngClass]="response_success ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i>
+          <span class="ms-2">{{ response_success ? 'Update Successful' : 'Update Failed' }}</span>
+        </h5>
+        <button type="button" class="btn-close" (click)="closeAlert()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">{{ response_msg }}</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn" [ngClass]="response_success ? 'btn-success' : 'btn-danger'" (click)="closeAlert()">OK</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -9,6 +9,8 @@ const routes: Routes = [
   {path:'view-store-list',component:RmtlStoreViewListComponent},
   {path:'add-store',component:RmtlAddStoreComponent},
   {path:'edit-store/:id',component:RmtlStoreEditComponent},
+  // { path: 'wzlab/store/edit/:id', component: RmtlStoreEditComponent }
+
 
 ];
 

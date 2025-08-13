@@ -212,7 +212,6 @@ body {
     z-index: 1050;
   }
 }
-
 /* Overlay */
 .sidebar-overlay {
   position: fixed;
@@ -229,28 +228,27 @@ html, body {
   height: 100%;
   overflow-y: auto;
   scrollbar-width: thin;              /* Firefox */
-  scrollbar-color: #f60303 #08d266;      /* Firefox thumb & track color */
+  scrollbar-color: #9a9a9a #333;      /* Firefox thumb & track color */
 }
 
 /* WebKit browsers (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
-  width: 11px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background:#490163;
+  background: #333;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #840303;
-  border-radius: 5px;
-  border: 4px solid #f1f1f1;
+  background-color: #9a9a9a;
+  border-radius: 3px;
 }
 
 /* Scrollbar Buttons */
 ::-webkit-scrollbar-button {
   height: 16px;
-  background-color: #2804f8;
+  background-color: #333;
   background-repeat: no-repeat;
   background-position: center;
 }

@@ -206,7 +206,7 @@ getStore(id: number): Observable<Store> {
 }
 
 createStore(store: Store): Observable<Store> {
-  return this.http.post<Store>(`${this.baseUrl}/stores`, store);
+  return this.http.post<Store>(`${this.baseUrl}/stores/`, store);
 }
 
 updateStore(id: number, store: Store): Observable<Store> {

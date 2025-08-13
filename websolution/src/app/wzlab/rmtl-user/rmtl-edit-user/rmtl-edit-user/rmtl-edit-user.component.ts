@@ -3,7 +3,7 @@ import { NgForm } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
-declare var bootstrap: any; // ensure Bootstrap bundle JS is included in index.html
+declare var bootstrap: any; // Ensure Bootstrap bundle JS is included in index.html
 
 @Component({
   selector: 'app-rmtl-edit-user',
@@ -15,11 +15,15 @@ export class RmtlEditUserComponent implements OnInit, AfterViewInit {
   user: any = {};
   statuses: string[] = [];
 
+  // Roles support
+  allRoles: string[] = [];       // Options list (from enums)
+  selectedRoles: string[] = [];  // Bound to multi-select
+
+  // UI state
   loading = false;
   responseMsg = '';
   responseSuccess = false;
-  selectedRoles: string[] = [];
-  roles: string[] = ['ADMIN', 'OFFICER_INCHARGE']; 
+
   // Modals
   @ViewChild('previewModal') previewModalEl!: ElementRef;
   @ViewChild('alertModal') alertModalEl!: ElementRef;
@@ -36,13 +40,16 @@ export class RmtlEditUserComponent implements OnInit, AfterViewInit {
     this.userId = this.route.snapshot.paramMap.get('id')!;
     this.getUserById(this.userId);
 
+    // Load enums for statuses and roles
     this.api.getEnums().subscribe({
       next: (res) => {
         this.statuses = res?.user_statuses || ['ACTIVE', 'INACTIVE', 'PENDING'];
+        this.allRoles = res?.roles || ['ADMIN', 'OFFICER_INCHARGE'];
       },
       error: (err) => {
         console.error('Failed to fetch enums', err);
         this.statuses = ['ACTIVE', 'INACTIVE', 'PENDING'];
+        this.allRoles = ['ADMIN', 'OFFICER_INCHARGE'];
       }
     });
   }
@@ -56,7 +63,14 @@ export class RmtlEditUserComponent implements OnInit, AfterViewInit {
     this.api.getUser(id).subscribe({
       next: (res) => {
         this.user = res || {};
-        this.user.rolesStr = this.user.roles?.join(', ') || '';
+        // Initialize multi-select from API data (array or CSV fallback)
+        if (Array.isArray(this.user.roles) && this.user.roles.length) {
+          this.selectedRoles = [...this.user.roles];
+        } else if (typeof this.user.rolesStr === 'string') {
+          this.selectedRoles = this.user.rolesStr.split(',').map((r: string) => r.trim()).filter(Boolean);
+        } else {
+          this.selectedRoles = [];
+        }
       },
       error: (err) => {
         console.error('Failed to fetch user', err);
@@ -66,15 +80,6 @@ export class RmtlEditUserComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /** Derived roles array from rolesStr for preview + submit disabling */
-  get parsedRoles(): string[] {
-    return (this.user?.rolesStr || '')
-      .split(',')
-      .map((r: string) => r.trim())
-      .filter((r: string) => !!r);
-  }
-
-  /** Original submit (hooked to preview now) */
   openPreview(form: NgForm): void {
     if (form.invalid) {
       form.control?.markAllAsTouched();
@@ -94,16 +99,17 @@ export class RmtlEditUserComponent implements OnInit, AfterViewInit {
     }
   }
 
-  /** Confirmed submit from preview modal */
   onConfirmUpdate(): void {
     this.loading = true;
     this.closePreview();
 
-    // Build payload: keep your CSV roles model on backend
+    // Build payload for backend: send roles as array
     const payload = {
       ...this.user,
-      roles: this.parsedRoles
+      roles: this.selectedRoles
     };
+    // If your backend requires CSV instead, use:
+    // const payload = { ...this.user, rolesStr: this.selectedRoles.join(',') };
 
     this.api.updateUser(this.userId, payload).subscribe({
       next: () => {
@@ -122,7 +128,7 @@ export class RmtlEditUserComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /** Fallback direct submit (not used; kept to avoid breaking callers) */
+  // Optional: keep a direct submit handler if some callers still trigger (ngSubmit)="onSubmit()"
   onSubmit(): void {
     this.openPreview({ invalid: false, control: { markAllAsTouched() {} } } as any);
   }
