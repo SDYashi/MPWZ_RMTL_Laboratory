@@ -1,0 +1,24 @@
+.loader-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35); /* slate-900 @ 35% */
+  z-index: 1050; /* above modals if needed, adjust for your app */
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(2px);
+}
+
+.loader-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+}
+
+.loader-text {
+  font-size: .95rem;
+  font-weight: 500;
+}

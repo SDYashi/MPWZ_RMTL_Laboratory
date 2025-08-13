@@ -8,13 +8,14 @@ import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { FileSizePipe } from './core/files.pipe';
 import { FormsModule } from '@angular/forms';
 import { AuthInterceptor } from './core/auth-interceptor.interceptor';
-import { PdfTemplatesRegistrar } from './pdf-templates';
-// import { PdfTemplatesRegistrar } from './pdf-templates';
+import { LoadingInterceptor } from './core/loading.interceptor';
+import { LoaderComponent } from './shared/loader/loader.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     FileSizePipe,
+    LoaderComponent,
   ],
   imports: [
     BrowserModule,
@@ -24,10 +25,8 @@ import { PdfTemplatesRegistrar } from './pdf-templates';
   ],
   providers: [
     {
-      provide: HTTP_INTERCEPTORS,
-      useClass: AuthInterceptor,
-      multi: true
-    },
+      provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor,  multi: true  },
+    { provide: HTTP_INTERCEPTORS, useClass: LoadingInterceptor, multi: true },
   
 
 
