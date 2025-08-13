@@ -199,6 +199,7 @@ export class RmtlAddTestreportComponent implements OnInit {
           serial: '', make: '', capacity: '', result: '',
           device_id: 0, assignment_id: 0, notFound: false, test_result: undefined
         }];
+        this.loading = false;
       },
       complete: () => (this.loading = false)
     });
@@ -210,7 +211,7 @@ export class RmtlAddTestreportComponent implements OnInit {
   }
 
   doReloadAssignedWithoutAddingRows(): void {
-    this.loading = true;
+    // this.loading = true;
     // API still called the same way; the response is now an array of assignments.
     this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
       next: (data: any) => {
