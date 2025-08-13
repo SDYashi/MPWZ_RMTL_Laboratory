@@ -8,6 +8,8 @@ import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { FileSizePipe } from './core/files.pipe';
 import { FormsModule } from '@angular/forms';
 import { AuthInterceptor } from './core/auth-interceptor.interceptor';
+import { PdfTemplatesRegistrar } from './pdf-templates';
+// import { PdfTemplatesRegistrar } from './pdf-templates';
 
 @NgModule({
   declarations: [
@@ -25,10 +27,13 @@ import { AuthInterceptor } from './core/auth-interceptor.interceptor';
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
       multi: true
-    }
+    },
+  
 
 
   ],
   bootstrap: [AppComponent]
 })
-export class AppModule { }
+export class AppModule { 
+  
+}
