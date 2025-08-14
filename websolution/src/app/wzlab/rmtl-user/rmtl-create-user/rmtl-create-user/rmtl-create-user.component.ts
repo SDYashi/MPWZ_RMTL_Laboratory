@@ -16,7 +16,8 @@ export class RmtlCreateUserComponent implements OnInit, AfterViewInit {
   statuses: string[] = ['ACTIVE', 'INACTIVE', 'PENDING'];
 
   // multi-select roles binding
-  selectedRoles: string[] = [];
+ selectedRoles: string[] = []; // ensure it's never undefined
+
 
   // UI/UX
   showPassword = false;
