@@ -19,6 +19,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   capacities: string[] = [];
   phases: string[] = [];
   meter_categories: string[] = [];
+  meter_subcategory: string[] = [];
   meterTypes: string[] = [];
   ct_classes: string[] = [];
   ct_ratios: string[] = [];
@@ -26,6 +27,9 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   voltage_ratings: string[] = [];
   current_ratings: string[] = [];
   device_testing_purpose: string[] = [];
+
+  // NEW: default testing purpose for meters UI
+  meterDefaultPurpose: string = 'ROUTINE'; // will be set from enums
 
   // Meters (manual + CSV + range)
   devices: any[] = [];
@@ -37,7 +41,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     phase: '',
     connection_type: '',
     meter_category: '',
-    meter_sub_category: '',
+    meter_subcategory: '',
     meter_type: '',
     voltage_rating: '',
     current_rating: '',
@@ -45,7 +49,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     serial_number: '',
     ct_class: '',
     ct_ratio: '',
-    device_testing_purpose: ''
+    device_testing_purpose: '' // keep filled via defaults
   };
 
   // CTs (manual + CSV + range)
@@ -58,7 +62,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     capacity: '',
     phase: '',
     meter_category: '',
-    meter_sub_category: '',
+    meter_subcategory: '',
     meter_type: '',
     connection_type: '',
     voltage_rating: '',
@@ -67,7 +71,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     ct_class: '',
     ct_ratio: '',
     remark: '',
-    device_testing_purpose: ''
+    device_testing_purpose: '' // ensure default
   };
 
   // Alert modal
@@ -77,6 +81,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
 
   // Lab
   labId: number | null = null;
+  meter_subcategories: string[] = [];
 
   constructor(private deviceService: ApiServicesService) {}
 
@@ -96,7 +101,14 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         this.connection_types = data?.connection_types || ['HT', 'LT'];
         this.voltage_ratings = data?.voltage_ratings || ['230V'];
         this.current_ratings = data?.current_ratings || ['5-30A'];
-        this.device_testing_purpose = data?.device_testing_purpose || ['ROUTINE'];
+        this.device_testing_purpose = data?.device_testing_purposes || [];
+        this.meter_subcategories = data?.meter_sub_categories || [];
+
+        // Ensure at least one valid Testing Purpose // NEW
+        if (!this.device_testing_purpose.length) {
+          this.device_testing_purpose = ['ROUTINE'];
+        }
+        this.meterDefaultPurpose = this.device_testing_purpose[0] || 'ROUTINE';
 
         // Defaults for CT meta / CSV fallback
         this.ctMeta.make = this.makes[0] || '';
@@ -107,14 +119,14 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         this.ctMeta.connection_type = this.connection_types[0] || 'LT';
         this.ctMeta.voltage_rating = this.voltage_ratings[0] || '230V';
         this.ctMeta.current_rating = this.current_ratings[0] || '5-30A';
-        this.ctMeta.device_testing_purpose = this.device_testing_purpose[0] || '';
+        this.ctMeta.device_testing_purpose = this.meterDefaultPurpose; // UPDATED
 
         // Defaults for meter range form
         this.serialRange.connection_type = this.connection_types[0] || 'LT';
         this.serialRange.meter_type = this.meterTypes[0] || this.ctMeta.meter_type;
         this.serialRange.voltage_rating = this.voltage_ratings[0] || '230V';
         this.serialRange.current_rating = this.current_ratings[0] || '5-30A';
-        this.serialRange.device_testing_purpose = this.device_testing_purpose[0] || '';
+        this.serialRange.device_testing_purpose = this.meterDefaultPurpose; // UPDATED
       },
       error: (error) => {
         console.error(error);
@@ -174,6 +186,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   private pickCapacity(v?: string) { return this.pickFrom(this.capacities, v); }
   private pickPhase(v?: string) { return this.pickFrom(this.phases, v); }
   private pickCategory(v?: string) { return this.pickFrom(this.meter_categories, v, 'NA'); }
+  private picksubcategory(v?: string) {  return this.pickFrom(this.meter_subcategory, v, 'NA');}
   private pickMeterType(v?: string) {
     if (v && this.meterTypes.includes(v)) return v;
     return this.meterTypes[0] || 'GENERIC';
@@ -181,7 +194,17 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   private pickConnectionType(v?: string) { return this.pickFrom(this.connection_types, v, 'LT'); }
   private pickVoltageRating(v?: string) { return this.pickFrom(this.voltage_ratings, v, '230V'); }
   private pickCurrentRating(v?: string) { return this.pickFrom(this.current_ratings, v, '5-30A'); }
-  private pickPurpose(v?: string) { return this.pickFrom(this.device_testing_purpose, v, this.device_testing_purpose[0] || 'ROUTINE'); }
+
+  // UPDATED: prefer user-chosen meterDefaultPurpose when v is empty
+  private pickPurpose(v?: string) {
+    return this.pickFrom(this.device_testing_purpose, v, this.meterDefaultPurpose || this.device_testing_purpose[0] || 'ROUTINE');
+  }
+  // NEW: hard ensure non-empty
+  private resolvePurpose(v?: string) {
+    const val = (v || '').trim();
+    if (val && this.device_testing_purpose.includes(val)) return val;
+    return this.meterDefaultPurpose || this.device_testing_purpose[0] || 'ROUTINE';
+  }
 
   // ---------- Meters ops ----------
   addDevice(): void {
@@ -192,14 +215,14 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       phase: this.pickPhase(),
       connection_type: this.pickConnectionType(),
       meter_category: this.pickCategory(),
-      meter_sub_category: '',
+      meter_subcategory: this.picksubcategory(),
       meter_type: this.pickMeterType(this.meterTypes[0]),
       voltage_rating: this.pickVoltageRating(),
       current_rating: this.pickCurrentRating(),
       remark: '',
       ct_class: '',
       ct_ratio: '',
-      device_testing_purpose: this.pickPurpose()
+      device_testing_purpose: this.resolvePurpose() // UPDATED
     });
   }
 
@@ -217,12 +240,12 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       const lines = text.split(/\r?\n/);
 
       // Header:
-      // serial_number,make,capacity,phase,connection_type,meter_category,meter_sub_category,meter_type,remark,voltage_rating,current_rating,device_testing_purpose,ct_class,ct_ratio
+      // serial_number,make,capacity,phase,connection_type,meter_category,meter_subcategory,meter_type,remark,voltage_rating,current_rating,device_testing_purpose,ct_class,ct_ratio
       for (const line of lines.slice(1)) {
         if (!line.trim()) continue;
         const cols = line.split(',');
         const [
-          serial_number, make, capacity, phase, connection_type, meter_category, meter_sub_category,
+          serial_number, make, capacity, phase, connection_type, meter_category, meter_subcategory,
           meter_type, remark, voltage_rating, current_rating, device_testing_purpose, ct_class, ct_ratio
         ] = cols;
 
@@ -234,11 +257,11 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
             phase: this.pickPhase((phase || '').trim()),
             connection_type: this.pickConnectionType((connection_type || '').trim()),
             meter_category: this.pickCategory((meter_category || '').trim()),
-            meter_sub_category: (meter_sub_category || '').trim(),
+            meter_subcategory: this.picksubcategory((meter_subcategory || '').trim()),
             meter_type: this.pickMeterType((meter_type || '').trim()),
             voltage_rating: this.pickVoltageRating((voltage_rating || '').trim()),
             current_rating: this.pickCurrentRating((current_rating || '').trim()),
-            device_testing_purpose: this.pickPurpose((device_testing_purpose || '').trim()),
+            device_testing_purpose: this.resolvePurpose((device_testing_purpose || '').trim()), // UPDATED
             ct_class: (ct_class || '').trim(),
             ct_ratio: (ct_ratio || '').trim(),
             remark: (remark || '').trim() || ''
@@ -263,11 +286,11 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         phase: this.pickPhase(this.serialRange.phase),
         connection_type: this.pickConnectionType(this.serialRange.connection_type),
         meter_category: this.pickCategory(this.serialRange.meter_category),
-        meter_sub_category: (this.serialRange.meter_sub_category || '').trim(),
+        meter_subcategory: (this.serialRange.meter_subcategory || '').trim(),
         meter_type: this.pickMeterType(this.serialRange.meter_type),
         voltage_rating: this.pickVoltageRating(this.serialRange.voltage_rating),
         current_rating: this.pickCurrentRating(this.serialRange.current_rating),
-        device_testing_purpose: this.pickPurpose(this.serialRange.device_testing_purpose),
+        device_testing_purpose: this.resolvePurpose(this.serialRange.device_testing_purpose), // UPDATED
         ct_class: (this.serialRange.ct_class || '').trim(),
         ct_ratio: (this.serialRange.ct_ratio || '').trim(),
         remark: (this.serialRange.remark || '').trim()
@@ -287,12 +310,12 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       capacity: this.ctMeta.capacity,
       phase: this.ctMeta.phase,
       meter_category: this.ctMeta.meter_category,
-      meter_sub_category: this.ctMeta.meter_sub_category,
+      meter_subcategory: this.ctMeta.meter_subcategory,
       meter_type: this.ctMeta.meter_type,
       connection_type: this.ctMeta.connection_type,
       voltage_rating: this.ctMeta.voltage_rating,
       current_rating: this.ctMeta.current_rating,
-      device_testing_purpose: this.ctMeta.device_testing_purpose,
+      device_testing_purpose: this.resolvePurpose(this.ctMeta.device_testing_purpose), // UPDATED
       remark: ''
     });
   }
@@ -316,12 +339,12 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         capacity: this.ctMeta.capacity,
         phase: this.ctMeta.phase,
         meter_category: this.ctMeta.meter_category,
-        meter_sub_category: this.ctMeta.meter_sub_category,
+        meter_subcategory: this.ctMeta.meter_subcategory,
         meter_type: this.ctMeta.meter_type,
         connection_type: this.ctMeta.connection_type,
         voltage_rating: this.ctMeta.voltage_rating,
         current_rating: this.ctMeta.current_rating,
-        device_testing_purpose: this.ctMeta.device_testing_purpose,
+        device_testing_purpose: this.resolvePurpose(this.ctMeta.device_testing_purpose), // UPDATED
         remark: ''
       });
     }
@@ -338,13 +361,13 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       const lines = text.split(/\r?\n/);
 
       // Header:
-      // serial_number,ct_class,ct_ratio,make,capacity,phase,meter_category,meter_sub_category,meter_type,connection_type,voltage_rating,current_rating,device_testing_purpose,remark
+      // serial_number,ct_class,ct_ratio,make,capacity,phase,meter_category,meter_subcategory,meter_type,connection_type,voltage_rating,current_rating,device_testing_purpose,remark
       for (const line of lines.slice(1)) {
         if (!line.trim()) continue;
         const cols = line.split(',');
         const [
           serial_number, ct_class, ct_ratio,
-          make, capacity, phase, meter_category, meter_sub_category, meter_type, connection_type,
+          make, capacity, phase, meter_category, meter_subcategory, meter_type, connection_type,
           voltage_rating, current_rating, device_testing_purpose, remark
         ] = cols;
 
@@ -353,12 +376,12 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           const cap  = this.pickCapacity((capacity || this.ctMeta.capacity).trim());
           const ph   = this.pickPhase((phase || this.ctMeta.phase).trim());
           const cat  = this.pickCategory((meter_category || this.ctMeta.meter_category).trim());
-          const sub  = (meter_sub_category || this.ctMeta.meter_sub_category || '').trim();
+          const sub  = (meter_subcategory || this.ctMeta.meter_subcategory || '').trim();
           const mt   = this.pickMeterType((meter_type || this.ctMeta.meter_type).trim());
           const conn = this.pickConnectionType((connection_type || this.ctMeta.connection_type).trim());
           const vr   = this.pickVoltageRating((voltage_rating || this.ctMeta.voltage_rating).trim());
           const cr   = this.pickCurrentRating((current_rating || this.ctMeta.current_rating).trim());
-          const purp = this.pickPurpose((device_testing_purpose || this.ctMeta.device_testing_purpose).trim());
+          const purp = this.resolvePurpose((device_testing_purpose || this.ctMeta.device_testing_purpose).trim()); // UPDATED
 
           this.cts.push({
             serial_number: serial_number.trim(),
@@ -368,12 +391,12 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
             capacity: cap,
             phase: ph,
             meter_category: cat,
-            meter_sub_category: sub,
+            meter_subcategory: sub,
             meter_type: mt,
             connection_type: conn,
             voltage_rating: vr,
             current_rating: cr,
-            device_testing_purpose: purp,
+            device_testing_purpose: purp, // UPDATED
             remark: (remark || '').trim() || ''
           });
         }
@@ -405,85 +428,100 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   }
 
   // ---------- Submit: Meters ----------
-  submitDevices(): void {
-    if (!this.devices.length) {
-      this.showAlert('No Rows', 'No meter rows to submit.');
-      return;
-    }
-    if (!this.ensureSourceSelected() || !this.ensureLabId()) return;
+submitDevices(): void {
+  if (!this.devices.length) {
+    this.showAlert('No Rows', 'No meter rows to submit.');
+    return;
+  }
+  if (!this.ensureSourceSelected() || !this.ensureLabId()) return;
 
-    const cleaned = this.devices
-      .map((d: any) => ({
+  // Normalize rows and force-fill purpose
+  const cleaned = this.devices
+    .map((d: any, idx: number) => {
+      const normalizedPurpose = this.resolvePurpose(d.device_testing_purpose);
+      return {
+        __row: idx + 1, // for possible error display
         serial_number: (d.serial_number || '').trim(),
         make: this.pickMake((d.make || '').trim()),
         capacity: this.pickCapacity((d.capacity || '').trim()),
         phase: this.pickPhase((d.phase || '').trim()),
         connection_type: this.pickConnectionType((d.connection_type || '').trim()),
         meter_category: this.pickCategory((d.meter_category || '').trim()),
-        meter_sub_category: (d.meter_sub_category || '').trim() || null,
+        meter_subcategory: (d.meter_subcategory || '').trim() || null,
         meter_type: this.pickMeterType((d.meter_type || '').trim()),
         voltage_rating: this.pickVoltageRating((d.voltage_rating || '').trim()),
         current_rating: this.pickCurrentRating((d.current_rating || '').trim()),
         ct_class: (d.ct_class || '').trim() || null,
         ct_ratio: (d.ct_ratio || '').trim() || null,
-        device_testing_purpose: this.pickPurpose((d.device_testing_purpose || '').trim()),
+        device_testing_purpose: normalizedPurpose, // guaranteed non-empty
         remark: (d.remark || '').trim() || null
-      }))
-      .filter(d => d.serial_number);
+      };
+    })
+    .filter(d => d.serial_number);
 
-    if (!cleaned.length) {
-      this.showAlert('Invalid Data', 'Please provide at least one valid meter serial number.');
-      return;
-    }
-
-    const payload = cleaned.map((d: any) => ({
-      device_type: 'METER',
-      make: d.make,
-      capacity: d.capacity,
-      phase: d.phase,
-      meter_category: d.meter_category,
-      meter_sub_category: d.meter_sub_category,
-      meter_type: d.meter_type,
-      connection_type: d.connection_type,
-      voltage_rating: d.voltage_rating,
-      current_rating: d.current_rating,
-      serial_number: d.serial_number,
-      ct_class: d.ct_class,
-      ct_ratio: d.ct_ratio,
-      remark: d.remark,
-      device_testing_purpose: d.device_testing_purpose,
-      // NEW — lab
-      lab_id: this.labId,
-      // Optional context
-      office_type: this.selectedSourceType || null,
-      location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
-      location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
-      date_of_entry: this.todayISO(),
-      initiator: 'CIS'
-    }));
-
-    this.deviceService.addnewdevice(payload).subscribe({
-      next: () => {
-        this.showAlert('Success', 'Meters added!');
-        this.devices = [];
-      },
-      error: (err) => {
-        console.error(err);
-        this.showAlert('Error', 'Error while submitting meters.');
-      }
-    });
+  if (!cleaned.length) {
+    this.showAlert('Invalid Data', 'Please provide at least one valid meter serial number.');
+    return;
   }
 
-  // ---------- Submit: CTs ----------
-  submitCTs(): void {
-    if (!this.cts.length) {
-      this.showAlert('No Rows', 'No CT rows to submit.');
-      return;
-    }
-    if (!this.ensureSourceSelected() || !this.ensureLabId()) return;
+  // Final guard: find any row that would still be empty (shouldn’t happen, but belt & suspenders)
+  const invalid = cleaned.filter(r => !r.device_testing_purpose);
+  if (invalid.length) {
+    const rows = invalid.map(r => r.__row).join(', ');
+    this.showAlert('Missing Testing Purpose', `Rows missing device_testing_purpose: ${rows}`);
+    return;
+  }
 
-    const cleaned = this.cts
-      .map((ct: any) => ({
+  const payload = cleaned.map((d: any) => ({
+    device_type: 'METER',
+    make: d.make,
+    capacity: d.capacity,
+    phase: d.phase,
+    meter_category: d.meter_category,
+    meter_subcategory: d.meter_subcategory,
+    meter_type: d.meter_type,
+    connection_type: d.connection_type,
+    voltage_rating: d.voltage_rating,
+    current_rating: d.current_rating,
+    serial_number: d.serial_number,
+    ct_class: d.ct_class,
+    ct_ratio: d.ct_ratio,
+    remark: d.remark,
+    device_testing_purpose: d.device_testing_purpose, // non-null
+    lab_id: this.labId,
+    office_type: this.selectedSourceType || null,
+    location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
+    location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
+    date_of_entry: this.todayISO(),
+    initiator: 'CIS'
+  }));
+
+  this.deviceService.addnewdevice(payload).subscribe({
+    next: () => {
+      this.showAlert('Success', 'Meters added!');
+      this.devices = [];
+    },
+    error: (err) => {
+      console.error('Submit meters error:', err);
+      this.showAlert('Error', 'Error while submitting meters.');
+    }
+  });
+}
+
+
+  // ---------- Submit: CTs ----------
+submitCTs(): void {
+  if (!this.cts.length) {
+    this.showAlert('No Rows', 'No CT rows to submit.');
+    return;
+  }
+  if (!this.ensureSourceSelected() || !this.ensureLabId()) return;
+
+  const cleaned = this.cts
+    .map((ct: any, idx: number) => {
+      const normalizedPurpose = this.resolvePurpose(ct.device_testing_purpose || this.ctMeta.device_testing_purpose);
+      return {
+        __row: idx + 1,
         serial_number: (ct.serial_number || '').trim(),
         ct_class: (ct.ct_class || '').trim() || null,
         ct_ratio: (ct.ct_ratio || '').trim() || null,
@@ -491,58 +529,65 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         capacity: this.pickCapacity((ct.capacity || this.ctMeta.capacity).trim()),
         phase: this.pickPhase((ct.phase || this.ctMeta.phase).trim()),
         meter_category: this.pickCategory((ct.meter_category || this.ctMeta.meter_category).trim()),
-        meter_sub_category: (ct.meter_sub_category || this.ctMeta.meter_sub_category || '').trim() || null,
+        meter_subcategory: (ct.meter_subcategory || this.ctMeta.meter_subcategory || '').trim() || null,
         meter_type: this.pickMeterType((ct.meter_type || this.ctMeta.meter_type).trim()),
         connection_type: this.pickConnectionType((ct.connection_type || this.ctMeta.connection_type).trim()),
         voltage_rating: this.pickVoltageRating((ct.voltage_rating || this.ctMeta.voltage_rating).trim()),
         current_rating: this.pickCurrentRating((ct.current_rating || this.ctMeta.current_rating).trim()),
-        device_testing_purpose: this.pickPurpose((ct.device_testing_purpose || this.ctMeta.device_testing_purpose).trim()),
+        device_testing_purpose: normalizedPurpose,
         remark: (ct.remark || '').trim() || null
-      }))
-      .filter(ct => ct.serial_number);
+      };
+    })
+    .filter(ct => ct.serial_number);
 
-    if (!cleaned.length) {
-      this.showAlert('Invalid Data', 'Please provide at least one valid CT serial number.');
-      return;
-    }
-
-    const payload = cleaned.map((ct: any) => ({
-      device_type: 'CT',
-      make: ct.make,
-      capacity: ct.capacity,
-      phase: ct.phase,
-      meter_category: ct.meter_category,
-      meter_sub_category: ct.meter_sub_category,
-      meter_type: ct.meter_type,
-      connection_type: ct.connection_type,
-      voltage_rating: ct.voltage_rating,
-      current_rating: ct.current_rating,
-      serial_number: ct.serial_number,
-      ct_class: ct.ct_class,
-      ct_ratio: ct.ct_ratio,
-      remark: ct.remark,
-      device_testing_purpose: ct.device_testing_purpose,
-      // NEW — lab
-      lab_id: this.labId,
-      // Optional context
-      office_type: this.selectedSourceType || null,
-      location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
-      location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
-      date_of_entry: this.todayISO(),
-      initiator: 'CIS'
-    }));
-
-    this.deviceService.addnewdevice(payload).subscribe({
-      next: () => {
-        this.showAlert('Success', 'CTs added!');
-        this.cts = [];
-      },
-      error: (err) => {
-        console.error(err);
-        this.showAlert('Error', 'Error while submitting CTs.');
-      }
-    });
+  if (!cleaned.length) {
+    this.showAlert('Invalid Data', 'Please provide at least one valid CT serial number.');
+    return;
   }
+
+  const invalid = cleaned.filter(r => !r.device_testing_purpose);
+  if (invalid.length) {
+    const rows = invalid.map(r => r.__row).join(', ');
+    this.showAlert('Missing Testing Purpose', `CT rows missing device_testing_purpose: ${rows}`);
+    return;
+  }
+
+  const payload = cleaned.map((ct: any) => ({
+    device_type: 'CT',
+    make: ct.make,
+    capacity: ct.capacity,
+    phase: ct.phase,
+    meter_category: ct.meter_category,
+    meter_subcategory: ct.meter_subcategory,
+    meter_type: ct.meter_type,
+    connection_type: ct.connection_type,
+    voltage_rating: ct.voltage_rating,
+    current_rating: ct.current_rating,
+    serial_number: ct.serial_number,
+    ct_class: ct.ct_class,
+    ct_ratio: ct.ct_ratio,
+    remark: ct.remark,
+    device_testing_purpose: ct.device_testing_purpose, // non-null
+    lab_id: this.labId,
+    office_type: this.selectedSourceType || null,
+    location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
+    location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
+    date_of_entry: this.todayISO(),
+    initiator: 'CIS'
+  }));
+
+  this.deviceService.addnewdevice(payload).subscribe({
+    next: () => {
+      this.showAlert('Success', 'CTs added!');
+      this.cts = [];
+    },
+    error: (err) => {
+      console.error('Submit CTs error:', err);
+      this.showAlert('Error', 'Error while submitting CTs.');
+    }
+  });
+}
+
 
   // ---------- Modal helper ----------
   showAlert(title: string, message: string): void {
@@ -565,13 +610,13 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       phase: '',
       connection_type: '',
       meter_category: '',
-      meter_sub_category: '',
+      meter_subcategory: '',
       meter_type: '',
       voltage_rating: '',
       current_rating: '',
       remark: '',
       serial_number: '',
-      device_testing_purpose: ''
+      device_testing_purpose: '' // keep filled via ctMeta defaults
     };
   }
 }

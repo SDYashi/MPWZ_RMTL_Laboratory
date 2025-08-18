@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
 import * as bootstrap from 'bootstrap';
 import { AuthService } from 'src/app/core/auth.service';
 import { Assignment } from 'src/app/interface/models';
@@ -30,10 +31,9 @@ devices = [
   assignedUser: string = '';
   assignedBench: string = '';
   currentuser: string = 'SYSADMIN';
-
   filteredDevices: any[] = [];
 
-  constructor(private api: ApiServicesService, private authapi: AuthService) {}
+  constructor(private api: ApiServicesService, private authapi: AuthService, private router: Router) {}
 
   ngOnInit(): void {
     // this.filterDevices();
@@ -82,12 +82,11 @@ devices = [
   }
 
   filterDevices(): void {
-    // this.filteredDevices = this.devices.filter(d => d.status === this.selectedStatus);    
     this.api.getDevicelistbyinwordno(this.selectedInward).pipe().subscribe({
       next: (res) => {
         this.filteredDevices = res;
         this.responseMessage= 'Data fetched successfully!';
-       this.responseSuccess = true;
+        this.responseSuccess = true;
       },
       error: (err) => {
        this.responseMessage= err?.error?.details || 'Failed to fetch data.';
@@ -142,12 +141,13 @@ devices = [
       bench_id: parseInt(this.assignedBench, 10)
 
     };
-     alert(this.payload);
+    //  alert(this.payload);
     this.api.createAssignmentbulk(this.payload).subscribe({
 
       next: () => {
         alert('Assignment successful!');
-        this.filteredDevices.forEach(d => d.selected = false);
+        // this.filteredDevices.forEach(d => d.selected = false);
+        this.router.navigate(['/wzlab/assignement/assign-to-user']);     
       },
       error: (err) => {
         console.error('Assignment failed:', err);

@@ -29,6 +29,11 @@ getlogin(username: string, password: string): Observable<any> {
   return this.http.post<any>(`${this.baseUrl}/token`, body.toString(), { headers });
 }
 
+// dashbaord api list 
+getAssignmentDashboard(query: string = ''): Observable<Assignment[]> {
+  return this.http.get<Assignment[]>(`${this.baseUrl}/assignment-dashboard${query}`);
+}
+
 approveTestReports(payload: any) {
   throw new Error('Method not implemented.');
 }
@@ -221,6 +226,9 @@ getOffices(target_type: string, target_code: string ): Observable<any[]> {
 }
 
 // --- Assignment Endpoints ---
+
+
+
 getAssignments(): Observable<Assignment[]> {
   return this.http.get<Assignment[]>(`${this.baseUrl}/assignments/`);
 }
@@ -228,10 +236,6 @@ getAssignments(): Observable<Assignment[]> {
 getAssignmentsByStatus (assignment_status: string): Observable<Assignment[]> {
   return this.http.get<Assignment[]>(`${this.baseUrl}/assignments-by-status?assignment_status=${assignment_status}`);
 }
-
-// getAssignmentsByStatus(query: string = ''): Observable<Assignment[]> {
-//   return this.http.get<Assignment[]>(`${this.baseUrl}/assignments-by-status${query}`);
-// }
 
 getAssignment(id: number): Observable<Assignment> {
   return this.http.get<Assignment>(`${this.baseUrl}/assignments/${id}`);
