@@ -44,10 +44,6 @@
           <label class="form-label">Inward No</label>
           <input class="form-control" [(ngModel)]="filters.inward" (input)="applyFilters()" placeholder="INW...">
         </div>
-        <div class="col-md-4">
-          <label class="form-label">Search</label>
-          <input class="form-control" [(ngModel)]="filters.search" (input)="applyFilters()" placeholder="Serial / Make / Type / IVRS">
-        </div>
       </div>
 
       <div class="d-flex gap-2 justify-content-end mt-3">
@@ -55,53 +51,90 @@
         <button class="btn btn-outline-success" (click)="exportCSV()">Export CSV</button>
       </div>
 
-      <!-- Table -->
-      <div class="table-responsive mt-3">
-        <table class="table table-bordered align-middle text-center">
-          <thead class="table-light">
-            <tr>
-              <th>#</th>
-              <th>Date</th>
-              <th>Report ID</th>
-              <th>Device</th>
-              <th>Serial</th>
-              <th>Make</th>
-              <th>Report Type</th>
-              <th>Result</th>
-              <th>Inward</th>
-              <th style="width:180px;">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let r of pageRows; let i=index">
-              <td>{{ (page-1)*pageSize + i + 1 }}</td>
-              <td>{{ r.tested_date | date:'yyyy-MM-dd' }}</td>
-              <td class="text-start">{{ r.id }}</td>
-              <td>{{ r.device_type }}</td>
-              <td class="text-start">{{ r.serial_number }}</td>
-              <td>{{ r.make }}</td>
-              <td class="text-start">{{ r.report_type }}</td>
-              <td>
-                <span class="badge"
-                  [ngClass]="{'bg-success': r.result==='PASS', 'bg-danger': r.result==='FAIL', 'bg-warning text-dark': r.result==='PENDING'}">
-                  {{ r.result }}
-                </span>
-              </td>
-              <td>{{ r.inward_no || '-' }}</td>
-              <td>
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-primary" (click)="openDetails(r)" data-bs-toggle="offcanvas" data-bs-target="#detailsCanvas">Details</button>
-                  <button class="btn btn-outline-secondary" (click)="edit(r)">Edit</button>
-                  <button class="btn btn-outline-dark" (click)="print(r)">Print</button>
-                </div>
-              </td>
-            </tr>
-            <tr *ngIf="!pageRows.length">
-              <td colspan="10" class="text-muted">No reports found</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    
+    <!-- Table -->
+<div class="table-responsive mt-3">
+  <table class="table table-bordered align-middle text-center table-hover">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>ID</th>
+        <th>Device</th>
+        <th>Assignment</th>
+        <th>Terminal Block</th>
+        <th>Meter Body</th>
+        <th>Glass Cover</th>
+        <th>Seal</th>
+        <th>Method</th>
+        <th>Status</th>
+        <th>Result</th>
+        <th>Condition</th>
+        <th>Burned</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Error %</th>
+        <th>Other</th>
+        <th>Details</th>
+        <th style="width:180px;">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of pageRows; let i=index">
+        <td>{{ (page-1)*pageSize + i + 1 }}</td>
+        <td>{{ r.id }}</td>
+        <td>{{ r.device_id }}</td>
+        <td>{{ r.assignment_id }}</td>
+        <td>{{ r.terminal_block }}</td>
+        <td>{{ r.meter_body }}</td>
+        <td>{{ r.meter_glass_cover }}</td>
+        <td>{{ r.seal_status }}</td>
+        <td>{{ r.test_method }}</td>
+        <td>
+          <span class="badge"
+            [ngClass]="{
+              'bg-success': r.test_status==='COMPLETED',
+              'bg-warning text-dark': r.test_status==='UNTESTABLE'
+            }">
+            {{ r.test_status }}
+          </span>
+        </td>
+        <td>
+          <span class="badge"
+            [ngClass]="{
+              'bg-success': r.test_result==='PASS',
+              'bg-danger': r.test_result==='FAIL',
+              'bg-warning text-dark': r.test_result==='PENDING'
+            }">
+            {{ r.test_result }}
+          </span>
+        </td>
+        <td>{{ r.physical_condition_of_device }}</td>
+        <td>
+          <span [ngClass]="{'text-danger fw-bold': r.is_burned, 'text-success': !r.is_burned}">
+            {{ r.is_burned ? 'YES' : 'NO' }}
+          </span>
+        </td>
+        <td>{{ r.start_datetime | date:'short' }}</td>
+        <td>{{ r.end_datetime | date:'short' }}</td>
+        <td>{{ r.error_percentage }}%</td>
+        <td>{{ r.other }}</td>
+        <td>{{ r.details }}</td>
+        <td>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary" (click)="openDetails(r)" data-bs-toggle="offcanvas" data-bs-target="#detailsCanvas">Details</button>
+            <button class="btn btn-outline-secondary" (click)="edit(r)">Edit</button>
+            <button class="btn btn-outline-dark" (click)="print(r)">Print</button>
+          </div>
+        </td>
+      </tr>
+      <tr *ngIf="!pageRows.length">
+        <td colspan="19" class="text-muted">No reports found</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+    
 
       <!-- Pagination -->
       <div class="d-flex justify-content-between align-items-center">

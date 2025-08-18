@@ -10,3 +10,68 @@ body {
 .tilte_header{
   background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;
 }
+
+
+/* ---------- Screen styles ---------- */
+
+/* A4 sizing container for screen + print */
+.paper.a4 {
+  /* width: 210mm;       /* enable if you want fixed width on screen */
+  /* min-height: 297mm;  /* enable if you want fixed height on screen */
+  margin: 0 auto;
+}
+
+.sig-line {
+  border-top: 1px solid #333;
+  padding-top: 4px;
+  min-width: 180px;
+}
+
+/* ---------- Print-only styles (Option 1) ---------- */
+@media print {
+  /* Use A4 paper with sane margins */
+  @page {
+    size: A4;
+    margin: 12mm 10mm;
+  }
+
+  /* Ensure colors render */
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* Hide everything by default */
+  body * { visibility: hidden !important; }
+
+  /* Show only the print area */
+  #printArea, #printArea * { visibility: visible !important; }
+
+  /* Position print area at top-left and span full width */
+  #printArea {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%;
+  }
+
+  /* Clean look on print */
+  .paper.a4,
+  .card,
+  .shadow,
+  .shadow-sm,
+  .shadow-lg {
+    box-shadow: none !important;
+    background: transparent;
+  }
+
+  /* Disable sticky headers during print to avoid overlap */
+  .sticky-top { position: static !important; }
+
+  /* Typography tweaks for compact tables */
+  .table { font-size: 12px; }
+  .small { font-size: 12px; }
+
+  /* Bootstrap helpers */
+  .d-print-none { display: none !important; }
+  .d-print-block { display: block !important; }
+
+  /* Optional: avoid splitting elements across pages */
+  .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+}

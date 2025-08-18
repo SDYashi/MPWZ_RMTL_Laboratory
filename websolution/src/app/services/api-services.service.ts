@@ -278,8 +278,34 @@ getDevicelistbyinwordno(inward_number: string): Observable<string[]> {
 }
 
 // --- Testing Endpoints ---
-getTestingRecords(): Observable<Testing[]> {
-  return this.http.get<Testing[]>(`${this.baseUrl}/testing`);
+getTestingRecords(serial_number?: string | null, user_id?: number | null, test_result?: 'PASS' | 'FAIL' | null, test_method?: 'MANUAL' | 'AUTOMATIC' | null, test_status?: 'COMPLETED' | 'UNTESTABLE' | null, lab_id?: number | null, offset?: number | null, limit?: number | null): Observable<Testing[]> {
+  let params = new HttpParams();
+  if (serial_number) {
+    params = params.set('serial_number', serial_number.toString());
+  }
+  if (user_id) {
+    params = params.set('user_id', user_id.toString());
+  }
+  if (test_result) {
+    params = params.set('test_result', test_result.toString());
+  }
+  if (test_method) {
+    params = params.set('test_method', test_method.toString());
+  }
+  if (test_status) {
+    params = params.set('test_status', test_status.toString());
+  }
+  if (lab_id) {
+    params = params.set('lab_id', lab_id.toString());
+  }
+  if (offset) {
+    params = params.set('offset', offset.toString());
+  }
+  if (limit) {
+    params = params.set('limit', limit.toString());
+  }
+
+  return this.http.get<any[]>(`${this.baseUrl}/testing/`, { params });
 }
 
 getTesting(id: number): Observable<Testing> {

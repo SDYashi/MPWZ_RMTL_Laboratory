@@ -1,0 +1,61 @@
+/* Make sticky header look crisp when printing/screenshot */
+.sticky-top { position: sticky; }
+
+/* Compact table on small screens */
+.table-responsive {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.table {
+  font-size: 0.875rem; /* smaller, compact */
+  white-space: nowrap; /* prevent text wrap in small columns */
+}
+
+.table th, 
+.table td {
+  vertical-align: middle;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.35em 0.6em;
+}
+
+@media (max-width: 768px) {
+  .table {
+    font-size: 0.75rem;
+  }
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* Compact, readable details layout */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem .75rem;
+  margin-bottom: .5rem;
+}
+
+.detail-grid .label {
+  font-size: .75rem;
+  color: #6c757d; /* bootstrap secondary */
+}
+
+.detail-grid .value {
+  font-weight: 500;
+}
+
+.detail-grid > .col-span-2 {
+  grid-column: span 2;
+}
+
+/* Smaller screens: single column */
+@media (max-width: 576px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
