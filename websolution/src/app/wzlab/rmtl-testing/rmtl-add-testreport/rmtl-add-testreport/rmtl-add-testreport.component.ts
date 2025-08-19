@@ -11,6 +11,11 @@ type ReportUnion =
   | 'Solar Generation Meter'
   | 'CT Testing';
 
+// === Canonical enums based on your API ===
+type TestMethod = 'MANUAL' | 'AUTOMATIC';
+type TestStatus = 'COMPLETED' | 'UNTESTABLE';
+type TestResult = 'PASS' | 'FAIL';
+
 interface MeterDevice {
   id: number;
   serial_number: string;
@@ -29,14 +34,12 @@ interface DeviceRow {
   serial: string;
   make: string;
   capacity: string;
-  result: string;
+  result: string;                 // free text (tester comment)
   device_id: number;
   assignment_id: number;
   notFound?: boolean;
-  test_result?: 'PASS' | 'FAIL'; // user-chosen
+  test_result?: TestResult;       // user-chosen PASS|FAIL
 }
-
-
 
 type ModalAction = 'reload' | 'fetch' | 'removeRow' | 'clear' | 'submit';
 interface ModalState {
@@ -53,6 +56,7 @@ interface ModalState {
   styleUrls: ['./rmtl-add-testreport.component.css']
 })
 export class RmtlAddTestreportComponent implements OnInit {
+
   // Report tabs
   reportType: ReportUnion = 'stopdefective';
   reportTypes: ReportUnion[] = [
@@ -60,12 +64,12 @@ export class RmtlAddTestreportComponent implements OnInit {
   ];
   report_printing: ReportUnion | null = null;
 
-  // Common payload controls
-  testMethod: 'MANUAL' | 'AUTOMATED' = 'AUTOMATED';
-  testStatus: 'COMPLETED' | 'PENDING' = 'COMPLETED';
+  // === Common payload controls (API-aligned) ===
+  testMethod: TestMethod = 'AUTOMATIC';    // API uses AUTOMATIC (not AUTOMATED)
+  testStatus: TestStatus = 'COMPLETED';    // API uses COMPLETED/UNTESTABLE
   comment_bytester: string[] = ['Stop Defective', 'Display Off', 'Ok Found', 'Phase Mismatch'];
-  testResultOptions: Array<'PASS' | 'FAIL'> = ['PASS', 'FAIL'];
-  approverId: any = null;
+  testResultOptions: TestResult[] = ['PASS', 'FAIL'];
+  approverId: number | null = null;
 
   // Header + rows
   batch = {
@@ -73,11 +77,11 @@ export class RmtlAddTestreportComponent implements OnInit {
     rows: [] as DeviceRow[]
   };
 
-  // Enums
-  device_status = 'ASSIGNED';
-  test_methods: string[] = [];
-  test_statuses: string[] = [];
-  phases: string[] = [];      // e.g., ['1P','3P']
+  // Enums (from API)
+  device_status: 'ASSIGNED' = 'ASSIGNED';
+  test_methods: TestMethod[] = ['MANUAL', 'AUTOMATIC'];
+  test_statuses: TestStatus[] = ['COMPLETED', 'UNTESTABLE'];
+  phases: string[] = ['1P', '3P'];
   office_types: string[] = [];
 
   // Optional office block
@@ -103,20 +107,45 @@ export class RmtlAddTestreportComponent implements OnInit {
 
   // Reusable confirm modal
   modal: ModalState = { open: false, title: '', message: '', action: null };
+  payload: any;
 
   constructor(private api: ApiServicesService) {}
 
   ngOnInit(): void {
     this.batch.header.date = this.toYMD(new Date());
 
-    // Load enums for dropdowns
+    // Load enums for dropdowns — normalize to our canonical enums
     this.api.getEnums().subscribe({
       next: (data) => {
-        this.device_status = data?.device_status ?? 'ASSIGNED';
-        this.test_methods  = data?.test_methods ?? ['MANUAL', 'AUTOMATED'];
-        this.test_statuses = data?.test_statuses ?? ['COMPLETED', 'PENDING'];
-        this.phases        = data?.phases ?? ['1P', '3P'];
-        this.office_types  = data?.office_types ?? [];
+        // Device status
+        this.device_status = (data?.device_status as 'ASSIGNED') ?? 'ASSIGNED';
+
+        // Methods: accept MANUAL/AUTOMATIC or MANUAL/AUTOMATED from backend
+        const rawMethods: string[] = data?.test_methods ?? ['MANUAL', 'AUTOMATIC'];
+        this.test_methods = rawMethods
+          .map(m => (m || '').toUpperCase())
+          .map(m => (m === 'AUTOMATED' ? 'AUTOMATIC' : m))
+          .filter(m => m === 'MANUAL' || m === 'AUTOMATIC') as TestMethod[];
+
+        if (!this.test_methods.includes(this.testMethod)) {
+          this.testMethod = this.test_methods[0] ?? 'AUTOMATIC';
+        }
+
+        // Statuses: normalize PENDING -> UNTESTABLE if your API ever sends PENDING
+        const rawStatuses: string[] = data?.test_statuses ?? ['COMPLETED', 'UNTESTABLE'];
+        this.test_statuses = rawStatuses
+          .map(s => (s || '').toUpperCase())
+          .map(s => (s === 'PENDING' ? 'UNTESTABLE' : s))
+          .filter(s => s === 'COMPLETED' || s === 'UNTESTABLE') as TestStatus[];
+
+        if (!this.test_statuses.includes(this.testStatus)) {
+          this.testStatus = this.test_statuses[0] ?? 'COMPLETED';
+        }
+
+        // Phases
+        const rawPhases: string[] = data?.phases ?? ['1P', '3P'];
+        this.phases = Array.from(new Set(rawPhases.map(p => (p || '').toUpperCase()).filter(Boolean)));
+        this.office_types = Array.isArray(data?.office_types) ? data.office_types : [];
       },
       error: (err) => console.error('Enums error', err)
     });
@@ -125,8 +154,7 @@ export class RmtlAddTestreportComponent implements OnInit {
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
     this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
 
-    // Initial load of rows from current assignments
-    // this.doReloadAssigned();
+    // Build index only (no visible rows)
     this.doReloadAssignedWithoutAddingRows();
   }
 
@@ -139,7 +167,7 @@ export class RmtlAddTestreportComponent implements OnInit {
   private rebuildSerialIndex(assignments: AssignmentItem[]): void {
     this.serialIndex = {};
     for (const a of assignments) {
-      const d = a?.device;
+      const d = a?.device ?? null;
       const serial = (d?.serial_number || '').toUpperCase().trim();
       if (!serial) continue;
 
@@ -153,7 +181,7 @@ export class RmtlAddTestreportComponent implements OnInit {
     }
   }
 
-  // ------- Load assignments and populate rows -------
+  // ------- Load assignments and populate rows (full reload) -------
   doReloadAssigned(): void {
     this.loading = true;
     this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
@@ -178,6 +206,7 @@ export class RmtlAddTestreportComponent implements OnInit {
             notFound: false,
             test_result: undefined
           };
+             this.loading = false;
         });
 
         // keep 1 empty row if nothing
@@ -192,6 +221,7 @@ export class RmtlAddTestreportComponent implements OnInit {
           );
           this.batch.header.phase = uniq.size === 1 ? [...uniq][0] : '';
         }
+         this.loading = false;
       },
       error: (e) => {
         console.error('Assigned list error', e);
@@ -204,27 +234,27 @@ export class RmtlAddTestreportComponent implements OnInit {
       complete: () => (this.loading = false)
     });
   }
-    // ------- Load assignments (NEW mapping) without adding rows -------
+
+  // ------- Load assignments (index only) -------
   private loadDataWithoutAddingRows(assignments: AssignmentItem[]): void {
-    // index for fast lookup by serial
     this.rebuildSerialIndex(assignments);
   }
 
   doReloadAssignedWithoutAddingRows(): void {
-    // this.loading = true;
-    // API still called the same way; the response is now an array of assignments.
+    this.loading = true;
     this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
       next: (data: any) => {
         const assignments: AssignmentItem[] = Array.isArray(data)
           ? data
           : Array.isArray(data?.results)
-          ? data.results
-          : [];
-
+            ? data.results
+            : [];
         this.loadDataWithoutAddingRows(assignments);
+          this.loading = false;
       },
       error: (e) => {
         console.error('Assigned list error', e);
+         this.loading = false;
       },
       complete: () => (this.loading = false)
     });
@@ -305,57 +335,72 @@ export class RmtlAddTestreportComponent implements OnInit {
   }
 
   // ------- Submit -------
-  private passFailFromText(txt: string): 'PASS' | 'FAIL' {
+  private passFailFromText(txt: string): TestResult {
     return /(^|\W)(ok|pass)(\W|$)/i.test(txt || '') ? 'PASS' : 'FAIL';
   }
+
   private toYMD(d: Date): string {
     const dt = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
     return dt.toISOString().slice(0, 10);
   }
+
   private isoOn(dateStr?: string): string {
     const d = dateStr ? new Date(dateStr + 'T10:00:00') : new Date();
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString();
   }
 
   private doSubmitBatch(): void {
-    // Ensure dropdowns are populated
-    if (!this.testMethod && this.test_methods.length) this.testMethod = this.test_methods[0] as any;
-    if (!this.testStatus && this.test_statuses.length) this.testStatus = this.test_statuses[0] as any;
+    // Make sure defaults exist (post-enum load)
+    if (!this.testMethod && this.test_methods.length) this.testMethod = this.test_methods[0];
+    if (!this.testStatus && this.test_statuses.length) this.testStatus = this.test_statuses[0];
 
     const when = this.isoOn(this.batch.header.date);
 
-    const payload: TestReportPayload[] = this.batch.rows
+     this.payload = this.batch.rows
       .filter(r => (r.serial || '').trim())
-      .map(r => ({        
+      .map(r => ({
         device_id: r.device_id ?? 0,
         assignment_id: r.assignment_id ?? 0,
+
         start_datetime: when,
         end_datetime: when,
+
+        // Physical checks (defaults)
         physical_condition_of_device: '-',
         seal_status: '-',
         meter_glass_cover: '-',
         terminal_block: '-',
         meter_body: '-',
+
+        // Notes & flags
         other: r.result || '-',
         is_burned: /burn/i.test(r.result || ''),
+
+        // Readings (defaults)
         reading_before_test: 0,
         reading_after_test: 0,
-        details: `Zone:${this.batch.header.zone || ''} Phase:${this.batch.header.phase || ''}`,
-        test_result: (r.test_result ?? this.passFailFromText(r.result)), // use user selection; fallback to text
-        test_method: this.testMethod,
         ref_start_reading: 0,
         ref_end_reading: 0,
-        test_status: this.testStatus,
         error_percentage: 0,
-        approver_id: this.approverId
+
+        // Details
+        details: `Zone:${this.batch.header.zone || ''} Phase:${this.batch.header.phase || ''}`,
+
+        // Outcome
+        test_result: (r.test_result ?? this.passFailFromText(r.result)) as TestResult,
+        test_method: this.testMethod,
+        test_status: this.testStatus,
+
+        // Approver (optional)
+        approver_id: this.approverId ?? null
       }));
 
     this.submitting = true;
-    this.api.postTestReports(payload).subscribe({
+    this.api.postTestReports(this.payload).subscribe({
       next: () => {
         this.submitting = false;
         this.report_printing = this.reportType;
-        // this.doClearRows();
+        // (optional) this.doClearRows();
       },
       error: (error) => {
         this.submitting = false;
