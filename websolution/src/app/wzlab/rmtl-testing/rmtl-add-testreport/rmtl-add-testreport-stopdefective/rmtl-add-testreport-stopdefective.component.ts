@@ -1,19 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
-// === Canonical enums based on your API ===
-type ReportUnion =
-  | 'stopdefective'
-  | 'contested'
-  | 'P4_ONM'
-  | 'P4_vig'
-  | 'Solar netmeter'
-  | 'Solar Generation Meter'
-  | 'CT Testing';
-
-type TestMethod = 'MANUAL' | 'AUTOMATIC';
-type TestStatus = 'COMPLETED' | 'UNTESTABLE';
-type TestResult = 'PASS' | 'FAIL';
 
 interface MeterDevice {
   id: number;
@@ -22,13 +9,11 @@ interface MeterDevice {
   capacity?: string;
   phase?: string;
 }
-
 interface AssignmentItem {
   id: number;           // assignment_id
   device_id: number;
   device?: MeterDevice | null;
 }
-
 interface DeviceRow {
   serial: string;
   make: string;
@@ -37,16 +22,13 @@ interface DeviceRow {
   device_id: number;
   assignment_id: number;
   notFound?: boolean;
-  test_result?: TestResult;       // user-chosen PASS|FAIL
+  test_result?: string;       // user-chosen PASS|FAIL
 }
-
-type ModalAction = 'reload' | 'fetch' | 'removeRow' | 'clear' | 'submit';
-
 interface ModalState {
   open: boolean;
   title: string;
   message: string;
-  action: ModalAction | null;
+  action: string | null; // 'reload' | 'fetch' | 'removeRow' | 'clear' | 'submit'
   payload?: any;
 }
 
@@ -56,19 +38,17 @@ interface ModalState {
   styleUrls: ['./rmtl-add-testreport-stopdefective.component.css']
 })
 export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
-
-  // Report tabs
-  reportType: ReportUnion = 'stopdefective';
-  reportTypes: ReportUnion[] = [
-    'stopdefective', 'contested', 'P4_ONM', 'P4_vig', 'Solar netmeter', 'Solar Generation Meter', 'CT Testing'
-  ];
-  report_printing: ReportUnion | null = null;
-
-  // === Common payload controls (API-aligned) ===
-  testMethod: TestMethod = 'AUTOMATIC';    // API uses AUTOMATIC (not AUTOMATED)
-  testStatus: TestStatus = 'COMPLETED';    // API uses COMPLETED/UNTESTABLE
-  comment_bytester: string[] = ['Stop Defective', 'Display Off', 'Ok Found', 'Phase Mismatch', 'Burned', 'Terminal Melted'];
-  testResultOptions: TestResult[] = ['PASS', 'FAIL'];
+  ModalAction:any [] = ['RELOAD', 'FETCH', 'REMOVE_ROW', 'CLEAR', 'SUBMIT'];
+  TestMethod:any [] = ['MANUAL', 'AUTOMATIC']; 
+  TestStatus:any [] = ['COMPLETED', 'UNTESTABLE'];
+  TestResult:any [] = [ 'PASS', 'FAIL', 'UNTESTABLE', 'NOT_APPLICABLE'];
+  comment_bytester: string[] = [ 'OK', 'NOT OK', 'BURNED', 'NOT BURNED', 'OTHER' ];
+  testResultOptions: any[] = [ 'PASS', 'FAIL', 'UNTESTABLE', 'NOT_APPLICABLE' ]; 
+  device_status: 'ASSIGNED' = 'ASSIGNED';
+  test_methods: any[] = ['MANUAL', 'AUTOMATIC'];
+  test_statuses: any[] = ['COMPLETED', 'UNTESTABLE'];
+  phases: string[] = ['1P', '3P'];
+  office_types: string[] = [ 'LAB', 'FIELD', 'WAREHOUSE', 'OFFICE' ];
   approverId: number | null = null;
 
   // Header + rows
@@ -77,14 +57,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     rows: [] as DeviceRow[]
   };
 
-  // Enums (from API)
-  device_status: 'ASSIGNED' = 'ASSIGNED';
-  test_methods: TestMethod[] = ['MANUAL', 'AUTOMATIC'];
-  test_statuses: TestStatus[] = ['COMPLETED', 'UNTESTABLE'];
-  phases: string[] = ['1P', '3P'];
-  office_types: string[] = [];
-
-  // Optional office block
   selectedSourceType = '';
   selectedSourceName = '';
   filteredSources: any = null;
@@ -112,6 +84,8 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
 
   // Prepared payload for POST (for preview if needed)
   payload: any;
+  testMethod: any;
+  testStatus: any;
 
   constructor(private api: ApiServicesService) {}
 
@@ -122,32 +96,17 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     // Load enums for dropdowns — normalize to our canonical enums
     this.api.getEnums().subscribe({
       next: (data) => {
-        // Device status
         this.device_status = (data?.device_status as 'ASSIGNED') ?? 'ASSIGNED';
-
-        // Methods: accept MANUAL/AUTOMATIC or MANUAL/AUTOMATED from backend
-        const rawMethods: string[] = data?.test_methods ?? ['MANUAL', 'AUTOMATIC'];
-        this.test_methods = rawMethods
-          .map(m => (m || '').toUpperCase())
-          .map(m => (m === 'AUTOMATED' ? 'AUTOMATIC' : m))
-          .filter(m => m === 'MANUAL' || m === 'AUTOMATIC') as TestMethod[];
-        if (!this.test_methods.includes(this.testMethod)) {
-          this.testMethod = this.test_methods[0] ?? 'AUTOMATIC';
-        }
-
-        // Statuses: normalize PENDING -> UNTESTABLE if backend ever sends PENDING
-        const rawStatuses: string[] = data?.test_statuses ?? ['COMPLETED', 'UNTESTABLE'];
-        this.test_statuses = rawStatuses
-          .map(s => (s || '').toUpperCase())
-          .map(s => (s === 'PENDING' ? 'UNTESTABLE' : s))
-          .filter(s => s === 'COMPLETED' || s === 'UNTESTABLE') as TestStatus[];
-        if (!this.test_statuses.includes(this.testStatus)) {
-          this.testStatus = this.test_statuses[0] ?? 'COMPLETED';
-        }
-
-        // Phases
-        const rawPhases: string[] = data?.phases ?? ['1P', '3P'];
-        this.phases = Array.from(new Set(rawPhases.map(p => (p || '').toUpperCase()).filter(Boolean)));
+        this.test_methods = data?.test_methods ?? [];
+        this.test_statuses= data?.test_statuses ?? [];
+        this.testResultOptions = data?.test_results ?? [];
+        this.comment_bytester = data?.comment_bytester ?? [];
+        this.ModalAction = data?.modal_actions ?? [];
+        this.TestMethod = data?.test_methods ?? [];
+        this.TestStatus = data?.test_statuses ?? [];
+        this.TestResult = data?.test_results ?? [];
+        // Normalize phases and office types
+        this.phases = data?.phases ?? [];
         this.office_types = Array.isArray(data?.office_types) ? data.office_types : [];
       },
       error: (err) => console.error('Enums error', err)
@@ -345,7 +304,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   }
 
   // ===================== Submit =====================
-  private passFailFromText(txt: string): TestResult {
+  private passFailFromText(txt: string): string {
     return /(^|\W)(ok|pass)(\W|$)/i.test(txt || '') ? 'PASS' : 'FAIL';
   }
 
@@ -396,7 +355,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
         details: `Zone:${this.batch.header.zone || ''} Phase:${this.batch.header.phase || ''}`,
 
         // Outcome
-        test_result: (r.test_result ?? this.passFailFromText(r.result)) as TestResult,
+        test_result: (r.test_result ?? this.passFailFromText(r.result)) as string,
         test_method: this.testMethod,
         test_status: this.testStatus,
 
@@ -446,7 +405,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   }
 
   // ===================== Confirm modal wiring =====================
-  openConfirm(action: ModalAction, payload?: any): void {
+  openConfirm(action: string, payload?: any): void {
     // Reset alerts unless it is a re-open after submit
     if (action !== 'submit') {
       this.alertSuccess = null;
@@ -503,8 +462,5 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     if (a === 'submit') this.doSubmitBatch();
   }
 
-  // ===================== Print =====================
-  print(): void {
-    window.print();
-  }
+
 }
