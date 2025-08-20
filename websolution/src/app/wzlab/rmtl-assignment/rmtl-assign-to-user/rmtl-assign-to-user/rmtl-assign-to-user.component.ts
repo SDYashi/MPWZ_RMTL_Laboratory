@@ -146,7 +146,8 @@ devices = [
 
       next: () => {
         alert('Assignment successful!');
-        // this.filteredDevices.forEach(d => d.selected = false);
+        this.filteredDevices.forEach(d => d.selected = false); 
+        this.filteredDevices=[]
         this.router.navigate(['/wzlab/assignement/assign-to-user']);     
       },
       error: (err) => {

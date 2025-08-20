@@ -37,6 +37,7 @@ export class RmtlAssignedListComponent {
     this.api.getAssignmentsByStatus( this.selectedStatus).subscribe({
       next: (response) => {
         this.assignmentHistory = response || [];
+        this.filteredHistory = [];
         this.filterHistory();
       },
       error: (error) => {
