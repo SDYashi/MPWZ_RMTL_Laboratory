@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { TestReportPayload } from 'src/app/interface/models';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
+// === Canonical enums based on your API ===
 type ReportUnion =
   | 'stopdefective'
   | 'contested'
@@ -11,7 +11,6 @@ type ReportUnion =
   | 'Solar Generation Meter'
   | 'CT Testing';
 
-// === Canonical enums based on your API ===
 type TestMethod = 'MANUAL' | 'AUTOMATIC';
 type TestStatus = 'COMPLETED' | 'UNTESTABLE';
 type TestResult = 'PASS' | 'FAIL';
@@ -42,6 +41,7 @@ interface DeviceRow {
 }
 
 type ModalAction = 'reload' | 'fetch' | 'removeRow' | 'clear' | 'submit';
+
 interface ModalState {
   open: boolean;
   title: string;
@@ -51,11 +51,11 @@ interface ModalState {
 }
 
 @Component({
-  selector: 'app-rmtl-add-testreport',
-  templateUrl: './rmtl-add-testreport.component.html',
-  styleUrls: ['./rmtl-add-testreport.component.css']
+  selector: 'app-rmtl-add-testreport-stopdefective',
+  templateUrl: './rmtl-add-testreport-stopdefective.component.html',
+  styleUrls: ['./rmtl-add-testreport-stopdefective.component.css']
 })
-export class RmtlAddTestreportComponent implements OnInit {
+export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
 
   // Report tabs
   reportType: ReportUnion = 'stopdefective';
@@ -67,7 +67,7 @@ export class RmtlAddTestreportComponent implements OnInit {
   // === Common payload controls (API-aligned) ===
   testMethod: TestMethod = 'AUTOMATIC';    // API uses AUTOMATIC (not AUTOMATED)
   testStatus: TestStatus = 'COMPLETED';    // API uses COMPLETED/UNTESTABLE
-  comment_bytester: string[] = ['Stop Defective', 'Display Off', 'Ok Found', 'Phase Mismatch'];
+  comment_bytester: string[] = ['Stop Defective', 'Display Off', 'Ok Found', 'Phase Mismatch', 'Burned', 'Terminal Melted'];
   testResultOptions: TestResult[] = ['PASS', 'FAIL'];
   approverId: number | null = null;
 
@@ -89,7 +89,7 @@ export class RmtlAddTestreportComponent implements OnInit {
   selectedSourceName = '';
   filteredSources: any = null;
 
-  // Index for autofill (by serial)
+  // Serial → device index
   private serialIndex: Record<string, {
     make?: string;
     capacity?: string;
@@ -105,12 +105,17 @@ export class RmtlAddTestreportComponent implements OnInit {
   loading = false;
   submitting = false;
 
-  // Reusable confirm modal
+  // Modal + alerts
   modal: ModalState = { open: false, title: '', message: '', action: null };
+  alertSuccess: string | null = null;
+  alertError: string | null = null;
+
+  // Prepared payload for POST (for preview if needed)
   payload: any;
 
   constructor(private api: ApiServicesService) {}
 
+  // ===================== Lifecycle =====================
   ngOnInit(): void {
     this.batch.header.date = this.toYMD(new Date());
 
@@ -126,18 +131,16 @@ export class RmtlAddTestreportComponent implements OnInit {
           .map(m => (m || '').toUpperCase())
           .map(m => (m === 'AUTOMATED' ? 'AUTOMATIC' : m))
           .filter(m => m === 'MANUAL' || m === 'AUTOMATIC') as TestMethod[];
-
         if (!this.test_methods.includes(this.testMethod)) {
           this.testMethod = this.test_methods[0] ?? 'AUTOMATIC';
         }
 
-        // Statuses: normalize PENDING -> UNTESTABLE if your API ever sends PENDING
+        // Statuses: normalize PENDING -> UNTESTABLE if backend ever sends PENDING
         const rawStatuses: string[] = data?.test_statuses ?? ['COMPLETED', 'UNTESTABLE'];
         this.test_statuses = rawStatuses
           .map(s => (s || '').toUpperCase())
           .map(s => (s === 'PENDING' ? 'UNTESTABLE' : s))
           .filter(s => s === 'COMPLETED' || s === 'UNTESTABLE') as TestStatus[];
-
         if (!this.test_statuses.includes(this.testStatus)) {
           this.testStatus = this.test_statuses[0] ?? 'COMPLETED';
         }
@@ -158,19 +161,18 @@ export class RmtlAddTestreportComponent implements OnInit {
     this.doReloadAssignedWithoutAddingRows();
   }
 
-  // ------- Counters for header badges -------
+  // ===================== Derived counters =====================
   get totalCount(): number { return this.batch?.rows?.length ?? 0; }
   get matchedCount(): number { return (this.batch?.rows ?? []).filter(r => !!r.serial && !r.notFound).length; }
   get unknownCount(): number { return (this.batch?.rows ?? []).filter(r => !!r.notFound).length; }
 
-  // ------- Build serial index from assignments -------
+  // ===================== Assigned devices =====================
   private rebuildSerialIndex(assignments: AssignmentItem[]): void {
     this.serialIndex = {};
     for (const a of assignments) {
       const d = a?.device ?? null;
       const serial = (d?.serial_number || '').toUpperCase().trim();
       if (!serial) continue;
-
       this.serialIndex[serial] = {
         make: d?.make || '',
         capacity: d?.capacity || '',
@@ -181,11 +183,11 @@ export class RmtlAddTestreportComponent implements OnInit {
     }
   }
 
-  // ------- Load assignments and populate rows (full reload) -------
   doReloadAssigned(): void {
     this.loading = true;
     this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
       next: (data: any) => {
+        this.loading = false;
         const assignments: AssignmentItem[] = Array.isArray(data)
           ? data
           : Array.isArray(data?.results) ? data.results : [];
@@ -205,8 +207,7 @@ export class RmtlAddTestreportComponent implements OnInit {
             assignment_id: a.id ?? 0,
             notFound: false,
             test_result: undefined
-          };
-             this.loading = false;
+          } as DeviceRow;
         });
 
         // keep 1 empty row if nothing
@@ -221,7 +222,7 @@ export class RmtlAddTestreportComponent implements OnInit {
           );
           this.batch.header.phase = uniq.size === 1 ? [...uniq][0] : '';
         }
-         this.loading = false;
+        this.loading = false;
       },
       error: (e) => {
         console.error('Assigned list error', e);
@@ -229,13 +230,13 @@ export class RmtlAddTestreportComponent implements OnInit {
           serial: '', make: '', capacity: '', result: '',
           device_id: 0, assignment_id: 0, notFound: false, test_result: undefined
         }];
-        this.loading = false;
+          this.loading = false;
       },
       complete: () => (this.loading = false)
     });
+    this.loading = false;
   }
 
-  // ------- Load assignments (index only) -------
   private loadDataWithoutAddingRows(assignments: AssignmentItem[]): void {
     this.rebuildSerialIndex(assignments);
   }
@@ -244,23 +245,32 @@ export class RmtlAddTestreportComponent implements OnInit {
     this.loading = true;
     this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
       next: (data: any) => {
+        this.loading = false;
         const assignments: AssignmentItem[] = Array.isArray(data)
           ? data
-          : Array.isArray(data?.results)
-            ? data.results
-            : [];
+          : Array.isArray(data?.results) ? data.results : [];
         this.loadDataWithoutAddingRows(assignments);
+
+        // Try to infer phase from assignment set if header empty
+        if (!this.batch.header.phase) {
+          const uniq = new Set(
+            assignments
+              .map(a => (a.device?.phase || '').toUpperCase())
+              .filter(Boolean)
+          );
+          this.batch.header.phase = uniq.size === 1 ? [...uniq][0] : '';
           this.loading = false;
+        }
       },
       error: (e) => {
         console.error('Assigned list error', e);
-         this.loading = false;
+        this.loading = false;
       },
       complete: () => (this.loading = false)
     });
   }
 
-  // ------- Row ops + autofill -------
+  // ===================== Row ops + autofill =====================
   addBatchRow(): void {
     this.batch.rows.push({
       serial: '', make: '', capacity: '', result: '',
@@ -319,7 +329,7 @@ export class RmtlAddTestreportComponent implements OnInit {
     return `${r.assignment_id || 0}_${r.device_id || 0}_${r.serial || ''}_${index}`;
   }
 
-  // ------- Office lookup -------
+  // ===================== Office lookup =====================
   private doFetchOffice(): void {
     if (!this.selectedSourceType || !this.selectedSourceName) return;
     this.loading = true;
@@ -334,7 +344,7 @@ export class RmtlAddTestreportComponent implements OnInit {
     this.filteredSources = null;
   }
 
-  // ------- Submit -------
+  // ===================== Submit =====================
   private passFailFromText(txt: string): TestResult {
     return /(^|\W)(ok|pass)(\W|$)/i.test(txt || '') ? 'PASS' : 'FAIL';
   }
@@ -349,14 +359,13 @@ export class RmtlAddTestreportComponent implements OnInit {
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString();
   }
 
-  private doSubmitBatch(): void {
-    // Make sure defaults exist (post-enum load)
+  // Prepare payload without sending (used for preview)
+  private buildPayloadForPreview(): any[] {
     if (!this.testMethod && this.test_methods.length) this.testMethod = this.test_methods[0];
     if (!this.testStatus && this.test_statuses.length) this.testStatus = this.test_statuses[0];
-
     const when = this.isoOn(this.batch.header.date);
 
-     this.payload = this.batch.rows
+    return (this.batch.rows || [])
       .filter(r => (r.serial || '').trim())
       .map(r => ({
         device_id: r.device_id ?? 0,
@@ -394,23 +403,56 @@ export class RmtlAddTestreportComponent implements OnInit {
         // Approver (optional)
         approver_id: this.approverId ?? null
       }));
+  }
+
+  private doSubmitBatch(): void {
+    // Ensure defaults exist (post-enum load)
+    if (!this.testMethod && this.test_methods.length) this.testMethod = this.test_methods[0];
+    if (!this.testStatus && this.test_statuses.length) this.testStatus = this.test_statuses[0];
+
+    // Build payload (also used for preview)
+    this.payload = this.buildPayloadForPreview();
+
+    if (!this.payload.length) {
+      this.alertError = 'No valid rows to submit.';
+      this.alertSuccess = null;
+      this.openConfirm('submit'); // show error in the same modal
+      return;
+    }
 
     this.submitting = true;
+    this.alertSuccess = null;
+    this.alertError = null;
+
     this.api.postTestReports(this.payload).subscribe({
-      next: () => {
+      next: (resp) => {
+        this.loading = false;
         this.submitting = false;
-        this.report_printing = this.reportType;
-        // (optional) this.doClearRows();
+        this.alertSuccess = 'Batch Report submitted successfully!';
+        this.alertError = null;
+        // this.report_printing = this.reportType;
+        // Keep modal open to show success; user can close or print
+        // Optionally clear: this.doClearRows();
+        // Optionally: auto-close after delay—commented for tester-driven flow
+        // setTimeout(() => this.closeModal(), 1200);
       },
       error: (error) => {
         this.submitting = false;
+        this.alertSuccess = null;
+        this.alertError = 'Error submitting report. Please verify rows and try again.';
         console.error('Submit batch error', error);
       }
     });
   }
 
-  // ------- Confirm modal wiring -------
+  // ===================== Confirm modal wiring =====================
   openConfirm(action: ModalAction, payload?: any): void {
+    // Reset alerts unless it is a re-open after submit
+    if (action !== 'submit') {
+      this.alertSuccess = null;
+      this.alertError = null;
+    }
+
     this.modal.action = action;
     this.modal.payload = payload;
 
@@ -432,8 +474,10 @@ export class RmtlAddTestreportComponent implements OnInit {
         this.modal.message = 'Clear all rows and leave one empty row?';
         break;
       case 'submit':
-        this.modal.title = 'Submit Batch Report';
-        this.modal.message = `Submit ${this.matchedCount} matched row(s) and ${this.unknownCount} unknown row(s)?`;
+        // When opening preview, build the payload to reflect current selections
+        this.payload = this.buildPayloadForPreview();
+        this.modal.title = 'Submit Batch Report — Preview';
+        this.modal.message = `Preview and confirm submission of ${this.matchedCount} matched row(s) and ${this.unknownCount} unknown row(s).`;
         break;
     }
 
@@ -449,7 +493,8 @@ export class RmtlAddTestreportComponent implements OnInit {
   confirmModal(): void {
     const a = this.modal.action;
     const p = this.modal.payload;
-    this.closeModal();
+    // For submit, keep modal open to show success/error alerts after API; for others, close first
+    if (a !== 'submit') this.closeModal();
 
     if (a === 'reload') this.doReloadAssigned();
     if (a === 'fetch') this.doFetchOffice();
@@ -458,7 +503,7 @@ export class RmtlAddTestreportComponent implements OnInit {
     if (a === 'submit') this.doSubmitBatch();
   }
 
-  // ------- Print -------
+  // ===================== Print =====================
   print(): void {
     window.print();
   }
