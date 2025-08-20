@@ -6,9 +6,9 @@
         <i class="bi bi-hdd-stack fs-4"></i>
         <h5 class="mb-0 fw-semibold">Bulk Device Entry</h5>
       </div>
-      <span class="badge bg-light text-dark rounded-pill px-3 py-2">
+      <!-- <span class="badge bg-light text-dark rounded-pill px-3 py-2">
         Meters: {{ devices?.length || 0 }} • CTs: {{ cts?.length || 0 }}
-      </span>
+      </span> -->
     </div>
 
     <div class="card-body p-4">
@@ -100,7 +100,7 @@
                 <i class="bi bi-filetype-csv"></i> CSV Template
               </button>
               <button class="btn btn-outline-secondary btn-sm" type="button" (click)="clearMeters()"
-                      [disabled]="!devices?.length">
+                      [disabled]="!devices || !devices.length">
                 <i class="bi bi-trash3"></i> Clear
               </button>
             </div>
@@ -318,7 +318,7 @@
               <button class="btn btn-outline-secondary btn-sm" type="button" (click)="downloadCTCSVTemplate()">
                 <i class="bi bi-filetype-csv"></i> CSV Template
               </button>
-              <button class="btn btn-outline-secondary btn-sm" type="button" (click)="clearCTs()" [disabled]="!cts?.length">
+              <button class="btn btn-outline-secondary btn-sm" type="button" (click)="clearCTs()" [disabled]="cts.length === 0">
                 <i class="bi bi-trash3"></i> Clear
               </button>
             </div>
@@ -327,25 +327,6 @@
           <!-- CT defaults -->
           <div class="bg-body-tertiary rounded-4 border p-3 mb-3">
             <div class="row g-3">
-              <div class="col-md-3">
-                <div class="form-floating">
-                  <select class="form-select" [(ngModel)]="ctRange.ct_class" name="ct_class">
-                    <option value="">--</option>
-                    <option *ngFor="let option of ct_classes" [value]="option">{{ option }}</option>
-                  </select>
-                  <label class="fw-semibold">CT Class</label>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="form-floating">
-                  <select class="form-select" [(ngModel)]="ctRange.ct_ratio" name="ct_ratio">
-                    <option value="">--</option>
-                    <option *ngFor="let option of ct_ratios" [value]="option">{{ option }}</option>
-                  </select>
-                  <label class="fw-semibold">CT Ratio</label>
-                </div>
-              </div>
-
               <div class="col-md-3" *ngFor="let def of ctDefaultsUI">
                 <div class="form-floating">
                   <select class="form-select" [(ngModel)]="ctMeta[def.key]" name="ct_default_{{def.key}}">
@@ -409,8 +390,11 @@
             <table class="table table-sm table-hover align-middle mb-0 table-modern">
               <thead class="table-light position-sticky top-0">
                 <tr class="text-center text-nowrap">
-                  <th>#</th><th>Serial No</th><th>CT Class</th><th>CT Ratio</th><th>Make</th><th>Capacity</th>
-                  <th>Phase</th><th>Category</th><th>Meter Type</th><th>Conn.</th><th>Voltage</th><th>Current</th><th>Purpose</th><th>Remark</th><th></th>
+                  <th>S.No</th><th>Serial No</th><th>CT Class</th><th>CT Ratio</th><th>Make</th>
+                  <!-- <th>Capacity</th><th>Phase</th><th>Category</th><th>Meter Type</th> -->
+                  <th>Conn. Type</th>
+                  <!-- <th>Voltage</th><th>Current</th> -->
+                  <th>Purpose</th><th>Remark</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -438,7 +422,7 @@
                     </select>
                   </td>
 
-                  <td>
+                  <!-- <td>
                     <select class="form-select form-select-sm" [(ngModel)]="ct.capacity" name="ct_capacity{{i}}">
                       <option *ngFor="let option of capacities" [value]="option">{{ option }}</option>
                     </select>
@@ -460,7 +444,7 @@
                     <select class="form-select form-select-sm" [(ngModel)]="ct.meter_type" name="ct_meter_type{{i}}">
                       <option *ngFor="let option of meterTypes" [value]="option">{{ option }}</option>
                     </select>
-                  </td>
+                  </td> -->
 
                   <td>
                     <select class="form-select form-select-sm" [(ngModel)]="ct.connection_type" name="ct_connection_type{{i}}">
@@ -468,7 +452,7 @@
                     </select>
                   </td>
 
-                  <td>
+                  <!-- <td>
                     <select class="form-select form-select-sm" [(ngModel)]="ct.voltage_rating" name="ct_voltage{{i}}">
                       <option *ngFor="let option of voltage_ratings" [value]="option">{{ option }}</option>
                     </select>
@@ -478,7 +462,7 @@
                     <select class="form-select form-select-sm" [(ngModel)]="ct.current_rating" name="ct_current{{i}}">
                       <option *ngFor="let option of current_ratings" [value]="option">{{ option }}</option>
                     </select>
-                  </td>
+                  </td> -->
 
                   <td>
                     <select class="form-select form-select-sm" [(ngModel)]="ct.device_testing_purpose" name="ct_purpose{{i}}" required>

@@ -25,14 +25,14 @@ interface CTRow {
   ct_class?: string | null;
   ct_ratio?: string | null;
   make: string;
-  capacity: string;
-  phase: string;
-  meter_category: string;
-  meter_class?: string | null;
-  meter_type: string;
+  // capacity: string;
+  // phase: string;
+  // meter_category: string;
+  // meter_class?: string | null;
+  // meter_type: string;
   connection_type: string;
-  voltage_rating: string;
-  current_rating: string;
+  // voltage_rating: string;
+  // current_rating: string;
   device_testing_purpose: string;
   remark?: string | null;
   initiator?: string | null;
@@ -87,7 +87,9 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   ctRange: any = this.defaultCtRange();
 
   ctMeta: any = {
-    make: '', capacity: '', phase: '', meter_category: '', meter_class: '',
+    make: '', 
+    capacity: '', 
+    phase: '', meter_category: '', meter_class: '',
     meter_type: '', connection_type: '', voltage_rating: '', current_rating: '',
     serial_number: '', ct_class: '', ct_ratio: '', remark: '',
     device_testing_purpose: '', initiator: ''
@@ -138,13 +140,13 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           ct_class: this.ct_classes[0] || '',
           ct_ratio: this.ct_ratios[0] || '',
           capacity: this.capacities[0] || '',
-          phase: this.phases[0] || '',
-          meter_category: this.meter_categories[0] || '',
-          meter_class: this.meter_classes[0] || '',
-          meter_type: this.meterTypes[0] || '',
+          // phase: this.phases[0] || '',
+          // meter_category: this.meter_categories[0] || '',
+          // meter_class: this.meter_classes[0] || '',
+          // meter_type: this.meterTypes[0] || '',
           connection_type: this.connection_types[0] || 'LT',
-          voltage_rating: this.voltage_ratings[0] || '230V',
-          current_rating: this.current_ratings[0] || '5-30A',
+          // voltage_rating: this.voltage_ratings[0] || '230V',
+          // current_rating: this.current_ratings[0] || '5-30A',
           device_testing_purpose: this.meterDefaultPurpose,
           initiator: this.initiators[0] || 'CIS'
         });
@@ -176,7 +178,6 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
 
         this.ctDefaultsUI = [
           { key: 'make',                   label: 'Make',        options: this.makes },
-          { key: 'capacity',               label: 'Capacity',    options: this.capacities },
           { key: 'ct_class',               label: 'CT Class',    options: this.ct_classes },
           { key: 'ct_ratio',               label: 'CT Ratio',    options: this.ct_ratios },
           { key: 'device_testing_purpose', label: 'Purpose',     options: this.device_testing_purpose },
@@ -342,18 +343,18 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   // ---------- CT ops ----------
   addCT(): void {
     this.cts.push({
-      serial_number: '',
-      ct_class: '',
-      ct_ratio: '',
+      serial_number:this.ctMeta.serial_number,
+      ct_class: this.ctMeta.ct_class || '',
+      ct_ratio:this.ctMeta.ct_ratio || '',
       make: this.ctMeta.make,
-      capacity: this.ctMeta.capacity,
-      phase: this.ctMeta.phase,
-      meter_category: this.ctMeta.meter_category,
-      meter_class: this.ctMeta.meter_class || null,
-      meter_type: this.ctMeta.meter_type,
+      // capacity: this.ctMeta.capacity,
+      // phase: this.ctMeta.phase,
+      // meter_category: this.ctMeta.meter_category,
+      // meter_class: this.ctMeta.meter_class || null,
+      // meter_type: this.ctMeta.meter_type,
       connection_type: this.ctMeta.connection_type,
-      voltage_rating: this.ctMeta.voltage_rating,
-      current_rating: this.ctMeta.current_rating,
+      // voltage_rating: this.ctMeta.voltage_rating,
+      // current_rating: this.ctMeta.current_rating,
       device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
       initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
       remark: ''
@@ -375,14 +376,14 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         ct_class: (ct_class || '').trim() || null,
         ct_ratio: (ct_ratio || '').trim() || null,
         make: this.ctMeta.make,
-        capacity: this.ctMeta.capacity,
-        phase: this.ctMeta.phase,
-        meter_category: this.ctMeta.meter_category,
-        meter_class: this.ctMeta.meter_class || null,
-        meter_type: this.ctMeta.meter_type,
+        // capacity: this.ctMeta.capacity,
+        // phase: this.ctMeta.phase,
+        // meter_category: this.ctMeta.meter_category,
+        // meter_class: this.ctMeta.meter_class || null,
+        // meter_type: this.ctMeta.meter_type,
         connection_type: this.ctMeta.connection_type,
-        voltage_rating: this.ctMeta.voltage_rating,
-        current_rating: this.ctMeta.current_rating,
+        // voltage_rating: this.ctMeta.voltage_rating,
+        // current_rating: this.ctMeta.current_rating,
         device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
         initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
         remark: ''
@@ -401,7 +402,6 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       const lines = text.split(/\r?\n/);
 
       // Header:
-      // serial_number,ct_class,ct_ratio,make,capacity,phase,meter_category,meter_class,meter_type,connection_type,voltage_rating,current_rating,device_testing_purpose,remark,initiator
       for (const raw of lines.slice(1)) {
         const line = raw.trim();
         if (!line) continue;
@@ -418,14 +418,14 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
             ct_class: (ct_class || '').trim() || null,
             ct_ratio: (ct_ratio || '').trim() || null,
             make: make || '',
-            capacity: capacity || '',
-            phase: phase || '',
-            meter_category: meter_category || '',
-            meter_class: (meter_class || '') || null,
-            meter_type: meter_type || '',
+            // capacity: capacity || '',
+            // phase: phase || '',
+            // meter_category: meter_category || '',
+            // meter_class: (meter_class || '') || null,
+            // meter_type: meter_type || '',
             connection_type: connection_type || '',
-            voltage_rating: voltage_rating || '',
-            current_rating: current_rating || '',
+            // voltage_rating: voltage_rating || '',
+            // current_rating: current_rating || '',
             device_testing_purpose: device_testing_purpose || this.meterDefaultPurpose,
             initiator: initiator || this.initiators[0] || 'CIS',
             remark: (remark || '').trim() || null
@@ -566,14 +566,14 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         ct_class: (ct.ct_class ?? '').trim() || null,
         ct_ratio: (ct.ct_ratio ?? '').trim() || null,
         make: ct.make,
-        capacity: ct.capacity,
-        phase: ct.phase,
-        meter_category: ct.meter_category,
-        meter_class: (ct.meter_class ?? '').trim() || null,
-        meter_type: ct.meter_type,
+        // capacity: ct.capacity,
+        // phase: ct.phase,
+        // meter_category: ct.meter_category,
+        // meter_class: (ct.meter_class ?? '').trim() || null,
+        // meter_type: ct.meter_type,
         connection_type: ct.connection_type,
-        voltage_rating: ct.voltage_rating,
-        current_rating: ct.current_rating,
+        // voltage_rating: ct.voltage_rating,
+        // current_rating: ct.current_rating,
         device_testing_purpose: (ct.device_testing_purpose || this.meterDefaultPurpose),
         initiator: ct.initiator || this.initiators[0] || 'CIS',
         remark: (ct.remark ?? '').trim() || null
@@ -587,14 +587,14 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
 
     // Optional pre-submit enum guard
     const bad = cleaned.filter(r =>
-      !this.in(this.capacities, r.capacity) ||
-      !this.in(this.phases, r.phase) ||
+      // !this.in(this.capacities, r.capacity) ||
+      // !this.in(this.phases, r.phase) ||
       !this.in(this.connection_types, r.connection_type) ||
-      !this.in(this.meter_categories, r.meter_category) ||
-      !this.in(this.meter_classes, r.meter_class ?? '') ||
-      !this.in(this.meterTypes, r.meter_type) ||
-      !this.in(this.voltage_ratings, r.voltage_rating) ||
-      !this.in(this.current_ratings, r.current_rating) ||
+      // !this.in(this.meter_categories, r.meter_category) ||
+      // !this.in(this.meter_classes, r.meter_class ?? '') ||
+      // !this.in(this.meterTypes, r.meter_type) ||
+      // !this.in(this.voltage_ratings, r.voltage_rating) ||
+      // !this.in(this.current_ratings, r.current_rating) ||
       !this.in(this.initiators, r.initiator)
     );
     if (bad.length) {
