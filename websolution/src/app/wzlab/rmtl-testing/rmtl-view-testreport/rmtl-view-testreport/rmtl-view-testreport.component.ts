@@ -111,7 +111,7 @@ export class RmtlViewTestreportComponent implements OnInit {
 
   // client pagination
   page = 1;
-  pageSize = 10;
+  pageSize = 1000;
   pages: number[] = [];
 
   // ui state
