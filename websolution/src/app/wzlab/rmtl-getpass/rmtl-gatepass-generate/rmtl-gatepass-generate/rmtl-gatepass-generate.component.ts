@@ -220,7 +220,9 @@ export class RmtlGatepassGenerateComponent implements OnInit {
         this.closeGatepassModal();
         this.gatepassInfo = res?.gatepass ?? res;
         alert('Gatepass Generated!');
-        // this.gatepassTemplate.downloadFromApi(res);
+        this.loadReportIds(); // Reload report IDs to reset state
+        this.devices = []; // Clear devices after gatepass generation
+        // this.downloadGatepassPdf(this.gatepassInfo);
       },
       error: err => {
         console.error(err);

@@ -1,5 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
+import type { TDocumentDefinitions } from 'pdfmake/interfaces';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
+(pdfMake as any).vfs = pdfFonts.vfs;
+import TDocumentDefinition from 'pdfmake/interfaces';
+import { environment } from 'src/environment/environment';
+type TDocumentDefinition = /*unresolved*/ any;
 
 interface MeterDevice {
   id: number;
@@ -7,6 +14,8 @@ interface MeterDevice {
   make?: string;
   capacity?: string;
   phase?: string;
+  location_code?: string | null;
+  location_name?: string | null;
 }
 interface AssignmentItem {
   id: number;           // assignment_id
@@ -66,7 +75,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
 
   // Header + rows
   batch = {
-    header: { zone: '', phase: '', date: '' },
+    header: { zone: '', phase: '', date: '', location_code: '', location_name: '' },
     rows: [] as DeviceRow[]
   };
 
@@ -213,6 +222,11 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
           ? data
           : Array.isArray(data?.results) ? data.results : [];
         this.loadDataWithoutAddingRows(assignments);
+        const firstDevice = assignments.find(a => a.device);
+        if (firstDevice) {
+          this.batch.header.location_code = firstDevice.device?.location_code ?? '';
+          this.batch.header.location_name = firstDevice.device?.location_name ?? '';
+        }
 
         if (!this.batch.header.phase) {
           const uniq = new Set(
@@ -386,6 +400,12 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     this.api.postTestReports(this.payload).subscribe({
       next: () => {
         this.submitting = false;
+          // create PDF BEFORE clearing rows
+        try {
+          this.downloadStopDefectivePdfFromBatch();
+        } catch (e) {
+          console.error('PDF generation failed:', e);
+        }
         this.alertSuccess = 'Batch Report submitted successfully!';
         this.alertError = null;
         this.batch.rows = [this.emptyRow()];  // reset to one empty row
@@ -414,7 +434,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     switch (action) {
       case 'reload':
         this.modal.title = 'Reload Assigned Devices';
-        this.modal.message = 'Replace the table with the latest assigned devices for this user?';
+        this.modal.message = 'Replacing table with all latest assigned devices?';
         break;
       case 'removeRow':
         this.modal.title = 'Remove Row';
@@ -427,7 +447,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
       case 'submit':
         this.payload = this.buildPayloadForPreview();
         this.modal.title = 'Submit Batch Report — Preview';
-        this.modal.message = `Preview and confirm submission of ${this.matchedCount} matched row(s) and ${this.unknownCount} unknown row(s).`;
+        this.modal.message = '';
         break;
       default:
         this.modal.title = '';
@@ -452,4 +472,193 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     if (a === 'clear') this.doClearRows();
     if (a === 'submit') this.doSubmitBatch();
   }
+
+  // ===================== PDF Download =====================
+ // ---------- PDF helpers ----------
+private buildPrintableSnapshot() {
+  const rows = (this.batch.rows || [])
+    .filter(r => (r.serial || '').trim())
+    .map(r => ({
+      serial: r.serial?.trim() || '-',
+      make: r.make || '',
+      capacity: r.capacity || '',
+      remark: r.remark || r.other || '',
+      test_result: r.test_result || ''
+    }));
+
+  const meta = {
+    zone: (this.batch.header.location_code ? this.batch.header.location_code + ' - ' : '') + (this.batch.header.location_name || '') || '',
+    phase: this.batch.header.phase || '',
+    date: this.batch.header.date || this.toYMD(new Date()),
+    testMethod: this.testMethod || '-',
+    testStatus: this.testStatus || '-',
+    approverId: this.approverId ?? '-',
+    testerName: (localStorage.getItem('currentUserName') || '').toString(),
+    labName: 'REMOTE METERING TESTING LABORATORY INDORE'
+  };
+
+  return { rows, meta };
 }
+
+private isOk(row: { remark: string; test_result: string }): boolean {
+  const t = `${row.test_result} ${row.remark}`.toLowerCase();
+  return /\bok\b|\bpass\b/.test(t);
+}
+
+private resultText(row: { remark: string; test_result: string }): string {
+  const t = (row.test_result || '').trim();
+  const m = (row.remark || '').trim();
+  if (t && m && t.toUpperCase() !== 'OK') return `${t} — ${m}`;
+  if (t && (!m || t.toUpperCase() === 'OK')) return t;
+  return m || '-';
+}
+
+private buildStopDefectiveDoc(
+  rows: Array<{serial:string;make:string;capacity:string;remark:string;test_result:string}>,
+  meta: any
+): TDocumentDefinitions {
+  const total = rows.length;
+  const okCount = rows.filter(r => this.isOk(r)).length;
+  const defCount = total - okCount;
+
+  const tableBody: any[] = [[
+    { text: 'S.No', style: 'th', alignment: 'center' },
+    { text: 'METER NUMBER', style: 'th' },
+    { text: 'MAKE', style: 'th' },
+    { text: 'CAPACITY', style: 'th' },
+    { text: 'TEST RESULT', style: 'th' },
+  ]];
+  rows.forEach((r, i) => {
+    tableBody.push([
+      { text: String(i + 1), alignment: 'center' },
+      { text: r.serial || '-' },
+      { text: r.make || '-' },
+      { text: r.capacity || '-' },
+      { text: this.resultText(r) },
+    ]);
+  });
+
+  return {
+    pageSize: 'A4',
+    pageMargins: [28, 36, 28, 40],
+    defaultStyle: { fontSize: 10 }, // set font here if you embed Devanagari
+    styles: {
+      hindiTitle: { fontSize: 14, bold: true, alignment: 'center' },
+      sub: { fontSize: 10, color: '#666', alignment: 'center', margin: [0,2,0,0] },
+      th: { bold: true },
+      badge: { fontSize: 11, bold: true, alignment: 'right' },
+      rightSmall: { fontSize: 9, alignment: 'right', margin: [0,2,0,0] },
+      footRole: { fontSize: 10, bold: true, alignment: 'center' },
+      footTiny: { fontSize: 9, alignment: 'center', color: '#444' },
+    },
+    info: { title: `Stop-Defective_${meta.date}` },
+    // header: {
+    //   columns: [
+    //     {
+    //       image: 'data:image/png;base64,' + environment.LOGO_BASE64,
+    //       width: 100,
+    //       margin: [0, 8, 0, 0],
+    //     },
+    //     {
+    //       image: 'data:image/png;base64,' + environment.LOGO_BASE64,
+    //       width: 100,
+    //       margin: [0, 8, 0, 0],
+    //       alignment: 'right',
+    //     },
+    //   ],
+    //   margin: [0, 8, 0, 0],
+    // },
+    content: [
+      {
+        columns: [
+          { width: '*', stack: [
+            { text: 'MADHYAA PRADESH PASCHIM KSHETRA VIDYUT VITARNAN COMPANY LIMITED', style: 'hindiTitle' }, // { text: 'Madhya Pradesh Paschim Kshetra Vidyut Vitaran Company Limited Indore', style: 'hindiTitle' },
+            { text: meta.labName, style: 'sub' },
+            { text: 'MPPKVVCL NEAR CONFRENCE HALL  , POLOGROUND, PIN-452003 INDORE, (MP).\ntestinglabwzind@gmail.com - Ph. No. 0731-2997802', style: 'sub', margin: [0,3,0,3] },
+          ]}        
+        ]
+      },
+
+      { canvas: [{ type:'line', x1:0, y1:0, x2:540, y2:0, lineWidth:1 }], margin: [0,6,0,6] },
+
+      {
+        layout: 'lightHorizontalLines',
+        table: {
+          widths: ['auto','*','auto','*','auto','*'],
+          body: [
+            [{ text:'ZONE/DC', bold:true }, meta.zone || '-',
+             { text:'PHASE', bold:true }, meta.phase || '-',
+             { text:'TESTING DATE', bold:true }, meta.date],
+            [{ text:'Test Method', bold:true }, meta.testMethod,
+             { text:'Test Status', bold:true }, meta.testStatus,
+             { text:'Approver ID', bold:true }, String(meta.approverId || '-')],
+          ]
+        },
+        margin: [0, 0, 0, 8]
+      },
+
+      {
+        layout: 'lightHorizontalLines',
+        table: { headerRows: 1, widths: ['auto','*','*','*','*'], body: tableBody }
+      },
+
+      { text: `\nTOTAL: ${total}   •   OK: ${okCount}   •   DEF: ${defCount}`, alignment: 'right' },
+
+      { text: '\n' },
+
+      {
+        columns: [
+          {
+            width: '*',
+            stack: [
+              { text: 'Tested by', style: 'footRole' },
+              { text: '\n\n____________________________', alignment: 'center' },
+              { text: (meta.testerName || ''), style: 'footTiny' },
+              { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
+            ],
+          },
+          {
+            width: '*',
+            stack: [
+              { text: 'Verified by', style: 'footRole' },
+              { text: '\n\n____________________________', alignment: 'center' },
+              { text: (meta.testerName || ''), style: 'footTiny' },
+              { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
+            ],
+          },
+          {
+            width: '*',
+            stack: [
+              { text: 'Approved by', style: 'footRole' },
+              { text: '\n\n____________________________', alignment: 'center' },
+              { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
+            ],
+          },
+        ],
+        margin: [0, 8, 0, 0]
+      },
+    ],
+    footer: (currentPage, pageCount) => ({
+      columns: [
+        { text: `Page ${currentPage} of ${pageCount}`, alignment: 'left', margin: [28,0,0,0] },
+        { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0,0,28,0] },
+      ],
+      fontSize: 8
+    })
+  };
+}
+
+private downloadStopDefectivePdfFromBatch(): void {
+  const snap = this.buildPrintableSnapshot();
+  const doc = this.buildStopDefectiveDoc(snap.rows, snap.meta);
+  const fname = `StopDefective_${snap.meta.date}.pdf`;
+  pdfMake.createPdf(doc).download(fname);
+}
+
+
+
+
+
+
+}
+
