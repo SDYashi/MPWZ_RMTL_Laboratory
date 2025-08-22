@@ -1,72 +1,174 @@
+<!-- rmtl-gatepass-generate.component.html -->
 <div class="container-fluid mt-4">
-  <div class="card shadow">
-    <div class="card-header text-white" style="background:#151433">
+  <div class="card shadow border-0">
+    <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
       <h5 class="mb-0">RMTL — Gatepass Generate</h5>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-secondary">From: {{ fromDate }}</span>
+        <span class="badge bg-secondary">To: {{ toDate }}</span>
+      </div>
     </div>
+
     <div class="card-body">
-
-      <!-- Inward Number Selection -->
-      <div class="row mb-3">
+      <!-- Filters -->
+      <div class="row g-3 align-items-end">
+        <div class="col-sm-6 col-md-3">
+          <label class="form-label fw-semibold">From Date</label>
+          <input type="date" class="form-control" [(ngModel)]="fromDate" name="fromDate" (change)="onDatesChange()">
+        </div>
+        <div class="col-sm-6 col-md-3">
+          <label class="form-label fw-semibold">To Date</label>
+          <input type="date" class="form-control" [(ngModel)]="toDate" name="toDate" (change)="onDatesChange()">
+        </div>
         <div class="col-md-6">
-          <label class="form-label mt-2 fw-bold">Select Inward Number</label>
-          <select class="form-select" [(ngModel)]="selectedInwardNo" name="inward_no" (change)="fetchDevices()" required>
-            <option value="" disabled selected>Select Inward No</option>
-            <option *ngFor="let inward of inwardList" [value]="inward">{{ inward }}</option>
-          </select>
+          <label class="form-label fw-semibold">Select Report ID</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-file-alt"></i></span>
+            <select class="form-select" [(ngModel)]="selectedReportId" name="report_id" (change)="onReportChange()">
+              <option value="" disabled selected>Choose...</option>
+              <option *ngFor="let id of reportIds" [value]="id">{{ id }}</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <!-- Devices Table -->
-      <div *ngIf="devices.length">
-        <div class="form-check mb-2">
-          <input type="checkbox" class="form-check-input" [(ngModel)]="selectAll" (change)="toggleAllDevices()" id="selectAllChk">
-          <label class="form-check-label" for="selectAllChk">Select All</label>
+      <!-- Loading / Errors -->
+      <div class="mt-3" *ngIf="loadingList || loadingDevices">
+        <div class="alert alert-info d-flex align-items-center gap-2 mb-0">
+          <span class="spinner-border spinner-border-sm"></span>
+          <span>Loading...</span>
         </div>
-
-        <div class="table-responsive">
-          <table class="table table-bordered align-middle text-center">
-            <thead class="table-light">
-              <tr>
-                <th>Select</th>
-                <th>Serial No</th>
-                <th>Make</th>
-                <th>Category</th>
-                <th>Phase</th>
-                <th>Type</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let device of devices">
-                <td>
-                  <input type="checkbox" [(ngModel)]="device.selected">
-                </td>
-                <td>{{ device.serial_number }}</td>
-                <td>{{ device.make }}</td>
-                <td>{{ device.meter_category }}</td>
-                <td>{{ device.phase }}</td>
-                <td>{{ device.meter_type }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Submit Button -->
-        <button class="btn btn-success mt-3" (click)="generateGatepass()" [disabled]="!selectedDevices.length">Generate Gatepass</button>
+      </div>
+      <div class="mt-3" *ngIf="!loadingList && !loadingDevices && errorMsg">
+        <div class="alert alert-danger mb-0">{{ errorMsg }}</div>
       </div>
 
-      <!-- Gatepass Info -->
+      <!-- Devices -->
+      <div class="mt-4" *ngIf="!loadingDevices && devices.length">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+          <div class="form-check">
+            <input id="selectAll" type="checkbox" class="form-check-input" [(ngModel)]="selectAll" (change)="toggleAllDevices()">
+            <label class="form-check-label" for="selectAll">Select All</label>
+          </div>
+          <div class="small text-muted">
+            Selected: <span class="fw-bold">{{ selectedCount }}</span> / {{ devices.length }}
+          </div>
+        </div>
+
+      <div class="table-responsive border rounded">
+  <table class="table table-hover align-middle mb-0">
+    <thead class="table-light">
+      <tr class="text-nowrap">
+        <th style="width:60px;">Pick</th>
+        <th>Device ID</th>
+        <th>Report ID</th>
+        <th>Result</th>
+        <th>Status</th>
+        <th>Method</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Physical</th>
+        <th>Seal</th>
+        <th>Body</th>
+        <th>Glass</th>
+        <th>Terminal</th>
+        <th>Other</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let d of devices; trackBy: trackByDeviceId">
+        <td class="text-center">
+          <input type="checkbox" [(ngModel)]="d.selected" (change)="onRowCheckboxChange()">
+        </td>
+
+        <td class="fw-semibold">{{ d.device_id }}</td>
+
+        <td>
+          <code class="small">{{ d.report_id }}</code>
+        </td>
+
+        <td>
+          <span class="badge" [ngClass]="resultClass(d.test_result)">
+            {{ d.test_result || '-' }}
+          </span>
+        </td>
+
+        <td>
+          <span class="badge" [ngClass]="statusClass(d.test_status)">
+            {{ d.test_status || '-' }}
+          </span>
+        </td>
+
+        <td>{{ d.test_method || '-' }}</td>
+
+        <td>
+          <span [title]="d.start_datetime">
+            {{ d.start_datetime | date:'short' }}
+          </span>
+        </td>
+
+        <td>
+          <span [title]="d.end_datetime">
+            {{ d.end_datetime | date:'short' }}
+          </span>
+        </td>
+
+        <td>{{ d.physical_condition_of_device || '-' }}</td>
+        <td>{{ d.seal_status || '-' }}</td>
+        <td>{{ d.meter_body || '-' }}</td>
+        <td>{{ d.meter_glass_cover || '-' }}</td>
+        <td>{{ d.terminal_block || '-' }}</td>
+        <td>{{ d.other || '-' }}</td>
+
+        <td>
+          <span class="d-inline-block text-truncate" style="max-width: 220px;" [title]="d.details">
+            {{ d.details || '-' }}
+          </span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+        <div class="d-flex justify-content-end gap-2 mt-3">
+       <button class="btn btn-outline-secondary" type="button" (click)="clearSelection()">    
+         Clear Selection
+          </button>
+          <button class="btn btn-success" type="button" (click)="generateGatepass()" [disabled]="selectedCount === 0">
+            Generate Gatepass
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="mt-4" *ngIf="!loadingDevices && selectedReportId && devices.length === 0 && !errorMsg">
+        <div class="alert alert-warning mb-0">
+          No devices found for the selected report.
+        </div>
+      </div>
+
+      <!-- Gatepass summary -->
       <div class="mt-4" *ngIf="gatepassInfo">
         <hr>
-        <h5 class="text-primary">Gatepass Generated</h5>
-        <div class="p-3 border rounded bg-light">
-          <p><strong>Gatepass ID:</strong> {{ gatepassInfo.gatepass_id }}</p>
-          <p><strong>Inward No:</strong> {{ gatepassInfo.inward_no }}</p>
-          <p><strong>Issued At:</strong> {{ gatepassInfo.date }}</p>
-          <p><strong>Device Count:</strong> {{ gatepassInfo.device_count }}</p>
-
-          <button class="btn btn-outline-primary mt-2" (click)="printGatepass()">🖨️ Print Gatepass</button>
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title text-primary">Gatepass Generated</h5>
+            <div class="row g-3">
+              <div class="col-md-3"><strong>Gatepass ID:</strong> {{ gatepassInfo.gatepass_id }}</div>
+              <div class="col-md-3"><strong>Report ID:</strong> {{ selectedReportId }}</div>
+              <div class="col-md-3"><strong>Issued At:</strong> {{ gatepassInfo.date }}</div>
+              <div class="col-md-3"><strong>Devices:</strong> {{ gatepassInfo.device_count }}</div>
+            </div>
+            <div class="mt-3">
+              <button class="btn btn-outline-primary" (click)="printGatepass()">🖨️ Print Gatepass</button>
+            </div>
+          </div>
         </div>
       </div>
+
     </div>
   </div>
 </div>

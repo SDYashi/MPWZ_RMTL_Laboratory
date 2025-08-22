@@ -147,6 +147,19 @@ updateDeviceList(payload: any) {
 getAllInwardNumbers() {
   return this.http.get<any>('/api/inward-numbers');
 }
+// api-services.service.ts
+getReportIds(startDate:any, endDate: any) {
+  return this.http.get<{ report_ids: any[] }>(
+    `${this.baseUrl}/testing/report-ids/`,
+    { params: { start_date: startDate, end_date: endDate } }
+  );
+}
+
+
+getDevicesByReportId(reportId: string) {
+  return this.http.get<any[]>(`${this.baseUrl}/testing/report/${reportId}`);
+}
+
 
 getDevicesByInwardNo(inward_no: string) {
   return this.http.get<any>(`/api/devices/by-inward/${inward_no}`);
@@ -334,7 +347,7 @@ getGatePass(id: number): Observable<GatePass> {
 }
 
 createGatePass(gatepass: GatePass): Observable<GatePass> {
-  return this.http.post<GatePass>(`${this.baseUrl}/gatepasses`, gatepass);
+  return this.http.post<GatePass>(`${this.baseUrl}/gatepasses/`, gatepass);
 }
 
 updateGatePass(id: number, gatepass: GatePass): Observable<GatePass> {

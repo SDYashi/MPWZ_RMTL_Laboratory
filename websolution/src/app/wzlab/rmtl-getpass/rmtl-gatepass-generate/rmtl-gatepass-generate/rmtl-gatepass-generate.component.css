@@ -1,0 +1,6 @@
+/* rmtl-gatepass-generate.component.css */
+.badge.bg-primary-subtle {
+  background: #e7f1ff;
+  border: 1px solid #cfe2ff;
+}
+.table thead th { white-space: nowrap; }
