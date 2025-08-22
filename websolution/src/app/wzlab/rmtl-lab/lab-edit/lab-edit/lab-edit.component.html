@@ -1,7 +1,7 @@
 <div class="container-fluid mt-2">
   <div class="card shadow">
     <div class="card-header text-white" style="background-color: #151433; font-weight: bold;">
-      <h5 class="mb-0"><i class="fas fa-list me-2"></i> Edit Laboratory Information</h5>
+      <h5 class="mb-0"> Edit Laboratory Information</h5>
     </div>
 
     <div class="card-body bg-light">
@@ -151,11 +151,11 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" [ngClass]="{ 'border-success': responseSuccess, 'border-danger': !responseSuccess }">
 
-      <div class="modal-header border-0"
-           [ngClass]="{ 'bg-success bg-opacity-10': responseSuccess, 'bg-danger bg-opacity-10': !responseSuccess }">
+      <div class="modal-header"
+           [ngClass]="{ 'bg-secondary bg-opacity-5': responseSuccess, 'bg-danger bg-opacity-5': !responseSuccess }">
         <h5 class="modal-title fw-bold" id="alertModalLabel">
           <i class="fas" [ngClass]="responseSuccess ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i>
-          <span class="ms-2">{{ responseSuccess ? 'Update Successful' : 'Update Failed' }}</span>
+          <span>{{ responseSuccess ? 'Update Successful' : 'Update Failed' }}</span>
         </h5>
         <button type="button" class="btn-close" (click)="closeAlert()" aria-label="Close"></button>
       </div>

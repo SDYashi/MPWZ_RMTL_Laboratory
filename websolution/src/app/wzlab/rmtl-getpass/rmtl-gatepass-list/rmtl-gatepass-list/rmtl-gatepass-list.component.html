@@ -3,13 +3,14 @@
     <div class="card-header text-white" style="background:#151433">
       <h5 class="mb-0">RMTL — Gatepass List</h5>
     </div>
-    <div class="card-body">
-      <div class="d-flex justify-content-end mb-3 gap-2">
-  <button class="btn btn-outline-success" (click)="exportToExcel()">⬇ Export to Excel</button>
-  <button class="btn btn-outline-danger" (click)="exportToPDF()">⬇ Export to PDF</button>
-</div>
 
-      <!-- Filters -->
+    <div class="card-body">
+
+      <div class="d-flex justify-content-end mb-3 gap-2">
+        <button class="btn btn-outline-success" (click)="exportToExcel()">⬇ Export to Excel</button>
+        <!-- <button class="btn btn-outline-danger" (click)="exportToPDF()">⬇ Export to PDF</button> -->
+      </div>
+
       <div class="row mb-3">
         <div class="col-md-3">
           <label class="form-label mt-2 fw-bold">Start Date</label>
@@ -20,10 +21,10 @@
           <input type="date" class="form-control" [(ngModel)]="endDate" (change)="applyFilters()">
         </div>
         <div class="col-md-4">
-          <label class="form-label mt-2 fw-bold">Inward Number</label>
-          <select class="form-select" [(ngModel)]="selectedInward" (change)="applyFilters()">
+          <label class="form-label mt-2 fw-bold">Dispatch Number</label>
+          <select class="form-select" [(ngModel)]="selectedDispatchNo" (change)="applyFilters()">
             <option value="">-- All --</option>
-            <option *ngFor="let inward of inwardNos" [value]="inward">{{ inward }}</option>
+            <option *ngFor="let d of dispatchNos" [value]="d">{{ d }}</option>
           </select>
         </div>
         <div class="col-md-2 d-flex align-items-end">
@@ -31,35 +32,33 @@
         </div>
       </div>
 
-      <!-- Table -->
-<div class="table-responsive" id="printSection">
-  <table class="table table-bordered text-center">
-
+      <div class="table-responsive" id="printSection">
+        <table class="table table-bordered table-striped text-center align-middle">
           <thead class="table-light">
             <tr>
               <th>#</th>
-              <th>Inward No</th>
+              <th>Dispatch No</th>
+              <th>Report IDs</th>
               <th>Serial No</th>
               <th>Make</th>
-              <th>Category</th>
-              <th>Phase</th>
-              <th>Type</th>
-              <th>Dispatch Date</th>
+              <th>Receiver</th>
+              <th>Vehicle</th>
+              <th>Created Date</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let device of filteredDevices; let i = index">
-              <td>{{ i + 1 }}</td>
-              <td>{{ device.inward_no }}</td>
-              <td>{{ device.serial_number }}</td>
-              <td>{{ device.make }}</td>
-              <td>{{ device.meter_category }}</td>
-              <td>{{ device.phase }}</td>
-              <td>{{ device.meter_type }}</td>
-              <td>{{ device.dispatch_date | date:'yyyy-MM-dd' }}</td>
+            <tr *ngFor="let r of rows">
+              <td>{{ r.sl }}</td>
+              <td>{{ r.dispatch_number }}</td>
+              <td>{{ r.report_ids }}</td>
+              <td>{{ r.serial_no }}</td>
+              <td>{{ r.make }}</td>
+              <td>{{ r.receiver }}</td>
+              <td>{{ r.vehicle }}</td>
+              <td>{{ r.created_date }}</td>
             </tr>
-            <tr *ngIf="!filteredDevices.length">
-              <td colspan="8" class="text-center text-muted">No data found</td>
+            <tr *ngIf="!rows.length">
+              <td colspan="8" class="text-muted">No data found</td>
             </tr>
           </tbody>
         </table>

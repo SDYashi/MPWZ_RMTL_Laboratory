@@ -1,239 +1,332 @@
- <div class="dashboard-container">
-        <!-- Sidebar -->
-     <nav id="sidebar" class="sidebar overflow-y-auto vh-100"
-     [ngClass]="{ 'collapsed': sidebarCollapsed }"
- style="background: linear-gradient(to top, #062064, #1b1630);">
-    <div class="sidebar-header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-            <div class="sidebar-logo">
-                <img src="../../assets/icons/wzlogo.png" alt="mpwz logo" width="40" height="40">
-            </div>
-            <span class="fw-bold fs-5 text-white">RMTL Laboratory</span>
+<div class="dashboard-container d-flex">
+  <!-- Sidebar -->
+  <nav id="sidebar"
+       class="sidebar overflow-y-auto vh-100"
+       [ngClass]="{ 'collapsed': sidebarCollapsed }"
+       style="background: linear-gradient(to top, #062064, #1b1630);">
+
+    <div class="sidebar-header d-flex justify-content-between align-items-center p-3">
+      <div class="d-flex align-items-center">
+        <div class="sidebar-logo me-2">
+          <img src="../../assets/icons/wzlogo.png" alt="mpwz logo" width="40" height="40">
         </div>
+        <span class="fw-bold fs-5 text-white">RMTL Laboratory</span>
+      </div>
     </div>
 
-    <ul class="sidebar-menu">
-        <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" routerLink="/wzlab/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-                <span><i class="fas fa-tachometer-alt me-2"></i> <span class="menu-text">Main Dashboard</span></span>
-            </a>
-        </li>
-    </ul>
-
-    <div class="sidebar-heading px-3">ADMIN MANAGEMENT</div>
-    <ul class="sidebar-menu">
-        <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" data-bs-toggle="collapse" href="#LABManagement" role="button"
-               [attr.aria-expanded]="isRouteActive(['/wzlab/testing-laboratory'])"
-               [ngClass]="{ show: isRouteActive(['/wzlab/testing-laboratory']) }">
-                <span><i class="fas fa-microscope me-1"></i> <span class="menu-text">Laboratory Management</span></span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/testing-laboratory']) }" id="LABManagement">
-                <div class="submenu">
-                    <a class="submenu-link" routerLink="/wzlab/testing-laboratory/labs-create" routerLinkActive="active">Add New Laboratory </a>
-                    <a class="submenu-link" routerLink="/wzlab/testing-laboratory/labs-list" routerLinkActive="active">List  Existing Laboratory</a>
-                </div>
-            </div>
-        </li>
-        <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" data-bs-toggle="collapse" href="#userManagement" role="button"
-               [attr.aria-expanded]="isRouteActive(['/wzlab/user'])"
-               [ngClass]="{ show: isRouteActive(['/wzlab/user']) }">
-                <span><i class="fas fa-user me-2"></i> <span class="menu-text">User Management</span></span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/user']) }" id="userManagement">
-                <div class="submenu">
-                    <a class="submenu-link" routerLink="/wzlab/user/create-user" routerLinkActive="active">Add Laboratory User Account</a>
-                    <a class="submenu-link" routerLink="/wzlab/user/user-list" routerLinkActive="active">List Laboratory Users</a>
-                </div>
-            </div>
-        </li>
-        <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" data-bs-toggle="collapse" href="#benchManagement" role="button"
-               [attr.aria-expanded]="isRouteActive(['/wzlab/testing-bench'])"
-               [ngClass]="{ show: isRouteActive(['/wzlab/testing-bench']) }">
-                <span><i class="fas fa-table me-1"></i> <span class="menu-text">Testing Bench Management</span></span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/testing-bench']) }" id="benchManagement">
-                <div class="submenu">
-                    <a class="submenu-link" routerLink="/wzlab/testing-bench/add-bench" routerLinkActive="active">Add New Testing Bench</a>
-                    <a class="submenu-link" routerLink="/wzlab/testing-bench/view-bench-list" routerLinkActive="active">List Existing Benches</a>
-                </div>
-            </div>
-        </li>
-        <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" data-bs-toggle="collapse" href="#vendorManagement" role="button"
-               [attr.aria-expanded]="isRouteActive(['/wzlab/vendor'])"
-               [ngClass]="{ show: isRouteActive(['/wzlab/vendor']) }">
-                <span><i class="fas fa-users me-2"></i> <span class="menu-text">Vendor Management</span></span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/vendor']) }" id="vendorManagement">
-                <div class="submenu">
-                    <a class="submenu-link" routerLink="/wzlab/supply-vendors/add-supply-vendors" routerLinkActive="active">Add Vendor</a>
-                    <a class="submenu-link" routerLink="/wzlab/supply-vendors/list-supply-vendors" routerLinkActive="active">List Vendors</a>
-                </div>
-            </div>
-        </li>
-        <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" data-bs-toggle="collapse" href="#storeManagement" role="button"
-               [attr.aria-expanded]="isRouteActive(['/wzlab/store'])"
-               [ngClass]="{ show: isRouteActive(['/wzlab/store']) }">
-                <span><i class="fas fa-store me-2"></i> <span class="menu-text">Store Management</span></span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/store']) }" id="storeManagement">
-                <div class="submenu">
-                     <a class="submenu-link" routerLink="/wzlab/store/add-store" routerLinkActive="active">Add Source Stores</a>
-                     <a class="submenu-link" routerLink="/wzlab/store/view-store-list" routerLinkActive="active">View Source Stores</a>
-                          </div>
-            </div>
-        </li>
-    </ul>
-
-    <div class="sidebar-heading px-3">ACTIVITY ASSIGNMENT</div>
-    <ul class="sidebar-menu">
-        <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" data-bs-toggle="collapse" href="#userAssignments" role="button"
-               [attr.aria-expanded]="isRouteActive(['/wzlab/assignement'])"
-               [ngClass]="{ show: isRouteActive(['/wzlab/assignement']) }">
-                <span><i class="fas fa-window-maximize me-2"></i> <span class="menu-text">User Assignments</span></span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse" [ngClass]="{ show: isRouteActive(['/wzlab/assignement']) }" id="userAssignments">
-                <div class="submenu">
-                    <a class="submenu-link" routerLink="/wzlab/assignement/assign-to-user" routerLinkActive="active">Meters Assignment</a>
-                    <a class="submenu-link" routerLink="/wzlab/assignement/edit-assignment" routerLinkActive="active">Edit Meter Assignments</a>
-                    <a class="submenu-link" routerLink="/wzlab/assignement/assigned-list" routerLinkActive="active">View Assignments History</a>
-                </div>
-            </div>
-        </li>
-        <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" data-bs-toggle="collapse" href="#receivedDispatch" role="button">
-                <span><i class="fas fa-box-open me-2"></i> <span class="menu-text">Received/Dispatch Items</span></span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse" id="receivedDispatch">
-                <div class="submenu">
-                    <a class="submenu-link" routerLink="/wzlab/devices/add-devices" routerLinkActive="active">Receive Devices </a>
-                    <!-- <a class="submenu-link" routerLink="/wzlab/devices/edit-devices" routerLinkActive="active">Edit Received Devices </a> -->
-                    <a class="submenu-link" routerLink="/wzlab/getpass/gatepass-generate" routerLinkActive="active">Dispatch Devices</a>
-                    <!-- <a class="submenu-link" routerLink="/wzlab/getpass/gatepass-edit" routerLinkActive="active">Edit Dispatched Devices</a> -->
-                    <a class="submenu-link" routerLink="/wzlab/getpass/gatepass-list" routerLinkActive="active">Dispatched Devices List</a>
-                    <a class="submenu-link" routerLink="/wzlab/devices/list-devices" routerLinkActive="active"> Recieved Devices List</a>
-                </div>
-            </div>
-        </li>
-        <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" data-bs-toggle="collapse" href="#testingActivities" role="button">
-                <span><i class="fas fa-cogs me-2"></i> <span class="menu-text">Generate Meter/CT Testing</span></span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse" id="testingActivities">
-                <div class="submenu">
-                    <a class="submenu-link" routerLink="/wzlab/testing/add-testreports/stop-defective-testing" routerLinkActive="active">StopDefective Reports</a>
-                    <a class="submenu-link" routerLink="/wzlab/testing/add-testreports/contested-testing" routerLinkActive="active">Contested Reports</a>                   
-                    <a class="submenu-link" routerLink="/wzlab/testing/add-testreports/p4onm-testing" routerLinkActive="active">P4ONM Reports</a>                   
-                    <a class="submenu-link" routerLink="/wzlab/testing/add-testreports/p4vig-testing" routerLinkActive="active">P4VIG Reports</a>                   
-                    <a class="submenu-link" routerLink="/wzlab/testing/add-testreports/solarnetmeter-testing" routerLinkActive="active">Solarnetmeter Reports</a>                   
-                    <a class="submenu-link" routerLink="/wzlab/testing/add-testreports/solargenratormeter-testing" routerLinkActive="active">Solargenratormeter Reports</a>                   
-                    <a class="submenu-link" routerLink="/wzlab/testing/add-testreports/ct-testing" routerLinkActive="active">CT Reports</a>                   
-                    <a class="submenu-link" routerLink="/wzlab/testing/view-testreports" routerLinkActive="active">All Test Reports History</a>
-                </div>
-            </div>
-        </li>
-    </ul>
-
-    <div class="sidebar-heading px-3">ANALYTICS & REPORTS</div>
-    <ul class="sidebar-menu">
-        <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" data-bs-toggle="collapse" href="#usageAnalytics" role="button">
-                <span><i class="fas fa-chart-line me-2"></i> <span class="menu-text">Analytics & Reports</span></span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse" id="usageAnalytics">
-                <div class="submenu">
-                    <a class="submenu-link" routerLink="/wzlab/reports/view-usage-stock-reports">Usage & Stock Reports</a>
-                    <a class="submenu-link" routerLink="/wzlab/reports/view-daily-testing-reports">Daily Testing Report</a>
-                    <a class="submenu-link" routerLink="/wzlab/reports/view-devices-summary-reports">Device Summary Report</a>
-                </div>
-            </div>
-        </li>
-    </ul>
-<div class="sidebar-heading px-3">APPROVAL MANAGEMENT</div>
-<ul class="sidebar-menu">
-    <li class="menu-item" routerLinkActive="active">
-        <a class="menu-link" data-bs-toggle="collapse" href="#approvalMenu" role="button">
-            <span><i class="fas fa-check-circle me-2"></i> <span class="menu-text">Approve Test Results</span></span>
-            <i class="fas fa-chevron-down chevron"></i>
+    <ul class="sidebar-menu list-unstyled m-0">
+      <li class="menu-item" routerLinkActive="active">
+        <a class="menu-link d-flex justify-content-between align-items-center px-3 py-2 text-decoration-none text-white"
+           routerLink="/wzlab/dashboard"
+           routerLinkActive="active"
+           [routerLinkActiveOptions]="{ exact: true }">
+          <span><i class="fas fa-tachometer-alt me-2"></i><span class="menu-text">Main Dashboard</span></span>
         </a>
-        <div class="collapse" id="approvalMenu">
-            <div class="submenu">
-                <a class="submenu-link" routerLink="/wzlab/approval/view-approval-test-reports">Approve Test Reports</a>
-                <a class="submenu-link" routerLink="/wzlab/approval/view-pending-test-reports">Pending Approval List</a>
-                <a class="submenu-link" routerLink="/wzlab/approval/view-approved-test-reports">Approved Results List</a>
-            </div>
+      </li>
+    </ul>
+
+    <div class="sidebar-heading px-3 ">ADMIN MANAGEMENT</div>
+    <ul class="sidebar-menu list-unstyled m-0">
+      <!-- Laboratory Management -->
+      <li class="menu-item">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('LABManagement')"
+                (keydown)="onKeyToggleSection($event, 'LABManagement')"
+                [attr.aria-expanded]="sections['LABManagement'] || isRouteActive(['/wzlab/testing-laboratory'])"
+                [attr.aria-controls]="'LABManagement'">
+          <span><i class="fas fa-microscope me-2"></i><span class="menu-text">Laboratory Management</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['LABManagement'] || isRouteActive(['/wzlab/testing-laboratory'])"
+             id="LABManagement">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing-laboratory/labs-create" routerLinkActive="active">Add New Laboratory</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing-laboratory/labs-list" routerLinkActive="active">List Existing Laboratory</a>
+          </div>
         </div>
-    </li>
-</ul>
+      </li>
 
+      <!-- User Management -->
+      <li class="menu-item">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('userManagement')"
+                (keydown)="onKeyToggleSection($event, 'userManagement')"
+                [attr.aria-expanded]="sections['userManagement'] || isRouteActive(['/wzlab/user'])"
+                [attr.aria-controls]="'userManagement'">
+          <span><i class="fas fa-user me-2"></i><span class="menu-text">User Management</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['userManagement'] || isRouteActive(['/wzlab/user'])"
+             id="userManagement">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/user/create-user" routerLinkActive="active">Add Laboratory User Account</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/user/user-list" routerLinkActive="active">List Laboratory Users</a>
+          </div>
+        </div>
+      </li>
 
-    <!-- <div class="sidebar-heading px-3">SYSTEM SETTINGS</div>
-    <ul class="sidebar-menu">
-        <li class="menu-item" routerLinkActive="active">
-            <a class="menu-link" data-bs-toggle="collapse" href="#configuration" role="button">
-                <span><i class="fas fa-cog me-2"></i> <span class="menu-text">Configuration</span></span>
-                <i class="fas fa-chevron-down chevron"></i>
-            </a>
-            <div class="collapse" id="configuration">
-                <div class="submenu">
-                    <a class="submenu-link">Meter Types</a>
-                    <a class="submenu-link">Device Settings</a>
-                    <a class="submenu-link">Network Configuration</a>
-                </div>
-            </div>
-        </li>
-    </ul> -->
-</nav>
+      <!-- Testing Bench Management -->
+      <li class="menu-item">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('benchManagement')"
+                (keydown)="onKeyToggleSection($event, 'benchManagement')"
+                [attr.aria-expanded]="sections['benchManagement'] || isRouteActive(['/wzlab/testing-bench'])"
+                [attr.aria-controls]="'benchManagement'">
+          <span><i class="fas fa-table me-1"></i><span class="menu-text">Testing Bench Management</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['benchManagement'] || isRouteActive(['/wzlab/testing-bench'])"
+             id="benchManagement">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing-bench/add-bench" routerLinkActive="active">Add New Testing Bench</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing-bench/view-bench-list" routerLinkActive="active">List Existing Benches</a>
+          </div>
+        </div>
+      </li>
 
+      <!-- Vendor Management -->
+      <li class="menu-item">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('vendorManagement')"
+                (keydown)="onKeyToggleSection($event, 'vendorManagement')"
+                [attr.aria-expanded]="sections['vendorManagement'] || isRouteActive(['/wzlab/vendor', '/wzlab/supply-vendors'])"
+                [attr.aria-controls]="'vendorManagement'">
+          <span><i class="fas fa-users me-2"></i><span class="menu-text">Vendor Management</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['vendorManagement'] || isRouteActive(['/wzlab/vendor', '/wzlab/supply-vendors'])"
+             id="vendorManagement">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/supply-vendors/add-supply-vendors" routerLinkActive="active">Add Vendor</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/supply-vendors/list-supply-vendors" routerLinkActive="active">List Vendors</a>
+          </div>
+        </div>
+      </li>
 
-        <!-- Main Content -->
-        <div class="content-wrapper overflow-x-hidden">
-            <nav class="top-nav  text-white d-flex justify-content-between align-items-center px-3"
-             style="background: linear-gradient(to bottom, #081129, #010e38);">
-            <div class="d-flex align-items-center">
-                    <button class="btn sidebar-toggle me-3 d-block d-lg-none bg-primary text-white"
-                            (click)="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
-                    </button>
-            </div>
+      <!-- Store Management -->
+      <li class="menu-item">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('storeManagement')"
+                (keydown)="onKeyToggleSection($event, 'storeManagement')"
+                [attr.aria-expanded]="sections['storeManagement'] || isRouteActive(['/wzlab/store'])"
+                [attr.aria-controls]="'storeManagement'">
+          <span><i class="fas fa-store me-2"></i><span class="menu-text">Store Management</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['storeManagement'] || isRouteActive(['/wzlab/store'])"
+             id="storeManagement">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/store/add-store" routerLinkActive="active">Add Source Stores</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/store/view-store-list" routerLinkActive="active">View Source Stores</a>
+          </div>
+        </div>
+      </li>
+    </ul>
 
-            <!-- Profile Dropdown -->
-            <div class="dropdown">
-                <button class="btn user-btn dropdown-toggle d-flex align-items-center text-white" type="button"
+    <div class="sidebar-heading px-3 ">ACTIVITY ASSIGNMENT</div>
+    <ul class="sidebar-menu list-unstyled m-0">
+      <!-- User Assignments -->
+      <li class="menu-item">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('userAssignments')"
+                (keydown)="onKeyToggleSection($event, 'userAssignments')"
+                [attr.aria-expanded]="sections['userAssignments'] || isRouteActive(['/wzlab/assignement'])"
+                [attr.aria-controls]="'userAssignments'">
+          <span><i class="fas fa-window-maximize me-2"></i><span class="menu-text">User Assignments</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['userAssignments'] || isRouteActive(['/wzlab/assignement'])"
+             id="userAssignments">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/assignement/assign-to-user" routerLinkActive="active">Meters Assignment</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/assignement/edit-assignment" routerLinkActive="active">Edit Meter Assignments</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/assignement/assigned-list" routerLinkActive="active">View Assignments History</a>
+          </div>
+        </div>
+      </li>
+
+      <!-- Received/Dispatch -->
+      <li class="menu-item">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('receivedDispatch')"
+                (keydown)="onKeyToggleSection($event, 'receivedDispatch')"
+                [attr.aria-expanded]="sections['receivedDispatch'] || isRouteActive(['/wzlab/devices', '/wzlab/getpass'])"
+                [attr.aria-controls]="'receivedDispatch'">
+          <span><i class="fas fa-box-open me-2"></i><span class="menu-text">Received/Dispatch Items</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['receivedDispatch'] || isRouteActive(['/wzlab/devices', '/wzlab/getpass'])"
+             id="receivedDispatch">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/devices/add-devices" routerLinkActive="active">Receive Devices</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/getpass/gatepass-generate" routerLinkActive="active">Dispatch Devices</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/getpass/gatepass-list" routerLinkActive="active">Dispatched Devices List</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/devices/list-devices" routerLinkActive="active">Recieved Devices List</a>
+          </div>
+        </div>
+      </li>
+
+      <!-- Testing Activities -->
+      <li class="menu-item">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('testingActivities')"
+                (keydown)="onKeyToggleSection($event, 'testingActivities')"
+                [attr.aria-expanded]="sections['testingActivities'] || isRouteActive(['/wzlab/testing'])"
+                [attr.aria-controls]="'testingActivities'">
+          <span><i class="fas fa-cogs me-2"></i><span class="menu-text">Generate Meter/CT Testing</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['testingActivities'] || isRouteActive(['/wzlab/testing'])"
+             id="testingActivities">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing/add-testreports/stop-defective-testing" routerLinkActive="active">StopDefective Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing/add-testreports/contested-testing" routerLinkActive="active">Contested Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing/add-testreports/p4onm-testing" routerLinkActive="active">P4ONM Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing/add-testreports/p4vig-testing" routerLinkActive="active">P4VIG Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing/add-testreports/solarnetmeter-testing" routerLinkActive="active">Solarnetmeter Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing/add-testreports/solargenratormeter-testing" routerLinkActive="active">Solargenratormeter Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing/add-testreports/ct-testing" routerLinkActive="active">CT Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing/view-testreports" routerLinkActive="active">All Test Reports History</a>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <div class="sidebar-heading px-3 ">ANALYTICS & REPORTS</div>
+    <ul class="sidebar-menu list-unstyled m-0">
+      <li class="menu-item">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('usageAnalytics')"
+                (keydown)="onKeyToggleSection($event, 'usageAnalytics')"
+                [attr.aria-expanded]="sections['usageAnalytics'] || isRouteActive(['/wzlab/reports'])"
+                [attr.aria-controls]="'usageAnalytics'">
+          <span><i class="fas fa-chart-line me-2"></i><span class="menu-text">Analytics & Reports</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['usageAnalytics'] || isRouteActive(['/wzlab/reports'])"
+             id="usageAnalytics">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/reports/view-usage-stock-reports">Usage & Stock Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/reports/view-daily-testing-reports">Daily Testing Report</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/reports/view-devices-summary-reports">Device Summary Report</a>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <div class="sidebar-heading px-3 ">APPROVAL MANAGEMENT</div>
+    <ul class="sidebar-menu list-unstyled m-0 mb-4">
+      <li class="menu-item">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('approvalMenu')"
+                (keydown)="onKeyToggleSection($event, 'approvalMenu')"
+                [attr.aria-expanded]="sections['approvalMenu'] || isRouteActive(['/wzlab/approval'])"
+                [attr.aria-controls]="'approvalMenu'">
+          <span><i class="fas fa-check-circle me-2"></i><span class="menu-text">Approve Test Results</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['approvalMenu'] || isRouteActive(['/wzlab/approval'])"
+             id="approvalMenu">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/approval/view-approval-test-reports">Approve Test Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/approval/view-pending-test-reports">Pending Approval List</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/approval/view-approved-test-reports">Approved Results List</a>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="content-wrapper flex-grow-1 overflow-x-hidden">
+    <nav class="top-nav text-white d-flex justify-content-between align-items-center px-3"
+         style="background: linear-gradient(to bottom, #081129, #010e38);">
+      <div class="d-flex align-items-center">
+        <button class="btn sidebar-toggle me-3 d-block d-lg-none bg-primary text-white"
+                (click)="toggleSidebar()">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+
+      <!-- Profile Dropdown -->
+      <div class="dropdown">
+        <button class="btn user-btn dropdown-toggle d-flex align-items-center text-white"
+                type="button"
                 id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-user-circle me-2" aria-hidden="true"></i>
-                <span class="d-none d-md-block fw-bold m-1">{{ currentUser| titlecase }}</span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end mt-1" aria-labelledby="profileDropdown">
-                <li><a class="dropdown-item" routerLink="/wzlab/user/user-profile"><i class="fas fa-user me-2"></i>Profile</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                </ul>
-            </div>
-            </nav>
-            <!-- Overlay when sidebar is open on mobile -->
- <div class="sidebar-overlay"  *ngIf="!sidebarCollapsed && screenWidth < 992"   (click)="toggleSidebar()">
-</div>
+          <i class="fas fa-user-circle me-2" aria-hidden="true"></i>
+          <span class="d-none d-md-block fw-bold m-1">{{ currentUser | titlecase }}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end mt-1" aria-labelledby="profileDropdown">
+          <li><a class="dropdown-item" routerLink="/wzlab/user/user-profile">
+            <i class="fas fa-user me-2"></i>Profile</a>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" (click)="logout()">
+            <i class="fas fa-sign-out-alt me-2"></i>Logout</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
 
-            <!-- Page Content -->
-            <div class="page-content">               
-                <router-outlet></router-outlet>
-            </div>
-        </div>
+    <!-- Mobile overlay to close sidebar -->
+    <div class="sidebar-overlay"
+         *ngIf="!sidebarCollapsed && screenWidth < 992"
+         (click)="toggleSidebar()"></div>
+
+    <!-- Page Content -->
+    <div class="page-content">
+      <router-outlet></router-outlet>
     </div>
-
-    
+  </div>
+</div>

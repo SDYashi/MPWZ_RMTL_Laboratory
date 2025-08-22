@@ -338,8 +338,19 @@ deleteTesting(id: number): Observable<any> {
 }
 
 // --- GatePass Endpoints ---
-getGatePasses(): Observable<GatePass[]> {
-  return this.http.get<GatePass[]>(`${this.baseUrl}/gatepasses`);
+getGatePasses(startDate?: string, endDate?: string,dispatch_number?: string): Observable<GatePass[]> {
+  let params = new HttpParams();
+  if (startDate) {
+    params = params.set('start_date', startDate);
+  }
+  if (endDate) {
+    params = params.set('end_date', endDate);
+  }
+  if (dispatch_number) {
+    params = params.set('dispatch_number', dispatch_number);
+  }
+
+  return this.http.get<GatePass[]>(`${this.baseUrl}/gatepasses/`, { params });
 }
 
 getGatePass(id: number): Observable<GatePass> {

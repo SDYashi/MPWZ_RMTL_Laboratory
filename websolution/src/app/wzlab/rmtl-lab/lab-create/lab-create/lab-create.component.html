@@ -4,7 +4,7 @@
       class="card-header d-flex align-items-center justify-content-between"
       style="background-color:#151433; color:#f2ecec; font-weight:bold;"
     >
-      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Add New Laboratory Details</h5>
+      <h5 class="mb-0">Add New Laboratory </h5>
       <span class="badge bg-secondary ms-2" *ngIf="lab?.id">Editing: #{{ lab.id }}</span>
     </div>
 
@@ -142,7 +142,7 @@
            [ngClass]="{ 'bg-success bg-opacity-5': responseSuccess, 'bg-danger bg-opacity-5': !responseSuccess }">
         <h5 class="modal-title fw-bold" id="alertModalLabel">
           <i class="fas" [ngClass]="responseSuccess ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i>
-          <span class="ms-2">{{ responseSuccess ? 'Success' : 'Error' }}</span>
+          <span class="ms-1">{{ responseSuccess ? 'Success' : 'Error' }}</span>
         </h5>
         <button type="button" class="btn-close" (click)="closeAlert()" aria-label="Close"></button>
       </div>

@@ -1,8 +1,38 @@
 import { Component, OnInit } from '@angular/core';
 import * as XLSX from 'xlsx';
-import * as FileSaver from 'file-saver';
-// import * as html2pdf from './html2pdf.js';
-// const html2pdf = require('html2pdf.js')
+import { saveAs } from 'file-saver';
+import jsPDF from 'jspdf';
+// import autoTable from 'jspdf-autotable';
+import { ApiServicesService } from 'src/app/services/api-services.service';
+
+type ISODateString = string;
+
+interface Gatepass {
+  id: number;
+  receiver_name: string;
+  receiver_mobile: string;
+  created_at: ISODateString;
+  updated_at: ISODateString;
+  serial_numbers: string;    // e.g. "UNKNOWN: 120, 119, 101, 20"
+  report_ids: string;        // e.g. "20250820-6901"
+  receiver_designation: string;
+  dispatch_number: string;   // e.g. "220825-970182"
+  dispatch_to: string;
+  vehicle: string;
+  created_by: number;
+  updated_by: number | null;
+}
+
+interface Row {
+  sl: number;
+  dispatch_number: string;
+  report_ids: string;
+  serial_no: string;
+  make: string;
+  receiver: string;
+  vehicle: string;
+  created_date: string; // yyyy-MM-dd
+}
 
 @Component({
   selector: 'app-rmtl-gatepass-list',
@@ -14,95 +44,146 @@ export class RmtlGatepassListComponent implements OnInit {
   // Filters
   startDate: string = '';
   endDate: string = '';
-  selectedInward: string = '';
+  dispatchNos: string[] = [];
+  selectedDispatchNo: string = '';
 
-  // Sample Inward No list
-  inwardNos: string[] = ['INW001', 'INW002', 'INW003'];
+  // Data
+  private allGatepasses: Gatepass[] = [];
+  rows: Row[] = [];              // flattened + filtered
 
-  // Sample Data
-  allDevices = [
-    {
-      inward_no: 'INW001',
-      serial_number: 'SN1001',
-      make: 'Genus',
-      meter_category: 'Category A',
-      phase: '1P',
-      meter_type: 'DLMS',
-      dispatch_date: '2025-08-01'
-    },
-    {
-      inward_no: 'INW002',
-      serial_number: 'SN1002',
-      make: 'Secure',
-      meter_category: 'Category B',
-      phase: '3P',
-      meter_type: 'Modbus',
-      dispatch_date: '2025-08-03'
-    },
-    {
-      inward_no: 'INW003',
-      serial_number: 'SN1003',
-      make: 'HPL',
-      meter_category: 'Category A',
-      phase: '1P',
-      meter_type: 'DLMS',
-      dispatch_date: '2025-08-04'
-    }
-  ];
-
-  // Filtered Data
-  filteredDevices: any[] = [];
+  constructor(private apiService: ApiServicesService) {}
 
   ngOnInit(): void {
-    this.filteredDevices = [...this.allDevices];
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDay  = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    this.startDate = firstDay.toISOString().slice(0,10);
+    this.endDate   = lastDay.toISOString().slice(0,10);
+
+    this.loadData();
   }
 
-  applyFilters(): void {
-    this.filteredDevices = this.allDevices.filter(device => {
-      const matchInward = this.selectedInward ? device.inward_no === this.selectedInward : true;
+  private loadData(): void {
+    this.apiService.getGatePasses(this.startDate, this.endDate, this.selectedDispatchNo).subscribe({
+      next: (data:any) => {
+        this.allGatepasses = data ?? [];
 
-      const deviceDate = new Date(device.dispatch_date).getTime();
-      const from = this.startDate ? new Date(this.startDate).getTime() : null;
-      const to = this.endDate ? new Date(this.endDate).getTime() : null;
+        // Build unique dispatch numbers for dropdown
+        const set = new Set<string>(this.allGatepasses.map(g => g.dispatch_number));
+        this.dispatchNos = Array.from(set).sort();
 
-      const matchDate =
-        (!from || deviceDate >= from) &&
-        (!to || deviceDate <= to);
-
-      return matchInward && matchDate;
+        // Build filtered table rows initially
+        this.rebuildRows();
+      },
+      error: (err) => console.error('Error fetching gate passes:', err)
     });
   }
 
-  resetFilters(): void {
-    this.startDate = '';
-    this.endDate = '';
-    this.selectedInward = '';
-    this.filteredDevices = [...this.allDevices];
+  applyFilters(): void {
+    // fetch fresh data for the date range, then rebuild rows
+    this.loadData();
   }
+
+  resetFilters(): void {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDay  = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    this.startDate = firstDay.toISOString().slice(0,10);
+    this.endDate   = lastDay.toISOString().slice(0,10);
+    this.selectedDispatchNo = '';
+    this.loadData();
+  }
+
+  // --- Helpers ---
+
+  private parseSerials(serialsStr: string): { make: string; serials: string[] }[] {
+    // Expected: "MAKE1: s1, s2 | MAKE2: s3"
+    if (!serialsStr) return [];
+    return serialsStr
+      .split('|')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(group => {
+        const [mk, rest] = group.split(':');
+        const make = (mk || 'UNKNOWN').trim().toUpperCase();
+        const serials = (rest || '')
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+        return { make, serials };
+      });
+  }
+
+  private inSelectedDispatch(g: Gatepass): boolean {
+    return !this.selectedDispatchNo || g.dispatch_number === this.selectedDispatchNo;
+  }
+
+  private toDateOnly(iso: string): string {
+    // Safe guard
+    try {
+      return new Date(iso).toISOString().slice(0,10);
+    } catch {
+      return '';
+    }
+  }
+
+  public rebuildRows(): void {
+    const rows: Row[] = [];
+    let sl = 1;
+
+    for (const g of this.allGatepasses) {
+      if (!this.inSelectedDispatch(g)) continue;
+
+      const groups = this.parseSerials(g.serial_numbers);
+      const created = this.toDateOnly(g.created_at);
+
+      for (const grp of groups) {
+        for (const s of grp.serials) {
+          rows.push({
+            sl: sl++,
+            dispatch_number: g.dispatch_number,
+            report_ids: g.report_ids,
+            serial_no: s,
+            make: grp.make,
+            receiver: `${g.receiver_name} (${g.receiver_designation})`,
+            vehicle: g.vehicle,
+            created_date: created,
+          });
+        }
+      }
+    }
+
+    // Keep stable order: newest first by created_date, then dispatch, then serial
+    rows.sort((a, b) => {
+      if (a.created_date > b.created_date) return -1;
+      if (a.created_date < b.created_date) return 1;
+      if (a.dispatch_number > b.dispatch_number) return 1;
+      if (a.dispatch_number < b.dispatch_number) return -1;
+      return a.serial_no.localeCompare(b.serial_no);
+    });
+
+    // re-number after sort
+    this.rows = rows.map((r, idx) => ({ ...r, sl: idx + 1 }));
+  }
+
+  // --- Exporters ---
 
   exportToExcel(): void {
-  const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(this.filteredDevices);
-  const workbook: XLSX.WorkBook = {
-    Sheets: { 'Dispatched Devices': worksheet },
-    SheetNames: ['Dispatched Devices']
-  };
-  const excelBuffer: any = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
-  FileSaver.saveAs(blob, `DispatchedDevices_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
+    if (!this.rows.length) return;
 
-exportToPDF(): void {
-  const element = document.getElementById('printSection');
-  const opt = {
-    margin:       0.5,
-    filename:     `DispatchedDevices_${new Date().toISOString().slice(0,10)}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2 },
-    jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
-  };
-  if (element) {
-    // html2pdf().from(element).set(opt).save();
+    const worksheet = XLSX.utils.json_to_sheet(this.rows);
+    const workbook: XLSX.WorkBook = {
+      Sheets: { 'Gatepass Dispatch' : worksheet },
+      SheetNames: ['Gatepass Dispatch']
+    };
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    saveAs(blob, `Gatepass_Dispatch_${new Date().toISOString().slice(0,10)}.xlsx`);
   }
-}
+
 
 }

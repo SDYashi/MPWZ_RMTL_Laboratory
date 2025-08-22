@@ -1,6 +1,19 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { AuthService } from '../core/auth.service';
+import { filter } from 'rxjs/operators';
+
+type SectionKey =
+  | 'LABManagement'
+  | 'userManagement'
+  | 'benchManagement'
+  | 'vendorManagement'
+  | 'storeManagement'
+  | 'userAssignments'
+  | 'receivedDispatch'
+  | 'testingActivities'
+  | 'usageAnalytics'
+  | 'approvalMenu';
 
 @Component({
   selector: 'app-wzlabhome',
@@ -11,37 +24,64 @@ export class WzlabhomeComponent implements OnInit {
   currentUrl = '';
   currentUser: string | null = null;
 
+  // Layout
   sidebarCollapsed = false;
   screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
 
-  userManagementExpanded = false;
-  analyticsExpanded = false;
-  settingsExpanded = false;
+  // Single source of truth for open sections
+  sections: Record<SectionKey, boolean> = {
+    LABManagement: false,
+    userManagement: false,
+    benchManagement: false,
+    vendorManagement: false,
+    storeManagement: false,
+    userAssignments: false,
+    receivedDispatch: false,
+    testingActivities: false,
+    usageAnalytics: false,
+    approvalMenu: false,
+  };
+
+  // Map routes to sections for auto-open
+  private sectionRouteMap: Array<{ key: SectionKey; prefixes: string[] }> = [
+    { key: 'LABManagement',      prefixes: ['/wzlab/testing-laboratory'] },
+    { key: 'userManagement',     prefixes: ['/wzlab/user'] },
+    { key: 'benchManagement',    prefixes: ['/wzlab/testing-bench'] },
+    { key: 'vendorManagement',   prefixes: ['/wzlab/vendor', '/wzlab/supply-vendors'] },
+    { key: 'storeManagement',    prefixes: ['/wzlab/store'] },
+    { key: 'userAssignments',    prefixes: ['/wzlab/assignement'] },
+    { key: 'receivedDispatch',   prefixes: ['/wzlab/devices', '/wzlab/getpass'] },
+    { key: 'testingActivities',  prefixes: ['/wzlab/testing'] },
+    { key: 'usageAnalytics',     prefixes: ['/wzlab/reports'] },
+    { key: 'approvalMenu',       prefixes: ['/wzlab/approval'] },
+  ];
 
   constructor(private router: Router, private authService: AuthService) {
-    // set early so first CD sees a stable value
     this.currentUrl = this.router.url.replace('/', '');
   }
 
-  ngOnInit(): void {  
-
-    // set currentUser BEFORE first check to avoid ExpressionChanged
-    const token = localStorage.getItem('access_token'); 
+  ngOnInit(): void {
+    // user/session setup
+    const token = localStorage.getItem('access_token');
     this.currentUser = token ? this.getUserFromToken(token) : null;
     this.checkScreenSize();
+
     const user = this.authService.getuserfromtoken();
     const userId = user?.id ?? null;
     const labId = user?.lab_id ?? null;
     localStorage.setItem('currentUserId', userId?.toString() ?? '');
     localStorage.setItem('currentLabId', labId?.toString() ?? '');
+
+    // route-driven open/close
+    this.syncOpenSectionWithRoute();
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe(() => this.syncOpenSectionWithRoute());
   }
 
-  // moved out of ngAfterViewInit; you can remove that hook entirely
   private getUserFromToken(token: string): string | null {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      // adjust if your claim is different, e.g., payload.username or payload.name
-      return payload?.sub ?? null;
+      return payload?.sub ?? payload?.username ?? payload?.name ?? null;
     } catch {
       return null;
     }
@@ -58,6 +98,7 @@ export class WzlabhomeComponent implements OnInit {
   }
 
   checkScreenSize() {
+    // collapse on small screens
     this.sidebarCollapsed = this.screenWidth < 992;
   }
 
@@ -65,21 +106,28 @@ export class WzlabhomeComponent implements OnInit {
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
-  toggleUserManagement() {
-    this.userManagementExpanded = !this.userManagementExpanded;
+  // Accordion control: open one, close others
+  toggleSection(key: SectionKey) {
+    const willOpen = !this.sections[key];
+    Object.keys(this.sections).forEach(k => (this.sections[k as SectionKey] = false));
+    this.sections[key] = willOpen;
   }
 
-  toggleAnalytics() {
-    this.analyticsExpanded = !this.analyticsExpanded;
+  private syncOpenSectionWithRoute() {
+    const matched = this.sectionRouteMap.find(m => this.isRouteActive(m.prefixes));
+    Object.keys(this.sections).forEach(k => (this.sections[k as SectionKey] = false));
+    if (matched) this.sections[matched.key] = true;
   }
 
-  toggleSettings() {
-    this.settingsExpanded = !this.settingsExpanded;
+  // Keyboard accessibility for toggles
+  onKeyToggleSection(evt: KeyboardEvent, key: SectionKey) {
+    if (evt.key === 'Enter' || evt.key === ' ') {
+      evt.preventDefault();
+      this.toggleSection(key);
+    }
   }
-  
 
   logout() {
-    // use the same storage key as above
     localStorage.removeItem('access_token');
     this.router.navigate(['/wzlogin']);
   }
