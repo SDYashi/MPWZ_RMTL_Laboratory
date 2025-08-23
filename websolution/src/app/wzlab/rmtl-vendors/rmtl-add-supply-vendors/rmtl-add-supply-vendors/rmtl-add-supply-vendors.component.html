@@ -175,12 +175,11 @@
 <div class="modal fade" #alertModal tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" [ngClass]="{ 'border-success': response_success, 'border-danger': !response_success }">
-      <div class="modal-header border-0" [ngClass]="{ 'bg-success bg-opacity-10': response_success, 'bg-danger bg-opacity-10': !response_success }">
-        <h5 class="modal-title fw-bold" id="alertModalLabel">
-          <i class="fas" [ngClass]="response_success ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i>
-          <span class="ms-2">{{ response_success ? 'Created Successfully' : 'Creation Failed' }}</span>
+       <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" id="previewModalLabel">
+          <span class="ms-2">{{ response_success ? 'Done' : 'Error' }}</span>   
         </h5>
-        <button type="button" class="btn-close" (click)="closeAlert()" aria-label="Close"></button>
+        <button type="button" class="btn-close" (click)="closePreview()" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <p class="mb-0">{{ response_msg }}</p>

@@ -8,41 +8,20 @@
 
       <!-- Filters -->
       <div class="row g-3 align-items-end">
-        <div class="col-md-2">
+        <div class="col-md-4">
           <label class="form-label">From</label>
           <input type="date" class="form-control" [(ngModel)]="filters.from" (change)="applyFilters()">
         </div>
-        <div class="col-md-2">
+        <div class="col-md-4">
           <label class="form-label">To</label>
           <input type="date" class="form-control" [(ngModel)]="filters.to" (change)="applyFilters()">
         </div>
-        <div class="col-md-2">
-          <label class="form-label">Device</label>
-          <select class="form-select" [(ngModel)]="filters.device_type" (change)="applyFilters()">
-            <option value="">All</option>
-            <option value="METER">METER</option>
-            <option value="CT">CT</option>
-          </select>
-        </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
           <label class="form-label">Report Type</label>
           <select class="form-select" [(ngModel)]="filters.report_type" (change)="applyFilters()">
             <option value="">All</option>
             <option *ngFor="let rt of reportTypes" [value]="rt">{{ rt }}</option>
           </select>
-        </div>
-        <div class="col-md-1">
-          <label class="form-label">Result</label>
-          <select class="form-select" [(ngModel)]="filters.result" (change)="applyFilters()">
-            <option value="">All</option>
-            <option>PASS</option>
-            <option>FAIL</option>
-            <option>PENDING</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label">Inward No</label>
-          <input class="form-control" [(ngModel)]="filters.inward" (input)="applyFilters()" placeholder="INW...">
         </div>
       </div>
 

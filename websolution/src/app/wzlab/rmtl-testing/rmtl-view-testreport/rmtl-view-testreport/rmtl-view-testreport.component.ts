@@ -89,9 +89,7 @@ export class RmtlViewTestreportComponent implements OnInit {
   constructor(private router: Router, private api: ApiServicesService) {}
 
   // Filters & data
-  reportTypes: ReportType[] = [
-    'stopdefective', 'contested', 'P4_ONM', 'P4_vig', 'Solar netmeter', 'Solar Generation Meter', 'CT Testing'
-  ];
+  reportTypes: ReportType[] = [];
 
   filters = {
     from: '',
@@ -122,6 +120,14 @@ export class RmtlViewTestreportComponent implements OnInit {
 
   ngOnInit(): void {
     this.fetchFromServer(true);
+    this.api.getEnums().subscribe({
+      next: (data) => {
+        this.reportTypes = data.test_report_types || [];
+      },
+      error: (err) => {
+        console.error('Failed to load report types:', err);
+      }
+    });
   }
 
   /** Fetch from API using serial + result (PASS/FAIL only) and current page settings */
