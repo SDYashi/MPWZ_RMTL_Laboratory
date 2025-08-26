@@ -216,7 +216,7 @@ export class RmtlGatepassGenerateComponent implements OnInit {
         this.loadReportIds(); // reset report IDs
         this.devices = [];    // clear list
         // Optionally auto-download:
-        // this.downloadGatepassPdf(this.gatepassInfo);
+        this.downloadGatepassPdf(this.gatepassInfo);
       },
       error: err => {
         console.error(err);
@@ -265,104 +265,206 @@ export class RmtlGatepassGenerateComponent implements OnInit {
   }
 
   // ---------- PDF ----------
+  // private buildGatepassDoc(gp: any): TDocumentDefinition {
+  //   const createdAt = gp.created_at ? new Date(gp.created_at) : new Date();
+  //   const createdAtStr = createdAt.toLocaleString();
+
+  //   const serials = this.parseSerials(gp.serial_numbers);
+  //   const tableBody: any[] = [
+  //     [{ text: 'Serial Number', style: 'th' }]
+  //   ];
+
+  //   const serialsStr = serials.join(', ');
+  //   tableBody.push([
+  //     { text: serialsStr, colSpan: 2 }
+  //   ]);
+
+  //   const totalCount = serials.length;
+
+  //   return {
+  //     pageSize: 'A4',
+  //     pageMargins: [36, 48, 36, 48],
+  //     content: [
+  //       {
+  //         columns: [
+  //           {
+  //             stack: [
+  //               { text: 'RMTL Gatepass', style: 'h1' },
+  //               { text: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd', style: 'sub' }
+  //             ]
+  //           },
+  //           {
+  //             alignment: 'right',
+  //             stack: [
+  //               { text: `Dispatch No: ${gp.dispatch_number || gp.id}`, style: 'rightLbl' },
+  //               { text: `Created: ${createdAtStr}`, style: 'rightLbl' },
+  //               gp.dispatch_number ? { qr: gp.dispatch_number, fit: 60, margin: [0, 6, 0, 0] } : {}
+  //             ].filter(Boolean)
+  //           }
+  //         ]
+  //       },
+
+  //       { canvas: [ { type: 'line', x1:0, y1:0, x2:525, y2:0, lineWidth:1 } ], margin: [0,10,0,10] },
+
+  //       {
+  //         table: {
+  //           widths: ['*', '*', '*'],
+  //           body: [
+  //             [
+  //               { text: `Dispatch To: ${gp.dispatch_to || '-'}` },
+  //               { text: `Vehicle: ${gp.vehicle || '-'}` },
+  //               { text: `Report ID(s): ${gp.report_ids || '-'}` }
+  //             ],
+  //             [
+  //               { text: `Receiver: ${gp.receiver_name || '-'}` },
+  //               { text: `Designation: ${gp.receiver_designation || '-'}` },
+  //               { text: `Mobile: ${gp.receiver_mobile || '-'}` }
+  //             ]
+  //           ]
+  //         },
+  //         layout: 'lightHorizontalLines',
+  //         margin: [0, 0, 0, 10]
+  //       },
+
+  //       { text: `Serial Numbers (${totalCount})`, style: 'h2', margin: [0, 6, 0, 6] },
+
+  //       {
+  //         table: {
+  //           headerRows: 1,
+  //           widths: ['auto', '*'],
+  //           body: tableBody,
+  //           pageBreak: 'auto'
+  //         },
+  //         layout: 'lightHorizontalLines'
+  //       },
+
+  //       { text: 'Notes:', style: 'h3', margin: [0, 12, 0, 4] },
+  //       { text: '— Carry out standard handling and verification on receipt.\n— Any discrepancy must be reported immediately.', margin: [0,0,0,10] },
+
+  //       {
+  //         columns: [
+  //           { text: '\n\n____________________________\nIssued By (Signature & Name)', alignment: 'left' },
+  //           { text: '\n\n____________________________\nReceived By (Signature & Name)', alignment: 'right' }
+  //         ],
+  //         margin: [0, 20, 0, 0]
+  //       }
+  //     ],
+  //     styles: {
+  //       h1: { fontSize: 18, bold: true },
+  //       h2: { fontSize: 14, bold: true },
+  //       h3: { fontSize: 12, bold: true },
+  //       sub: { fontSize: 10, color: '#666' },
+  //       rightLbl: { fontSize: 10 },
+  //       th: { bold: true }
+  //     }
+  //   };
+  // }
+
   private buildGatepassDoc(gp: any): TDocumentDefinition {
-    const createdAt = gp.created_at ? new Date(gp.created_at) : new Date();
-    const createdAtStr = createdAt.toLocaleString();
+  const createdAt = gp.created_at ? new Date(gp.created_at) : new Date();
+  const createdAtStr = createdAt.toLocaleString();
 
-    const serials = this.parseSerials(gp.serial_numbers);
-    const tableBody: any[] = [
-      [{ text: 'Serial Number', style: 'th' }]
-    ];
+  const serials = this.parseSerials(gp.serial_numbers);
+  const totalCount = serials.length;
 
-    const serialsStr = serials.join(', ');
-    tableBody.push([
-      { text: serialsStr, colSpan: 2 }
-    ]);
-
-    const totalCount = serials.length;
-
-    return {
-      pageSize: 'A4',
-      pageMargins: [36, 48, 36, 48],
-      content: [
-        {
-          columns: [
-            {
-              stack: [
-                { text: 'RMTL Gatepass', style: 'h1' },
-                { text: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd', style: 'sub' }
-              ]
-            },
-            {
-              alignment: 'right',
-              stack: [
-                { text: `Dispatch No: ${gp.dispatch_number || gp.id}`, style: 'rightLbl' },
-                { text: `Created: ${createdAtStr}`, style: 'rightLbl' },
-                gp.dispatch_number ? { qr: gp.dispatch_number, fit: 60, margin: [0, 6, 0, 0] } : {}
-              ].filter(Boolean)
-            }
-          ]
-        },
-
-        { canvas: [ { type: 'line', x1:0, y1:0, x2:525, y2:0, lineWidth:1 } ], margin: [0,10,0,10] },
-
-        {
-          table: {
-            widths: ['*', '*', '*'],
-            body: [
-              [
-                { text: `Dispatch To: ${gp.dispatch_to || '-'}` },
-                { text: `Vehicle: ${gp.vehicle || '-'}` },
-                { text: `Report ID(s): ${gp.report_ids || '-'}` }
-              ],
-              [
-                { text: `Receiver: ${gp.receiver_name || '-'}` },
-                { text: `Designation: ${gp.receiver_designation || '-'}` },
-                { text: `Mobile: ${gp.receiver_mobile || '-'}` }
-              ]
+  return {
+    pageSize: 'A4',
+    pageMargins: [36, 48, 36, 48],
+    content: [
+      {
+        columns: [
+          {
+            stack: [
+              { text: 'RMTL Gatepass', style: 'h1' },
+              { text: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd', style: 'sub' }
             ]
           },
-          layout: 'lightHorizontalLines',
-          margin: [0, 0, 0, 10]
+          {
+            alignment: 'right',
+            stack: [
+              { text: `Dispatch No: ${gp.dispatch_number || gp.id}`, style: 'rightLbl' },
+              { text: `Created: ${createdAtStr}`, style: 'rightLbl' },
+              gp.dispatch_number ? { qr: gp.dispatch_number, fit: 60, margin: [0, 6, 0, 0] } : {}
+            ].filter(Boolean)
+          }
+        ]
+      },
+
+      { canvas: [ { type: 'line', x1:0, y1:0, x2:525, y2:0, lineWidth:1 } ], margin: [0,10,0,10] },
+
+      {
+        table: {
+          widths: ['*', '*', '*'],
+          body: [
+            [
+              { text: `Dispatch To: ${gp.dispatch_to || '-'}` },
+              { text: `Vehicle: ${gp.vehicle || '-'}` },
+              { text: `Report ID(s): ${gp.report_ids || '-'}` }
+            ],
+            [
+              { text: `Receiver: ${gp.receiver_name || '-'}` },
+              { text: `Designation: ${gp.receiver_designation || '-'}` },
+              { text: `Mobile: ${gp.receiver_mobile || '-'}` }
+            ]
+          ]
         },
+        layout: 'lightHorizontalLines',
+        margin: [0, 0, 0, 10]
+      },
 
-        { text: `Serial Numbers (${totalCount})`, style: 'h2', margin: [0, 6, 0, 6] },
+      { text: `Serial Numbers (${totalCount})`, style: 'h2', margin: [0, 6, 0, 6] },
 
-        {
-          table: {
-            headerRows: 1,
-            widths: ['auto', '*'],
-            body: tableBody,
-            pageBreak: 'auto'
-          },
-          layout: 'lightHorizontalLines'
-        },
+      // >>> REPLACED the old table with this multi-column text block <<<
+      this.buildSerialColumns(serials, 3), // change 3->4 if you want tighter columns
 
-        { text: 'Notes:', style: 'h3', margin: [0, 12, 0, 4] },
-        { text: '— Carry out standard handling and verification on receipt.\n— Any discrepancy must be reported immediately.', margin: [0,0,0,10] },
+      { text: 'Notes:', style: 'h3', margin: [0, 12, 0, 4] },
+      { text: '— Carry out standard handling and verification on receipt.\n— Any discrepancy must be reported immediately.', margin: [0,0,0,10] },
 
-        {
-          columns: [
-            { text: '\n\n____________________________\nIssued By (Signature & Name)', alignment: 'left' },
-            { text: '\n\n____________________________\nReceived By (Signature & Name)', alignment: 'right' }
-          ],
-          margin: [0, 20, 0, 0]
-        }
-      ],
-      styles: {
-        h1: { fontSize: 18, bold: true },
-        h2: { fontSize: 14, bold: true },
-        h3: { fontSize: 12, bold: true },
-        sub: { fontSize: 10, color: '#666' },
-        rightLbl: { fontSize: 10 },
-        th: { bold: true }
+      {
+        columns: [
+          { text: '\n\n____________________________\nIssued By (Signature & Name)', alignment: 'left' },
+          { text: '\n\n____________________________\nReceived By (Signature & Name)', alignment: 'right' }
+        ],
+        margin: [0, 20, 0, 0]
       }
-    };
-  }
+    ],
+    styles: {
+      h1: { fontSize: 18, bold: true },
+      h2: { fontSize: 14, bold: true },
+      h3: { fontSize: 12, bold: true },
+      sub: { fontSize: 10, color: '#666' },
+      rightLbl: { fontSize: 10 },
+      th: { bold: true }
+    }
+  };
+}
+
 
   private downloadGatepassPdf(gp: any): void {
     const doc = this.buildGatepassDoc(gp);
     const fname = `Gatepass_${gp.dispatch_number || gp.id || 'RMTL'}.pdf`;
     pdfMake.createPdf(doc).download(fname);
   }
+
+  // Add this helper inside the component class
+private buildSerialColumns(serials: string[], colCount = 3) {
+  if (!serials?.length) return { text: '-' };
+
+  // split serials into N roughly equal columns
+  const perCol = Math.ceil(serials.length / colCount);
+  const cols = Array.from({ length: colCount }, (_, i) =>
+    serials.slice(i * perCol, (i + 1) * perCol).join(', ')
+  );
+
+  return {
+    columns: cols.map(txt => ({
+      text: txt,
+      fontSize: 10,
+      lineHeight: 1.2,
+      margin: [0, 0, 0, 0]
+    })),
+    columnGap: 10 // spacing between columns
+  };
+}
+
 }

@@ -384,11 +384,14 @@ getEnums(): Observable<any> {
 }
 
 
-getTestedDevices(start_date: string, end_date: string) {
+getTestedDevices(start_date: string, end_date: string, device_status: string,lab_id?: number): Observable<any> {
   let params = new HttpParams();
   params = params.set('start_date', start_date);
   params = params.set('end_date', end_date);
-  return this.http.get<any>(`${this.baseUrl}/testing/to_approve/`, { params });
+  params = params.set('assignment_status', device_status);
+  // if (user_id) params = params.set('user_id', user_id ? user_id.toString() : '');
+  params = params.set('lab_id', lab_id ? lab_id.toString() : '');
+  return this.http.get<any>(`${this.baseUrl}/tested-devices/`, { params });
 }
 approveDevices(device_ids: Array<number | string>, note?: string) {
     let params = new HttpParams();

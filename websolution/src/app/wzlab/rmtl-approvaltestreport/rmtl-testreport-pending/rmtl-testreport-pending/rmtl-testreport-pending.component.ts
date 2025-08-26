@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiServicesService } from 'src/app/services/api-services.service';
+import { AuthService } from 'src/app/core/auth.service';
 
 export interface TestedDeviceRow {
   id?: number | string;
@@ -51,9 +52,14 @@ export interface TestedDeviceRow {
 export class RmtlTestreportPendingComponent implements OnInit {
   Math = Math;
 
+  // user / lab
+  labId: any = null;
+  user_id :any= null;
+
   // Date filters only
   fromDate = '';
-  toDate   = '';
+  toDate = '';
+  device_status = 'TESTED';
 
   // Data & UI
   loading = false;
@@ -77,20 +83,39 @@ export class RmtlTestreportPendingComponent implements OnInit {
   approveResult: { ok: number; failed: number; details?: any } | null = null;
   approvePerformedAt: Date | null = null;
 
-  // NEW: store success/failed payloads for the result modal
+  // result modal data
   approvedIds: Array<number | string> = [];
   failedList: Array<{ id: any; reason?: string }> = [];
 
   constructor(
     private api: ApiServicesService,
     private cdr: ChangeDetectorRef,
-    private zone: NgZone
+    private zone: NgZone,
+    private auth: AuthService
   ) {}
 
   ngOnInit(): void {
+    // pull user & lab from token (fallback to localStorage)
+    try {
+      const user: any = this.auth?.getuserfromtoken?.();
+      this.user_id = user?.id ?? '';
+      this.labId = user?.lab_id ?? user?.currentLabId ?? null;
+      this.user_id = user?.id ?? '';
+    } catch {
+      /* ignore */
+    }
+    if (this.labId == null) {
+      const ls = localStorage.getItem('currentLabId');
+      this.labId = ls ? Number(ls) : null;
+    }
+    if (this.user_id == null) {
+      const ls = localStorage.getItem('currentUserId');
+      this.user_id = ls ? Number(ls) : null;  
+    }
+
     const now = new Date();
     this.fromDate = this.fmt(new Date(now.getFullYear(), now.getMonth(), 1));
-    this.toDate   = this.fmt(now);
+    this.toDate = this.fmt(now);
     this.fetchTestedDevices(true);
   }
 
@@ -123,8 +148,6 @@ export class RmtlTestreportPendingComponent implements OnInit {
   private normalizeApiList(list: any[]): TestedDeviceRow[] {
     return (list || []).map((d: any) => {
       const statusUpper = (d?.test_status || d?.device_status || '').toString().toUpperCase();
-
-      // Allow these statuses to be selected for approval (adjust as needed)
       const canApprove =
         statusUpper === 'TESTED' ||
         statusUpper === 'COMPLETED' ||
@@ -187,14 +210,15 @@ export class RmtlTestreportPendingComponent implements OnInit {
 
     const { from, to } = this.resolveDateRange();
 
-    this.api.getTestedDevices(from, to).subscribe({
+    // pass labId to the API (service signature updated accordingly)
+    this.api.getTestedDevices(from, to, this.device_status, this.labId ?? undefined).subscribe({
       next: (list: any[]) => {
         this.rows = this.normalizeApiList(Array.isArray(list) ? list : []);
         this.filtered = this.rows.slice();
         this.repaginate();
         this.loading = false;
       },
-      error: err => {
+      error: (err) => {
         console.error(err);
         this.errorMsg = err?.error?.detail || err?.message || 'Failed to load tested devices.';
         this.rows = [];
@@ -202,7 +226,7 @@ export class RmtlTestreportPendingComponent implements OnInit {
         this.pageRows = [];
         this.pages = [];
         this.loading = false;
-      }
+      },
     });
   }
 
@@ -225,20 +249,20 @@ export class RmtlTestreportPendingComponent implements OnInit {
 
   // ---- Selection
   get selectedCount(): number {
-    return this.rows.filter(r => r.selected && r.canApprove).length;
+    return this.rows.filter((r) => r.selected && r.canApprove).length;
   }
 
   toggleAllOnPage(): void {
-    this.pageRows.forEach(r => r.selected = !!r.canApprove && this.selectAll);
+    this.pageRows.forEach((r) => (r.selected = !!r.canApprove && this.selectAll));
   }
 
   onRowCheckboxChange(): void {
-    const approvables = this.pageRows.filter(r => r.canApprove);
-    this.selectAll = approvables.length > 0 && approvables.every(r => !!r.selected);
+    const approvables = this.pageRows.filter((r) => r.canApprove);
+    this.selectAll = approvables.length > 0 && approvables.every((r) => !!r.selected);
   }
 
   clearSelection(): void {
-    this.rows.forEach(r => (r.selected = false));
+    this.rows.forEach((r) => (r.selected = false));
     this.selectAll = false;
   }
 
@@ -275,7 +299,7 @@ export class RmtlTestreportPendingComponent implements OnInit {
   private isArrayPayload(x: any): x is any[] {
     return Array.isArray(x);
   }
-  private isObjectPayload(x: any): x is { approved_ids?: any[]; failed?: Array<{id:any; reason?:string}> } {
+  private isObjectPayload(x: any): x is { approved_ids?: any[]; failed?: Array<{ id: any; reason?: string }> } {
     return x && typeof x === 'object' && !Array.isArray(x);
   }
 
@@ -283,8 +307,8 @@ export class RmtlTestreportPendingComponent implements OnInit {
     if (this.approving) return;
 
     const ids = this.rows
-      .filter(r => r.selected && r.canApprove)
-      .map(r => r.device_id ?? r.id)
+      .filter((r) => r.selected && r.canApprove)
+      .map((r) => r.device_id ?? r.id)
       .filter((v): v is number | string => v !== null && v !== undefined);
 
     if (!ids.length) return;
@@ -296,9 +320,6 @@ export class RmtlTestreportPendingComponent implements OnInit {
 
     this.api.approveDevices(ids, note).subscribe({
       next: (res: any) => {
-        // Normalize payload shapes:
-        // 1) [681, 285, ...]
-        // 2) { approved_ids: [...], failed: [{id, reason}, ...] }
         if (this.isArrayPayload(res)) {
           this.approvedIds = res;
           this.failedList = [];
@@ -306,25 +327,21 @@ export class RmtlTestreportPendingComponent implements OnInit {
           this.approvedIds = Array.isArray(res?.approved_ids) ? res.approved_ids : [];
           this.failedList = Array.isArray(res?.failed) ? res.failed : [];
         } else {
-          // Unexpected shape — best effort
           this.approvedIds = [];
           this.failedList = [];
         }
 
         const approved = this.approvedIds.length;
-        const failed   = this.failedList.length;
+        const failed = this.failedList.length;
         this.approveResult = { ok: approved, failed };
         this.approvePerformedAt = new Date();
         this.approving = false;
 
-        // close confirm modal
         const confirmEl = document.getElementById('approveModal');
         (confirmEl && (window as any)['bootstrap']?.Modal.getInstance(confirmEl))?.hide();
 
-        // ensure Angular renders lists before showing result modal
         this.cdr.detectChanges();
 
-        // show result modal inside Angular zone (prevents stale bindings)
         this.zone.run(() => {
           const resultEl = document.getElementById('resultModal');
           resultEl && new (window as any)['bootstrap'].Modal(resultEl).show();
@@ -335,10 +352,9 @@ export class RmtlTestreportPendingComponent implements OnInit {
       },
       error: (err) => {
         console.error(err);
-        // Put all attempted IDs into failed list with a common reason
         const reason = err?.error?.detail || err?.message || 'Unknown error';
         this.approvedIds = [];
-        this.failedList = ids.map(id => ({ id, reason }));
+        this.failedList = ids.map((id) => ({ id, reason }));
 
         this.approveResult = { ok: 0, failed: this.failedList.length, details: err?.error || err };
         this.approvePerformedAt = new Date();
@@ -351,23 +367,28 @@ export class RmtlTestreportPendingComponent implements OnInit {
 
         const resultEl = document.getElementById('resultModal');
         resultEl && new (window as any)['bootstrap'].Modal(resultEl).show();
-      }
+      },
     });
   }
 
   resultClass(r?: string) {
     switch ((r || '').toUpperCase()) {
-      case 'PASS':    return 'bg-success';
-      case 'FAIL':    return 'bg-danger';
-      case 'PENDING': return 'bg-warning text-dark';
-      default:        return 'bg-secondary';
+      case 'PASS':
+        return 'bg-success';
+      case 'FAIL':
+        return 'bg-danger';
+      case 'PENDING':
+        return 'bg-warning text-dark';
+      default:
+        return 'bg-secondary';
     }
   }
+
   statusClass(s?: string) {
     const v = (s || '').toUpperCase();
     if (v === 'COMPLETED' || v === 'APPROVED') return 'bg-success';
-    if (v === 'TESTED')                         return 'bg-primary';
-    if (v === 'INWARDED')                       return 'bg-info';
+    if (v === 'TESTED') return 'bg-primary';
+    if (v === 'INWARDED') return 'bg-info';
     return 'bg-dark';
   }
 }

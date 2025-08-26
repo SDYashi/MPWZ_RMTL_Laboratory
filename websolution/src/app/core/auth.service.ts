@@ -106,4 +106,8 @@ export class AuthService {
   getuserfromtoken(): UserPublic | null {
     return this.getUserFromToken();
   }
+  getuseridfromtoken(): number | string | null {
+    const user = this.getUserFromToken();
+    return user?.id || null;
+  }
 }

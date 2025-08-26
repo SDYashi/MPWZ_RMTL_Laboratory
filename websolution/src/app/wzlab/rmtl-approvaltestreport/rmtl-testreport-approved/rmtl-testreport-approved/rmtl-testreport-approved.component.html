@@ -1,1 +1,158 @@
-<p>rmtl-testreport-approved works!</p>
+<div class="container-fluid mt-4">
+  <div class="card shadow border-0">
+    <div class="card-header text-white d-flex flex-wrap justify-content-between align-items-center" style="background:#151433">
+      <h5 class="mb-0">RMTL — Approved Devices List</h5>
+      <div class="d-flex flex-wrap align-items-center gap-2 mt-2 mt-md-0">
+        <span class="badge bg-secondary">From: {{ fromDate ? (fromDate) : '—' }}</span>
+        <span class="badge bg-secondary">To: {{ toDate ? (toDate) : '—' }}</span>
+        <span class="badge bg-success">Total Approved: {{ filtered.length }}</span>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <!-- Date range filters -->
+      <div class="row g-3 align-items-end">
+        <div class="col-sm-6 col-md-3">
+          <label class="form-label fw-semibold">From Date</label>
+          <input type="date" class="form-control" [(ngModel)]="fromDate" name="fromDate" (change)="onDatesChange()">
+        </div>
+        <div class="col-sm-6 col-md-3">
+          <label class="form-label fw-semibold">To Date</label>
+          <input type="date" class="form-control" [(ngModel)]="toDate" name="toDate" (change)="onDatesChange()">
+        </div>
+      </div>
+
+      <!-- Loading / error -->
+      <div class="mt-3" *ngIf="loading">
+        <div class="alert alert-info d-flex align-items-center gap-2 mb-0">
+          <span class="spinner-border spinner-border-sm"></span>
+          <span>Loading...</span>
+        </div>
+      </div>
+      <div class="mt-3" *ngIf="!loading && errorMsg">
+        <div class="alert alert-danger mb-0">{{ errorMsg }}</div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-responsive border rounded mt-3" *ngIf="!loading && filtered.length">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+            <tr class="text-nowrap">
+              <th>Device</th>
+              <th>Serial</th>
+              <th>Make</th>
+              <th>Type/Category</th>
+              <th>Capacity</th>
+              <th>Voltage</th>
+              <th>Approved/Tested On</th>
+              <th class="d-none d-lg-table-cell">Location</th>
+              <th style="width:120px;">Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let r of pageRows; trackBy: trackById">
+              <td class="fw-semibold">{{ r.device_id || r.id }}</td>
+              <td>{{ r.serial_number || '-' }}</td>
+              <td>{{ r.make || '-' }}</td>
+
+              <td>
+                <span class="d-inline-block text-truncate" style="max-width: 180px;"
+                      [title]="(r.meter_type || '-') + (r.meter_category ? ' / ' + r.meter_category : '')">
+                  {{ r.meter_type || '-' }}<ng-container *ngIf="r.meter_category"> / {{ r.meter_category }}</ng-container>
+                </span>
+              </td>
+
+              <td>{{ r.capacity || '-' }}</td>
+              <td>{{ r.voltage_rating || '-' }}</td>
+
+              <td>
+                <span [title]="r.tested_date || r.inward_date">
+                  {{ (r.tested_date || r.inward_date) }}
+                </span>
+              </td>
+
+              <td class="d-none d-lg-table-cell">
+                <span class="d-inline-block text-truncate" style="max-width: 200px;" [title]="r.location_name">
+                  {{ r.location_name || '-' }}
+                </span>
+              </td>
+
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-primary" type="button"
+                          (click)="openDetails(r)" data-bs-toggle="offcanvas" data-bs-target="#detailsCanvas">
+                    Details
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+
+        </table>
+      </div>
+
+      <!-- Empty state -->
+      <div class="mt-4" *ngIf="!loading && !filtered.length && !errorMsg">
+        <div class="alert alert-warning mb-0">
+          No approved devices found in the selected range.
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="d-flex justify-content-end align-items-center mt-3" *ngIf="!loading && filtered.length">
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="page===1">
+              <a class="page-link" href="javascript:void(0)" (click)="goto(page-1)">Prev</a>
+            </li>
+            <li class="page-item" *ngFor="let p of pages" [class.active]="p===page">
+              <a class="page-link" href="javascript:void(0)" (click)="goto(p)">{{ p }}</a>
+            </li>
+            <li class="page-item" [class.disabled]="page===pages[pages.length-1]">
+              <a class="page-link" href="javascript:void(0)" (click)="goto(page+1)">Next</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Offcanvas: Details (unchanged, no approve button) -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="detailsCanvas">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Device Details</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body" *ngIf="selectedRow">
+    <div class="small text-muted mb-2">Device: {{ selectedRow?.device_id || selectedRow?.id }}</div>
+
+    <div class="row g-2">
+      <div class="col-6"><strong>Serial:</strong> {{ selectedRow?.serial_number || '-' }}</div>
+      <div class="col-6"><strong>Make:</strong> {{ selectedRow?.make || '-' }}</div>
+      <div class="col-6"><strong>Type:</strong> {{ selectedRow?.meter_type || '-' }}</div>
+      <div class="col-6"><strong>Category:</strong> {{ selectedRow?.meter_category || '-' }}</div>
+      <div class="col-6"><strong>Capacity:</strong> {{ selectedRow?.capacity || '-' }}</div>
+      <div class="col-6"><strong>Voltage:</strong> {{ selectedRow?.voltage_rating || '-' }}</div>
+      <div class="col-6"><strong>Class:</strong> {{ selectedRow?.meter_class || '-' }}</div>
+      <div class="col-6"><strong>Phase:</strong> {{ selectedRow?.phase || '-' }}</div>
+    </div>
+
+    <hr>
+
+    <div class="row g-2">
+      <div class="col-6"><strong>Status:</strong> {{ selectedRow?.test_status || selectedRow?.device_status || '-' }}</div>
+      <div class="col-6"><strong>Result:</strong> {{ selectedRow?.test_result || '-' }}</div>
+      <div class="col-6"><strong>Tested/Approved On:</strong> {{ (selectedRow?.tested_date || selectedRow?.inward_date) }}</div>
+      <div class="col-6"><strong>Initiator:</strong> {{ selectedRow?.initiator || '-' }}</div>
+      <div class="col-6"><strong>Office:</strong> {{ selectedRow?.office_type || '-' }}</div>
+      <div class="col-6"><strong>Location:</strong> {{ selectedRow?.location_name || '-' }}</div>
+      <div class="col-12"><strong>Purpose:</strong> {{ selectedRow?.device_testing_purpose || '-' }}</div>
+    </div>
+
+    <hr>
+    <div><strong>Other:</strong> {{ selectedRow?.other || '-' }}</div>
+    <div class="text-muted small mt-2"><strong>Details:</strong> {{ selectedRow?.details || '-' }}</div>
+  </div>
+</div>
