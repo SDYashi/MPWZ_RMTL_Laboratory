@@ -58,13 +58,12 @@ interface ModalState {
   action: 'clear' | 'reload' | 'removeRow' | 'submit' | null | string[];
   payload?: any;
 }
-
 @Component({
-  selector: 'app-rmtl-add-testreport-stopdefective',
-  templateUrl: './rmtl-add-testreport-stopdefective.component.html',
-  styleUrls: ['./rmtl-add-testreport-stopdefective.component.css']
+  selector: 'app-rmtl-add-testreport-oldagainstmtr',
+  templateUrl: './rmtl-add-testreport-oldagainstmtr.component.html',
+  styleUrls: ['./rmtl-add-testreport-oldagainstmtr.component.css']
 })
-export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
+export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
 
   // Enums/options
   device_status: 'ASSIGNED' = 'ASSIGNED';
@@ -134,7 +133,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
         this.meter_bodies = data?.meter_bodies || [];
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
-        this.report_type= data?.test_report_types.STOPDEFECTIVE || 'STOP DEFECTIVE';
+        this.report_type= data?.test_report_types.AGAINST_OLD_METER ;
 
       },
       error: (err) => console.error('Enums error', err)
@@ -373,7 +372,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
         test_method: this.testMethod,
         test_status: this.testStatus,
         approver_id: this.approverId ?? null,
-        report_type: this.report_type || 'STOP DEFECTIVE',
+        report_type: this.report_type ?? null,
       }));
   }
 
@@ -584,7 +583,7 @@ private buildStopDefectiveDoc(
       },
 
       { canvas: [{ type:'line', x1:0, y1:0, x2:540, y2:0, lineWidth:1 }], margin: [0,6,0,6] },
-      { text: 'STOP DEFECTIVE TEST REPORT', style: 'hindiTitle', margin: [0,0,0,4] },
+      { text: 'AGAINST OLD_METER METER TEST REPORT', style: 'hindiTitle', margin: [0,0,0,4] },
 
 
       {
@@ -657,7 +656,7 @@ private buildStopDefectiveDoc(
 private downloadStopDefectivePdfFromBatch(): void {
   const snap = this.buildPrintableSnapshot();
   const doc = this.buildStopDefectiveDoc(snap.rows, snap.meta);
-  const fname = `StopDefective_${snap.meta.date}.pdf`;
+  const fname = `AGAINST_OLD_METER_${snap.meta.date}.pdf`;
   pdfMake.createPdf(doc).download(fname);
 }
 

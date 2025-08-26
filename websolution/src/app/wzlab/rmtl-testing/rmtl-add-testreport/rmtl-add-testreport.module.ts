@@ -10,6 +10,8 @@ import { RmtlAddTestreportP4vigComponent } from './rmtl-add-testreport-p4vig/rmt
 import { RmtlAddTestreportSolarnetmeerComponent } from './rmtl-add-testreport-solarnetmeer/rmtl-add-testreport-solarnetmeer.component';
 import { RmtlAddTestreportSolargeneatormeterComponent } from './rmtl-add-testreport-solargeneatormeter/rmtl-add-testreport-solargeneatormeter.component';
 import { RmtlAddTestreportCttestingComponent } from './rmtl-add-testreport-cttesting/rmtl-add-testreport-cttesting.component';
+import { RmtlAddTestreportSmartagainstmtrComponent } from './rmtl-add-testreport-smartagainstmtr/rmtl-add-testreport-smartagainstmtr.component';
+import { RmtlAddTestreportOldagainstmtrComponent } from './rmtl-add-testreport-oldagainstmtr/rmtl-add-testreport-oldagainstmtr.component';
 
 
 @NgModule({
@@ -20,7 +22,9 @@ import { RmtlAddTestreportCttestingComponent } from './rmtl-add-testreport-cttes
     RmtlAddTestreportP4vigComponent,
     RmtlAddTestreportSolarnetmeerComponent,
     RmtlAddTestreportSolargeneatormeterComponent,
-    RmtlAddTestreportCttestingComponent
+    RmtlAddTestreportCttestingComponent,
+    RmtlAddTestreportSmartagainstmtrComponent,
+    RmtlAddTestreportOldagainstmtrComponent
   ],
   imports: [
     CommonModule,

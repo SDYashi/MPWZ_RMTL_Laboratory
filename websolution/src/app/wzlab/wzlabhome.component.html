@@ -215,6 +215,10 @@
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                routerLink="/wzlab/testing/add-testreports/stop-defective-testing" routerLinkActive="active">StopDefective Reports</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing/add-testreports/smart-against-defective-testing" routerLinkActive="active">Smart Against Defective Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/testing/add-testreports/old-against-defective-testing" routerLinkActive="active">Old Against Defective Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                routerLink="/wzlab/testing/add-testreports/contested-testing" routerLinkActive="active">Contested Reports</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                routerLink="/wzlab/testing/add-testreports/p4onm-testing" routerLinkActive="active">P4ONM Reports</a>
@@ -228,6 +232,31 @@
                routerLink="/wzlab/testing/add-testreports/ct-testing" routerLinkActive="active">CT Reports</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                routerLink="/wzlab/testing/view-testreports" routerLinkActive="active">All Test Reports History</a>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <div class="sidebar-heading px-3 ">APPROVAL MANAGEMENT</div>
+    <ul class="sidebar-menu list-unstyled m-0">
+      <li class="menu-item">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('approvalMenu')"
+                (keydown)="onKeyToggleSection($event, 'approvalMenu')"
+                [attr.aria-expanded]="sections['approvalMenu'] || isRouteActive(['/wzlab/approval'])"
+                [attr.aria-controls]="'approvalMenu'">
+          <span><i class="fas fa-check-circle me-2"></i><span class="menu-text">Approve Test Results</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['approvalMenu'] || isRouteActive(['/wzlab/approval'])"
+             id="approvalMenu">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/approval/view-pending-test-reports">Pending Approval List</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/approval/view-approved-test-reports">Approved Results List</a>
           </div>
         </div>
       </li>
@@ -255,31 +284,6 @@
                routerLink="/wzlab/reports/view-daily-testing-reports">Daily Testing Report</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                routerLink="/wzlab/reports/view-devices-summary-reports">Device Summary Report</a>
-          </div>
-        </div>
-      </li>
-    </ul>
-
-    <div class="sidebar-heading px-3 ">APPROVAL MANAGEMENT</div>
-    <ul class="sidebar-menu list-unstyled m-0 mb-4">
-      <li class="menu-item">
-        <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
-                (click)="toggleSection('approvalMenu')"
-                (keydown)="onKeyToggleSection($event, 'approvalMenu')"
-                [attr.aria-expanded]="sections['approvalMenu'] || isRouteActive(['/wzlab/approval'])"
-                [attr.aria-controls]="'approvalMenu'">
-          <span><i class="fas fa-check-circle me-2"></i><span class="menu-text">Approve Test Results</span></span>
-          <i class="fas fa-chevron-down chevron"></i>
-        </button>
-        <div class="collapse"
-             [class.show]="sections['approvalMenu'] || isRouteActive(['/wzlab/approval'])"
-             id="approvalMenu">
-          <div class="submenu d-flex flex-column">
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
-               routerLink="/wzlab/approval/view-pending-test-reports">Pending Approval List</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
-               routerLink="/wzlab/approval/view-approved-test-reports">Approved Results List</a>
           </div>
         </div>
       </li>

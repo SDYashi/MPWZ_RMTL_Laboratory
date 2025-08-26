@@ -32,37 +32,78 @@
         </div>
       </div>
 
-      <div class="table-responsive" id="printSection">
-        <table class="table table-bordered table-striped text-center align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>#</th>
-              <th>Dispatch No</th>
-              <th>Report IDs</th>
-              <th>Serial No</th>
-              <th>Make</th>
-              <th>Receiver</th>
-              <th>Vehicle</th>
-              <th>Created Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let r of rows">
-              <td>{{ r.sl }}</td>
-              <td>{{ r.dispatch_number }}</td>
-              <td>{{ r.report_ids }}</td>
-              <td>{{ r.serial_no }}</td>
-              <td>{{ r.make }}</td>
-              <td>{{ r.receiver }}</td>
-              <td>{{ r.vehicle }}</td>
-              <td>{{ r.created_date }}</td>
-            </tr>
-            <tr *ngIf="!rows.length">
-              <td colspan="8" class="text-muted">No data found</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+<!-- ...existing header/filters... -->
+
+<div class="table-responsive" id="printSection">
+  <table class="table table-bordered table-striped text-center align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>#</th>
+        <th>Dispatch No</th>
+        <th>Report IDs</th>
+        <th>Serial No</th>
+        <th>Make</th>
+        <th>Receiver</th>
+        <th>Vehicle</th>
+        <th>Created Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- use pagedRows() and show absolute serial via indexOfFirst -->
+      <tr *ngFor="let r of pagedRows(); let i = index">
+        <td>{{ indexOfFirst + i + 1 }}</td>
+        <td>{{ r.dispatch_number }}</td>
+        <td>{{ r.report_ids }}</td>
+        <td>{{ r.serial_no }}</td>
+        <td>{{ r.make }}</td>
+        <td>{{ r.receiver }}</td>
+        <td>{{ r.vehicle }}</td>
+        <td>{{ r.created_date }}</td>
+      </tr>
+      <tr *ngIf="!rows.length">
+        <td colspan="8" class="text-muted">No data found</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Pagination footer -->
+<div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mt-3">
+  <div class="d-flex align-items-center gap-2">
+    <label class="form-label mb-0">Rows per page</label>
+    <select class="form-select form-select-sm" style="width:auto"
+            [(ngModel)]="pageSize" name="pageSize" (ngModelChange)="goToPage(1)">
+      <option *ngFor="let s of pageSizeOptions" [value]="s">{{ s }}</option>
+    </select>
+  </div>
+
+  <div class="small text-muted">
+    Showing <strong>{{ total === 0 ? 0 : indexOfFirst + 1 }}</strong>–<strong>{{ indexOfLast }}</strong> of <strong>{{ total }}</strong>
+  </div>
+
+  <nav>
+    <ul class="pagination mb-0">
+      <li class="page-item" [class.disabled]="page === 1">
+        <button class="page-link" (click)="goToPage(1)" [disabled]="page === 1">« First</button>
+      </li>
+      <li class="page-item" [class.disabled]="page === 1">
+        <button class="page-link" (click)="prev()" [disabled]="page === 1">‹ Prev</button>
+      </li>
+
+      <li class="page-item" *ngFor="let p of pageWindow()" [class.active]="p === page">
+        <button class="page-link" (click)="goToPage(p)">{{ p }}</button>
+      </li>
+
+      <li class="page-item" [class.disabled]="page === totalPages">
+        <button class="page-link" (click)="next()" [disabled]="page === totalPages">Next ›</button>
+      </li>
+      <li class="page-item" [class.disabled]="page === totalPages">
+        <button class="page-link" (click)="goToPage(totalPages)" [disabled]="page === totalPages">Last »</button>
+      </li>
+    </ul>
+  </nav>
+</div>
+
 
     </div>
   </div>

@@ -1,1 +1,188 @@
-<p>rmtl-add-testreport-solarnetmeer works!</p>
+<div class="container-fluid mt-4">
+  <div class="card shadow border-0">
+    <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
+      <h5 class="mb-0">RMTL — Solar Net Meter Certificate</h5>
+      <div class="d-flex gap-2">
+        <span class="badge bg-secondary">Rows {{ rows.length }}</span>
+        <span class="badge bg-success">Known {{ matchedCount }}</span>
+        <span class="badge bg-danger">Unknown {{ unknownCount }}</span>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <!-- Top toolbar -->
+      <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
+        <button type="button" class="btn btn-outline-danger" (click)="reloadAssigned()">⟳ Load Assigned</button>
+        <button type="button" class="btn btn-outline-primary" (click)="addRow()">➕ Add Row</button>
+        <div class="ms-auto d-flex gap-2">
+          <input class="form-control" style="min-width:260px"
+                 [(ngModel)]="filterText" name="filterText" placeholder="Filter by Sr. No / Make / Consumer">
+        </div>
+      </div>
+
+      <!-- Batch header (DC/Zone + Test method/status) -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Zone/DC Code</label>
+              <input class="form-control" [(ngModel)]="header.location_code" name="loc_code" placeholder="e.g., 3420100">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-bold">Zone/DC Name</label>
+              <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" placeholder="Zone / DC name">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-bold">Test Method</label>
+              <select class="form-select" [(ngModel)]="testMethod" name="test_method">
+                <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-bold">Test Status</label>
+              <select class="form-select" [(ngModel)]="testStatus" name="test_status">
+                <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main table -->
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle">
+          <thead class="table-light text-center sticky-top" style="top:0; z-index:1;">
+            <tr>
+              <th>#</th>
+              <th>Meter Sr. No.</th>
+              <th>Make</th>
+              <th>Capacity</th>
+              <th>Consumer</th>
+              <th class="d-print-none">Details</th>
+              <th class="d-print-none">Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <ng-container *ngFor="let r of displayRows(); let i = index; trackBy: trackByRow">
+              <tr [ngClass]="{'table-danger': r.notFound}">
+                <td class="text-center"><span class="badge bg-secondary">{{ i + 1 }}</span></td>
+
+                <td style="min-width:160px">
+                  <input class="form-control form-control-sm" [(ngModel)]="r.meter_sr_no" [name]="'sr_'+i"
+                         (ngModelChange)="onSerialChanged(i, r.meter_sr_no)" required>
+                  <div *ngIf="r.notFound" class="small text-danger">Not in assigned list</div>
+                </td>
+
+                <td style="min-width:140px">
+                  <input class="form-control form-control-sm" [(ngModel)]="r.meter_make" [name]="'make_'+i">
+                </td>
+
+                <td style="min-width:140px">
+                  <input class="form-control form-control-sm" [(ngModel)]="r.meter_capacity" [name]="'cap_'+i" placeholder="e.g., 3X10-100A">
+                </td>
+
+                <td style="min-width:220px">
+                  <input class="form-control form-control-sm" [(ngModel)]="r.consumer_name" [name]="'cons_'+i">
+                </td>
+
+                <td class="text-center d-print-none">
+                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="r._open=!r._open">
+                    {{ r._open ? 'Hide' : 'Edit' }}
+                  </button>
+                </td>
+
+                <td class="text-center d-print-none">
+                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeRow(i)">✕</button>
+                </td>
+              </tr>
+
+              <!-- expanded editor -->
+              <tr *ngIf="r._open">
+                <td colspan="7" style="background:#f6f7fb;">
+                  <div class="row g-3">
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold mb-0">Certificate No (optional)</label>
+                      <input class="form-control form-control-sm" [(ngModel)]="r.certificate_no" [name]="'cert_'+i">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold mb-0">Date of Testing</label>
+                      <input type="date" class="form-control form-control-sm" [(ngModel)]="r.date_of_testing" [name]="'dot_'+i">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-bold mb-0">Address</label>
+                      <input class="form-control form-control-sm" [(ngModel)]="r.address" [name]="'addr_'+i">
+                    </div>
+
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold mb-0">Testing Fees (₹)</label>
+                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.testing_fees" [name]="'fees_'+i" step="0.01">
+                    </div>
+                    <div class="col-md-5">
+                      <label class="form-label small fw-bold mb-0">M.R. No & Date</label>
+                      <div class="d-flex gap-2">
+                        <input class="form-control form-control-sm" [(ngModel)]="r.mr_no" [name]="'mr_'+i" placeholder="Receipt / Online Txn No">
+                        <input type="date" class="form-control form-control-sm" [(ngModel)]="r.mr_date" [name]="'mrd_'+i">
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label small fw-bold mb-0">Ref.</label>
+                      <input class="form-control form-control-sm" [(ngModel)]="r.ref_no" [name]="'ref_'+i">
+                    </div>
+
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold mb-0">Starting Reading</label>
+                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.starting_reading"
+                             (ngModelChange)="recompute(i)" [name]="'sr_read_'+i" step="0.0001">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold mb-0">Final Reading (R)</label>
+                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.final_reading_r"
+                             (ngModelChange)="recompute(i)" [name]="'fr_r_'+i" step="0.0001">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold mb-0">Final Reading (E)</label>
+                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.final_reading_e"
+                             [name]="'fr_e_'+i" step="0.0001">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold mb-0">Difference (R − Start)</label>
+                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.difference"
+                             [name]="'diff_'+i" step="0.0001" readonly>
+                    </div>
+
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold mb-0">Starting Current Test</label>
+                      <input class="form-control form-control-sm" [(ngModel)]="r.starting_current_test" [name]="'sct_'+i" placeholder="OK / FAIL / NA">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold mb-0">Creep Test</label>
+                      <input class="form-control form-control-sm" [(ngModel)]="r.creep_test" [name]="'creep_'+i" placeholder="OK / FAIL / NA">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold mb-0">Dial Test</label>
+                      <input class="form-control form-control-sm" [(ngModel)]="r.dial_test" [name]="'dial_'+i" placeholder="OK / FAIL / NA">
+                    </div>
+
+                    <div class="col-12">
+                      <label class="form-label small fw-bold mb-0">Remark</label>
+                      <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'remark_'+i"></textarea>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex gap-2 mt-3 d-print-none">
+        <div class="ms-auto"></div>
+        <button type="button" class="btn btn-primary" [disabled]="!rows.length" (click)="downloadPdf()">
+          Generate PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

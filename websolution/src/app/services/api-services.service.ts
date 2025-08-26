@@ -68,8 +68,9 @@ deleteLab(id: number): Observable<any> {
 }
 
 // --- User Endpoints ---
-getUsers(): Observable<UserPublic[]> {
-  return this.http.get<UserPublic[]>(`${this.baseUrl}/users/`);
+getUsers(role: string[] = []): Observable<UserPublic[]> {
+  const params = new HttpParams().set('role', role.join(','));
+  return this.http.get<UserPublic[]>(`${this.baseUrl}/users/`, { params });
 }
 
 getUser(id: number): Observable<UserPublic> {
@@ -291,7 +292,7 @@ getDevicelistbyinwordno(inward_number: string): Observable<string[]> {
 }
 
 // --- Testing Endpoints ---
-getTestingRecords(serial_number?: string | null, user_id?: number | null, test_result?: 'PASS' | 'FAIL' | null, test_method?: 'MANUAL' | 'AUTOMATIC' | null, test_status?: 'COMPLETED' | 'UNTESTABLE' | null, lab_id?: number | null, offset?: number | null, limit?: number | null): Observable<Testing[]> {
+getTestingRecords(serial_number?: string | null, user_id?: number | null, test_result?: 'PASS' | 'FAIL' | null, test_method?: 'MANUAL' | 'AUTOMATIC' | null, test_status?: 'COMPLETED' | 'UNTESTABLE' | null, lab_id?: number | null, offset?: number | null, limit?: number | null,report_type?: string, start_date?: string | null, end_date?: string | null): Observable<Testing[]> {
   let params = new HttpParams();
   if (serial_number) {
     params = params.set('serial_number', serial_number.toString());
@@ -316,6 +317,15 @@ getTestingRecords(serial_number?: string | null, user_id?: number | null, test_r
   }
   if (limit) {
     params = params.set('limit', limit.toString());
+  }
+  if (report_type) {
+    params = params.set('report_type', report_type.toString());
+  }
+  if (start_date) {
+    params = params.set('start_date', start_date.toString());
+  }
+  if (end_date) {
+    params = params.set('end_date', end_date.toString());
   }
 
   return this.http.get<any[]>(`${this.baseUrl}/testing/`, { params });
@@ -374,24 +384,41 @@ getEnums(): Observable<any> {
 }
 
 
-getTestedDevicesByInward(inward_no: string) {
-  return this.http.get<any>(`/api/devices/tested/${inward_no}`);
+getTestedDevices(start_date: string, end_date: string) {
+  let params = new HttpParams();
+  params = params.set('start_date', start_date);
+  params = params.set('end_date', end_date);
+  return this.http.get<any>(`${this.baseUrl}/testing/to_approve/`, { params });
+}
+approveDevices(device_ids: Array<number | string>, note?: string) {
+    let params = new HttpParams();
+    if (note) params = params.set('note', note);
+
+    return this.http.put<any>(
+      `${this.baseUrl}/testing/approve_byoic/`,
+      device_ids,           
+      { params }
+    );
+  }
+
+getTestedDevicesByInwardAndReportType(inward_no: string, report_type: string) {
+  return this.http.get<any>(`${this.baseUrl}/testing/by-inward-and-report-type?inward_no=${inward_no}&report_type=${report_type}`);
 }
 
 postGatepass(payload: any) {
-  return this.http.post<any>('/api/gatepass/generate', payload);
+  return this.http.post<any>(`${this.baseUrl}/api/gatepass/create`, payload);
 }
 
 getAllGatepassIds() {
-  return this.http.get<any>('/api/gatepasses');
+  return this.http.get<any>(`${this.baseUrl}/api/gatepass/ids`);
 }
 
 getGatepassById(gatepassId: string) {
-  return this.http.get<any>(`/api/gatepass/${gatepassId}`);
+  return this.http.get<any>(`${this.baseUrl}/api/gatepass/${gatepassId}`);
 }
 
 updateGatepass(payload: any) {
-  return this.http.put<any>('/api/gatepass/update', payload);
+  return this.http.put<any>(`${this.baseUrl}/api/gatepass/update`, payload);
 }
 
 

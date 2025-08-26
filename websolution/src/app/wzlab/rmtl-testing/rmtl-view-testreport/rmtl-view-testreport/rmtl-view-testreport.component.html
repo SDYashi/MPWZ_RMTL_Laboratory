@@ -6,24 +6,31 @@
 
     <div class="card-body">
 
-      <!-- Filters -->
-      <div class="row g-3 align-items-end">
-        <div class="col-md-4">
-          <label class="form-label">From</label>
-          <input type="date" class="form-control" [(ngModel)]="filters.from" (change)="applyFilters()">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">To</label>
-          <input type="date" class="form-control" [(ngModel)]="filters.to" (change)="applyFilters()">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Report Type</label>
-          <select class="form-select" [(ngModel)]="filters.report_type" (change)="applyFilters()">
-            <option value="">All</option>
-            <option *ngFor="let rt of reportTypes" [value]="rt">{{ rt }}</option>
-          </select>
-        </div>
-      </div>
+<!-- Filters -->
+<div class="row g-3 align-items-end">
+  <div class="col-md-4">
+    <label class="form-label">From</label>
+    <input type="date" class="form-control"
+           [(ngModel)]="filters.from"
+           (change)="onDateChanged()">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">To</label>
+    <input type="date" class="form-control"
+           [(ngModel)]="filters.to"
+           (change)="onDateChanged()">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Report Type</label>
+    <select class="form-select"
+            [(ngModel)]="filters.report_type"
+            (change)="onReportTypeChanged()">
+      <option value="">All</option>
+      <option *ngFor="let rt of reportTypes" [value]="rt">{{ rt }}</option>
+    </select>
+  </div>
+</div>
+
 
       <div class="d-flex gap-2 justify-content-end mt-3">
         <button class="btn btn-outline-secondary" (click)="resetFilters()">Reset</button>
@@ -52,15 +59,14 @@
         <th>Start</th>
         <th>End</th>
         <th>Error %</th>
-        <th>Other</th>
-        <th>Details</th>
+        <th>Report Type</th>
         <th style="width:180px;">Action</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let r of pageRows; let i=index">
         <td>{{ (page-1)*pageSize + i + 1 }}</td>
-        <td>{{ r.id }}</td>
+        <!-- <td>{{ r.id }}</td> -->
         <td>{{ r.device_id }}</td>
         <td>{{ r.assignment_id }}</td>
         <td>{{ r.terminal_block }}</td>
@@ -96,13 +102,12 @@
         <td>{{ r.start_datetime | date:'short' }}</td>
         <td>{{ r.end_datetime | date:'short' }}</td>
         <td>{{ r.error_percentage }}%</td>
-        <td>{{ r.other }}</td>
-        <td>{{ r.details }}</td>
+        <td>{{ r.report_type }}</td>
         <td>
           <div class="btn-group btn-group-sm">
             <button class="btn btn-outline-primary" (click)="openDetails(r)" data-bs-toggle="offcanvas" data-bs-target="#detailsCanvas">Details</button>
-            <button class="btn btn-outline-secondary" (click)="edit(r)">Edit</button>
-            <button class="btn btn-outline-dark" (click)="print(r)">Print</button>
+            <!-- <button class="btn btn-outline-secondary" (click)="edit(r)">Edit</button>
+            <button class="btn btn-outline-dark" (click)="print(r)">Print</button> -->
           </div>
         </td>
       </tr>
@@ -200,8 +205,8 @@
     <div><strong>Remarks:</strong> {{ selected.remarks || '-' }}</div>
 
     <div class="d-flex gap-2 mt-3">
-      <button class="btn btn-outline-secondary btn-sm" (click)="edit(selected)">Edit</button>
-      <button class="btn btn-dark btn-sm" (click)="print(selected)">Print</button>
+      <!-- <button class="btn btn-outline-secondary btn-sm" (click)="edit(selected)">Edit</button>
+      <button class="btn btn-dark btn-sm" (click)="print(selected)">Print</button> -->
     </div>
   </div>
 </div>

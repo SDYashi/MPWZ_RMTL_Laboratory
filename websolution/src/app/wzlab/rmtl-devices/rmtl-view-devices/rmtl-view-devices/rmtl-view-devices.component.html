@@ -5,7 +5,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="card-body pb-0 mb-4">
+    <div class="card-body pb-0 mb-3">
       <form class="row g-3 align-items-end">
         <div class="col-sm-3">
           <label class="form-label fw-semibold">From date</label>
@@ -18,6 +18,15 @@
         <div class="col-sm-6 d-flex gap-2">
           <button type="button" class="btn btn-primary mt-3" (click)="applyFilter()">Apply</button>
           <button type="button" class="btn btn-outline-primary mt-3" (click)="resetToThisMonth()">Current month</button>
+
+          <!-- Page size -->
+          <div class="ms-auto mt-3 d-flex align-items-center gap-2">
+            <label class="form-label mb-0">Rows per page</label>
+            <select class="form-select form-select-sm" style="width:auto"
+                    [(ngModel)]="pageSize" name="pageSize" (ngModelChange)="goToPage(1)">
+              <option *ngFor="let s of pageSizeOptions" [value]="s">{{ s }}</option>
+            </select>
+          </div>
         </div>
       </form>
     </div>
@@ -47,8 +56,9 @@
             <tr *ngIf="loading">
               <td colspan="14" class="text-center text-muted">Loading…</td>
             </tr>
-            <tr *ngFor="let device of devices; let i = index">
-              <td class="text-center">{{ i + 1 }}</td>
+
+            <tr *ngFor="let device of pagedDevices(); let i = index">
+              <td class="text-center">{{ indexOfFirst + i + 1 }}</td>
               <td>{{ device.inward_number }}</td>
               <td>
                 <span class="badge"
@@ -72,12 +82,44 @@
               <td>{{ device.location_name }}</td>
               <td>{{ device.date_of_entry | date: 'dd-MM-yyyy' }}</td>
             </tr>
+
             <tr *ngIf="!loading && devices.length === 0">
               <td colspan="14" class="text-center text-muted">No devices available for this date range.</td>
             </tr>
           </tbody>
         </table>
       </div>
+    </div>
+
+    <!-- Pagination footer -->
+    <div class="card-footer d-flex flex-wrap gap-2 align-items-center justify-content-between">
+      <div class="small text-muted">
+        Showing <strong>{{ total === 0 ? 0 : indexOfFirst + 1 }}</strong>–
+        <strong>{{ indexOfLast }}</strong> of <strong>{{ total }}</strong>
+      </div>
+
+      <nav>
+        <ul class="pagination mb-0">
+          <li class="page-item" [class.disabled]="page === 1">
+            <button class="page-link" (click)="goToPage(1)" [disabled]="page === 1">« First</button>
+          </li>
+          <li class="page-item" [class.disabled]="page === 1">
+            <button class="page-link" (click)="prev()" [disabled]="page === 1">‹ Prev</button>
+          </li>
+
+          <!-- Simple window of pages -->
+          <li class="page-item" *ngFor="let p of pageWindow()" [class.active]="p === page">
+            <button class="page-link" (click)="goToPage(p)">{{ p }}</button>
+          </li>
+
+          <li class="page-item" [class.disabled]="page === totalPages">
+            <button class="page-link" (click)="next()" [disabled]="page === totalPages">Next ›</button>
+          </li>
+          <li class="page-item" [class.disabled]="page === totalPages">
+            <button class="page-link" (click)="goToPage(totalPages)" [disabled]="page === totalPages">Last »</button>
+          </li>
+        </ul>
+      </nav>
     </div>
 
   </div>

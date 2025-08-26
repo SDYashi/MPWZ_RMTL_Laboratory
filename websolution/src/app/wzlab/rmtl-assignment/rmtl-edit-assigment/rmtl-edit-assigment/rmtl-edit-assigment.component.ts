@@ -25,7 +25,7 @@ export class RmtlEditAssigmentComponent {
   assignment = {
     id: '',
     inward_no: '',
-    device_status: '',
+    device_status: 'ASSIGNED',
     assigned_to: '',
     device_ids: [] as number[],
     assignment_id: [] as number[],
@@ -35,6 +35,7 @@ export class RmtlEditAssigmentComponent {
   responseSuccess: boolean = false;
   responseMessage: string = '';
   payload: any;
+  roles:string[] = ['TESTING_ASSISTANT'];
 
   constructor(
     private api: ApiServicesService,
@@ -49,7 +50,7 @@ export class RmtlEditAssigmentComponent {
   fetchEnums(): void {
     this.api.getEnums().subscribe({
       next: (res) => {
-        this.device_statuses = res.assignment_statuses;
+        // this.device_statuses = res.assignment_statuses;
         this.responseSuccess = true;
       },
       error: (err) => {
@@ -88,7 +89,7 @@ export class RmtlEditAssigmentComponent {
   }
 
   filterUsers(): void {
-    this.api.getUsers().subscribe({
+    this.api.getUsers(this.roles).subscribe({
       next: (res) => {
         this.users_for_inward = res;
       },
@@ -98,19 +99,6 @@ export class RmtlEditAssigmentComponent {
     });
   }
 
-  // filterDevices(): void {
-  //   this.api.getDevicesByInwardAndAssignmentStatus(this.assignment.inward_no, this.assignment.device_status).subscribe({
-  //     next: (res) => {
-  //       this.filteredDevices = res.filter(d => d.user.username === this.assignment.selected_user);
-  //       this.responseMessage = 'Devices filtered successfully';
-  //       this.responseSuccess = true;
-  //     },
-  //     error: (err) => {
-  //       this.responseMessage = err?.error?.details || 'Failed to fetch devices';
-  //       this.responseSuccess = false;
-  //     }
-  //   });
-  // }
 filterDevices(): void {
   this.api.getDevicesByInwardAndAssignmentStatus(this.assignment.inward_no, this.assignment.device_status).subscribe({
     next: (res) => {
@@ -131,7 +119,7 @@ hasSelectedDevices(): boolean {
 
 
   openAssignModal(): void {
-    this.api.getUsers().subscribe({
+    this.api.getUsers(this.roles).subscribe({
       next: (res) => {
         this.users = res;
       },

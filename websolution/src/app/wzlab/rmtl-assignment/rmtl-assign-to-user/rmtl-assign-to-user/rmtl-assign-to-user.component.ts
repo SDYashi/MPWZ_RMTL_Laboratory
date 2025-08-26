@@ -32,6 +32,7 @@ devices = [
   assignedBench: string = '';
   currentuser: string = 'SYSADMIN';
   filteredDevices: any[] = [];
+  roles:string[] = ['TESTING_ASSISTANT'];
 
   constructor(private api: ApiServicesService, private authapi: AuthService, private router: Router) {}
 
@@ -106,7 +107,7 @@ devices = [
 
   openAssignModal(): void {
     
-    this.api.getUsers().subscribe({
+    this.api.getUsers(this.roles).subscribe({
       next: (res) => {
         this.users = res;
       },
