@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environment/environment';
-import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass, TestReportPayload } from '../interface/models';
+import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass, TestReportPayload, TestingStatusAgg, DashboardCounts } from '../interface/models';
 @Injectable({
   providedIn: 'root'
 })
@@ -29,10 +29,6 @@ getlogin(username: string, password: string): Observable<any> {
   return this.http.post<any>(`${this.baseUrl}/token`, body.toString(), { headers });
 }
 
-// dashbaord api list 
-getAssignmentDashboard(query: string = ''): Observable<Assignment[]> {
-  return this.http.get<Assignment[]>(`${this.baseUrl}/assignment-dashboard${query}`);
-}
 
 approveTestReports(payload: any) {
   throw new Error('Method not implemented.');
@@ -42,6 +38,7 @@ approveTestReports(payload: any) {
 getallUsers(): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}/users/`);
 }
+
 
 // --- Lab Endpoints ---
 getLabs(): Observable<Lab[]> {
@@ -398,7 +395,7 @@ approveDevices(device_ids: Array<number | string>, note?: string) {
     if (note) params = params.set('note', note);
 
     return this.http.put<any>(
-      `${this.baseUrl}/testing/approve_byoic/`,
+      `${this.baseUrl}/testing/bulk/approve_byoic/`,
       device_ids,           
       { params }
     );
@@ -422,6 +419,34 @@ getGatepassById(gatepassId: string) {
 
 updateGatepass(payload: any) {
   return this.http.put<any>(`${this.baseUrl}/api/gatepass/update`, payload);
+}
+
+// dashbaord api list 
+getAssignmentDashboard(): Observable<Assignment[]> {
+  return this.http.get<Assignment[]>(`${this.baseUrl}/assignment-dashboard/`);
+}
+getTestingStatusDashboard(): Observable<TestingStatusAgg> {
+  return this.http.get<any>(`${this.baseUrl}/dashboard/testing-status/`);
+}
+getStockStatusDashboard(query: string = ''): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/dashboard/stock-status/`);
+}
+getAssignmentStatusDashboard(query: string = ''): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/dashboard/assignment-status/`);
+}
+getCountsDashboard(query: string = ''): Observable<DashboardCounts> {
+  return this.http.get<any>(`${this.baseUrl}/dashboard/counts/`);
+}
+getRecentHistoryDashboard(query: string = ''): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/dashboard/recenthistory/`);
+}
+getAssignmentStatus(query: string = ''): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/dashboard/assignment-status/`);
+}
+
+// reports api list
+getLabReportUsageStock(lab_id: number) {
+  return this.http.get<any>(`${this.baseUrl}/reports/lab-report-usage-stock/${lab_id}`);
 }
 
 

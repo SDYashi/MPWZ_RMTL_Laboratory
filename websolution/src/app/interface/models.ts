@@ -226,3 +226,25 @@ export interface TestReportPayload {
   error_percentage: number;
   approver_id: number;
 }
+
+export interface DashboardCounts {
+  labs: number;
+  users: number;
+  benches: number;
+  stores: number;
+  vendors: number;
+  offices: number;
+  gatepasses: number;
+  assignments: number;
+  testings: number;
+  inwards: number;
+  dispatcheds: number;
+  approved_statuses: number;
+  pending_approvals: number;
+}
+
+export interface TestingStatusAgg {
+  status: string;
+  total: number;
+  test_status: TestingStatusAgg;
+}

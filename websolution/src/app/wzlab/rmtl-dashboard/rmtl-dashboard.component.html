@@ -1,123 +1,555 @@
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-
-
-
 <div class="container-fluid py-2">
-<div class="dashboard-header d-flex justify-content-between align-items-center mb-4 px-3 py-2 rounded shadow-sm">
-  <div class="d-flex align-items-center gap-3">
-   <img src="../../assets/icons/wzlogo.png" alt="wzlogo" width="40" height="40">
-    <h1 class="display-6 mb-0 fw-semibold">RMTL Laboratory Dashboard</h1>
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 px-3 py-2 rounded shadow-sm bg-white">
+    <div class="d-flex align-items-center gap-3">
+      <img src="../../assets/icons/wzlogo.png" alt="wzlogo" width="40" height="40" />
+      <h1 class="h4 mb-0 fw-semibold">RMTL Laboratory Dashboard</h1>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-download me-1"></i> Export
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="onLogout()">
+        <i class="fas fa-sign-out-alt me-1"></i> Logout
+      </button>
+    </div>
   </div>
-  <div>
-    <!-- Example Action Button -->
-    <button class="btn btn-outline-primary btn-sm">
-      <i class="fas fa-download me-1"></i> Export
-    </button>
+
+  <!-- Loading / Error -->
+  <div *ngIf="isLoading" class="alert alert-light border d-flex align-items-center gap-2">
+    <i class="fas fa-spinner fa-spin"></i>
+    <span>Loading dashboard…</span>
+  </div>
+  <div *ngIf="!isLoading && error" class="alert alert-danger">
+    {{ error }}
+  </div>
+
+  <!-- Primary KPIs -->
+  <div class="row g-3" *ngIf="!isLoading">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-primary text-white p-3"><i class="fas fa-box"></i></div>
+          <div>
+            <div class="fw-bold h5 mb-0">{{ number(counts?.inwards) }}</div>
+            <div class="text-muted small">Total Inwards</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-info text-white p-3"><i class="fas fa-truck"></i></div>
+          <div>
+            <div class="fw-bold h5 mb-0">{{ number(counts?.dispatcheds) }}</div>
+            <div class="text-muted small">Dispatched</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-success text-white p-3"><i class="fas fa-clipboard-list"></i></div>
+          <div>
+            <div class="fw-bold h5 mb-0">{{ number(counts?.assignments) }}</div>
+            <div class="text-muted small">Assignments</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-dark text-white p-3"><i class="fas fa-vial"></i></div>
+          <div>
+            <div class="fw-bold h5 mb-0">{{ number(counts?.testings) }}</div>
+            <div class="text-muted small">Testings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secondary KPIs -->
+  <div class="row g-3 mt-1" *ngIf="!isLoading">
+    <div class="col-6 col-sm-4 col-lg-2" *ngFor="let i of secondaryCards">
+      <div class="card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-secondary text-white p-3"><i class="fas" [ngClass]="i.icon"></i></div>
+          <div>
+            <div class="fw-bold">{{ number(getCount(i.key)) }}</div>
+            <div class="text-muted small">{{ i.label }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gatepasses -->
+    <div class="col-6 col-sm-4 col-lg-2">
+      <div class="card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-primary text-white p-3"><i class="fas fa-ticket-alt"></i></div>
+          <div>
+            <div class="fw-bold">{{ number(counts?.gatepasses) }}</div>
+            <div class="text-muted small">Gatepasses</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Approved -->
+    <div class="col-6 col-sm-4 col-lg-2">
+      <div class="card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-success text-white p-3"><i class="fas fa-thumbs-up"></i></div>
+          <div>
+            <div class="fw-bold">{{ number(counts?.approved_statuses) }}</div>
+            <div class="text-muted small">Approved</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Approvals -->
+    <div class="col-6 col-sm-4 col-lg-2">
+      <div class="card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-warning text-white p-3"><i class="fas fa-hourglass-half"></i></div>
+          <div>
+            <div class="fw-bold">{{ number(counts?.pending_approvals) }}</div>
+            <div class="text-muted small">Pending Approvals</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Untestable -->
+    <div class="col-6 col-sm-4 col-lg-2">
+      <div class="card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-primary text-white p-3"><i class="fas fa-trophy"></i></div>
+          <div>
+            <div class="fw-bold">{{ number(testingUntestable) }}</div>
+            <div class="text-muted small">Untestable</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Completed -->
+    <div class="col-6 col-sm-4 col-lg-2">
+      <div class="card border-0 shadow-sm h-100 hover-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-success text-white p-3"><i class="fas fa-check-circle"></i></div>
+          <div>
+            <div class="fw-bold">{{ number(testingCompleted) }}</div>
+            <div class="text-muted small">Completed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Assignments -->
+  <div class="row g-3 mt-3" *ngIf="!isLoading">
+    <div class="col-12 col-lg-12">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Assignments</h5>
+          <span class="small text-muted">Total: {{ number(assignments?.total_assignments) }}</span>
+        </div>
+        <div class="card-body">
+          <div *ngIf="assignments?.userwise_count?.length; else noUserwise">
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <span class="badge bg-light text-dark border"
+                    *ngFor="let u of assignments?.userwise_count">
+                User #{{ u.user_id }}&nbsp;—&nbsp;<strong>{{ number(u.count) }}</strong>
+              </span>
+            </div>
+          </div>
+          <ng-template #noUserwise>
+            <div class="text-muted">No user-wise data.</div>
+          </ng-template>
+
+          <div *ngIf="assignments?.recent_assignment_history?.length; else noRecent">
+            <div class="mb-2">
+              <span class="me-2" *ngFor="let k of (assignmentStatusCounts | keyvalue)">
+                <span class="text-uppercase">{{ k.key }}</span>:
+                <strong>{{ number(k.value) }}</strong>
+              </span>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Device</th>
+                    <th>User</th>
+                    <th>Status</th>
+                    <th>Assigned</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let r of assignments?.recent_assignment_history | slice:0:10">
+                    <td>{{ r.id }}</td>
+                    <td>#{{ r.device_id }}</td>
+                    <td>User #{{ r.user_id }}</td>
+                    <td>
+                      <span class="badge"
+                        [ngClass]="{
+                          'bg-primary': r.assignment_status==='ASSIGNED',
+                          'bg-success': r.assignment_status==='APPROVED',
+                          'bg-info':    r.assignment_status==='TESTED'
+                        }">{{ r.assignment_status }}</span>
+                    </td>
+                    <td><small class="text-muted">{{ r.assigned_datetime | date:'medium' }}</small></td>
+                  </tr>
+                  <tr *ngIf="!(assignments?.recent_assignment_history?.length)">
+                    <td colspan="5" class="text-center text-muted">No recent assignments.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <ng-template #noRecent>
+            <div class="text-muted">No recent assignment history.</div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock Status -->
+  <div class="row g-3 mt-3" *ngIf="!isLoading">
+    <div class="col-12 col-xl-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Recent Inwards</h5>
+          <span class="small text-muted">Total Inwards: {{ number(stock?.inward) }}</span>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>Serial</th>
+                  <th>Make</th>
+                  <th>Type</th>
+                  <th>Location</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let d of stock?.recent_inwards | slice:0:10">
+                  <td>{{ d.serial_number || '-' }}</td>
+                  <td>{{ d.make || '-' }}</td>
+                  <td>{{ d.meter_type || d.device_type || '-' }}</td>
+                  <td>{{ d.location_name || '-' }}</td>
+                  <td><small class="text-muted">{{ d.inward_date || '-' }}</small></td>
+                </tr>
+                <tr *ngIf="!(stock?.recent_inwards?.length)">
+                  <td colspan="5" class="text-center text-muted">No recent inwards.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Recent Dispatched</h5>
+          <span class="small text-muted">Total Dispatched: {{ number(stock?.dispatched) }}</span>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>Serial</th>
+                  <th>Make</th>
+                  <th>Type</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let d of stock?.recent_dispatcheds | slice:0:10">
+                  <td>{{ d.serial_number || '-' }}</td>
+                  <td>{{ d.make || '-' }}</td>
+                  <td>{{ d.meter_type || d.device_type || '-' }}</td>
+                  <td><small class="text-muted">{{ d.dispatch_date || '-' }}</small></td>
+                </tr>
+                <tr *ngIf="!(stock?.recent_dispatcheds?.length)">
+                  <td colspan="4" class="text-center text-muted">No recent dispatched devices.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- Recent History (Modern) -->
+<div class="row g-3 g-xl-4 mt-3" *ngIf="!isLoading">
+  <!-- Recent Entities (Tabs) -->
+  <div class="col-12 col-xl-6 col-xxl-6">
+    <div class="card shadow-sm border-0 h-100 rounded-4">
+      <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="hdr-dot bg-info"></span>
+          <h5 class="mb-0">Recent Entities</h5>
+        </div>
+        <!-- quick filter tabs -->
+        <ul class="nav nav-pills nav-fill gap-2 small entities-tabs" id="entitiesTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-devices" data-bs-toggle="pill" data-bs-target="#pane-devices" type="button" role="tab">Devices</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-users" data-bs-toggle="pill" data-bs-target="#pane-users" type="button" role="tab">Users</button>
+          </li>
+          <li class="nav-item d-none d-md-block" role="presentation">
+            <button class="nav-link" id="tab-benches" data-bs-toggle="pill" data-bs-target="#pane-benches" type="button" role="tab">Benches</button>
+          </li>
+          <li class="nav-item d-none d-md-block" role="presentation">
+            <button class="nav-link" id="tab-stores" data-bs-toggle="pill" data-bs-target="#pane-stores" type="button" role="tab">Stores</button>
+          </li>
+          <li class="nav-item d-none d-xl-block" role="presentation">
+            <button class="nav-link" id="tab-vendors" data-bs-toggle="pill" data-bs-target="#pane-vendors" type="button" role="tab">Vendors</button>
+          </li>
+          <li class="nav-item d-none d-xl-block" role="presentation">
+            <button class="nav-link" id="tab-offices" data-bs-toggle="pill" data-bs-target="#pane-offices" type="button" role="tab">Offices</button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card-body pt-0">
+        <div class="tab-content">
+          <!-- Devices -->
+          <div class="tab-pane fade show active" id="pane-devices" role="tabpanel" aria-labelledby="tab-devices">
+            <ul class="list-group list-group-flush small scroll-240">
+              <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_devices, 8)">
+                <i class="fas fa-microchip text-primary"></i>
+                <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+              </li>
+              <li class="list-group-item text-muted py-2" *ngIf="!(recent?.recent_devices?.length)">No data</li>
+            </ul>
+          </div>
+
+          <!-- Users -->
+          <div class="tab-pane fade" id="pane-users" role="tabpanel" aria-labelledby="tab-users">
+            <ul class="list-group list-group-flush small scroll-240">
+              <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_users, 8)">
+                <i class="fas fa-user text-secondary"></i>
+                <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+              </li>
+              <li class="list-group-item text-muted py-2" *ngIf="!(recent?.recent_users?.length)">No data</li>
+            </ul>
+          </div>
+
+          <!-- Benches -->
+          <div class="tab-pane fade" id="pane-benches" role="tabpanel" aria-labelledby="tab-benches">
+            <ul class="list-group list-group-flush small scroll-240">
+              <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_benches, 8)">
+                <i class="fas fa-vials text-info"></i>
+                <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+              </li>
+              <li class="list-group-item text-muted py-2" *ngIf="!(recent?.recent_benches?.length)">No data</li>
+            </ul>
+          </div>
+
+          <!-- Stores -->
+          <div class="tab-pane fade" id="pane-stores" role="tabpanel" aria-labelledby="tab-stores">
+            <ul class="list-group list-group-flush small scroll-240">
+              <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_stores, 8)">
+                <i class="fas fa-store text-success"></i>
+                <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+              </li>
+              <li class="list-group-item text-muted py-2" *ngIf="!(recent?.recent_stores?.length)">No data</li>
+            </ul>
+          </div>
+
+          <!-- Vendors -->
+          <div class="tab-pane fade" id="pane-vendors" role="tabpanel" aria-labelledby="tab-vendors">
+            <ul class="list-group list-group-flush small scroll-240">
+              <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_vendors, 8)">
+                <i class="fas fa-handshake text-warning"></i>
+                <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+              </li>
+              <li class="list-group-item text-muted py-2" *ngIf="!(recent?.recent_vendors?.length)">No data</li>
+            </ul>
+          </div>
+
+          <!-- Offices -->
+          <div class="tab-pane fade" id="pane-offices" role="tabpanel" aria-labelledby="tab-offices">
+            <ul class="list-group list-group-flush small scroll-240">
+              <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_offices, 8)">
+                <i class="fas fa-building text-danger"></i>
+                <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+              </li>
+              <li class="list-group-item text-muted py-2" *ngIf="!(recent?.recent_offices?.length)">No data</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Workflow Events (Accordion Timeline) -->
+  <div class="col-12 col-xxl-6">
+    <div class="card shadow-sm border-0 h-100 rounded-4">
+      <div class="card-header bg-white border-0 py-3 d-flex align-items-center gap-2">
+        <span class="hdr-dot bg-success"></span>
+        <h5 class="mb-0">Recent Workflow Events</h5>
+      </div>
+
+      <div class="card-body pt-1">
+        <div class="accordion accordion-flush" id="wfAccordion">
+          <!-- Inwards -->
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="wf-inwards-h">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#wf-inwards" aria-expanded="false">
+                <i class="fas fa-arrow-down me-2 text-success"></i> Inwards
+              </button>
+            </h2>
+            <div id="wf-inwards" class="accordion-collapse collapse" data-bs-parent="#wfAccordion">
+              <div class="accordion-body pt-2">
+                <ul class="timeline small">
+                  <li *ngFor="let x of firstN(recent?.recent_inwards, 6)">
+                    <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+                  </li>
+                  <li class="text-muted" *ngIf="!(recent?.recent_inwards?.length)">No data</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dispatched -->
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="wf-disp-h">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#wf-disp" aria-expanded="false">
+                <i class="fas fa-arrow-up me-2 text-primary"></i> Dispatched
+              </button>
+            </h2>
+            <div id="wf-disp" class="accordion-collapse collapse" data-bs-parent="#wfAccordion">
+              <div class="accordion-body pt-2">
+                <ul class="timeline small">
+                  <li *ngFor="let x of firstN(recent?.recent_dispatcheds, 6)">
+                    <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+                  </li>
+                  <li class="text-muted" *ngIf="!(recent?.recent_dispatcheds?.length)">No data</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assignments -->
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="wf-assign-h">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#wf-assign" aria-expanded="false">
+                <i class="fas fa-tasks me-2 text-secondary"></i> Assignments
+              </button>
+            </h2>
+            <div id="wf-assign" class="accordion-collapse collapse" data-bs-parent="#wfAccordion">
+              <div class="accordion-body pt-2">
+                <ul class="timeline small">
+                  <li *ngFor="let x of firstN(recent?.recent_assignments, 6)">
+                    <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+                  </li>
+                  <li class="text-muted" *ngIf="!(recent?.recent_assignments?.length)">No data</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Testings -->
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="wf-test-h">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#wf-test" aria-expanded="false">
+                <i class="fas fa-vial me-2 text-info"></i> Testings
+              </button>
+            </h2>
+            <div id="wf-test" class="accordion-collapse collapse" data-bs-parent="#wfAccordion">
+              <div class="accordion-body pt-2">
+                <ul class="timeline small">
+                  <li *ngFor="let x of firstN(recent?.recent_testings, 6)">
+                    <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+                  </li>
+                  <li class="text-muted" *ngIf="!(recent?.recent_testings?.length)">No data</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Approvals -->
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="wf-approvals-h">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#wf-approvals" aria-expanded="false">
+                <i class="fas fa-thumbs-up me-2 text-success"></i> Approvals
+              </button>
+            </h2>
+            <div id="wf-approvals" class="accordion-collapse collapse" data-bs-parent="#wfAccordion">
+              <div class="accordion-body pt-2">
+                <ul class="timeline small">
+                  <li *ngFor="let x of firstN(recent?.recent_approvals, 6)">
+                    <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+                  </li>
+                  <li class="text-muted" *ngIf="!(recent?.recent_approvals?.length)">No data</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tested -->
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="wf-tested-h">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#wf-tested" aria-expanded="false">
+                <i class="fas fa-check me-2 text-dark"></i> Tested
+              </button>
+            </h2>
+            <div id="wf-tested" class="accordion-collapse collapse" data-bs-parent="#wfAccordion">
+              <div class="accordion-body pt-2">
+                <ul class="timeline small">
+                  <li *ngFor="let x of firstN(recent?.recent_tested, 6)">
+                    <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+                  </li>
+                  <li class="text-muted" *ngIf="!(recent?.recent_tested?.length)">No data</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gatepasses -->
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="wf-gp-h">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#wf-gp" aria-expanded="false">
+                <i class="fas fa-ticket-alt me-2 text-warning"></i> Gatepasses
+              </button>
+            </h2>
+            <div id="wf-gp" class="accordion-collapse collapse" data-bs-parent="#wfAccordion">
+              <div class="accordion-body pt-2">
+                <ul class="timeline small">
+                  <li *ngFor="let x of firstN(recent?.recent_gatepasses, 6)">
+                    <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
+                  </li>
+                  <li class="text-muted" *ngIf="!(recent?.recent_gatepasses?.length)">No data</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div> <!-- /accordion -->
+      </div>
+    </div>
   </div>
 </div>
 
 
-  <!-- Stats Cards -->
-  <div class="row g-4">
-    <div class="col-md-3 col-sm-6">
-      <div class="card stat-card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="icon-wrapper bg-primary text-white">
-            <i class="fas fa-tachometer-alt fa-lg"></i>
-          </div>
-          <div>
-            <h3 class="fw-bold mb-0">1,248</h3>
-            <p class="text-muted mb-0">Total Meters</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-      <div class="card stat-card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="icon-wrapper bg-success text-white">
-            <i class="fas fa-check-circle fa-lg"></i>
-          </div>
-          <div>
-            <h3 class="fw-bold mb-0">984</h3>
-            <p class="text-muted mb-0">Active Meters</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-      <div class="card stat-card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="icon-wrapper bg-warning text-white">
-            <i class="fas fa-exclamation-triangle fa-lg"></i>
-          </div>
-          <div>
-            <h3 class="fw-bold mb-0">42</h3>
-            <p class="text-muted mb-0">Alerts Today</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-      <div class="card stat-card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="icon-wrapper bg-info text-white">
-            <i class="fas fa-users fa-lg"></i>
-          </div>
-          <div>
-            <h3 class="fw-bold mb-0">24</h3>
-            <p class="text-muted mb-0">Active Users</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Recent Activity -->
-  <div class="row mt-4">
-    <div class="col-12">
-      <div class="card shadow-sm border-0 hover-card">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Recent Activity</h5>
-          <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
-        </div>
-        <div class="card-body">
-          <ul class="list-group list-group-flush">
-            <li class="list-group-item d-flex align-items-start gap-3">
-              <span class="badge bg-primary rounded-circle p-3"><i class="fas fa-plus"></i></span>
-              <div>
-                <h6 class="fw-semibold mb-1">New meter added</h6>
-                <p class="mb-0 text-muted">Meter ID: MTR-2023-00125 added</p>
-                <small class="text-muted">2 minutes ago</small>
-              </div>
-            </li>
-            <li class="list-group-item d-flex align-items-start gap-3">
-              <span class="badge bg-success rounded-circle p-3"><i class="fas fa-check"></i></span>
-              <div>
-                <h6 class="fw-semibold mb-1">Test completed</h6>
-                <p class="mb-0 text-muted">Calibration test by John Doe</p>
-                <small class="text-muted">45 minutes ago</small>
-              </div>
-            </li>
-            <li class="list-group-item d-flex align-items-start gap-3">
-              <span class="badge bg-warning rounded-circle p-3"><i class="fas fa-exclamation"></i></span>
-              <div>
-                <h6 class="fw-semibold mb-1">Alert triggered</h6>
-                <p class="mb-0 text-muted">Abnormal reading on Meter MTR-2023-00087</p>
-                <small class="text-muted">1 hour ago</small>
-              </div>
-            </li>
-            <li class="list-group-item d-flex align-items-start gap-3">
-              <span class="badge bg-info rounded-circle p-3"><i class="fas fa-user"></i></span>
-              <div>
-                <h6 class="fw-semibold mb-1">User assigned</h6>
-                <p class="mb-0 text-muted">Sarah Johnson assigned to Group B</p>
-                <small class="text-muted">3 hours ago</small>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>

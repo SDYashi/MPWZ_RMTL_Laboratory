@@ -145,54 +145,84 @@ export class RmtlTestreportPendingComponent implements OnInit {
   }
 
   /** Normalize API → TestedDeviceRow */
-  private normalizeApiList(list: any[]): TestedDeviceRow[] {
-    return (list || []).map((d: any) => {
-      const statusUpper = (d?.test_status || d?.device_status || '').toString().toUpperCase();
-      const canApprove =
-        statusUpper === 'TESTED' ||
-        statusUpper === 'COMPLETED' ||
-        statusUpper === 'APPROVED' ||
-        statusUpper === 'INWARDED';
+/** Normalize API → TestedDeviceRow (supports nested assignment/device/testing) */
+private normalizeApiList(list: any[]): TestedDeviceRow[] {
+  return (list || []).map((d: any) => {
+    const a = d?.assignment ?? {};
+    const dev = a?.device ?? d?.device ?? {};
+    const tst = a?.testing ?? d?.testing ?? {};
 
-      return {
-        id: d?.id,
-        device_id: d?.device_id ?? d?.id,
-        report_id: d?.report_id ?? undefined,
-        serial_number: d?.serial_number ?? undefined,
-        make: d?.make ?? undefined,
-        meter_category: d?.meter_category ?? undefined,
-        meter_type: d?.meter_type ?? undefined,
-        phase: d?.phase ?? undefined,
-        tested_date: d?.tested_date ?? d?.inward_date ?? d?.created_at ?? undefined,
-        test_result: d?.test_result ?? undefined,
-        test_status: d?.test_status ?? d?.device_status ?? undefined,
-        test_method: d?.test_method ?? undefined,
-        start_datetime: d?.start_datetime ?? undefined,
-        end_datetime: d?.end_datetime ?? undefined,
-        physical_condition_of_device: d?.physical_condition_of_device ?? undefined,
-        seal_status: d?.seal_status ?? undefined,
-        meter_body: d?.meter_body ?? undefined,
-        meter_glass_cover: d?.meter_glass_cover ?? undefined,
-        terminal_block: d?.terminal_block ?? undefined,
-        other: d?.other ?? undefined,
-        details: d?.details ?? undefined,
-        inward_number: d?.inward_number ?? undefined,
-        inward_date: d?.inward_date ?? undefined,
-        device_status: d?.device_status ?? undefined,
-        capacity: d?.capacity ?? undefined,
-        meter_class: d?.meter_class ?? undefined,
-        voltage_rating: d?.voltage_rating ?? undefined,
-        office_type: d?.office_type ?? undefined,
-        location_code: d?.location_code ?? undefined,
-        location_name: d?.location_name ?? undefined,
-        device_type: d?.device_type ?? undefined,
-        device_testing_purpose: d?.device_testing_purpose ?? undefined,
-        initiator: d?.initiator ?? undefined,
-        canApprove,
-        selected: false,
-      } as TestedDeviceRow;
-    });
-  }
+    const test_status = tst?.test_status ?? d?.test_status ?? null;
+    const device_status = dev?.device_status ?? d?.device_status ?? null;
+
+    const statusUpper = String(test_status || device_status || '').toUpperCase();
+    const canApprove =
+      statusUpper === 'TESTED' ||
+      statusUpper === 'COMPLETED' ||
+      statusUpper === 'APPROVED' ||
+      statusUpper === 'INWARDED';
+
+    return {
+      // IDs
+      id: d?.id ?? dev?.id,
+      device_id: d?.device_id ?? dev?.id ?? d?.id,
+
+      // Identifiers
+      report_id: tst?.report_id ?? d?.report_id,
+      serial_number: d?.serial_number ?? dev?.serial_number,
+      make: d?.make ?? dev?.make,
+
+      // Meter descriptors
+      meter_category: dev?.meter_category,
+      meter_type: dev?.meter_type,
+      phase: dev?.phase,
+      capacity: dev?.capacity,
+      meter_class: dev?.meter_class,
+      voltage_rating: dev?.voltage_rating,
+
+      // Dates
+      tested_date: tst?.created_at ?? d?.tested_date ?? dev?.inward_date ?? d?.created_at,
+      inward_date: dev?.inward_date,
+
+      // Status/result
+      test_result: tst?.test_result ?? d?.test_result,
+      test_status: test_status ?? undefined,
+      device_status: device_status ?? undefined,
+      test_method: tst?.test_method ?? d?.test_method,
+
+      // Test details
+      start_datetime: tst?.start_datetime,
+      end_datetime: tst?.end_datetime,
+      physical_condition_of_device: tst?.physical_condition_of_device,
+      seal_status: tst?.seal_status,
+      meter_body: tst?.meter_body,
+      meter_glass_cover: tst?.meter_glass_cover,
+      terminal_block: tst?.terminal_block,
+      other: tst?.other,
+      details: tst?.details,
+      ref_start_reading: tst?.ref_start_reading,
+      ref_end_reading: tst?.ref_end_reading,
+      reading_before_test: tst?.reading_before_test,
+      reading_after_test: tst?.reading_after_test,
+      error_percentage: tst?.error_percentage,
+      approver_id: tst?.approver_id ?? null,
+      approver_remark: tst?.approver_remark ?? null,
+
+      // Location / misc
+      office_type: dev?.office_type,
+      location_code: dev?.location_code,
+      location_name: dev?.location_name,
+      device_type: dev?.device_type ?? d?.device_type,
+      device_testing_purpose: dev?.device_testing_purpose ?? d?.device_testing_purpose,
+      initiator: dev?.initiator ?? d?.initiator,
+
+      // UI flags
+      canApprove,
+      selected: false,
+    } as TestedDeviceRow;
+  });
+}
+
 
   // ---- Fetch
   onDatesChange(): void {

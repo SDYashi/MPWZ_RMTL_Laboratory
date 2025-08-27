@@ -33,19 +33,21 @@
         <div class="alert alert-danger mb-0">{{ errorMsg }}</div>
       </div>
 
-      <!-- Table -->
-      <div class="table-responsive border rounded mt-3" *ngIf="!loading && filtered.length">
+      <!-- ====== Desktop/Large: Table ====== -->
+      <div class="table-responsive border rounded mt-3 d-none d-lg-block" *ngIf="!loading && filtered.length">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
             <tr class="text-nowrap">
-              <th>Device</th>
-              <th>Serial</th>
-              <th>Make</th>
-              <th>Type/Category</th>
-              <th>Capacity</th>
-              <th>Voltage</th>
-              <th>Approved/Tested On</th>
-              <th class="d-none d-lg-table-cell">Location</th>
+              <th style="min-width:100px">Device</th>
+              <th style="min-width:140px">Serial</th>
+              <th style="min-width:110px">Make</th>
+              <th style="min-width:200px">Type / Category</th>
+              <th style="min-width:130px">Capacity</th>
+              <th style="min-width:100px">Voltage</th>
+              <th style="min-width:180px">Status</th>
+              <th style="min-width:220px">Report / Approval</th>
+              <th style="min-width:180px">Approved/Tested On</th>
+              <th class="d-none d-xl-table-cell" style="min-width:220px">Location</th>
               <th style="width:120px;">Action</th>
             </tr>
           </thead>
@@ -53,18 +55,52 @@
           <tbody>
             <tr *ngFor="let r of pageRows; trackBy: trackById">
               <td class="fw-semibold">{{ r.device_id || r.id }}</td>
-              <td>{{ r.serial_number || '-' }}</td>
-              <td>{{ r.make || '-' }}</td>
+              <td>
+                <span class="d-inline-block text-truncate" style="max-width:140px" [title]="r.serial_number || '-'">
+                  {{ r.serial_number || '—' }}
+                </span>
+              </td>
+              <td>{{ r.make || '—' }}</td>
 
               <td>
-                <span class="d-inline-block text-truncate" style="max-width: 180px;"
+                <span class="d-inline-block text-truncate" style="max-width:200px"
                       [title]="(r.meter_type || '-') + (r.meter_category ? ' / ' + r.meter_category : '')">
-                  {{ r.meter_type || '-' }}<ng-container *ngIf="r.meter_category"> / {{ r.meter_category }}</ng-container>
+                  {{ r.meter_type || '—' }}<ng-container *ngIf="r.meter_category"> / {{ r.meter_category }}</ng-container>
                 </span>
               </td>
 
-              <td>{{ r.capacity || '-' }}</td>
-              <td>{{ r.voltage_rating || '-' }}</td>
+              <td>{{ r.capacity || '—' }}</td>
+              <td>{{ r.voltage_rating || '—' }}</td>
+
+              <!-- Status cell: Result + Test Status -->
+              <td>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                  <span class="badge" [ngClass]="resultClass(r.test_result)" [title]="'Result: ' + (r.test_result || '—')">
+                    {{ r.test_result || '—' }}
+                  </span>
+                  <span class="badge" [ngClass]="statusClass(r.test_status)" [title]="'Test Status: ' + (r.test_status || '—')">
+                    {{ r.test_status || '—' }}
+                  </span>
+                </div>
+              </td>
+
+              <!-- Report / Approval -->
+              <td>
+                <div class="small">
+                  <div>
+                    <strong>Report:</strong>
+                    <code *ngIf="r.report_id; else noRep">{{ r.report_id }}</code>
+                    <ng-template #noRep>—</ng-template>
+                  </div>
+                  <div class="mt-1">
+                    <strong>Approved By:</strong> <span class="badge bg-success-subtle text-dark">{{ r.approver_id || '—' }}</span>
+                  </div>
+                  <div class="text-truncate mt-1" style="max-width:210px" [title]="r.approver_remark || ''">
+                    <em class="text-muted" *ngIf="r.approver_remark; else noRem">{{ r.approver_remark }}</em>
+                    <ng-template #noRem><span class="text-muted">—</span></ng-template>
+                  </div>
+                </div>
+              </td>
 
               <td>
                 <span [title]="r.tested_date || r.inward_date">
@@ -72,9 +108,9 @@
                 </span>
               </td>
 
-              <td class="d-none d-lg-table-cell">
-                <span class="d-inline-block text-truncate" style="max-width: 200px;" [title]="r.location_name">
-                  {{ r.location_name || '-' }}
+              <td class="d-none d-xl-table-cell">
+                <span class="d-inline-block text-truncate" style="max-width:220px" [title]="r.location_name || '—'">
+                  {{ r.location_name || '—' }}
                 </span>
               </td>
 
@@ -90,6 +126,46 @@
           </tbody>
 
         </table>
+      </div>
+
+      <!-- ====== Mobile/Small: Card list ====== -->
+      <div class="d-lg-none mt-3" *ngIf="!loading && filtered.length">
+        <div class="row g-3">
+          <div class="col-12" *ngFor="let r of pageRows; trackBy: trackById">
+            <div class="border rounded p-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-bold">#{{ r.device_id || r.id }} — {{ r.serial_number || '—' }}</div>
+                  <div class="text-muted small">{{ r.make || '—' }} • {{ r.meter_type || '—' }}<ng-container *ngIf="r.meter_category"> / {{ r.meter_category }}</ng-container></div>
+                </div>
+                <div class="ms-2 text-end">
+                  <div class="badge" [ngClass]="resultClass(r.test_result)">{{ r.test_result || '—' }}</div>
+                  <div class="badge mt-1" [ngClass]="statusClass(r.test_status)">{{ r.test_status || '—' }}</div>
+                </div>
+              </div>
+
+              <div class="row g-2 mt-2 small">
+                <div class="col-6"><strong>Capacity:</strong> {{ r.capacity || '—' }}</div>
+                <div class="col-6"><strong>Voltage:</strong> {{ r.voltage_rating || '—' }}</div>
+                <div class="col-6"><strong>Report:</strong> <code *ngIf="r.report_id; else noRep2">{{ r.report_id }}</code></div>
+                <div class="col-6"><strong>Approved By:</strong> {{ r.approver_id || '—' }}</div>
+                <div class="col-12 text-truncate" [title]="r.approver_remark || ''">
+                  <strong>Remark:</strong> <em class="text-muted">{{ r.approver_remark || '—' }}</em>
+                </div>
+                <div class="col-12"><strong>Approved/Tested:</strong> {{ r.tested_date || r.inward_date }}</div>
+                <div class="col-12 text-truncate" [title]="r.location_name || ''"><strong>Location:</strong> {{ r.location_name || '—' }}</div>
+              </div>
+
+              <div class="mt-2 d-flex justify-content-end">
+                <button class="btn btn-outline-primary btn-sm"
+                        (click)="openDetails(r)" data-bs-toggle="offcanvas" data-bs-target="#detailsCanvas">
+                  Details
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noRep2>—</ng-template>
       </div>
 
       <!-- Empty state -->
@@ -119,40 +195,43 @@
   </div>
 </div>
 
-<!-- Offcanvas: Details (unchanged, no approve button) -->
+<!-- Offcanvas: Details -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="detailsCanvas">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title">Device Details</h5>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
   </div>
-  <div class="offcanvas-body" *ngIf="selectedRow">
-    <div class="small text-muted mb-2">Device: {{ selectedRow?.device_id || selectedRow?.id }}</div>
+  <div class="offcanvas-body" *ngIf="selectedRow as d">
+    <div class="small text-muted mb-2">Device: {{ d.device_id || d.id }}</div>
 
     <div class="row g-2">
-      <div class="col-6"><strong>Serial:</strong> {{ selectedRow?.serial_number || '-' }}</div>
-      <div class="col-6"><strong>Make:</strong> {{ selectedRow?.make || '-' }}</div>
-      <div class="col-6"><strong>Type:</strong> {{ selectedRow?.meter_type || '-' }}</div>
-      <div class="col-6"><strong>Category:</strong> {{ selectedRow?.meter_category || '-' }}</div>
-      <div class="col-6"><strong>Capacity:</strong> {{ selectedRow?.capacity || '-' }}</div>
-      <div class="col-6"><strong>Voltage:</strong> {{ selectedRow?.voltage_rating || '-' }}</div>
-      <div class="col-6"><strong>Class:</strong> {{ selectedRow?.meter_class || '-' }}</div>
-      <div class="col-6"><strong>Phase:</strong> {{ selectedRow?.phase || '-' }}</div>
+      <div class="col-6"><strong>Serial:</strong> {{ d.serial_number || '—' }}</div>
+      <div class="col-6"><strong>Make:</strong> {{ d.make || '—' }}</div>
+      <div class="col-6"><strong>Type:</strong> {{ d.meter_type || '—' }}</div>
+      <div class="col-6"><strong>Category:</strong> {{ d.meter_category || '—' }}</div>
+      <div class="col-6"><strong>Capacity:</strong> {{ d.capacity || '—' }}</div>
+      <div class="col-6"><strong>Voltage:</strong> {{ d.voltage_rating || '—' }}</div>
+      <div class="col-6"><strong>Class:</strong> {{ d.meter_class || '—' }}</div>
+      <div class="col-6"><strong>Phase:</strong> {{ d.phase || '—' }}</div>
     </div>
 
     <hr>
 
     <div class="row g-2">
-      <div class="col-6"><strong>Status:</strong> {{ selectedRow?.test_status || selectedRow?.device_status || '-' }}</div>
-      <div class="col-6"><strong>Result:</strong> {{ selectedRow?.test_result || '-' }}</div>
-      <div class="col-6"><strong>Tested/Approved On:</strong> {{ (selectedRow?.tested_date || selectedRow?.inward_date) }}</div>
-      <div class="col-6"><strong>Initiator:</strong> {{ selectedRow?.initiator || '-' }}</div>
-      <div class="col-6"><strong>Office:</strong> {{ selectedRow?.office_type || '-' }}</div>
-      <div class="col-6"><strong>Location:</strong> {{ selectedRow?.location_name || '-' }}</div>
-      <div class="col-12"><strong>Purpose:</strong> {{ selectedRow?.device_testing_purpose || '-' }}</div>
+      <div class="col-6"><strong>Result:</strong> <span class="badge" [ngClass]="resultClass(d.test_result)">{{ d.test_result || '—' }}</span></div>
+      <div class="col-6"><strong>Test Status:</strong> <span class="badge" [ngClass]="statusClass(d.test_status)">{{ d.test_status || '—' }}</span></div>
+      <div class="col-6"><strong>Report ID:</strong> <code>{{ d.report_id || '—' }}</code></div>
+      <div class="col-6"><strong>Approved By:</strong> {{ d.approver_id || '—' }}</div>
+      <div class="col-12"><strong>Approval Remark:</strong> <em class="text-muted">{{ d.approver_remark || '—' }}</em></div>
+      <div class="col-6"><strong>Tested/Approved On:</strong> {{ d.tested_date || d.inward_date }}</div>
+      <div class="col-6"><strong>Initiator:</strong> {{ d.initiator || '—' }}</div>
+      <div class="col-6"><strong>Office:</strong> {{ d.office_type || '—' }}</div>
+      <div class="col-6"><strong>Location:</strong> {{ d.location_name || '—' }}</div>
+      <div class="col-12"><strong>Purpose:</strong> {{ d.device_testing_purpose || '—' }}</div>
     </div>
 
     <hr>
-    <div><strong>Other:</strong> {{ selectedRow?.other || '-' }}</div>
-    <div class="text-muted small mt-2"><strong>Details:</strong> {{ selectedRow?.details || '-' }}</div>
+    <div><strong>Other:</strong> {{ d.other || '—' }}</div>
+    <div class="text-muted small mt-2"><strong>Details:</strong> {{ d.details || '—' }}</div>
   </div>
 </div>
