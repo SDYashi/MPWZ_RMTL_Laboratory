@@ -8,9 +8,9 @@ type TDocumentDefinitions = any;
 
 interface DeviceLite {
   id: number;
-  serial_number: string;   // maps to CT No.
+  serial_number: string;   // CT No.
   make?: string;
-  capacity?: string;       // maps to Cap.
+  capacity?: string;       // Cap.
   location_code?: string | null;
   location_name?: string | null;
 }
@@ -24,10 +24,17 @@ interface CtRow {
   polarity: string;
   remark: string;
 
-  // assignment hints
   assignment_id?: number;
   device_id?: number;
   notFound?: boolean;
+}
+
+interface ModalState {
+  open: boolean;
+  title: string;
+  message: string;
+  action: 'reload' | 'removeRow' | 'clear' | 'submit' | null;
+  payload?: any;
 }
 
 @Component({
@@ -37,7 +44,7 @@ interface CtRow {
 })
 export class RmtlAddTestreportCttestingComponent implements OnInit {
 
-  // ===== Batch header (new) =====
+  // ===== Header =====
   header = {
     location_code: '', location_name: '',
     consumer_name: '', address: '',
@@ -49,7 +56,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     primary_current: '', secondary_current: ''
   };
 
-  // Test method / status
   test_methods: any[] = [];
   test_statuses: any[] = [];
   testMethod: string | null = null;
@@ -63,8 +69,29 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
 
   private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; }> = {};
 
-  // ===== Rows =====
+  // ===== Rows + UI =====
   ctRows: CtRow[] = [ this.emptyCtRow() ];
+  filterText = '';
+
+  // Modal + submit state
+  modal: ModalState = { open: false, title: '', message: '', action: null };
+  submitting = false;
+  alertSuccess: string | null = null;
+  alertError: string | null = null;
+
+  // Optional approver
+  approverId: number | null = null;
+
+  // Report type expected by backend
+  report_type = 'CT_TESTING';
+  test_results: any[] = [];
+  office_types: any;
+  selectedSourceType: any;
+  selectedSourceName: string = '';
+  filteredSources: any;
+  commentby_testers: any;
+  makes: any;
+  ct_classes: any;
 
   constructor(private api: ApiServicesService) {}
 
@@ -72,16 +99,40 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
     this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
 
-    // enums for method/status
     this.api.getEnums().subscribe({
       next: (d) => {
-        this.test_methods = d?.test_methods || [];
+        this.test_methods  = d?.test_methods || [];
         this.test_statuses = d?.test_statuses || [];
+        this.report_type   = d?.test_report_types?.CT_TESTING || this.report_type;
+        this.office_types  = d?.office_types || [];
+        this.commentby_testers = d?.commentby_testers || [];
+        this.test_results = d?.test_results || [];
+        this.makes = d?.device_makes || []; 
+        this.ct_classes = d?.ct_classes || [];
       }
     });
 
-    // Prebuild serial index quietly
+    // Prebuild index
     this.reloadAssigned(false);
+  }
+
+        // ---------- Source fetch ----------
+  fetchButtonData(): void {
+    if (!this.selectedSourceType || !this.selectedSourceType) {
+       alert('Missing Input');
+      return;
+    }
+    this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
+      next: (data) => (this.filteredSources = data, 
+        this.header.location_name = this.filteredSources.name,
+        this.header.location_code = this.filteredSources.code ) ,
+      error: () => alert('Failed to fetch source details. Check the code and try again.')
+    });
+  }
+
+  onSourceTypeChange(): void {
+    this.selectedSourceName = '';
+    this.filteredSources = [];
   }
 
   // ===== Derived counts =====
@@ -92,10 +143,20 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   emptyCtRow(seed?: Partial<CtRow>): CtRow {
     return { ct_no: '', make: '', cap: '', ratio: '', polarity: '', remark: '', ...seed };
   }
-  addCtRow() { this.ctRows.push(this.emptyCtRow()); }
-  removeCtRow(i: number) { this.ctRows.splice(i, 1); if (!this.ctRows.length) this.addCtRow(); }
-  clearCtRows() { this.ctRows = [ this.emptyCtRow() ]; }
-  trackByCtRow(i: number, r: CtRow) { return `${r.assignment_id || 0}_${r.device_id || 0}_${r.ct_no || ''}_${i}`; }
+  addCtRow(){ this.ctRows.push(this.emptyCtRow()); }
+  removeCtRow(i: number){ this.ctRows.splice(i,1); if (!this.ctRows.length) this.addCtRow(); }
+  clearCtRows(){ this.ctRows = [ this.emptyCtRow() ]; }
+  trackByCtRow(i:number, r:CtRow){ return `${r.assignment_id || 0}_${r.device_id || 0}_${r.ct_no || ''}_${i}`; }
+
+  displayRows(): CtRow[] {
+    const q = this.filterText.trim().toLowerCase();
+    if (!q) return this.ctRows;
+    return this.ctRows.filter(r =>
+      (r.ct_no || '').toLowerCase().includes(q) ||
+      (r.make || '').toLowerCase().includes(q) ||
+      (r.remark || '').toLowerCase().includes(q)
+    );
+  }
 
   // ===== Assignment: build index + load =====
   private rebuildSerialIndex(asg: AssignmentItem[]) {
@@ -113,23 +174,14 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     }
   }
 
-  /** Loads assigned items. If replaceRows=true, it replaces table rows. */
   reloadAssigned(replaceRows: boolean = true) {
     this.loading = true;
     this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
-      next: (data: any) => {
-        const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+      next: (data:any) => {
+        const asg:AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
         this.rebuildSerialIndex(asg);
-
-        // DC/Zone header from first device (editable)
-        const first = asg.find(a => a.device);
-        if (first?.device) {
-          this.header.location_code = first.device.location_code ?? '';
-          this.header.location_name = first.device.location_name ?? '';
-        }
-
-        if (replaceRows) {
-          this.ctRows = asg.map(a => {
+        if (replaceRows){
+          this.ctRows = asg.map(a=>{
             const d = a.device || ({} as DeviceLite);
             return this.emptyCtRow({
               ct_no: d.serial_number || '',
@@ -137,44 +189,188 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
               cap: d.capacity || '',
               assignment_id: a.id ?? 0,
               device_id: d.id ?? a.device_id ?? 0,
-              notFound: false
+              notFound:false
             });
           });
           if (!this.ctRows.length) this.ctRows.push(this.emptyCtRow());
+          this.header.no_of_ct = this.ctRows.length.toString();
+          this.header.ct_make = this.ctRows[0].make || '';
         }
         this.loading = false;
       },
-      error: () => { this.loading = false; }
+      error: ()=>{ this.loading=false; }
     });
   }
 
-  onCtNoChanged(i: number, value: string) {
+  onCtNoChanged(i:number, value:string){
     const key = (value || '').toUpperCase().trim();
     const row = this.ctRows[i];
     const hit = this.serialIndex[key];
 
-    if (hit) {
+    if (hit){
       row.make = hit.make || '';
       row.cap  = hit.capacity || '';
       row.device_id = hit.device_id || 0;
       row.assignment_id = hit.assignment_id || 0;
       row.notFound = false;
     } else {
-      row.make = '';
-      row.cap  = '';
-      row.device_id = 0;
-      row.assignment_id = 0;
-      row.notFound = key.length > 0;
+      row.make = ''; row.cap = ''; row.device_id = 0; row.assignment_id = 0; row.notFound = key.length>0;
     }
   }
 
-  // ===== PDF =====
-  private infoTable() {
-    const two = (label: string, value: any) => ([{ text: label, style: 'lbl' }, { text: (value ?? '').toString() }]);
+  // ===== Submit + modal =====
+
+  private isoOn(dateStr?: string){ const d = dateStr ? new Date(dateStr+'T10:00:00') : new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString(); }
+
+  /** Compute test result from remark (OK/PASS -> PASS, DEF/FAIL -> FAIL), otherwise undefined */
+  private inferResult(remark: string): 'PASS'|'FAIL'|undefined {
+    const t = (remark || '').toLowerCase();
+    if (!t) return undefined;
+    if (/\bok\b|\bpass\b/.test(t)) return 'PASS';
+    if (/\bfail\b|\bdef\b|\bdefective\b/.test(t)) return 'FAIL';
+    return undefined;
+    }
+
+  /** Build payload; IMPORTANT: stringify `details` to avoid psycopg2 "can't adapt dict" */
+  private buildPayload(): any[] {
+    const when = this.isoOn(this.header.date_of_testing);
+    const zone = (this.header.location_code ? this.header.location_code + ' - ' : '') + (this.header.location_name || '');
+
+    return (this.ctRows || [])
+      .filter(r => (r.ct_no || '').trim())
+      .map(r => {
+        const detailsObj = {
+          consumer_name: this.header.consumer_name || '',
+          address: this.header.address || '',
+          ref_no: this.header.ref_no || '',
+          no_of_ct: this.header.no_of_ct || '',
+          city_class: this.header.city_class || '',
+          ct_make: this.header.ct_make || '',
+          mr_no: this.header.mr_no || '',
+          mr_date: this.header.mr_date || '',
+          amount_deposited: this.header.amount_deposited || '',
+          primary_current: this.header.primary_current || '',
+          secondary_current: this.header.secondary_current || '',
+          zone_dc: zone,
+          // row-specific
+          ct_no: r.ct_no || '',
+          make: r.make || '',
+          cap: r.cap || '',
+          ratio: r.ratio || '',
+          polarity: r.polarity || '',
+          remark: r.remark || '',
+        };
+
+        return {
+          device_id: r.device_id ?? 0,
+          assignment_id: r.assignment_id ?? 0,
+          start_datetime: when,
+          end_datetime: when,
+
+          // fields not used for CT → set neutral values
+          physical_condition_of_device: '-',
+          seal_status: '-',
+          meter_glass_cover: '-',
+          terminal_block: '-',
+          meter_body: '-',
+          other: r.remark || '-',         // carry remark as "other"
+          is_burned: false,
+          reading_before_test: 0,
+          reading_after_test: 0,
+          ref_start_reading: 0,
+          ref_end_reading: 0,
+          error_percentage: 0,
+
+          // **** KEY FIX: string not dict ****
+          details: JSON.stringify(detailsObj),
+
+          test_result: this.inferResult(r.remark), // optional
+          test_method: this.testMethod,
+          test_status: this.testStatus,
+          approver_id: this.approverId ?? null,
+          report_type: this.report_type
+        };
+      });
+  }
+
+  openConfirm(action: ModalState['action'], payload?: any){
+    if (action !== 'submit') { this.alertSuccess = null; this.alertError = null; }
+    this.modal.action = action; this.modal.payload = payload;
+
+    switch(action){
+      case 'reload': this.modal.title = 'Reload Assigned Devices'; this.modal.message = 'Replace rows with the latest assigned devices?'; break;
+      case 'removeRow': this.modal.title = 'Remove Row'; this.modal.message = `Remove row #${(payload?.index ?? 0)+1}?`; break;
+      case 'clear': this.modal.title = 'Clear All Rows'; this.modal.message = 'Clear all rows and leave one empty row?'; break;
+      case 'submit': this.modal.title = 'Submit CT Report — Preview'; this.modal.message = ''; break;
+      default: this.modal.title=''; this.modal.message='';
+    }
+    this.modal.open = true;
+  }
+  closeModal(){ this.modal.open=false; this.modal.action=null; this.modal.payload=undefined; }
+
+  confirmModal(){
+    const a = this.modal.action, p = this.modal.payload;
+    if (a !== 'submit') this.closeModal();
+    if (a === 'reload') this.reloadAssigned(true);
+    if (a === 'removeRow') this.removeCtRow(p?.index);
+    if (a === 'clear') this.clearCtRows();
+    if (a === 'submit') this.doSubmit();
+  }
+
+  private doSubmit(){
+    const payload = this.buildPayload();
+    if (!payload.length){
+      this.alertError = 'No valid rows to submit.';
+      this.alertSuccess = null;
+      return;
+    }
+
+    this.submitting = true;
+    this.alertSuccess = null;
+    this.alertError = null;
+
+    this.api.postTestReports(payload).subscribe({
+      next: () => {
+        this.submitting = false;
+        // PDF only after success
+        try { this.downloadPdf(); } catch(e){ console.error('PDF generation failed:', e); }
+        this.alertSuccess = 'CT Testing report submitted successfully!';
+        this.alertError = null;
+        this.ctRows = [ this.emptyCtRow() ];
+        setTimeout(()=> this.closeModal(), 1200);
+      },
+      error: (err) => {
+        this.submitting = false;
+        this.alertSuccess = null;
+        this.alertError = 'Error submitting CT report. Please verify rows and try again.';
+        console.error(err);
+      }
+    });
+  }
+
+  // ===== PDF (compact A4) =====
+
+  private buildHeaderBlock(meta:{zone:string, method:string, status:string}){
+    return [
+      { text: 'OFFICE OF THE ASSISTANT ENGINEER (R.M.T.L.) M.T. DN.-I', alignment: 'center', bold: true, fontSize: 11 },
+      { text: 'M.P.P.K.V.V.CO.LTD. INDORE', alignment: 'center', bold: true, margin: [0, 2, 0, 0], fontSize: 10 },
+      { text: 'CT TESTING TestReport', alignment: 'center', margin: [0, 6, 0, 2], fontSize: 12, bold: true },
+  
+    ];
+  }
+  private zoneMethodStatusLine(meta:{zone:string, method:string, status:string}){
     return {
+      text: `DC/Zone: ${meta.zone}    •    Test Method: ${meta.method || '-' }    •    Test Status: ${meta.status || '-'}`,
+      alignment: 'center', fontSize: 9, color: '#333', margin: [0,4,0,6]
+    };
+  }
+  private infoTable() {
+    const two = (label: string, value: any) => ([{ text: label, style: 'lbl' }, { text: (value ?? '').toString(), style: 'val' }]);
+    return {
+      style: 'tableTight',
       layout: 'lightHorizontalLines',
       table: {
-        widths: [210, '*'],
+        widths: [160, '*'],
         body: [
           two('Name of consumer', this.header.consumer_name),
           two('Address', this.header.address),
@@ -182,18 +378,18 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           two('CITY CLASS', this.header.city_class),
           two('Ref.', this.header.ref_no),
           two('C.T Make', this.header.ct_make),
-          two('M.R. No / Online Tran. ID & Date',
-            `${this.header.mr_no || ''}${this.header.mr_no && this.header.mr_date ? '  DT  ' : ''}${this.header.mr_date || ''}`),
-          two('Amount Deposited', this.header.amount_deposited),
+          two('M.R. / Txn & Date', `${this.header.mr_no || ''}${this.header.mr_no && this.header.mr_date ? '  DT  ' : ''}${this.header.mr_date || ''}`),
+          two('Amount Deposited (₹)', this.header.amount_deposited),
           two('Date of Testing', this.header.date_of_testing),
         ]
-      }
+      },
+      margin: [0, 30, 0, 6]
     };
   }
 
   private detailsTable() {
     const body:any[] = [[
-      { text: 'Sr No.', style: 'th', alignment: 'center' },
+      { text: '#', style: 'th', alignment: 'center' },
       { text: 'C.T No.', style: 'th' },
       { text: 'Make', style: 'th' },
       { text: 'Cap.', style: 'th' },
@@ -202,86 +398,108 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       { text: 'Remark', style: 'th' },
     ]];
 
-    this.ctRows.forEach((r, i) => {
-      body.push([
-        { text: String(i + 1), alignment: 'center' },
-        r.ct_no || '',
-        r.make || '',
-        r.cap || '',
-        r.ratio || '',
-        r.polarity || '',
-        r.remark || ''
-      ]);
-    });
+    this.ctRows
+      .filter(r => (r.ct_no || '').trim())
+      .forEach((r, i) => {
+        body.push([
+          { text: String(i + 1), alignment: 'center' },
+          r.ct_no || '-',
+          r.make || '-',
+          r.cap || '-',
+          r.ratio || '-',
+          r.polarity || '-',
+          r.remark || '-'
+        ]);
+      });
 
     return {
+      style: 'tableTight',
       layout: 'lightHorizontalLines',
       table: {
         headerRows: 1,
         widths: ['auto', '*', '*', 'auto', 'auto', 'auto', '*'],
-        body
+        body,
+        dontBreakRows: true
       },
-      margin: [0, 8, 0, 0]
+      margin: [0, 0, 0, 6]
     };
   }
 
-  private footerLines() {
-    const p = this.header.location_code ? `${this.header.location_code} - ` : '';
-    const zone = `${p}${this.header.location_name || ''}`;
+  private signBlock(meta:{zone:string}){
     return [
-      { text: `DC/Zone: ${zone}    •    Test Method: ${this.testMethod || '-' }    •    Test Status: ${this.testStatus || '-'}`,
-        alignment: 'center', fontSize: 9, color: '#555', margin: [0, 6, 0, 8] },
-      { text: `Primary Current…… ${this.header.primary_current || ''} ……Amp`, margin: [0, 4, 0, 0] },
-      { text: `Secondary Current…… ${this.header.secondary_current || ''} ……Amp`, margin: [0, 2, 0, 0] },
+      { text: `Primary Current: ${this.header.primary_current || ''} Amp    •    Secondary Current: ${this.header.secondary_current || ''} Amp`, style: 'tiny', margin:[0,2,0,8], alignment:'center' },
       {
-        margin: [0, 16, 0, 0],
         columns: [
-          { width: '*', text: '' },
           {
-            width: 220,
+            width: '*',
+            alignment: 'center',
             stack: [
-              { text: 'Junior Engineer', alignment: 'left', margin: [0, 0, 0, 2] },
-              { text: 'M.P.P.K.V.V. CO. LTD', alignment: 'left' },
-              { text: 'INDORE', alignment: 'left' }
-            ]
-          }
-        ]
+              { text: 'Tested by', style: 'footRole' },
+              { text: '\n____________________________', alignment: 'center' },
+              { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
+            ],
+          },
+          {
+            width: '*',
+            alignment: 'center',
+            stack: [
+              { text: 'Verified by', style: 'footRole' },
+              { text: '\n____________________________', alignment: 'center' },
+              { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
+            ],
+          },
+          {
+            width: '*',
+            alignment: 'center',
+            stack: [
+              { text: 'Approved by', style: 'footRole' },
+              { text: '\n____________________________', alignment: 'center' },
+              { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 0]
       }
     ];
   }
 
   private buildDoc(): TDocumentDefinitions {
-    const zoneLine = (this.header.location_code ? this.header.location_code + ' - ' : '') + (this.header.location_name || '');
+    const zone = (this.header.location_code ? this.header.location_code + ' - ' : '') + (this.header.location_name || '');
+    const meta = { zone, method: this.testMethod || '', status: this.testStatus || '' };
+
     return {
       pageSize: 'A4',
-      pageMargins: [28, 28, 28, 36],
-      defaultStyle: { fontSize: 10 },
-      styles: { lbl: { bold: true }, th: { bold: true } },
+      pageMargins: [24, 22, 24, 28],
+      defaultStyle: { fontSize: 9, lineHeight: 1.05 },
+      styles: {
+        lbl: { bold: true, fontSize: 9, color: '#111' },
+        val: { fontSize: 9, color: '#111' },
+        th: { bold: true, fontSize: 9 },
+        tableTight: { fontSize: 9 },
+        footRole: { fontSize: 9, bold: true },
+        footTiny: { fontSize: 8, color: '#444' },
+        tiny: { fontSize: 9, color: '#333' }
+      },
       content: [
-        { text: 'OFFICE OF THE ASSISTANT ENGINEER (R.M.T.L.) M.T. DN.-I', alignment: 'center', bold: true },
-        { text: 'M.P.P.K.V.V.CO.LTD. INDORE', alignment: 'center', bold: true, margin: [0, 2, 0, 0] },
-        { text: 'CERTIFICATE FOR C.T', alignment: 'center', margin: [0, 6, 0, 2] },
-        { text: `DC/Zone: ${zoneLine}    •    Test Method: ${this.testMethod || '-' }    •    Test Status: ${this.testStatus || '-'}`,
-          alignment: 'center', fontSize: 9, color: '#555', margin: [0,0,0,6] },
-
+        ...this.buildHeaderBlock(meta),
+        this.zoneMethodStatusLine(meta),
         this.infoTable(),
-        { text: 'Details of C.T', bold: true, margin: [0, 8, 0, 2] },
         this.detailsTable(),
-        ...this.footerLines()
+        ...this.signBlock(meta),
       ],
-      footer: (current: number, total: number) => ({
+      footer: (current:number, total:number) => ({
         columns: [
-          { text: `Page ${current} of ${total}`, alignment: 'left', margin: [28, 0, 0, 0] },
-          { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 28, 0] }
+          { text: `Page ${current} of ${total}`, alignment: 'left', margin: [24, 0, 0, 0] },
+          { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 24, 0] }
         ],
         fontSize: 8
       }),
-      info: { title: 'CT_Testing_Certificate' }
+      info: { title: 'CT_Testing_TestReport' }
     };
   }
 
-  downloadPdf() {
+  private downloadPdf(){
     const doc = this.buildDoc();
-    pdfMake.createPdf(doc).download('CT_TESTING_CERTIFICATE.pdf');
+    pdfMake.createPdf(doc).download('CT_TESTING_TestReport.pdf');
   }
 }

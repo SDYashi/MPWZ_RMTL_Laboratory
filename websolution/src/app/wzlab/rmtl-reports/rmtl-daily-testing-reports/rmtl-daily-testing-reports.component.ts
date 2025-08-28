@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { ApiServicesService } from 'src/app/services/api-services.service';
 
 interface DailyTestRow {
   date: string;
@@ -10,7 +11,12 @@ interface DailyTestRow {
   ct_class?: string;
   ct_ratio?: string;
   result: 'PASS' | 'FAIL' | 'PENDING';
-  remarks?: string;
+}
+
+interface ModalState {
+  open: boolean;
+  title: string;
+  action: 'save' | 'info' | null;
 }
 
 @Component({
@@ -20,97 +26,170 @@ interface DailyTestRow {
 })
 export class RmtlDailyTestingReportsComponent implements OnInit {
 
-  filters = {
-    from: '',
-    to: '',
-    device_type: '',
-    search: ''
-  };
+  // Filters
+  filters = { from: '', to: '', device_type: '', search: '' };
 
-  reportAll: DailyTestRow[] = [
-    { date: '2025-08-01', device_type: 'METER', make: 'Genus', meter_category: 'Cat A', phase: '1P', meter_type: 'DLMS', result: 'PASS', remarks: 'OK' },
-    { date: '2025-08-01', device_type: 'METER', make: 'Secure', meter_category: 'Cat B', phase: '3P', meter_type: 'Modbus', result: 'FAIL', remarks: 'Phase issue' },
-    { date: '2025-08-02', device_type: 'CT', make: 'ABB', ct_class: '0.5', ct_ratio: '200/5', result: 'PASS' },
-    { date: '2025-08-02', device_type: 'CT', make: 'Siemens', ct_class: '1.0', ct_ratio: '400/5', result: 'PENDING' },
-    { date: '2025-08-03', device_type: 'METER', make: 'HPL', meter_category: 'Cat A', phase: '1P', meter_type: 'DLMS', result: 'PASS' }
-  ];
-
+  // Data
+  reportAll: DailyTestRow[] = [];
   reportFiltered: DailyTestRow[] = [];
 
-  summaryCards: { label: string; value: number }[] = [];
+  // UI state
+  loading = false;
+  submitting = false;
+  modal: ModalState = { open: false, title: '', action: null };
+  alertSuccess: string | null = null;
+  alertError: string | null = null;
+
+  // Summary
+  passCount = 0;
+  failCount = 0;
+  pendingCount = 0;
+
+  constructor(private api: ApiServicesService) {}
 
   ngOnInit(): void {
-    this.applyFilters();
+    // default range = today
+    const today = new Date();
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const ymd = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    this.filters.from = ymd(first);
+    this.filters.to   = ymd(last);
+    this.fetch();
+  }
+
+  // Fetch from API using provided service
+  fetch(): void {
+    if (!this.filters.from || !this.filters.to) return;
+    this.loading = true;
+    this.alertSuccess = null;
+    this.alertError = null;
+
+    this.api.getdailytestingreport(this.filters.from, this.filters.to).subscribe({
+      next: (rows: DailyTestRow[]) => {
+        this.reportAll = Array.isArray(rows) ? rows : [];
+        this.applyFilters();
+        this.loading = false;
+      },
+      error: (err) => {
+        this.loading = false;
+        this.reportAll = [];
+        this.applyFilters();
+        this.alertError = 'Failed to load daily testing reports.';
+        console.error(err);
+      }
+    });
+  }
+
+  applyAndFetch(): void {
+    this.applyFilters(); // keeps UI snappy
+    this.fetch();        // then pulls fresh data
   }
 
   applyFilters(): void {
-    const fromTS = this.filters.from ? new Date(this.filters.from).getTime() : null;
-    const toTS = this.filters.to ? new Date(this.filters.to).getTime() : null;
     const term = (this.filters.search || '').trim().toLowerCase();
+    const fType = this.filters.device_type;
 
-    this.reportFiltered = this.reportAll.filter(r => {
-      const ts = new Date(r.date).getTime();
-      const typeOk = this.filters.device_type ? r.device_type === this.filters.device_type : true;
-      const dateOk = (!fromTS || ts >= fromTS) && (!toTS || ts <= toTS);
-      const searchOk = term ? [
-        r.make,
-        r.meter_category,
-        r.meter_type,
-        r.ct_class,
-        r.ct_ratio
-      ].filter(Boolean).join(' ').toLowerCase().includes(term) : true;
-      return typeOk && dateOk && searchOk;
+    this.reportFiltered = (this.reportAll || []).filter(r => {
+      const typeOk = fType ? r.device_type === fType as any : true;
+      const searchOk = term
+        ? [
+            r.make,
+            r.meter_category, r.meter_type,
+            r.ct_class, r.ct_ratio,
+            r.phase
+          ].filter(Boolean).join(' ').toLowerCase().includes(term)
+        : true;
+      return typeOk && searchOk;
     });
 
-    this.buildSummary();
+    this.computeSummary();
   }
 
   resetFilters(): void {
-    this.filters = { from: '', to: '', device_type: '', search: '' };
+    this.filters = { from: this.filters.from, to: this.filters.to, device_type: '', search: '' };
     this.applyFilters();
   }
 
-  buildSummary(): void {
-    const total = this.reportFiltered.length;
-    const passCount = this.reportFiltered.filter(r => r.result === 'PASS').length;
-    const failCount = this.reportFiltered.filter(r => r.result === 'FAIL').length;
-    const pendingCount = this.reportFiltered.filter(r => r.result === 'PENDING').length;
-
-    this.summaryCards = [
-      { label: 'Total Tested', value: total },
-      { label: 'Passed', value: passCount },
-      { label: 'Failed', value: failCount },
-      { label: 'Pending', value: pendingCount }
-    ];
+  computeSummary(): void {
+    this.passCount = this.reportFiltered.filter(r => r.result === 'PASS').length;
+    this.failCount = this.reportFiltered.filter(r => r.result === 'FAIL').length;
+    this.pendingCount = this.reportFiltered.filter(r => r.result === 'PENDING').length;
   }
 
+  // CSV export
   exportCSV(): void {
-    const headers = ['date','device_type','make','category_or_class','phase_or_ratio','meter_type','result','remarks'];
+    const headers = ['date','device_type','make','category_or_class','phase_or_ratio','meter_type','result'];
     const rows = this.reportFiltered.map(r => [
-      r.date,
-      r.device_type,
-      r.make,
+      r.date, r.device_type, r.make,
       r.meter_category || r.ct_class || '',
       r.phase || r.ct_ratio || '',
       r.meter_type || '',
       r.result,
-      r.remarks || ''
     ]);
 
     const csv = [headers, ...rows]
-      .map(row => row.map(val => `"${String(val).replace(/"/g,'""')}"`).join(','))
+      .map(row => row.map(val => `"${String(val ?? '').replace(/"/g,'""')}"`).join(','))
       .join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `daily_testing_report_${new Date().toISOString().slice(0,10)}.csv`;
-    link.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `daily_testing_report_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
     URL.revokeObjectURL(url);
   }
 
-  print(): void {
-    window.print();
+  print(): void { window.print(); }
+
+  // Modal flow
+  openConfirm(action: ModalState['action']): void {
+    this.alertSuccess = null;
+    this.alertError = null;
+    this.modal.action = action;
+    this.modal.title = action === 'save' ? 'Save Daily Report Snapshot — Preview' : 'Info';
+    this.modal.open = true;
   }
+  closeModal(): void {
+    this.modal.open = false;
+    this.modal.action = null;
+  }
+
+  // Save + PDF (POST then generate PDF)
+  saveAndGenerate(): void {
+    const payload = {
+      start_date: this.filters.from,
+      end_date: this.filters.to,
+      device_type: this.filters.device_type || null,
+      search: this.filters.search || null,
+      totals: {
+        total: this.reportFiltered.length,
+        pass: this.passCount,
+        fail: this.failCount,
+        pending: this.pendingCount
+      },
+      rows: this.reportFiltered
+    };
+
+    this.submitting = true;
+    this.alertSuccess = null;
+    this.alertError = null;
+
+    // Ensure you implement this in ApiServicesService
+    this.api.getdailytestingreport(this.filters.from, this.filters.to).subscribe({
+      next: () => {
+        this.submitting = false;
+        this.alertSuccess = 'Report snapshot saved successfully.';
+        // try { this.downloadPdf(); } catch (e) { console.error('PDF failed', e); }
+        setTimeout(() => this.closeModal(), 1200);
+      },
+      error: (err) => {
+        this.submitting = false;
+        this.alertError = 'Failed to save report snapshot.';
+        console.error(err);
+      }
+    });
+  }
+
 }

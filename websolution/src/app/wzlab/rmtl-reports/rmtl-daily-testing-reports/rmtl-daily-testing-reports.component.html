@@ -1,19 +1,26 @@
 <div class="container-fluid mt-4">
-  <div class="card shadow">
-    <div class="card-header text-white" style="background:#151433">
+  <div class="card shadow border-0">
+    <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
       <h5 class="mb-0">RMTL — Daily Testing Reports</h5>
+      <div class="d-flex gap-2 small">
+        <span class="badge bg-secondary">Total {{ reportFiltered.length }}</span>
+        <span class="badge bg-success">PASS {{ passCount }}</span>
+        <span class="badge bg-danger">FAIL {{ failCount }}</span>
+        <span class="badge bg-warning text-dark">PENDING {{ pendingCount }}</span>
+      </div>
     </div>
 
     <div class="card-body">
+
       <!-- Filters -->
       <div class="row g-3 align-items-end">
         <div class="col-md-3">
           <label class="form-label">From Date</label>
-          <input type="date" class="form-control" [(ngModel)]="filters.from" (change)="applyFilters()">
+          <input type="date" class="form-control" [(ngModel)]="filters.from" (change)="applyAndFetch()">
         </div>
         <div class="col-md-3">
           <label class="form-label">To Date</label>
-          <input type="date" class="form-control" [(ngModel)]="filters.to" (change)="applyFilters()">
+          <input type="date" class="form-control" [(ngModel)]="filters.to" (change)="applyAndFetch()">
         </div>
         <div class="col-md-3">
           <label class="form-label">Device Type</label>
@@ -25,63 +32,109 @@
         </div>
         <div class="col-md-3">
           <label class="form-label">Search</label>
-          <input class="form-control" placeholder="Search by make/type" [(ngModel)]="filters.search" (input)="applyFilters()">
+          <input class="form-control" placeholder="Search by make / type / class" [(ngModel)]="filters.search" (input)="applyFilters()">
         </div>
       </div>
 
       <!-- Actions -->
-      <div class="d-flex gap-2 justify-content-end mt-3">
+      <div class="d-flex flex-wrap gap-2 justify-content-end mt-3">
+        <button class="btn btn-outline-primary" (click)="fetch()">Reload</button>
         <button class="btn btn-outline-secondary" (click)="resetFilters()">Reset</button>
         <button class="btn btn-outline-success" (click)="exportCSV()">Export CSV</button>
         <button class="btn btn-dark" (click)="print()">Print</button>
+        <button class="btn btn-primary" [disabled]="!reportFiltered.length || submitting"
+                (click)="openConfirm('save')">
+          {{ submitting ? 'Saving…' : 'Save & Generate PDF' }}
+        </button>
       </div>
 
       <!-- Summary Cards -->
-      <!-- <div class="row row-cols-2 row-cols-lg-5 g-3 mt-3">
-        <div class="col" *ngFor="let s of summaryCards">
+      <div class="row row-cols-2 row-cols-lg-5 g-3 mt-3">
+        <div class="col">
           <div class="card h-100 border-0 shadow-sm">
             <div class="card-body">
-              <div class="small text-muted">{{ s.label }}</div>
-              <div class="display-6 fw-bold">{{ s.value }}</div>
+              <div class="small text-muted">Total Tested</div>
+              <div class="display-6 fw-bold">{{ reportFiltered.length }}</div>
             </div>
           </div>
         </div>
-      </div> -->
+        <div class="col">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <div class="small text-muted">Passed</div>
+              <div class="display-6 fw-bold text-success">{{ passCount }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <div class="small text-muted">Failed</div>
+              <div class="display-6 fw-bold text-danger">{{ failCount }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <div class="small text-muted">Pending</div>
+              <div class="display-6 fw-bold text-warning">{{ pendingCount }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <div class="small text-muted">Range</div>
+              <div class="fw-bold">
+                {{ filters.from || '—' }} → {{ filters.to || '—' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <hr class="my-4">
 
       <!-- Daily Testing Table -->
       <div class="table-responsive" id="reportSection">
-        <table class="table table-bordered align-middle text-center">
-          <thead class="table-light">
+        <table class="table table-hover table-bordered align-middle text-center">
+          <thead class="table-dark position-sticky top-0" style="z-index:1;">
             <tr>
               <th>#</th>
               <th>Date</th>
-              <th>Device Type</th>
+              <th>Device</th>
               <th>Make</th>
               <th>Category / Class</th>
               <th>Phase / Ratio</th>
               <th>Meter Type</th>
-              <th>Test Result</th>
-              <th>Remarks</th>
+              <th>Result</th>           
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let r of reportFiltered; let i = index">
               <td>{{ i+1 }}</td>
               <td>{{ r.date | date:'yyyy-MM-dd' }}</td>
-              <td>{{ r.device_type }}</td>
+              <td>
+                <span class="badge" [ngClass]="{'bg-primary': r.device_type==='METER', 'bg-info text-dark': r.device_type==='CT'}">
+                  {{ r.device_type }}
+                </span>
+              </td>
               <td>{{ r.make }}</td>
-              <td>{{ r.meter_category || r.ct_class }}</td>
-              <td>{{ r.phase || r.ct_ratio }}</td>
+              <td>{{ r.meter_category || r.ct_class || '-' }}</td>
+              <td>{{ r.phase || r.ct_ratio || '-' }}</td>
               <td>{{ r.meter_type || '-' }}</td>
               <td>
                 <span class="badge"
-                      [ngClass]="{'bg-success': r.result==='PASS', 'bg-danger': r.result==='FAIL', 'bg-warning text-dark': r.result==='PENDING'}">
+                      [ngClass]="{
+                        'bg-success': r.result==='PASS',
+                        'bg-danger': r.result==='FAIL',
+                        'bg-warning text-dark': r.result==='PENDING'
+                      }">
                   {{ r.result }}
                 </span>
               </td>
-              <td>{{ r.remarks || '-' }}</td>
+           
             </tr>
             <tr *ngIf="!reportFiltered.length">
               <td colspan="9" class="text-muted">No records found</td>
@@ -90,6 +143,52 @@
         </table>
       </div>
 
+      <!-- Loading overlay -->
+      <div *ngIf="loading" class="position-fixed top-0 start-0 w-100 h-100"
+           style="background:rgba(0,0,0,0.15); z-index:1080;">
+        <div class="d-flex h-100 align-items-center justify-content-center">
+          <div class="spinner-border"></div>
+          <span class="ms-2 fw-semibold">Loading…</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Save / Success / Error -->
+<div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modal.open}" *ngIf="modal.open">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" [ngClass]="{'bg-primary text-white': modal.action==='save','bg-dark text-white': modal.action==='info'}">
+        <h5 class="modal-title">{{ modal.title }}</h5>
+        <button type="button" class="btn-close" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="modal.action==='save'">
+          <div class="row g-2 small">
+            <div class="col-4"><strong>From:</strong> {{ filters.from || '—' }}</div>
+            <div class="col-4"><strong>To:</strong> {{ filters.to || '—' }}</div>
+            <div class="col-4"><strong>Device:</strong> {{ filters.device_type || 'All' }}</div>
+          </div>
+          <hr>
+          <div class="row row-cols-2 row-cols-md-4 g-3">
+            <div class="col"><div class="p-3 bg-light rounded text-center"><div class="small text-muted">Total</div><div class="h5 mb-0">{{ reportFiltered.length }}</div></div></div>
+            <div class="col"><div class="p-3 bg-light rounded text-center"><div class="small text-muted">PASS</div><div class="h5 mb-0 text-success">{{ passCount }}</div></div></div>
+            <div class="col"><div class="p-3 bg-light rounded text-center"><div class="small text-muted">FAIL</div><div class="h5 mb-0 text-danger">{{ failCount }}</div></div></div>
+            <div class="col"><div class="p-3 bg-light rounded text-center"><div class="small text-muted">PENDING</div><div class="h5 mb-0 text-warning">{{ pendingCount }}</div></div></div>
+          </div>
+        </div>
+
+        <div *ngIf="alertSuccess" class="alert alert-success mt-3">{{ alertSuccess }}</div>
+        <div *ngIf="alertError" class="alert alert-danger mt-3">{{ alertError }}</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeModal()">Close</button>
+        <button *ngIf="modal.action==='save'" class="btn btn-primary" (click)="saveAndGenerate()" [disabled]="submitting || !reportFiltered.length">
+          {{ submitting ? 'Saving…' : 'Confirm Save & PDF' }}
+        </button>
+      </div>
     </div>
   </div>
 </div>
