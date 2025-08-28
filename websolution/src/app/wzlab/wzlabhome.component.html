@@ -15,7 +15,8 @@
     </div>
 
     <ul class="sidebar-menu list-unstyled m-0">
-      <li class="menu-item" routerLinkActive="active">
+      <li class="menu-item" routerLinkActive="active"
+          *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <a class="menu-link d-flex justify-content-between align-items-center px-3 py-2 text-decoration-none text-white"
            routerLink="/wzlab/dashboard"
            routerLinkActive="active"
@@ -25,10 +26,13 @@
       </li>
     </ul>
 
-    <div class="sidebar-heading px-3 ">ADMIN MANAGEMENT</div>
-    <ul class="sidebar-menu list-unstyled m-0">
+    <div class="sidebar-heading px-3"
+         *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">ADMIN MANAGEMENT</div>
+    <ul class="sidebar-menu list-unstyled m-0"
+        *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
       <!-- Laboratory Management -->
-      <li class="menu-item">
+      <li class="menu-item"
+          *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <button type="button"
                 class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('LABManagement')"
@@ -51,7 +55,8 @@
       </li>
 
       <!-- User Management -->
-      <li class="menu-item">
+      <li class="menu-item"
+          *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <button type="button"
                 class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('userManagement')"
@@ -74,7 +79,8 @@
       </li>
 
       <!-- Testing Bench Management -->
-      <li class="menu-item">
+      <li class="menu-item"
+          *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <button type="button"
                 class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('benchManagement')"
@@ -97,7 +103,8 @@
       </li>
 
       <!-- Vendor Management -->
-      <li class="menu-item">
+      <li class="menu-item"
+          *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <button type="button"
                 class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('vendorManagement')"
@@ -120,7 +127,8 @@
       </li>
 
       <!-- Store Management -->
-      <li class="menu-item">
+      <li class="menu-item"
+          *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <button type="button"
                 class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('storeManagement')"
@@ -143,10 +151,10 @@
       </li>
     </ul>
 
-    <div class="sidebar-heading px-3 ">ACTIVITY ASSIGNMENT</div>
+    <div class="sidebar-heading px-3">ACTIVITY ASSIGNMENT</div>
     <ul class="sidebar-menu list-unstyled m-0">
       <!-- User Assignments -->
-      <li class="menu-item">
+      <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT'])">
         <button type="button"
                 class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('userAssignments')"
@@ -160,11 +168,11 @@
              [class.show]="sections['userAssignments'] || isRouteActive(['/wzlab/assignement'])"
              id="userAssignments">
           <div class="submenu d-flex flex-column">
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"  *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])"
                routerLink="/wzlab/assignement/assign-to-user" routerLinkActive="active">Meters Assignment</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])"
                routerLink="/wzlab/assignement/edit-assignment" routerLinkActive="active">Edit Meter Assignments</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
                routerLink="/wzlab/assignement/assigned-list" routerLinkActive="active">View Assignments History</a>
           </div>
         </div>
@@ -185,13 +193,13 @@
              [class.show]="sections['receivedDispatch'] || isRouteActive(['/wzlab/devices', '/wzlab/getpass'])"
              id="receivedDispatch">
           <div class="submenu d-flex flex-column">
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','STORE_INCHARGE'])"
                routerLink="/wzlab/devices/add-devices" routerLinkActive="active">Receive Devices</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','STORE_INCHARGE'])"
                routerLink="/wzlab/getpass/gatepass-generate" routerLinkActive="active">Dispatch Devices</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
                routerLink="/wzlab/getpass/gatepass-list" routerLinkActive="active">Dispatched Devices List</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
                routerLink="/wzlab/devices/list-devices" routerLinkActive="active">Recieved Devices List</a>
           </div>
         </div>
@@ -212,34 +220,36 @@
              [class.show]="sections['testingActivities'] || isRouteActive(['/wzlab/testing'])"
              id="testingActivities">
           <div class="submenu d-flex flex-column">
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
                routerLink="/wzlab/testing/add-testreports/stop-defective-testing" routerLinkActive="active">StopDefective Reports</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
                routerLink="/wzlab/testing/add-testreports/smart-against-defective-testing" routerLinkActive="active">Smart Against Defective Reports</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"  *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
                routerLink="/wzlab/testing/add-testreports/old-against-defective-testing" routerLinkActive="active">Old Against Defective Reports</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
                routerLink="/wzlab/testing/add-testreports/contested-testing" routerLinkActive="active">Contested Reports</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"  *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
                routerLink="/wzlab/testing/add-testreports/p4onm-testing" routerLinkActive="active">P4ONM Reports</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"  *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
                routerLink="/wzlab/testing/add-testreports/p4vig-testing" routerLinkActive="active">P4VIG Reports</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
-               routerLink="/wzlab/testing/add-testreports/solarnetmeter-testing" routerLinkActive="active">Solarnetmeter Reports</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
-               routerLink="/wzlab/testing/add-testreports/solargenratormeter-testing" routerLinkActive="active">Solargenratormeter Reports</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"  *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
+               routerLink="/wzlab/testing/add-testreports/solarnetmeter-testing" routerLinkActive="active">Solar NetMeter Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
+               routerLink="/wzlab/testing/add-testreports/solargenratormeter-testing" routerLinkActive="active">Solar Genrator Meter Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
                routerLink="/wzlab/testing/add-testreports/ct-testing" routerLinkActive="active">CT Reports</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
                routerLink="/wzlab/testing/view-testreports" routerLinkActive="active">All Test Reports History</a>
           </div>
         </div>
       </li>
     </ul>
 
-    <div class="sidebar-heading px-3 ">APPROVAL MANAGEMENT</div>
-    <ul class="sidebar-menu list-unstyled m-0">
-      <li class="menu-item">
+    <div class="sidebar-heading px-3" *ngIf="canShow(['ADMIN','OFFICER_INCHARGE'])">APPROVAL MANAGEMENT</div>
+    <ul class="sidebar-menu list-unstyled m-0"
+        *ngIf="canShow(['ADMIN','OFFICER_INCHARGE'])">
+      <li class="menu-item"
+          *ngIf="canShow(['ADMIN','OFFICER_INCHARGE'])">
         <button type="button"
                 class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('approvalMenu')"
@@ -253,16 +263,17 @@
              [class.show]="sections['approvalMenu'] || isRouteActive(['/wzlab/approval'])"
              id="approvalMenu">
           <div class="submenu d-flex flex-column">
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','OFFICER_INCHARGE'])"
                routerLink="/wzlab/approval/view-pending-test-reports">Pending Approval List</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','OFFICER_INCHARGE',])"
                routerLink="/wzlab/approval/view-approved-test-reports">Approved Results List</a>
           </div>
         </div>
       </li>
     </ul>
 
-    <div class="sidebar-heading px-3 ">ANALYTICS & REPORTS</div>
+    <div class="sidebar-heading px-3"
+         *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])">ANALYTICS & REPORTS</div>
     <ul class="sidebar-menu list-unstyled m-0">
       <li class="menu-item">
         <button type="button"
@@ -278,14 +289,13 @@
              [class.show]="sections['usageAnalytics'] || isRouteActive(['/wzlab/reports'])"
              id="usageAnalytics">
           <div class="submenu d-flex flex-column">
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"  *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
                routerLink="/wzlab/reports/view-usage-stock-reports">Usage & Stock Reports</a>
-            <!-- <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"  *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
                routerLink="/wzlab/reports/view-daily-testing-reports">Daily Testing Report</a>
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"  *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
                routerLink="/wzlab/reports/view-devices-summary-reports">Device Summary Report</a>
-        -->
-              </div>
+          </div>
         </div>
       </li>
     </ul>

@@ -60,6 +60,14 @@ interface Row {
   _open?: boolean;
 }
 
+interface ModalState {
+  open: boolean;
+  title: string;
+  message?: string;
+  action: 'submit' | null;
+  payload?: any;
+}
+
 @Component({
   selector: 'app-rmtl-add-testreport-p4vig',
   templateUrl: './rmtl-add-testreport-p4vig.component.html',
@@ -91,6 +99,20 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   filterText = '';
   rows: Row[] = [ this.emptyRow() ];
 
+  // ===== source lookup =====
+  office_types: any;
+  selectedSourceType: any;
+  selectedSourceName: string = '';
+  filteredSources: any;
+
+  // ===== submit + modal state =====
+  submitting = false;
+  modal: ModalState = { open: false, title: '', action: null };
+  alertSuccess: string | null = null;
+  alertError: string | null = null;
+  testResults: any;
+  commentby_testers: any;
+  meta: any
   constructor(private api: ApiServicesService) {}
 
   ngOnInit(): void {
@@ -105,11 +127,36 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         this.glass_covers   = d?.glass_covers || [];
         this.terminal_blocks= d?.terminal_blocks || [];
         this.meter_bodies   = d?.meter_bodies || [];
+        this.office_types   = d?.office_types || [];
+        this.testResults    = d?.test_results || [];
+        this.commentby_testers = d?.commentby_testers || [];
       }
     });
 
     // build index without altering UI
     this.reloadAssigned(false);
+  }
+
+  // ---------- Source fetch ----------
+  fetchButtonData(): void {
+    // FIX: validate both type and name
+    if (!this.selectedSourceType || !this.selectedSourceName) {
+      alert('Missing Input');
+      return;
+    }
+    this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
+      next: (data) => {
+        this.filteredSources = data;
+        this.header.location_name = this.filteredSources?.name ?? '';
+        this.header.location_code = this.filteredSources?.code ?? '';
+      },
+      error: () => alert('Failed to fetch source details. Check the code and try again.')
+    });
+  }
+
+  onSourceTypeChange(): void {
+    this.selectedSourceName = '';
+    this.filteredSources = [];
   }
 
   // ===== derived counters =====
@@ -202,7 +249,114 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     }
   }
 
-  // ===== PDF =====
+  // ===== payload / submit =====
+  private isoOn(dateStr?: string){ const d = dateStr? new Date(dateStr+'T10:00:00') : new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString(); }
+
+  private buildPayload(): any[] {
+    // Choose a sensible timestamp; for contested we’ll use testing_date (or today if blank)
+    return (this.rows||[])
+      .filter(r => (r.serial||'').trim())
+      .map(r => ({
+        device_id: r.device_id ?? 0,
+        assignment_id: r.assignment_id ?? 0,
+
+        // testing window
+        start_datetime: this.isoOn(r.testing_date),
+        end_datetime: this.isoOn(r.testing_date),
+
+        // lab condition fields
+        is_burned: !!r.is_burned,
+        seal_status: r.seal_status || '-',
+        meter_glass_cover: r.meter_glass_cover || '-',
+        terminal_block: r.terminal_block || '-',
+        meter_body: r.meter_body || '-',
+        other: r.other || '-',
+
+        // readings
+        reading_before_test: Number(r.reading_before_test) || 0,
+        reading_after_test: Number(r.reading_after_test) || 0,
+        rsm_kwh: Number(r.rsm_kwh) || 0,
+        meter_kwh: Number(r.meter_kwh) || 0,
+        error_percentage: Number(r.error_percentage) || 0,
+
+        // results & meta
+        test_result: r.test_result || undefined,
+        test_method: this.testMethod || null,
+        test_status: this.testStatus || null,
+
+        // contested top sheet (stored for record)
+        consumer_name: r.consumer_name || null,
+        address: r.address || null,
+        account_number: r.account_number || null,
+        division_zone: r.division_zone || this.filteredSources.division_zone || null,
+        panchanama_no: r.panchanama_no || null,
+        panchanama_date: r.panchanama_date || null,
+        condition_at_removal: r.condition_at_removal || null,
+        removal_reading: Number(r.removal_reading) || 0,
+
+        // free remark
+        details: r.remark || null,
+
+        // explicitly mark report type (server can branch if needed)
+        report_type: 'P4_VIG'
+      }));
+  }
+
+  openConfirm(action: 'submit', payload?: any){
+    this.alertSuccess = null;
+    this.alertError = null;
+    this.modal.action = action;
+    this.modal.payload = payload;
+    this.modal.title = 'Submit Batch — Preview';
+    this.modal.open = true;
+  }
+
+  closeModal(){
+    this.modal.open = false;
+    this.modal.action = null;
+    this.modal.payload = undefined;
+  }
+
+  confirmModal(){
+    if (this.modal.action === 'submit') this.doSubmit();
+  }
+
+  private doSubmit(){
+    const payload = this.buildPayload();
+    if (!payload.length){
+      this.alertError = 'No valid rows to submit.';
+      return;
+    }
+    const missingIdx = payload.findIndex(p => !p.test_result);
+    if (missingIdx !== -1){
+      this.alertError = `Row #${missingIdx+1} is missing Test Result (OK/DEF/PASS/FAIL).`;
+      return;
+    }
+
+    this.submitting = true;
+    this.alertSuccess = null;
+    this.alertError = null;
+
+    // 🔗 Post to your existing endpoint. Change the method/name if your service differs.
+    this.api.postTestReports(payload).subscribe({
+      next: () => {
+        this.submitting = false;
+        // auto-generate/download PDF after successful save
+        try { this.downloadPdf(); } catch(e){ console.error('PDF generation failed:', e); }
+        this.alertSuccess = 'Batch submitted successfully!';
+        // clear and close after a short delay
+        this.rows = [ this.emptyRow() ];
+        setTimeout(()=> this.closeModal(), 1200);
+      },
+      error: (e) => {
+        console.error(e);
+        this.submitting = false;
+        this.alertError = 'Error submitting batch.';
+      }
+    });
+  }
+
+  // ===== PDF (unchanged except meta computed from header/method/status) =====
   private dotted(n=10){ return '·'.repeat(n); }
 
   private pageForRow(r:Row, meta:{zone:string, method:string, status:string}): any[] {
@@ -312,15 +466,35 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     const sign = {
       margin:[0,14,0,0],
       columns:[
-        { width:'*', text:'' },
-        {
-          width:220,
-          stack:[
-            { text:'Assistant Engineer', alignment:'left' },
-            { text:'R.M.T.L.', alignment:'left' },
-            { text:'M.P.P.K.V.V.C.L., Indore', alignment:'left' }
-          ]
-        }
+              {
+        columns: [
+          {
+            width: '*',
+            stack: [
+              { text: 'Tested by', style: 'footRole' },
+              { text: '\n\n____________________________', alignment: 'center' },
+              { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
+            ],
+          },
+          {
+            width: '*',
+            stack: [
+              { text: 'Verified by', style: 'footRole' },
+              { text: '\n\n____________________________', alignment: 'center' },
+              { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
+            ],
+          },
+          {
+            width: '*',
+            stack: [
+              { text: 'Approved by', style: 'footRole' },
+              { text: '\n\n____________________________', alignment: 'center' },
+              { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
+            ],
+          },
+        ],
+        margin: [0, 8, 0, 0]
+      },
       ]
     };
 

@@ -218,6 +218,38 @@
       <div class="modal-body">
         <form #gpForm="ngForm">
           <div class="row g-3">
+                       <!-- SOURCE -->
+      <form #sourceForm="ngForm">
+        <div class="rounded-4 border p-3 p-md-4 bg-light-subtle">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <div class="form-floating">
+                <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type"
+                        (change)="onSourceTypeChange()" required>
+                  <option [ngValue]="''" disabled>Select...</option>
+                  <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
+                </select>
+                <label class="fw-semibold">Source Type</label>
+              </div>
+            </div>
+            <div class="col-md-5">
+              <div class="input-group input-group-lg">
+                <!-- <span class="input-group-text"><i class="bi bi-geo-alt"></i></span> -->
+                <div class="form-floating flex-grow-1">
+                  <input type="text" class="form-control" [(ngModel)]="selectedSourceName"
+                         name="source_name" placeholder="Code" required (keydown.enter)="fetchButtonData()">
+                  <label class="fw-semibold">Location / Store / Vendor Code</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 d-grid">
+              <button type="button" class="btn btn-primary py-3" (click)="fetchButtonData()">
+                <i class="bi bi-search"></i> Fetch
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Dispatch To</label>
               <input class="form-control" name="dispatch_to" [(ngModel)]="gatepassForm.dispatch_to" required>
@@ -244,7 +276,7 @@
 
             <div class="col-12">
               <label class="form-label fw-semibold">Report ID(s)</label>
-              <input class="form-control" name="report_ids" [(ngModel)]="gatepassForm.report_ids" readonly>
+              <input class="form-control" name="report_ids" [(ngModel)]="gatepassForm.report_ids" readonly disabled>
             </div>
 
             <div class="col-12">
@@ -253,7 +285,7 @@
                         name="serial_numbers"
                         [(ngModel)]="gatepassForm.serial_numbers"
                         rows="3"
-                        required></textarea>
+                        required disabled></textarea>
               <div class="form-text">
                 Prefilled by selection (format: <code>MAKE1: SN1, SN2 | MAKE2: SN3</code>). You can edit before submit.
               </div>

@@ -29,6 +29,7 @@ interface CertRow {
   meter_make: string;
   meter_sr_no: string;
   meter_capacity: string;
+  
 
   // certificate
   certificate_no?: string;
@@ -51,6 +52,14 @@ interface CertRow {
   creep_test?: string;
   dial_test?: string;
   remark?: string;
+  test_result?: string;
+}
+
+interface ModalState {
+  open: boolean;
+  title: string;
+  action: 'submit' | null;
+  payload?: any;
 }
 
 @Component({
@@ -60,7 +69,7 @@ interface CertRow {
 })
 export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
-  // ======= Batch header (new) =======
+  // ======= Batch header =======
   header = { location_code: '', location_name: '' };
   test_methods: any[] = [];
   test_statuses: any[] = [];
@@ -79,23 +88,55 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   filterText = '';
   rows: CertRow[] = [ this.emptyRow() ];
 
+  // ======= Submit + modal =======
+  submitting = false;
+  modal: ModalState = { open: false, title: '', action: null };
+  alertSuccess: string | null = null;
+  alertError: string | null = null;
+  office_types: any;
+  commentby_testers: any;
+  selectedSourceType: any;
+  selectedSourceName: string = '';
+  filteredSources: any;
+  test_results: any;
   constructor(private api: ApiServicesService) {}
 
   ngOnInit(): void {
-    // IDs for assignment API
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
     this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
 
-    // enums for method/status
     this.api.getEnums().subscribe({
       next: (d) => {
-        this.test_methods = d?.test_methods || [];
+        this.test_methods  = d?.test_methods || [];
         this.test_statuses = d?.test_statuses || [];
+        this.office_types  = d?.office_types || [];
+        this.commentby_testers = d?.commentby_testers || [];
+        this.test_results = d?.test_results || [];
+        
       }
     });
 
     // prebuild serial index (no UI change)
     this.reloadAssigned(false);
+  }
+
+        // ---------- Source fetch ----------
+  fetchButtonData(): void {
+    if (!this.selectedSourceType || !this.selectedSourceType) {
+       alert('Missing Input');
+      return;
+    }
+    this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
+      next: (data) => (this.filteredSources = data, 
+        this.header.location_name = this.filteredSources.name,
+        this.header.location_code = this.filteredSources.code ) ,
+      error: () => alert('Failed to fetch source details. Check the code and try again.')
+    });
+  }
+
+  onSourceTypeChange(): void {
+    this.selectedSourceName = '';
+    this.filteredSources = [];
   }
 
   // ======= Computed chips in header =======
@@ -111,6 +152,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       meter_make: '',
       meter_sr_no: '',
       meter_capacity: '',
+      test_result: '',
       ...seed
     };
   }
@@ -138,12 +180,12 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
         this.rebuildSerialIndex(asg);
 
-        // set DC/Zone header from first device
-        const first = asg.find(a => a.device);
-        if (first?.device) {
-          this.header.location_code = first.device.location_code ?? '';
-          this.header.location_name = first.device.location_name ?? '';
-        }
+        // // set DC/Zone header from first device
+        // const first = asg.find(a => a.device);
+        // if (first?.device) {
+        //   this.header.location_code = first.device.location_code ?? '';
+        //   this.header.location_name = first.device.location_name ?? '';
+        // }
 
         if (replaceRows) {
           this.rows = asg.map(a => {
@@ -188,7 +230,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
   // ======= Table ops =======
   addRow() { this.rows.push(this.emptyRow()); }
-  removeRow(i: number) { this.rows.splice(i, 1); }
+  removeRow(i: number) { this.rows.splice(i, 1); if (!this.rows.length) this.rows.push(this.emptyRow()); }
   trackByRow(i: number, r: CertRow) { return `${r.assignment_id || 0}_${r.device_id || 0}_${r.meter_sr_no || ''}_${i}`; }
 
   displayRows(): CertRow[] {
@@ -208,18 +250,120 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     r.difference = v;
   }
 
+  // ======= Submit flow =======
+  private isoOn(dateStr?: string){ const d = dateStr? new Date(dateStr+'T10:00:00') : new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString(); }
+
+  private buildPayload(): any[] {
+    const zone = (this.header.location_code ? this.header.location_code + ' - ' : '') + (this.header.location_name || '');
+    return (this.rows || [])
+      .filter(r => (r.meter_sr_no || '').trim())
+      .map(r => ({
+        device_id: r.device_id ?? 0,
+        assignment_id: r.assignment_id ?? 0,
+
+        // timestamps from date_of_testing (fallback: today)
+        start_datetime: this.isoOn(r.date_of_testing),
+        end_datetime:   this.isoOn(r.date_of_testing),
+
+        // header meta (optional for server)
+        zone_or_dc: zone || null,
+        test_method: this.testMethod || null,
+        test_status: this.testStatus || null,
+
+        // certificate details
+        consumer_name: r.consumer_name || null,
+        address: r.address || null,
+        meter_make: r.meter_make || null,
+        meter_sr_no: r.meter_sr_no || null,
+        meter_capacity: r.meter_capacity || null,
+        certificate_no: r.certificate_no || null,
+        date_of_testing: r.date_of_testing || null,
+
+        testing_fees: Number(r.testing_fees ?? 0),
+        mr_no: r.mr_no || null,
+        mr_date: r.mr_date || null,
+        ref_no: r.ref_no || null,
+
+        starting_reading: Number(r.starting_reading ?? 0),
+        final_reading_r: Number(r.final_reading_r ?? 0),
+        final_reading_e: Number(r.final_reading_e ?? 0),
+        difference: Number(r.difference ?? 0),
+
+        starting_current_test: r.starting_current_test || null,
+        creep_test: r.creep_test || null,
+        dial_test: r.dial_test || null,
+        details: r.remark || null,
+        test_result: r.test_result || null,
+        report_type: 'SOLAR NETMETER'
+      }));
+  }
+
+  openConfirm(action: 'submit', payload?: any){
+    this.alertSuccess = null;
+    this.alertError = null;
+    this.modal.action = action;
+    this.modal.payload = payload;
+    this.modal.title = 'Submit Batch — Preview';
+    this.modal.open = true;
+  }
+
+  closeModal(){
+    this.modal.open = false;
+    this.modal.action = null;
+    this.modal.payload = undefined;
+  }
+
+  confirmModal(){
+    if (this.modal.action === 'submit') this.doSubmit();
+  }
+
+  private doSubmit(){
+    const payload = this.buildPayload();
+    if (!payload.length){
+      this.alertError = 'No valid rows to submit.';
+      return;
+    }
+
+    // Optional: enforce a couple of basics
+    const missingDt = payload.findIndex(p => !p.date_of_testing);
+    if (missingDt !== -1){
+      this.alertError = `Row #${missingDt+1} is missing Date of Testing.`;
+      return;
+    }
+
+    this.submitting = true;
+    this.alertSuccess = null;
+    this.alertError = null;
+
+    // Reuse your API method; adjust if your endpoint differs.
+    this.api.postTestReports(payload).subscribe({
+      next: () => {
+        this.submitting = false;
+        try { this.downloadPdf(); } catch(e){ console.error('PDF generation failed:', e); }
+        this.alertSuccess = 'Batch submitted successfully!';
+        this.rows = [ this.emptyRow() ];
+        setTimeout(()=> this.closeModal(), 1200);
+      },
+      error: (e) => {
+        console.error(e);
+        this.submitting = false;
+        this.alertError = 'Error submitting batch.';
+      }
+    });
+  }
+
   // ================= PDF =================
   private row2page(r: CertRow, meta: { zone: string; method: string; status: string }): any[] {
     const title = [
       { text: 'OFFICE OF THE ASSISTANT ENGINEER (R.M.T.L.) M.T. DN.-I', alignment: 'center', bold: true },
       { text: 'M.P.P.K.V.V.CO.LTD. INDORE', alignment: 'center', bold: true, margin: [0, 2, 0, 0] },
-      { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', margin: [0, 6, 0, 2] },
-      { text: `DC/Zone: ${meta.zone}    •    Test Method: ${meta.method || '-' }    •    Test Status: ${meta.status || '-'}`,
-        alignment: 'center', fontSize: 9, color: '#555', margin: [0,0,0,6] }
+      { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', margin: [0, 6, 0, 2] }, 
     ];
 
+    const reporttypetitle = { text: 'SOLAR NET METER TEST REPORT', style: 'hindiTitle', fontSize: 48,  alignment: 'center', margin: [0, 6, 0, 2]  };
+    const headerLine = { text: `DC/Zone: ${meta.zone}    •    Test Method: ${meta.method || '-' }    •    Test Status: ${meta.status || '-'}`, alignment: 'center', fontSize: 9, color: '#555', margin: [0, 0, 0, 6] };
     const hdrRight = r.certificate_no
-      ? { text: r.certificate_no, alignment: 'right', margin: [0, -30, 0, 0] }
+      ? { text: r.certificate_no, alignment: 'right', margin: [0, 10, 0, 0] }
       : { text: '' };
 
     const two = (label: string, value: string | number | undefined) =>
@@ -255,26 +399,46 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
           two('Creep Test', r.creep_test),
           two('Dial Test', r.dial_test),
           two('Remark', r.remark),
-        ]
+        ],
+        margin: [0, 30, 0, 0]
       }
     };
 
     const sign = {
-      margin: [0, 16, 0, 0],
       columns: [
         { width: '*', text: '' },
         {
-          width: 220,
+          width: '*',
+          alignment: 'center',
           stack: [
-            { text: 'A.E. (RMTL)', alignment: 'left', margin: [0, 0, 0, 2] },
-            { text: 'M.P.P.K.V.V. CO. LTD', alignment: 'left' },
-            { text: 'INDORE', alignment: 'left' },
-          ]
-        }
-      ]
+            { text: 'Tested by', style: 'footRole' },
+            { text: '\n\n____________________________', alignment: 'center' },
+            { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
+          ],
+        },
+        {
+          width: '*',
+          alignment: 'center',
+          stack: [
+            { text: 'Verified by', style: 'footRole' },
+            { text: '\n\n____________________________', alignment: 'center' },
+            { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
+          ],
+        },
+        {
+          width: '*',
+          alignment: 'center',
+          stack: [
+            { text: 'Approved by', style: 'footRole' },
+            { text: '\n\n____________________________', alignment: 'center' },
+            { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
+          ],
+        },
+      ],
+      margin: [0, 8, 0, 0]
     };
 
-    return [...title, hdrRight, table, sign];
+    return [...title,reporttypetitle, headerLine, hdrRight, table, sign];
   }
 
   private buildDoc(): TDocumentDefinitions {

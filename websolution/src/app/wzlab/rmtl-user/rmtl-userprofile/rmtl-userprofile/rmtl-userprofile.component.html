@@ -3,7 +3,7 @@
     <div class="card-header d-flex justify-content-between align-items-center text-white" style="background:#151433">
       <h5 class="mb-0">My Profile</h5>
       <div class="d-flex align-items-center gap-2">
-        <span *ngIf="user" class="badge" [ngClass]="statusBadgeClass">{{ user?.status || '—' }}</span>
+        <span *ngIf="user" class="badge" [ngClass]="statusBadgeClass">{{ user .status || '—' }}</span>
         <button class="btn btn-sm btn-outline-light" (click)="refresh()">Refresh</button>
       </div>
     </div>
@@ -62,7 +62,7 @@
 
         <div class="mt-4">
           <div class="small text-muted mb-2">Roles</div>
-          <div *ngIf="user.roles?.length; else noRoles" class="d-flex flex-wrap gap-2">
+          <div *ngIf="user.roles.length; else noRoles" class="d-flex flex-wrap gap-2">
             <span *ngFor="let r of user.roles" class="badge bg-primary-subtle border text-dark px-2 py-1">
               {{ r }}
             </span>

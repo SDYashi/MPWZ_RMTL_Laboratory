@@ -133,7 +133,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
         this.meter_bodies = data?.meter_bodies || [];
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
-        this.report_type= data?.test_report_types.SMART_AGAINST_METER ;
+        this.report_type= data?.test_report_types.SMART_AGAINST_METER || 'SMART AGAINST METER';
 
       },
       error: (err) => console.error('Enums error', err)
@@ -372,7 +372,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
         test_method: this.testMethod,
         test_status: this.testStatus,
         approver_id: this.approverId ?? null,
-        report_type: this.report_type ?? null,
+        report_type: this.report_type ?? 'SMART AGAINST METER',
       }));
   }
 

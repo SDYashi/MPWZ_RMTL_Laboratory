@@ -133,7 +133,7 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
         this.meter_bodies = data?.meter_bodies || [];
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
-        this.report_type= data?.test_report_types.AGAINST_OLD_METER ;
+        this.report_type= data?.test_report_types.AGAINST_OLD_METER|| 'AGAINST OLD METER';
 
       },
       error: (err) => console.error('Enums error', err)
@@ -372,7 +372,7 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
         test_method: this.testMethod,
         test_status: this.testStatus,
         approver_id: this.approverId ?? null,
-        report_type: this.report_type ?? null,
+        report_type: this.report_type ?? 'AGAINST OLD METER',
       }));
   }
 
@@ -583,7 +583,7 @@ private buildStopDefectiveDoc(
       },
 
       { canvas: [{ type:'line', x1:0, y1:0, x2:540, y2:0, lineWidth:1 }], margin: [0,6,0,6] },
-      { text: 'AGAINST OLD_METER METER TEST REPORT', style: 'hindiTitle', margin: [0,0,0,4] },
+      { text: 'AGAINST OLD_METER TEST REPORT', style: 'hindiTitle', margin: [0,0,0,4] },
 
 
       {

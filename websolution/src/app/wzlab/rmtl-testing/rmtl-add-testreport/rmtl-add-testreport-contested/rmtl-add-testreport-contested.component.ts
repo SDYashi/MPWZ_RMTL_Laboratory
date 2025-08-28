@@ -99,7 +99,7 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
   test_results: any[] = []; report_type = 'CONTESTED';
 
   private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; phase?: string; }> = {};
-
+  phases: any;
   constructor(private api: ApiServicesService) {}
 
   ngOnInit(): void {
@@ -119,6 +119,7 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
         this.makes = d?.makes || [];
         this.capacities = d?.capacities || [];
         this.report_type = d?.test_report_types?.CONTESTED || 'CONTESTED';
+        this.phases=d?.phases || [];
       }
     });
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
@@ -309,17 +310,18 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
     const topLine = {
       columns: [
         { text: `NO ${r.form_no || this.dotted(20)}` },
-        { text: `DATE ${r.form_date || meta.date}`, alignment: 'right' }
+        { text: `DATE ${r.form_date || meta.date}`, alignment: 'right' },       
       ],
       margin: [0,0,0,6]
     };
+    const reporttypetitle = { text: 'CONTTESTED METER TEST REPORT', style: 'hindiTitle', margin: [0,0,0,4] };
 
     const slip = {
       layout: 'lightHorizontalLines',
       table: {
         widths: ['auto','*'],
         body: [
-          [{text:'Name of Consume', bold:true}, r.consumer_name || '' ],
+          [{text:'Name of Consumer', bold:true}, r.consumer_name || '' ],
           [{text:'Account No / IVRS No.', bold:true}, r.account_no_ivrs || '' ],
           [{text:'Address', bold:true}, r.address || '' ],
           [{text:'Contested Meter by Consumer/Zone', bold:true}, r.contested_by || '' ],
@@ -397,15 +399,43 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
     };
 
     const testedBy = {
-      margin:[0,16,0,0],
+      margin:[0,20,0,0],
       stack:[
-        { text:'Tested by', alignment:'center', bold:true },
-        { text:'\n', fontSize:6 },
-        { text:'AE (RMTL)', alignment:'center' }
+      {
+        columns: [
+          {
+            width: '*',
+            stack: [
+              { text: 'Tested by', style: 'footRole' },
+              { text: '\n\n____________________________', alignment: 'center' },
+              { text: (meta.testerName || ''), style: 'footTiny' },
+              { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
+            ],
+          },
+          {
+            width: '*',
+            stack: [
+              { text: 'Verified by', style: 'footRole' },
+              { text: '\n\n____________________________', alignment: 'center' },
+              { text: (meta.testerName || ''), style: 'footTiny' },
+              { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
+            ],
+          },
+          {
+            width: '*',
+            stack: [
+              { text: 'Approved by', style: 'footRole' },
+              { text: '\n\n____________________________', alignment: 'center' },
+              { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
+            ],
+          },
+        ],
+        margin: [0, 8, 0, 0]
+      },
       ]
     };
 
-    return [ topTitle, topLine, slip, slipMeter, slipSign, ...midHeads, rmtlGrid, remarkLines, dialLine, errorLine, testedBy ];
+    return [ topTitle, topLine,reporttypetitle, slip, slipMeter, slipSign, ...midHeads, rmtlGrid, remarkLines, dialLine, errorLine, testedBy ];
   }
 
   private buildContestedDoc(rows:any[], meta:any): TDocumentDefinitions {

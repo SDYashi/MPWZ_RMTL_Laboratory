@@ -161,39 +161,39 @@
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
   </div>
   <div class="offcanvas-body" *ngIf="selectedRow">
-    <div class="small text-muted mb-2">Device: {{ selectedRow?.device_id || selectedRow?.id }}</div>
+    <div class="small text-muted mb-2">Device: {{ selectedRow.device_id || selectedRow.id }}</div>
 
     <div class="row g-2">
-      <div class="col-6"><strong>Serial:</strong> {{ selectedRow?.serial_number || '-' }}</div>
-      <div class="col-6"><strong>Make:</strong> {{ selectedRow?.make || '-' }}</div>
-      <div class="col-6"><strong>Type:</strong> {{ selectedRow?.meter_type || '-' }}</div>
-      <div class="col-6"><strong>Category:</strong> {{ selectedRow?.meter_category || '-' }}</div>
-      <div class="col-6"><strong>Capacity:</strong> {{ selectedRow?.capacity || '-' }}</div>
-      <div class="col-6"><strong>Voltage:</strong> {{ selectedRow?.voltage_rating || '-' }}</div>
-      <div class="col-6"><strong>Class:</strong> {{ selectedRow?.meter_class || '-' }}</div>
-      <div class="col-6"><strong>Phase:</strong> {{ selectedRow?.phase || '-' }}</div>
+      <div class="col-6"><strong>Serial:</strong> {{ selectedRow.serial_number || '-' }}</div>
+      <div class="col-6"><strong>Make:</strong> {{ selectedRow.make || '-' }}</div>
+      <div class="col-6"><strong>Type:</strong> {{ selectedRow.meter_type || '-' }}</div>
+      <div class="col-6"><strong>Category:</strong> {{ selectedRow.meter_category || '-' }}</div>
+      <div class="col-6"><strong>Capacity:</strong> {{ selectedRow.capacity || '-' }}</div>
+      <div class="col-6"><strong>Voltage:</strong> {{ selectedRow.voltage_rating || '-' }}</div>
+      <div class="col-6"><strong>Class:</strong> {{ selectedRow.meter_class || '-' }}</div>
+      <div class="col-6"><strong>Phase:</strong> {{ selectedRow.phase || '-' }}</div>
     </div>
 
     <hr>
 
     <div class="row g-2">
-      <div class="col-6"><strong>Status:</strong> {{ selectedRow?.test_status || selectedRow?.device_status || '-' }}</div>
-      <div class="col-6"><strong>Result:</strong> {{ selectedRow?.test_result || '-' }}</div>
-      <div class="col-6"><strong>Tested/Inward:</strong> {{ (selectedRow?.tested_date || selectedRow?.inward_date) }}</div>
-      <div class="col-6"><strong>Initiator:</strong> {{ selectedRow?.initiator || '-' }}</div>
-      <div class="col-6"><strong>Office:</strong> {{ selectedRow?.office_type || '-' }}</div>
-      <div class="col-6"><strong>Location:</strong> {{ selectedRow?.location_name || '-' }}</div>
-      <div class="col-12"><strong>Purpose:</strong> {{ selectedRow?.device_testing_purpose || '-' }}</div>
+      <div class="col-6"><strong>Status:</strong> {{ selectedRow.test_status || selectedRow.device_status || '-' }}</div>
+      <div class="col-6"><strong>Result:</strong> {{ selectedRow.test_result || '-' }}</div>
+      <div class="col-6"><strong>Tested/Inward:</strong> {{ (selectedRow.tested_date || selectedRow.inward_date) }}</div>
+      <div class="col-6"><strong>Initiator:</strong> {{ selectedRow.initiator || '-' }}</div>
+      <div class="col-6"><strong>Office:</strong> {{ selectedRow.office_type || '-' }}</div>
+      <div class="col-6"><strong>Location:</strong> {{ selectedRow.location_name || '-' }}</div>
+      <div class="col-12"><strong>Purpose:</strong> {{ selectedRow.device_testing_purpose || '-' }}</div>
     </div>
 
     <hr>
-    <!-- <div><strong>Other:</strong> {{ selectedRow?.other || '-' }}</div> -->
-    <div class="text-muted small mt-2"><strong>Details:</strong> {{ selectedRow?.details || '-' }}</div>
+    <!-- <div><strong>Other:</strong> {{ selectedRow.other || '-' }}</div> -->
+    <div class="text-muted small mt-2"><strong>Details:</strong> {{ selectedRow.details || '-' }}</div>
 
     <div class="d-flex gap-2 mt-3">
       <button class="btn btn-success btn-sm"
               (click)="openApproveModal(selectedRow)"
-              [disabled]="!selectedRow?.canApprove">Approve</button>
+              [disabled]="!selectedRow.canApprove">Approve</button>
     </div>
   </div>
 </div>
@@ -258,7 +258,7 @@
         </div>
 
         <!-- Approved IDs -->
-        <div *ngIf="approvedIds?.length" class="mt-3">
+        <div *ngIf="approvedIds.length" class="mt-3">
           <div class="fw-semibold mb-1">Approved IDs</div>
           <div class="d-flex flex-wrap gap-2">
             <span class="badge bg-success" *ngFor="let id of approvedIds; trackBy: trackId">
@@ -268,7 +268,7 @@
         </div>
 
         <!-- Failed list -->
-        <div *ngIf="failedList?.length" class="mt-3">
+        <div *ngIf="failedList.length" class="mt-3">
           <div class="fw-semibold mb-1">Failed Items</div>
           <div class="table-responsive">
             <table class="table table-sm align-middle mb-0">
@@ -280,8 +280,8 @@
               </thead>
               <tbody>
                 <tr *ngFor="let f of failedList">
-                  <td><code>{{ f?.id }}</code></td>
-                  <td>{{ f?.reason || 'Unknown error' }}</td>
+                  <td><code>{{ f.id }}</code></td>
+                  <td>{{ f.reason || 'Unknown error' }}</td>
                 </tr>
               </tbody>
             </table>

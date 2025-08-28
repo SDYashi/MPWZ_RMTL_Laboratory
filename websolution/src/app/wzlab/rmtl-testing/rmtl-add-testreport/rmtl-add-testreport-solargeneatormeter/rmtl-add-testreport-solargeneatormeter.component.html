@@ -12,25 +12,58 @@
     <div class="card-body">
       <!-- Top toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
-        <button type="button" class="btn btn-outline-danger" (click)="reloadAssigned()">⟳ Load Assigned</button>
+        <button type="button" class="btn btn-outline-danger" (click)="openConfirm('reload')">⟳ Load Assigned</button>
         <button type="button" class="btn btn-outline-primary" (click)="addRow()">➕ Add Row</button>
         <div class="ms-auto d-flex gap-2">
           <input class="form-control" style="min-width:260px"
                  [(ngModel)]="filterText" name="filterText" placeholder="Filter by Sr. No / Make / Consumer">
         </div>
       </div>
+                 <!-- SOURCE -->
+      <form #sourceForm="ngForm" class="mb-4">
+        <div class="rounded-4 border p-3 p-md-4 bg-light-subtle">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <div class="form-floating">
+                <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type"
+                        (change)="onSourceTypeChange()" required>
+                  <option [ngValue]="''" disabled>Select...</option>
+                  <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
+                </select>
+                <label class="fw-semibold">Source Type</label>
+              </div>
+            </div>
 
+            <div class="col-md-5">
+              <div class="input-group input-group-lg">
+                <!-- <span class="input-group-text"><i class="bi bi-geo-alt"></i></span> -->
+                <div class="form-floating flex-grow-1">
+                  <input type="text" class="form-control" [(ngModel)]="selectedSourceName"
+                         name="source_name" placeholder="Code" required (keydown.enter)="fetchButtonData()">
+                  <label class="fw-semibold">Location / Store / Vendor Code</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-3 d-grid">
+              <button type="button" class="btn btn-primary py-3" (click)="fetchButtonData()">
+                <i class="bi bi-search"></i> Search Office/Store/Vendor
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
       <!-- Batch header (DC/Zone + Test method/status) -->
       <div class="card shadow-sm mb-3">
         <div class="card-body">
           <div class="row g-3">
             <div class="col-md-3">
               <label class="form-label fw-bold">Zone/DC Code</label>
-              <input class="form-control" [(ngModel)]="header.location_code" name="loc_code" placeholder="e.g., 3420100">
+              <input class="form-control" [(ngModel)]="header.location_code" name="loc_code" placeholder="e.g., 3420100" readonly>
             </div>
             <div class="col-md-5">
               <label class="form-label fw-bold">Zone/DC Name</label>
-              <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" placeholder="Zone / DC name">
+              <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" placeholder="Zone / DC name" readonly>
             </div>
             <div class="col-md-2">
               <label class="form-label fw-bold">Test Method</label>
@@ -57,6 +90,8 @@
               <th>Meter Sr. No.</th>
               <th>Make</th>
               <th>Capacity</th>
+               <th>Test Report Remark</th>
+              <th>Test Result</th>
               <th>Consumer</th>
               <th class="d-print-none">Details</th>
               <th class="d-print-none">Action</th>
@@ -81,6 +116,21 @@
                 <td style="min-width:140px">
                   <input class="form-control form-control-sm" [(ngModel)]="r.meter_capacity" [name]="'cap_'+i" placeholder="e.g., 3X10-100A">
                 </td>
+                
+                   <td style="min-width:140px">
+                    <select class="form-select form-select-sm mb-1" [(ngModel)]="r.remark" [name]="'b_remark_'+i">
+                      <option value="">--</option>
+                      <option *ngFor="let option of commentby_testers" [value]="option">{{ option }}</option>
+                    </select>
+                  </td>
+
+                <td style="min-width:140px">
+                  <select class="form-select form-select-sm" [(ngModel)]="r.test_result" [name]="'b_test_result_'+i">
+                    <option [ngValue]="undefined">--</option>
+                    <option *ngFor="let tr of test_results" [ngValue]="tr">{{ tr }}</option>
+                  </select>
+                </td>
+
 
                 <td style="min-width:220px">
                   <input class="form-control form-control-sm" [(ngModel)]="r.consumer_name" [name]="'cons_'+i">
@@ -99,7 +149,7 @@
 
               <!-- expanded editor -->
               <tr *ngIf="r._open">
-                <td colspan="7" style="background:#f6f7fb;">
+                <td colspan="9" style="background:#f6f7fb;">
                   <div class="row g-3">
                     <div class="col-md-3">
                       <label class="form-label small fw-bold mb-0">Certificate No (optional)</label>
@@ -179,9 +229,76 @@
       <!-- Actions -->
       <div class="d-flex gap-2 mt-3 d-print-none">
         <div class="ms-auto"></div>
-        <button type="button" class="btn btn-primary" [disabled]="!rows.length" (click)="downloadPdf()">
-          Generate PDF
+        <button type="button" class="btn btn-primary"
+                [disabled]="submitting || !rows.length"
+                (click)="openConfirm('submit')">
+          {{ submitting ? 'Submitting…' : 'Submit Batch Certificate' }}
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading overlay -->
+  <div *ngIf="loading" class="position-fixed top-0 start-0 w-100 h-100"
+       style="background:rgba(0,0,0,0.15); z-index:1080;">
+    <div class="d-flex h-100 align-items-center justify-content-center">
+      <div class="spinner-border"></div>
+      <span class="ms-2 fw-semibold">Loading…</span>
+    </div>
+  </div>
+
+  <!-- Preview & Success/Error Modal -->
+  <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modal.open}" *ngIf="modal.open">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"
+             [ngClass]="{'bg-primary text-white': modal.action==='submit','bg-danger text-white': modal.action==='removeRow','bg-dark text-white': modal.action==='reload'}">
+          <h5 class="modal-title">{{ modal.title }}</h5>
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
+        </div>
+
+        <div class="modal-body">
+          <div *ngIf="modal.action==='submit'">
+            <div class="row">
+              <div class="col-md-6"><strong>Zone/DC:</strong> {{ (header.location_code ? header.location_code+' - ' : '') + (header.location_name || '-') }}</div>
+              <div class="col-md-3"><strong>Method:</strong> {{ testMethod || '-' }}</div>
+              <div class="col-md-3"><strong>Status:</strong> {{ testStatus || '-' }}</div>
+            </div>
+            <hr>
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead>
+                  <tr>
+                    <th>#</th><th>Sr No</th><th>Make</th><th>Capacity</th><th>Consumer</th><th>Date</th><th>Diff</th><th>SCT</th><th>Creep</th><th>Dial</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let r of rows; let i=index">
+                    <td>{{ i+1 }}</td>
+                    <td>{{ r.meter_sr_no }}</td>
+                    <td>{{ r.meter_make }}</td>
+                    <td>{{ r.meter_capacity }}</td>
+                    <td>{{ r.consumer_name }}</td>
+                    <td>{{ r.date_of_testing || '-' }}</td>
+                    <td>{{ r.difference || '-' }}</td>
+                    <td>{{ r.starting_current_test || '-' }}</td>
+                    <td>{{ r.creep_test || '-' }}</td>
+                    <td>{{ r.dial_test || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div *ngIf="modal.message" class="alert alert-info mt-2">{{ modal.message }}</div>
+          <div *ngIf="alertSuccess" class="alert alert-success mt-2">{{ alertSuccess }}</div>
+          <div *ngIf="alertError" class="alert alert-danger mt-2">{{ alertError }}</div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+          <button *ngIf="modal.action" class="btn btn-primary" (click)="confirmModal()">Confirm</button>
+        </div>
       </div>
     </div>
   </div>

@@ -1,3 +1,4 @@
+// src/app/wzlabhome/wzlabhome.component.ts
 import { Component, HostListener, OnInit } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { AuthService } from '../core/auth.service';
@@ -28,7 +29,6 @@ export class WzlabhomeComponent implements OnInit {
   sidebarCollapsed = false;
   screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
 
-  // Single source of truth for open sections
   sections: Record<SectionKey, boolean> = {
     LABManagement: false,
     userManagement: false,
@@ -42,7 +42,6 @@ export class WzlabhomeComponent implements OnInit {
     approvalMenu: false,
   };
 
-  // Map routes to sections for auto-open
   private sectionRouteMap: Array<{ key: SectionKey; prefixes: string[] }> = [
     { key: 'LABManagement',      prefixes: ['/wzlab/testing-laboratory'] },
     { key: 'userManagement',     prefixes: ['/wzlab/user'] },
@@ -56,12 +55,11 @@ export class WzlabhomeComponent implements OnInit {
     { key: 'approvalMenu',       prefixes: ['/wzlab/approval'] },
   ];
 
-  constructor(private router: Router, private authService: AuthService) {
+  constructor(private router: Router, public authService: AuthService) {
     this.currentUrl = this.router.url.replace('/', '');
   }
 
   ngOnInit(): void {
-    // user/session setup
     const token = localStorage.getItem('access_token');
     this.currentUser = token ? this.getUserFromToken(token) : null;
     this.checkScreenSize();
@@ -72,7 +70,6 @@ export class WzlabhomeComponent implements OnInit {
     localStorage.setItem('currentUserId', userId?.toString() ?? '');
     localStorage.setItem('currentLabId', labId?.toString() ?? '');
 
-    // route-driven open/close
     this.syncOpenSectionWithRoute();
     this.router.events.pipe(filter(e => e instanceof NavigationEnd))
       .subscribe(() => this.syncOpenSectionWithRoute());
@@ -98,7 +95,6 @@ export class WzlabhomeComponent implements OnInit {
   }
 
   checkScreenSize() {
-    // collapse on small screens
     this.sidebarCollapsed = this.screenWidth < 992;
   }
 
@@ -106,7 +102,6 @@ export class WzlabhomeComponent implements OnInit {
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
-  // Accordion control: open one, close others
   toggleSection(key: SectionKey) {
     const willOpen = !this.sections[key];
     Object.keys(this.sections).forEach(k => (this.sections[k as SectionKey] = false));
@@ -119,12 +114,19 @@ export class WzlabhomeComponent implements OnInit {
     if (matched) this.sections[matched.key] = true;
   }
 
-  // Keyboard accessibility for toggles
   onKeyToggleSection(evt: KeyboardEvent, key: SectionKey) {
     if (evt.key === 'Enter' || evt.key === ' ') {
       evt.preventDefault();
       this.toggleSection(key);
     }
+  }
+
+  // expose simple helpers for template
+  hasAny(roles: string[]) {
+    return this.authService.hasAny(roles);
+  }
+  canShow(allow: string[], deny: string[] = []) {
+    return this.authService.canShow(allow, deny);
   }
 
   logout() {

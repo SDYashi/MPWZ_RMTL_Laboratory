@@ -22,40 +22,36 @@
       <div class="card shadow-sm mb-3">
         <div class="card-body">
           <div class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-4">
               <label class="form-label fw-bold">Testing Date</label>
               <input type="date" class="form-control" [(ngModel)]="batch.header.date" name="batch_date" required>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
               <label class="form-label fw-bold">Phase</label>
-              <input class="form-control" [(ngModel)]="batch.header.phase" name="b_phase" placeholder="1Ø / 3Ø">
+              <select class="form-select" [(ngModel)]="batch.header.phase" name="b_phase">
+                <option value="" disabled selected>Select phase</option>
+                <option *ngFor="let phase of phases">{{ phase }}</option>
+              </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
               <label class="form-label fw-bold">Zone/DC</label>
               <input class="form-control" [(ngModel)]="batch.header.location_name" name="b_loc_name" placeholder="Zone / DC name">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
               <label class="form-label fw-bold">Zone/DC Code</label>
               <input class="form-control" [(ngModel)]="batch.header.location_code" name="b_loc_code" placeholder="e.g., 3420100">
             </div>
-          </div>
-
-          <div class="row g-3 mt-2">
-            <div class="col-md-3">
+            <div class="col-md-4">
               <label class="form-label fw-bold">Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="b_test_method">
                 <option *ngFor="let method of test_methods" [value]="method">{{ method }}</option>
               </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
               <label class="form-label fw-bold">Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="b_test_status">
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Approver ID</label>
-              <input type="number" class="form-control" [(ngModel)]="approverId" name="approver_id">
             </div>
           </div>
         </div>
@@ -69,7 +65,8 @@
               <th>#</th>
               <th>Serial</th>
               <th>Make</th>
-              <th>Capacity</th>
+              <th>Capacity</th>  
+              <th>Test Report Remark</th>
               <th>Test Result</th>
               <th>Remark</th>
               <th class="d-print-none">Details</th>
@@ -99,6 +96,12 @@
                     <option *ngFor="let c of capacities" [value]="c">{{ c }}</option>
                   </select>
                 </td>
+                   <td style="min-width:140px">
+                    <select class="form-select form-select-sm mb-1" [(ngModel)]="r.remark" [name]="'b_remark_'+i">
+                      <option value="">--</option>
+                      <option *ngFor="let option of comment_bytester" [value]="option">{{ option }}</option>
+                    </select>
+                  </td>
 
                 <td style="min-width:140px">
                   <select class="form-select form-select-sm" [(ngModel)]="r.test_result" [name]="'b_test_result_'+i">
@@ -124,19 +127,8 @@
 
               <!-- Expanded details (matches your sheet) -->
               <tr *ngIf="r._open">
-                <td colspan="8" style="background:#f5f7f6;">
+                <td colspan="9" style="background-color: #c1d6be;">
                   <div class="row g-3">
-                    <!-- Top line -->
-                    <div class="col-12">
-                      <div class="d-flex align-items-center justify-content-between small text-muted fw-bold">
-                        <div>OFFICE OF AE/JE MPPKVVCo.Ltd Zone</div>
-                        <div class="d-flex gap-3">
-                          <div>NO <input class="form-control form-control-sm d-inline-block ms-1" style="width:160px" [(ngModel)]="r.form_no" [name]="'b_formno_'+i"></div>
-                          <div>DATE <input type="date" class="form-control form-control-sm d-inline-block ms-1" style="width:160px" [(ngModel)]="r.form_date" [name]="'b_formdate_'+i"></div>
-                        </div>
-                      </div>
-                    </div>
-
                     <!-- Consumer slip -->
                     <div class="col-12">
                       <div class="row g-2">
@@ -171,7 +163,11 @@
 
                         <div class="col-md-6">
                           <label class="form-label small fw-bold mb-0">Meter Condition as noted at time of removal</label>
-                          <input class="form-control form-control-sm" [(ngModel)]="r.condition_at_removal" [name]="'b_condrem_'+i">
+                          <!-- <input class="form-control form-control-sm" [(ngModel)]="r.condition_at_removal" [name]="'b_condrem_'+i"> -->
+                          <select class="form-select form-select-sm" [(ngModel)]="r.condition_at_removal" [name]="'b_condrem_'+i">
+                            <option value="">--</option>
+                            <option *ngFor="let pc of physical_conditions" [value]="pc">{{ pc }}</option>
+                          </select>
                         </div>
                         <div class="col-md-6">
                           <label class="form-label small fw-bold mb-0">Reading (at removal)</label>
@@ -179,14 +175,6 @@
                         </div>
                       </div>
                     </div>
-
-                    <!-- RMTL header -->
-                    <div class="col-12 mt-2">
-                      <div class="text-center fw-bold">REGIONAL METER TESTING LABORATORY, INDORE</div>
-                      <div class="text-center small text-muted">MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN CO. LTD.</div>
-                      <div class="text-center small">To Filled By Testing Section Laboratory (RMTL)</div>
-                    </div>
-
                     <!-- RMTL grid -->
                     <div class="col-12">
                       <div class="row g-2">

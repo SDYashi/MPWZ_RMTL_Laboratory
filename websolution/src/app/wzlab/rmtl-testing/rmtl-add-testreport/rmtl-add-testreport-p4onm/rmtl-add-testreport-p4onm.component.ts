@@ -96,8 +96,13 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   physical_conditions: any[] = []; seal_statuses: any[] = []; glass_covers: any[] = [];
   terminal_blocks: any[] = []; meter_bodies: any[] = []; makes: any[] = []; capacities: any[] = [];
   test_results: any[] = []; report_type = 'P4_ONM';
+  office_types: any;
+  selectedSourceType: any;
+  selectedSourceName: string = '';
+  filteredSources: any;
 
   private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; phase?: string; }> = {};
+  phases: any;
 
   constructor(private api: ApiServicesService) {}
 
@@ -118,11 +123,32 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
         this.makes = d?.makes || [];
         this.capacities = d?.capacities || [];
         this.report_type = d?.test_report_types?.P4_ONM || 'P4_ONM';
+        this.office_types = d?.office_types || [];
+        this.phases = d?.phases || [];
       }
     });
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
     this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
     this.doReloadAssignedWithoutAddingRows();
+  }
+
+      // ---------- Source fetch ----------
+  fetchButtonData(): void {
+    if (!this.selectedSourceType || !this.selectedSourceType) {
+       alert('Missing Input');
+      return;
+    }
+    this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
+      next: (data) => (this.filteredSources = data, 
+        this.batch.header.location_name = this.filteredSources.name,
+        this.batch.header.location_code = this.filteredSources.code ) ,
+      error: () => alert('Failed to fetch source details. Check the code and try again.')
+    });
+  }
+
+  onSourceTypeChange(): void {
+    this.selectedSourceName = '';
+    this.filteredSources = [];
   }
 
   get totalCount(){ return this.batch?.rows?.length ?? 0; }
@@ -312,6 +338,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
       ],
       margin: [0,0,0,6]
     };
+    const reporttypetitle = { text: 'P4_ONM METER TEST REPORT', style: 'hindiTitle', alignment: 'center', fontSize: 24, margin: [0,0,0,4] };
 
     const slip = {
       layout: 'lightHorizontalLines',
@@ -404,7 +431,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
       ]
     };
 
-    return [ topTitle, topLine, slip, slipMeter, slipSign, ...midHeads, rmtlGrid, remarkLines, dialLine, errorLine, testedBy ];
+    return [ topTitle, topLine,reporttypetitle, slip, slipMeter, slipSign, ...midHeads, rmtlGrid, remarkLines, dialLine, errorLine, testedBy ];
   }
 
   private buildContestedDoc(rows:any[], meta:any): TDocumentDefinitions {

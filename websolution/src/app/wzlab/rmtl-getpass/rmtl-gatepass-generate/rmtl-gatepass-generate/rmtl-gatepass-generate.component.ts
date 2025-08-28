@@ -66,7 +66,10 @@ export class RmtlGatepassGenerateComponent implements OnInit {
   loadingDevices = false;
   errorMsg = '';
   gatepassInfo: any = null;
-
+  office_types: any;
+  selectedSourceType: any;
+  selectedSourceName: string = '';
+  filteredSources: any;
   // Modal form state (payload)
   gatepassForm = {
     dispatch_to: '',
@@ -85,8 +88,29 @@ export class RmtlGatepassGenerateComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadReportIds();
+    this.api.getEnums().subscribe({
+      next: (d) => {
+        this.office_types = d?.office_types || [];
+      }
+    })
+  }
+      // ---------- Source fetch ----------
+  fetchButtonData(): void {
+    if (!this.selectedSourceType || !this.selectedSourceType) {
+       alert('Missing Input');
+      return;
+    }
+    this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
+      next: (data) => (this.filteredSources = data, 
+        this.gatepassForm.dispatch_to = `${this.filteredSources.code} - ${this.filteredSources.name}` ) ,
+      error: () => alert('Failed to fetch source details. Check the code and try again.')
+    });
   }
 
+  onSourceTypeChange(): void {
+    this.selectedSourceName = '';
+    this.filteredSources = [];
+  }
   get selectedCount(): number {
     return this.devices.filter(d => d.selected).length;
   }

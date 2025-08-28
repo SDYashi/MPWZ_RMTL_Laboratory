@@ -334,7 +334,7 @@
         <div class="tab-content">
           <!-- Devices -->
           <div class="tab-pane fade show active" id="pane-devices" role="tabpanel" aria-labelledby="tab-devices">
-            <ul class="list-group list-group-flush small scroll-240">
+            <ul class="list-group list-group-flush small">
               <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_devices, 8)">
                 <i class="fas fa-microchip text-primary"></i>
                 <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
@@ -345,7 +345,7 @@
 
           <!-- Users -->
           <div class="tab-pane fade" id="pane-users" role="tabpanel" aria-labelledby="tab-users">
-            <ul class="list-group list-group-flush small scroll-240">
+            <ul class="list-group list-group-flush small  ">
               <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_users, 8)">
                 <i class="fas fa-user text-secondary"></i>
                 <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
@@ -356,7 +356,7 @@
 
           <!-- Benches -->
           <div class="tab-pane fade" id="pane-benches" role="tabpanel" aria-labelledby="tab-benches">
-            <ul class="list-group list-group-flush small scroll-240">
+            <ul class="list-group list-group-flush small  ">
               <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_benches, 8)">
                 <i class="fas fa-vials text-info"></i>
                 <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
@@ -367,7 +367,7 @@
 
           <!-- Stores -->
           <div class="tab-pane fade" id="pane-stores" role="tabpanel" aria-labelledby="tab-stores">
-            <ul class="list-group list-group-flush small scroll-240">
+            <ul class="list-group list-group-flush small  ">
               <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_stores, 8)">
                 <i class="fas fa-store text-success"></i>
                 <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
@@ -378,7 +378,7 @@
 
           <!-- Vendors -->
           <div class="tab-pane fade" id="pane-vendors" role="tabpanel" aria-labelledby="tab-vendors">
-            <ul class="list-group list-group-flush small scroll-240">
+            <ul class="list-group list-group-flush small  ">
               <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_vendors, 8)">
                 <i class="fas fa-handshake text-warning"></i>
                 <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
@@ -389,7 +389,7 @@
 
           <!-- Offices -->
           <div class="tab-pane fade" id="pane-offices" role="tabpanel" aria-labelledby="tab-offices">
-            <ul class="list-group list-group-flush small scroll-240">
+            <ul class="list-group list-group-flush small  ">
               <li class="list-group-item py-2 d-flex align-items-center gap-2" *ngFor="let x of firstN(recent?.recent_offices, 8)">
                 <i class="fas fa-building text-danger"></i>
                 <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
