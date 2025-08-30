@@ -4,16 +4,23 @@
       class="card-header d-flex align-items-center justify-content-between"
       style="background-color:#151433; color:#f2ecec; font-weight:bold;"
     >
-      <h5 class="mb-0">Add New Laboratory </h5>
-      <span class="badge bg-secondary ms-2" *ngIf="lab?.id">Editing: #{{ lab.id }}</span>
+      <div class="d-flex align-items-center gap-2">
+        <h5 class="mb-0">{{ lab?.id ? 'Edit Laboratory' : 'Add New Laboratory' }}</h5>
+        <span class="badge bg-secondary" *ngIf="lab?.id">#{{ lab.id }}</span>
+      </div>
+
+      <div class="text-end small" *ngIf="lab?.id">
+        <div *ngIf="lab.created_at"><span class="text-muted">Created:</span> {{ lab.created_at | date:'medium' }}</div>
+        <div *ngIf="lab.updated_at"><span class="text-muted">Updated:</span> {{ lab.updated_at | date:'medium' }}</div>
+      </div>
     </div>
 
     <div class="card-body">
       <form #labForm="ngForm" (ngSubmit)="openPreview(labForm)" novalidate>
 
-        <!-- Lab Name -->
+        <!-- Lab Name (required) -->
         <div class="mb-3">
-          <label for="lab_name" class="form-label mt-2 fw-bold">Lab Name</label>
+          <label for="lab_name" class="form-label mt-2 fw-bold">Laboratory Name</label>
           <input
             type="text"
             class="form-control"
@@ -24,14 +31,13 @@
             maxlength="120"
             [class.is-invalid]="(labForm.submitted || touched['lab_name']) && !lab.lab_name"
             (blur)="touched['lab_name'] = true"
-            placeholder="e.g. RMTL Indore"
           />
-          <div class="invalid-feedback">Lab Name is required.</div>
+          <div class="invalid-feedback">Laboratory Name is required.</div>
         </div>
 
-        <!-- Lab Location -->
+        <!-- Lab Location (required) -->
         <div class="mb-3">
-          <label for="lab_location" class="form-label mt-2 fw-bold">Lab Location</label>
+          <label for="lab_location" class="form-label mt-2 fw-bold">Laboratory Location</label>
           <input
             type="text"
             class="form-control"
@@ -42,14 +48,13 @@
             maxlength="160"
             [class.is-invalid]="(labForm.submitted || touched['lab_location']) && !lab.lab_location"
             (blur)="touched['lab_location'] = true"
-            placeholder="e.g. Indore, Madhya Pradesh"
           />
-          <div class="invalid-feedback">Lab Location is required.</div>
+          <div class="invalid-feedback">Laboratory Location is required.</div>
         </div>
 
-        <!-- Status -->
-        <div class="mb-3">
-          <label for="status" class="form-label mt-2 fw-bold">Status</label>
+        <!-- Status (required) -->
+        <div class="mb-4">
+          <label for="status" class="form-label mt-2 fw-bold"> Laboratory Status</label>
           <select
             id="status"
             name="status"
@@ -59,14 +64,76 @@
             [class.is-invalid]="(labForm.submitted || touched['status']) && !lab.status"
             (blur)="touched['status'] = true"
           >
-            <option value="" disabled selected>Select status</option>
+            <option value="" disabled>Select status</option>
             <option *ngFor="let status of lab_statuses" [value]="status">{{ status }}</option>
           </select>
           <div class="invalid-feedback">Status is required.</div>
         </div>
 
+        <!-- PDF Header (optional block) -->
+        <div class="border rounded-3 p-3 bg-light">
+          <div class="mb-2 fw-bold text-secondary">PDF Header information</div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Header Laboratory Name</label>
+              <input
+                type="text"
+                class="form-control"
+                name="lab_pdfheader_name"
+                [(ngModel)]="lab.lab_pdfheader_name"
+                maxlength="160"
+                />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Header Laboratory Email</label>
+              <input
+                type="email"
+                class="form-control"
+                name="lab_pdfheader_email"
+                [(ngModel)]="lab.lab_pdfheader_email"
+                maxlength="160"
+                #emailCtrl="ngModel"
+                email
+              />
+              <div class="text-danger small mt-1" *ngIf="emailCtrl.invalid && emailCtrl.touched">
+                Please enter a valid email.
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Header Laboratory Contact No.</label>
+              <input
+                type="text"
+                class="form-control"
+                name="lab_pdfheader_contact_no"
+                [(ngModel)]="lab.lab_pdfheader_contact_no"
+                maxlength="20"
+                #phoneCtrl="ngModel"
+                pattern="^[0-9+\-\s()]{6,20}$"
+                (blur)="phoneCtrl.control.markAsTouched()"
+              />
+              <div class="text-danger small mt-1" *ngIf="phoneCtrl.invalid && phoneCtrl.touched">
+                Please enter a valid phone number.
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Header Laboratory Address</label>
+              <textarea
+                class="form-control"
+                name="lab_pdfheader_address"
+                [(ngModel)]="lab.lab_pdfheader_address"
+                rows="2"
+                maxlength="500"
+                 ></textarea>
+            </div>
+          </div>
+        </div>
+
         <!-- Actions -->
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 mt-3">
           <button type="submit" class="btn btn-primary" [disabled]="loading">
             <i class="fas fa-eye me-1"></i> Validate
           </button>
@@ -84,7 +151,7 @@
 
 <!-- Preview Modal -->
 <div class="modal fade" #previewModal tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header border-0">
         <h5 class="modal-title fw-bold" id="previewModalLabel">
@@ -94,21 +161,46 @@
       </div>
 
       <div class="modal-body">
-        <div class="list-group">
-          <div class="list-group-item d-flex justify-content-between">
-            <span class="fw-semibold">Lab Name</span>
-            <span>{{ lab.lab_name || '—' }}</span>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="list-group">
+              <div class="list-group-item d-flex justify-content-between">
+                <span class="fw-semibold">Lab Name</span>
+                <span>{{ lab.lab_name || '—' }}</span>
+              </div>
+              <div class="list-group-item d-flex justify-content-between">
+                <span class="fw-semibold">Lab Location</span>
+                <span>{{ lab.lab_location || '—' }}</span>
+              </div>
+              <div class="list-group-item d-flex justify-content-between">
+                <span class="fw-semibold">Status</span>
+                <span>
+                  <span *ngIf="lab.status; else noStatus" class="badge bg-info text-dark">{{ lab.status }}</span>
+                  <ng-template #noStatus>—</ng-template>
+                </span>
+              </div>
+            </div>
           </div>
-          <div class="list-group-item d-flex justify-content-between">
-            <span class="fw-semibold">Lab Location</span>
-            <span>{{ lab.lab_location || '—' }}</span>
-          </div>
-          <div class="list-group-item d-flex justify-content-between">
-            <span class="fw-semibold">Status</span>
-            <span>
-              <span *ngIf="lab.status; else noStatus" class="badge bg-info text-dark">{{ lab.status }}</span>
-              <ng-template #noStatus>—</ng-template>
-            </span>
+
+          <div class="col-md-6">
+            <div class="list-group">
+              <div class="list-group-item d-flex justify-content-between">
+                <span class="fw-semibold">Header Name</span>
+                <span>{{ lab.lab_pdfheader_name || '—' }}</span>
+              </div>
+              <div class="list-group-item d-flex justify-content-between">
+                <span class="fw-semibold">Header Email</span>
+                <span>{{ lab.lab_pdfheader_email || '—' }}</span>
+              </div>
+              <div class="list-group-item d-flex justify-content-between">
+                <span class="fw-semibold">Header Contact No.</span>
+                <span>{{ lab.lab_pdfheader_contact_no || '—' }}</span>
+              </div>
+              <div class="list-group-item">
+                <div class="fw-semibold mb-1">Header Address</div>
+                <div class="text-wrap">{{ lab.lab_pdfheader_address || '—' }}</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -138,11 +230,11 @@
 <div class="modal fade" #alertModal tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" [ngClass]="{ 'border-success': responseSuccess, 'border-danger': !responseSuccess }">
-       <div class="modal-header border-0">
-        <h5 class="modal-title fw-bold" id="previewModalLabel">
-          <span class="ms-2">{{ responseSuccess ? 'Done' : 'Error' }}</span>   
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" id="alertModalLabel">
+          <span class="ms-2">{{ responseSuccess ? 'Done' : 'Error' }}</span>
         </h5>
-        <button type="button" class="btn-close" (click)="closePreview()" aria-label="Close"></button>
+        <button type="button" class="btn-close" (click)="closeAlert()" aria-label="Close"></button>
       </div>
 
       <div class="modal-body">

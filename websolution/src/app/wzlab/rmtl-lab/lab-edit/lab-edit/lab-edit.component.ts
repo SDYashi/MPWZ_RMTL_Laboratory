@@ -165,6 +165,6 @@ export class LabEditComponent implements OnInit, AfterViewInit {
 
   cancel() {
     // Fixed route to match others
-    this.router.navigate(['/wzlab/testing-laboratory/labs-list']);
+    this.router.navigate(['/wzlab/lab/labs-list']);
   }
 }

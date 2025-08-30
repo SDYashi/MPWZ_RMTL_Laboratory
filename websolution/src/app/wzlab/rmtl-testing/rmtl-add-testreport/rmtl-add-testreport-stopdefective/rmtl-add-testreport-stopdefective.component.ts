@@ -343,39 +343,41 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   }
 
   // Prepare payload from user-entered values only
-  private buildPayloadForPreview(): any[] {
-    const when = this.isoOn(this.batch.header.date);
+ private buildPayloadForPreview(): any[] {
+  const when = this.isoOn(this.batch.header.date);
 
-    return (this.batch.rows || [])
-      .filter(r => (r.serial || '').trim())
-      .map(r => ({
-        device_id: r.device_id ?? 0,
-        assignment_id: r.assignment_id ?? 0,
-        start_datetime: when,
-        end_datetime: when,
+  return (this.batch.rows || [])
+    .filter(r => (r.serial || '').trim())
+    .map(r => ({
+      device_id: r.device_id ?? 0,
+      assignment_id: r.assignment_id ?? 0,
+      start_datetime: when,
+      end_datetime: when,
 
-        physical_condition_of_device: r.physical_condition_of_device || '-',
-        seal_status: r.seal_status || '-',
-        meter_glass_cover: r.meter_glass_cover || '-',
-        terminal_block: r.terminal_block || '-',
-        meter_body: r.meter_body || '-',
-        other: this.comment_bytester || '-',
-        is_burned: !!r.is_burned,
+      physical_condition_of_device: r.physical_condition_of_device || '-',
+      seal_status: r.seal_status || '-',
+      meter_glass_cover: r.meter_glass_cover || '-',
+      terminal_block: r.terminal_block || '-',
+      meter_body: r.meter_body || '-',
+      remark: r.remark || '-',          // ✅ send remark
+      other: r.other || '-',            // ✅ keep other notes separately
+      is_burned: !!r.is_burned,
 
-        reading_before_test: Number(r.reading_before_test) || 0,
-        reading_after_test: Number(r.reading_after_test) || 0,
-        ref_start_reading: Number(r.ref_start_reading) || 0,
-        ref_end_reading: Number(r.ref_end_reading) || 0,
-        error_percentage: Number(r.error_percentage) || 0,
+      reading_before_test: Number(r.reading_before_test) || 0,
+      reading_after_test: Number(r.reading_after_test) || 0,
+      ref_start_reading: Number(r.ref_start_reading) || 0,
+      ref_end_reading: Number(r.ref_end_reading) || 0,
+      error_percentage: Number(r.error_percentage) || 0,
 
-        details: r.device_id ?? 0,             // as per your example
-        test_result: (r.test_result as string) || undefined,
-        test_method: this.testMethod,
-        test_status: this.testStatus,
-        approver_id: this.approverId ?? null,
-        report_type: this.report_type || 'STOP DEFECTIVE',
-      }));
-  }
+      details: r.device_id ?? 0,
+      test_result: (r.test_result as string) || undefined,
+      test_method: this.testMethod,
+      test_status: this.testStatus,
+      approver_id: this.approverId ?? null,
+      report_type: this.report_type || 'STOP DEFECTIVE',
+    }));
+}
+
 
   private doSubmitBatch(): void {
     // Build payload (also used for preview)
@@ -556,22 +558,6 @@ private buildStopDefectiveDoc(
       footTiny: { fontSize: 9, alignment: 'center', color: '#444' },
     },
     info: { title: `Stop-Defective_${meta.date}` },
-    // header: {
-    //   columns: [
-    //     {
-    //       image: 'data:image/png;base64,' + environment.LOGO_BASE64,
-    //       width: 100,
-    //       margin: [0, 8, 0, 0],
-    //     },
-    //     {
-    //       image: 'data:image/png;base64,' + environment.LOGO_BASE64,
-    //       width: 100,
-    //       margin: [0, 8, 0, 0],
-    //       alignment: 'right',
-    //     },
-    //   ],
-    //   margin: [0, 8, 0, 0],
-    // },
     content: [
       {
         columns: [
@@ -653,6 +639,8 @@ private buildStopDefectiveDoc(
     })
   };
 }
+
+
 
 private downloadStopDefectivePdfFromBatch(): void {
   const snap = this.buildPrintableSnapshot();

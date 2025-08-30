@@ -8,11 +8,15 @@ export interface Lab {
   id?: number;
   lab_name: string;
   lab_location: string;
-  status: 'operational' | 'inactive' | 'maintenance';
+  lab_pdfheader_address?: string | null;
+  lab_pdfheader_contact_no?: string | null;
   created_at?: string;   // "YYYY-MM-DDTHH:mm:ss"
-  updated_at?: string;   // "YYYY-MM-DDTHH:mm:ss"
   created_by?: string | null;
+  updated_at?: string;   // "YYYY-MM-DDTHH:mm:ss"
   updated_by?: string | null;
+  status: 'OPERATIONAL' | 'NON_OPERATIONAL' | 'MAINTENANCE';
+  lab_pdfheader_name?: string | null;
+  lab_pdfheader_email?: string | null;
 }
 
 @Component({
@@ -22,9 +26,9 @@ export interface Lab {
 })
 export class LabViewListComponent implements OnInit {
   labs:any = [];
-  newLab: Lab = { lab_name: '', lab_location: '', status: 'operational' };
+  newLab: Lab = { lab_name: '', lab_location: '', status: 'OPERATIONAL' };
   selectedLab: Lab | null = null;
-  updateLabData: Lab = { lab_name: '', lab_location: '', status: 'operational' };
+  updateLabData: Lab = { lab_name: '', lab_location: '', status: 'OPERATIONAL' };
   message: string | null = null;
   isEditMode = false;
   currentUser: UserPublic | null = null;
@@ -66,3 +70,4 @@ editLab(lab: any) {
 
 
 }
+

@@ -353,127 +353,364 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   }
 
   // ================= PDF =================
-  private row2page(r: CertRow, meta: { zone: string; method: string; status: string }): any[] {
-    const title = [
-      { text: 'OFFICE OF THE ASSISTANT ENGINEER (R.M.T.L.) M.T. DN.-I', alignment: 'center', bold: true },
-      { text: 'M.P.P.K.V.V.CO.LTD. INDORE', alignment: 'center', bold: true, margin: [0, 2, 0, 0] },
-      { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', margin: [0, 6, 0, 2] }, 
-    ];
+  // private row2page(r: CertRow, meta: { zone: string; method: string; status: string }): any[] {
+  //   const title = [
+  //     { text: 'OFFICE OF THE ASSISTANT ENGINEER (R.M.T.L.) M.T. DN.-I', alignment: 'center', bold: true },
+  //     { text: 'M.P.P.K.V.V.CO.LTD. INDORE', alignment: 'center', bold: true, margin: [0, 2, 0, 0] },
+  //     { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', margin: [0, 6, 0, 2] }, 
+  //   ];
 
-    const reporttypetitle = { text: 'SOLAR NET METER TEST REPORT', style: 'hindiTitle', fontSize: 48,  alignment: 'center', margin: [0, 6, 0, 2]  };
-    const headerLine = { text: `DC/Zone: ${meta.zone}    •    Test Method: ${meta.method || '-' }    •    Test Status: ${meta.status || '-'}`, alignment: 'center', fontSize: 9, color: '#555', margin: [0, 0, 0, 6] };
-    const hdrRight = r.certificate_no
-      ? { text: r.certificate_no, alignment: 'right', margin: [0, 10, 0, 0] }
-      : { text: '' };
+  //   const reporttypetitle = { text: 'SOLAR NET METER TEST REPORT', style: 'hindiTitle', fontSize: 48,  alignment: 'center', margin: [0, 6, 0, 2]  };
+  //   const headerLine = { text: `DC/Zone: ${meta.zone}    •    Test Method: ${meta.method || '-' }    •    Test Status: ${meta.status || '-'}`, alignment: 'center', fontSize: 9, color: '#555', margin: [0, 0, 0, 6] };
+  //   const hdrRight = r.certificate_no
+  //     ? { text: r.certificate_no, alignment: 'right', margin: [0, 10, 0, 0] }
+  //     : { text: '' };
 
-    const two = (label: string, value: string | number | undefined) =>
-      [{ text: label, style: 'lbl' }, { text: (value ?? '').toString(), colSpan: 2 }, {}];
+  //   const two = (label: string, value: string | number | undefined) =>
+  //     [{ text: label, style: 'lbl' }, { text: (value ?? '').toString(), colSpan: 2 }, {}];
 
-    const threeFinal = [
-      { text: 'Final Reading', style: 'lbl' },
-      { text: `R- ${r.final_reading_r ?? ''}` },
-      { text: `E- ${r.final_reading_e ?? ''}` }
-    ];
+  //   const threeFinal = [
+  //     { text: 'Final Reading', style: 'lbl' },
+  //     { text: `R- ${r.final_reading_r ?? ''}` },
+  //     { text: `E- ${r.final_reading_e ?? ''}` }
+  //   ];
 
-    const mrLine = two('M.R. No & Date',
-      `${r.mr_no ?? ''}${r.mr_no && r.mr_date ? '  DT  ' : ''}${r.mr_date ?? ''}`);
+  //   const mrLine = two('M.R. No & Date',
+  //     `${r.mr_no ?? ''}${r.mr_no && r.mr_date ? '  DT  ' : ''}${r.mr_date ?? ''}`);
 
-    const table = {
-      layout: 'lightHorizontalLines',
-      table: {
-        widths: [140, '*', '*'],
-        body: [
-          two('Name of consumer', r.consumer_name),
-          two('Address', r.address),
-          two('Meter Make', r.meter_make),
-          two('Meter Sr. No.', r.meter_sr_no),
-          two('Meter Capacity', r.meter_capacity),
-          two('Testing Fees Rs.', r.testing_fees),
-          mrLine,
-          two('Ref.', r.ref_no),
-          two('Date of Testing', r.date_of_testing),
-          two('Starting Reading', r.starting_reading),
-          threeFinal,
-          two('Difference', r.difference),
-          two('Starting Current Test', r.starting_current_test),
-          two('Creep Test', r.creep_test),
-          two('Dial Test', r.dial_test),
-          two('Remark', r.remark),
-        ],
-        margin: [0, 30, 0, 0]
-      }
-    };
+  //   const table = {
+  //     layout: 'lightHorizontalLines',
+  //     table: {
+  //       widths: [140, '*', '*'],
+  //       body: [
+  //         two('Name of consumer', r.consumer_name),
+  //         two('Address', r.address),
+  //         two('Meter Make', r.meter_make),
+  //         two('Meter Sr. No.', r.meter_sr_no),
+  //         two('Meter Capacity', r.meter_capacity),
+  //         two('Testing Fees Rs.', r.testing_fees),
+  //         mrLine,
+  //         two('Ref.', r.ref_no),
+  //         two('Date of Testing', r.date_of_testing),
+  //         two('Starting Reading', r.starting_reading),
+  //         threeFinal,
+  //         two('Difference', r.difference),
+  //         two('Starting Current Test', r.starting_current_test),
+  //         two('Creep Test', r.creep_test),
+  //         two('Dial Test', r.dial_test),
+  //         two('Remark', r.remark),
+  //       ],
+  //       margin: [0, 30, 0, 0]
+  //     }
+  //   };
 
-    const sign = {
-      columns: [
-        { width: '*', text: '' },
-        {
-          width: '*',
-          alignment: 'center',
-          stack: [
-            { text: 'Tested by', style: 'footRole' },
-            { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
-          ],
-        },
-        {
-          width: '*',
-          alignment: 'center',
-          stack: [
-            { text: 'Verified by', style: 'footRole' },
-            { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
-          ],
-        },
-        {
-          width: '*',
-          alignment: 'center',
-          stack: [
-            { text: 'Approved by', style: 'footRole' },
-            { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
-          ],
-        },
-      ],
-      margin: [0, 8, 0, 0]
-    };
+  //   const sign = {
+  //     columns: [
+  //       { width: '*', text: '' },
+  //       {
+  //         width: '*',
+  //         alignment: 'center',
+  //         stack: [
+  //           { text: 'Tested by', style: 'footRole' },
+  //           { text: '\n\n____________________________', alignment: 'center' },
+  //           { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
+  //         ],
+  //       },
+  //       {
+  //         width: '*',
+  //         alignment: 'center',
+  //         stack: [
+  //           { text: 'Verified by', style: 'footRole' },
+  //           { text: '\n\n____________________________', alignment: 'center' },
+  //           { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
+  //         ],
+  //       },
+  //       {
+  //         width: '*',
+  //         alignment: 'center',
+  //         stack: [
+  //           { text: 'Approved by', style: 'footRole' },
+  //           { text: '\n\n____________________________', alignment: 'center' },
+  //           { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
+  //         ],
+  //       },
+  //     ],
+  //     margin: [0, 8, 0, 0]
+  //   };
 
-    return [...title,reporttypetitle, headerLine, hdrRight, table, sign];
-  }
+  //   return [...title,reporttypetitle, headerLine, hdrRight, table, sign];
+  // }
+  //   private buildDoc(): TDocumentDefinitions {
+  //   const pages: any[] = [];
+  //   const meta = {
+  //     zone: (this.header.location_code ? this.header.location_code + ' - ' : '') + (this.header.location_name || ''),
+  //     method: this.testMethod || '',
+  //     status: this.testStatus || ''
+  //   };
 
-  private buildDoc(): TDocumentDefinitions {
-    const pages: any[] = [];
-    const meta = {
-      zone: (this.header.location_code ? this.header.location_code + ' - ' : '') + (this.header.location_name || ''),
-      method: this.testMethod || '',
-      status: this.testStatus || ''
-    };
+  //   const data = this.rows.filter(r => (r.meter_sr_no || '').trim());
+  //   data.forEach((r, i) => {
+  //     pages.push(...this.row2page(r, meta));
+  //     if (i < data.length - 1) pages.push({ text: '', pageBreak: 'after' });
+  //   });
 
-    const data = this.rows.filter(r => (r.meter_sr_no || '').trim());
-    data.forEach((r, i) => {
-      pages.push(...this.row2page(r, meta));
-      if (i < data.length - 1) pages.push({ text: '', pageBreak: 'after' });
-    });
+  //   return {
+  //     pageSize: 'A4',
+  //     pageMargins: [28, 28, 28, 36],
+  //     defaultStyle: { fontSize: 10 },
+  //     styles: { lbl: { bold: true } },
+  //     content: pages,
+  //     footer: (current: number, total: number) => ({
+  //       columns: [
+  //         { text: `Page ${current} of ${total}`, alignment: 'left', margin: [28, 0, 0, 0] },
+  //         { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 28, 0] }
+  //       ],
+  //       fontSize: 8
+  //     }),
+  //     info: { title: 'Solar_NetMeter_Certificate' }
+  //   };
+  // }
+ 
+// ====== NEW: small helper to draw the repeating PDF header (every page) ======
+private pdfHeader(meta: { zone: string; method: string; status: string }) {
+  // If you have a base64 logo, put it here (or keep null to hide):
+  const labLogoBase64: string | null = null; // e.g. 'data:image/png;base64,iVBORw0KGgoAAA...'
 
-    return {
-      pageSize: 'A4',
-      pageMargins: [28, 28, 28, 36],
-      defaultStyle: { fontSize: 10 },
-      styles: { lbl: { bold: true } },
-      content: pages,
-      footer: (current: number, total: number) => ({
+  return {
+    margin: [40, 16, 40, 6],
+    stack: [
+      {
         columns: [
-          { text: `Page ${current} of ${total}`, alignment: 'left', margin: [28, 0, 0, 0] },
-          { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 28, 0] }
-        ],
-        fontSize: 8
-      }),
-      info: { title: 'Solar_NetMeter_Certificate' }
-    };
+          labLogoBase64
+            ? { image: labLogoBase64, width: 46, height: 46, margin: [0, 0, 10, 0] }
+            : { width: 16, text: '' },
+          {
+            width: '*',
+            stack: [
+              { text: 'MADHYAA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED', bold: true, alignment: 'center', fontSize: 11 },
+              { text: 'REMOTE METERING TESTING LABORATORY, INDORE', bold: true, alignment: 'center', fontSize: 11, margin: [0, 2, 0, 0] },
+              { text: 'MPPKVVCL Near Conference Hall, Polo Ground, Indore – 452003 (MP)', alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] },
+              { text: 'Email: aermtlindore@gmail.com   |   Ph: 0731-29978514', alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] },
+            ]
+          },
+          { width: 16, text: '' }
+        ]
+      },
+      {
+        canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1, lineColor: '#c7c7c7' }],
+        margin: [0, 2, 0, 0]
+      },
+      // Secondary line with batch meta (Zone/Method/Status)
+      {
+        text: `DC/Zone: ${meta.zone || '-'}    •    Test Method: ${meta.method || '-'}    •    Test Status: ${meta.status || '-'}`,
+        alignment: 'center',
+        fontSize: 9,
+        color: '#555',
+        margin: [0, 6, 0, 0]
+      }
+    ]
+  };
+}
+
+// ====== UPDATED: certificate page builder (content only; header removed here) ======
+private row2page(r: CertRow): any[] {
+  const styles = {
+    sectionHeader: { bold: true, fontSize: 12, margin: [0, 10, 0, 6], decoration: 'underline' },
+    label: { bold: true, fillColor: '#f5f5f5', margin: [0, 2, 0, 2] },
+    value: { margin: [0, 2, 0, 2] },
+    footer: { fontSize: 9, italics: true }
+  };
+
+  const content: any[] = [];
+
+  // Title for the certificate
+  content.push(
+    { text: 'SOLAR NET METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0,5, 0, 0] },
+  );
+
+  if (r.certificate_no) {
+    content.push({ text: `Certificate No: ${r.certificate_no}`, alignment: 'right', bold: true, margin: [0, 0, 0, 8] });
   }
 
-  downloadPdf() {
-    const doc = this.buildDoc();
-    pdfMake.createPdf(doc).download('SOLAR_NETMETER_CERTIFICATES.pdf');
+  // 1) Consumer & Meter
+  content.push(
+    { text: 'Consumer & Meter Information', style: 'sectionHeader' },
+    {
+      table: {
+        widths: ['30%', '70%'],
+        body: [
+          [{ text: 'Consumer Name', style: 'label' }, { text: r.consumer_name || '-', style: 'value' }],
+          [{ text: 'Address', style: 'label' }, { text: r.address || '-', style: 'value' }],
+          [{ text: 'Meter Make', style: 'label' }, { text: r.meter_make || '-', style: 'value' }],
+          [{ text: 'Serial Number', style: 'label' }, { text: r.meter_sr_no || '-', style: 'value' }],
+          [{ text: 'Capacity', style: 'label' }, { text: r.meter_capacity || '-', style: 'value' }],
+        ]
+      },
+      layout: {
+        defaultBorder: false,
+        fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? '#f9f9f9' : null)
+      },
+      margin: [0, 0, 0, 12]
+    }
+  );
+
+  // 2) Testing details
+  content.push(
+    { text: 'Testing Details', style: 'sectionHeader' },
+    {
+      table: {
+        widths: ['30%', '35%', '35%'],
+        body: [
+          [{ text: 'Date of Testing', style: 'label' }, { text: r.date_of_testing || '-', style: 'value', colSpan: 2 }, {}],
+          [{ text: 'Testing Fees', style: 'label' }, { text: r.testing_fees ? `₹${r.testing_fees}` : '-', style: 'value', colSpan: 2 }, {}],
+          [{ text: 'M.R. Details', style: 'label' }, { text: `No: ${r.mr_no || '-'}`, style: 'value' }, { text: `Date: ${r.mr_date || '-'}`, style: 'value' }],
+          [{ text: 'Reference No.', style: 'label' }, { text: r.ref_no || '-', style: 'value', colSpan: 2 }, {}],
+        ]
+      },
+      layout: {
+        defaultBorder: false,
+        fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? '#f9f9f9' : null)
+      },
+      margin: [0, 0, 0, 12]
+    }
+  );
+
+  // 3) Readings
+  content.push(
+    { text: 'Meter Readings', style: 'sectionHeader' },
+    {
+      table: {
+        widths: ['30%', '23%', '23%', '24%'],
+        body: [
+          [{ text: 'Reading Type', style: 'label' }, { text: 'Value', style: 'label', alignment: 'center' }, { text: 'Final Reading', style: 'label', alignment: 'center', colSpan: 2 }, {}],
+          [{ text: 'Starting Reading', style: 'label' }, { text: r.starting_reading ?? '-', style: 'value', alignment: 'center' }, { text: 'R:', style: 'label', alignment: 'right' }, { text: r.final_reading_r ?? '-', style: 'value', alignment: 'center' }],
+          [{ text: 'Difference', style: 'label' }, { text: r.difference ?? '-', style: 'value', alignment: 'center' }, { text: 'E:', style: 'label', alignment: 'right' }, { text: r.final_reading_e ?? '-', style: 'value', alignment: 'center' }],
+        ]
+      },
+      layout: {
+        defaultBorder: false,
+        fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? '#f9f9f9' : null)
+      },
+      margin: [0, 0, 0, 12]
+    }
+  );
+
+  // 4) Test results
+  content.push(
+    { text: 'Test Results', style: 'sectionHeader' },
+    {
+      table: {
+        widths: ['30%', '70%'],
+        body: [
+          [{ text: 'Starting Current Test', style: 'label' }, { text: r.starting_current_test || '-', style: 'value' }],
+          [{ text: 'Creep Test', style: 'label' }, { text: r.creep_test || '-', style: 'value' }],
+          [{ text: 'Dial Test', style: 'label' }, { text: r.dial_test || '-', style: 'value' }],
+          [{ text: 'Overall Result', style: 'label' }, { text: r.test_result || '-', style: 'value', bold: true }],
+          [{ text: 'Remarks', style: 'label' }, { text: r.remark || '-', style: 'value' }],
+        ]
+      },
+      layout: {
+        defaultBorder: false,
+        fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? '#f9f9f9' : null)
+      },
+      margin: [0, 0, 0, 18]
+    }
+  );
+
+  // 5) Signatures
+  content.push({
+    table: {
+      widths: ['25%', '25%', '25%', '25%'],
+      body: [
+        [
+          { text: 'Tested by', bold: true, alignment: 'center' },
+          { text: 'Verified by', bold: true, alignment: 'center' },
+          { text: 'Checked by', bold: true, alignment: 'center' },
+          { text: 'Approved by', bold: true, alignment: 'center' }
+        ],
+        [
+          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 100, y2: 0, lineWidth: 1 }] },
+          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 100, y2: 0, lineWidth: 1 }] },
+          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 100, y2: 0, lineWidth: 1 }] },
+          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 100, y2: 0, lineWidth: 1 }] }
+        ],
+        [
+          { text: 'Testing Assistant (RMTL)', style: 'footer', alignment: 'center' },
+          { text: 'Junior Engineer (RMTL)', style: 'footer', alignment: 'center' },
+          { text: 'Assistant Engineer (RMTL)', style: 'footer', alignment: 'center' },
+          { text: 'Executive Engineer', style: 'footer', alignment: 'center' }
+        ]
+      ]
+    },
+    layout: 'noBorders'
+  });
+
+  return content;
+}
+
+// ====== UPDATED: buildDoc with repeating header & tidy footer ======
+private buildDoc(): TDocumentDefinitions {
+  const meta = {
+    zone: (this.header.location_code ? this.header.location_code + ' - ' : '') + (this.header.location_name || ''),
+    method: this.testMethod || '',
+    status: this.testStatus || ''
+  };
+
+  const data = this.rows.filter(r => (r.meter_sr_no || '').trim());
+  const content: any[] = [];
+
+  // Optional: simple batch cover if multiple rows
+  if (data.length > 1) {
+    content.push(
+      { text: 'SOLAR NET METER TEST REPORTS', alignment: 'center', bold: true, fontSize: 16, margin: [0, 140, 0, 10] },
+      { text: `Batch Summary • Generated on ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, margin: [0, 0, 0, 16] },
+      {
+        table: {
+          headerRows: 1,
+          widths: ['*', '*', '*'],
+          body: [
+            [{ text: 'Serial Number', bold: true }, { text: 'Consumer Name', bold: true }, { text: 'Result', bold: true }],
+            ...data.map(r => [r.meter_sr_no || '-', r.consumer_name || '-', r.test_result || '-'])
+          ]
+        },
+        layout: {
+          fillColor: (rowIndex: number) => (rowIndex === 0 ? '#e9edf5' : rowIndex % 2 === 0 ? '#fafafa' : null)
+        }
+      },
+      { text: '', pageBreak: 'after' }
+    );
   }
+
+  // Individual certificates
+  data.forEach((r, i) => {
+    content.push(...this.row2page(r));
+    if (i < data.length - 1) content.push({ text: '', pageBreak: 'after' });
+  });
+
+  return {
+    pageSize: 'A4',
+    pageMargins: [40, 110, 40, 60], // extra top space for repeating header
+    defaultStyle: { font: 'Roboto', fontSize: 10 },
+    header: () => this.pdfHeader(meta), // <— repeating header here
+    footer: (currentPage: number, pageCount: number) => ({
+      margin: [40, 0, 40, 8],
+      columns: [
+        { text: `Page ${currentPage} of ${pageCount}`, alignment: 'left', fontSize: 9, color: '#666' },
+        { text: 'MPPKVVCL • RMTL Indore', alignment: 'right', fontSize: 9, color: '#666' }
+      ]
+    }),
+    info: {
+      title: 'Solar_NetMeter_Certificate',
+      author: 'MPPKVVCL Indore',
+      subject: 'Solar Net Meter Test Report'
+    },
+    content
+  };
+}
+
+downloadPdf() {
+  const doc = this.buildDoc();
+  pdfMake.createPdf(doc).download('SOLAR_NETMETER_CERTIFICATES.pdf');
+}
+
 }

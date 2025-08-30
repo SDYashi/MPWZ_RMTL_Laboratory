@@ -53,6 +53,7 @@
               <th>Capacity</th>
               <th>Test Report Remark</th>
               <th>Test Result</th>
+              <th>Remark</th>
               <th class="d-print-none">Details</th>
               <th class="d-print-none">Action</th>
             </tr>
@@ -95,7 +96,9 @@
           <option *ngFor="let tr of test_results" [ngValue]="tr">{{ tr }}</option>
         </select>
       </td>
-
+       <td style="min-width:140px">
+        <input type="text" class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'b_remark_'+i">
+      </td>
       <td class="text-center d-print-none">
         <button type="button" class="btn btn-sm btn-outline-primary" (click)="r._open=!r._open">
           {{ r._open ? 'Hide' : 'View More' }}

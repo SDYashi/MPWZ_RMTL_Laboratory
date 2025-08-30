@@ -1,7 +1,7 @@
 // src/app/core/auth.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { environment } from 'src/environment/environment';
@@ -15,10 +15,20 @@ type Role =
   | 'EXECUTIVE'
   | string;
 
-function b64UrlDecode(b64url: string) {
+function b64UrlDecodeToUtf8(b64url: string) {
   const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
   const pad = b64.length % 4 ? 4 - (b64.length % 4) : 0;
-  return atob(b64 + '='.repeat(pad));
+  const bin = atob(b64 + '='.repeat(pad));
+  // handle unicode safely
+  try {
+    return decodeURIComponent(
+      bin.split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+  } catch {
+    return bin;
+  }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -26,18 +36,40 @@ export class AuthService {
   private apiUrl = environment.apiUrl;
   private tokenKey = 'access_token';
 
-  private currentUserSubject: BehaviorSubject<UserPublic | null>;
-  public currentUser: Observable<UserPublic | null>;
+  private currentUserSubject = new BehaviorSubject<UserPublic | null>(null);
+  public currentUser = this.currentUserSubject.asObservable();
 
-  // expose roles separately (useful for menus or guards)
   private rolesSubject = new BehaviorSubject<Role[]>([]);
   public roles$ = this.rolesSubject.asObservable();
 
+  /** UI-wide soft refresh trigger (sidebars/menus can subscribe) */
+  private refreshSubject = new Subject<void>();
+  public refresh$ = this.refreshSubject.asObservable();
+  token: any;
+  user: any;
   constructor(private http: HttpClient, private router: Router) {
-    const user = this.getUserFromToken();
-    this.currentUserSubject = new BehaviorSubject<UserPublic | null>(user);
-    this.currentUser = this.currentUserSubject.asObservable();
-    this.rolesSubject.next(user?.roles ?? []);
+    // Bootstrap state from existing token
+    this.hydrateFromStorage();
+
+    // Reflect changes from other tabs/windows
+    window.addEventListener('storage', (e) => {
+      if (e.key === this.tokenKey) {
+        this.hydrateFromStorage();
+        this.triggerRefresh();
+      }
+    });
+  }
+
+  /** Read token from storage, decode, emit user/roles, and logout if expired */
+  private hydrateFromStorage() {
+    this.token = this.getToken();
+    this.user = this.getUserFromToken(this.token);
+    if (this.user && this.isExpired(this.token)) {
+      this.logout(true);
+      return;
+    }
+    this.currentUserSubject.next(this.user);
+    this.rolesSubject.next(this.user?.roles ?? []);
   }
 
   public get currentUserValue(): UserPublic | null {
@@ -50,43 +82,47 @@ export class AuthService {
 
   setToken(token: string): void {
     localStorage.setItem(this.tokenKey, token);
-    const user = this.getUserFromToken();
-    this.currentUserSubject.next(user);
-    this.rolesSubject.next(user?.roles ?? []);
+    this.hydrateFromStorage();
+    this.triggerRefresh();
   }
 
   removeToken(): void {
     localStorage.removeItem(this.tokenKey);
     this.currentUserSubject.next(null);
     this.rolesSubject.next([]);
+    this.triggerRefresh();
   }
 
   login(username: string, password: string): Observable<Token> {
     const headers = new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' });
     const body = `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-
     return this.http.post<Token>(`${this.apiUrl}/token`, body, { headers }).pipe(
       tap(response => this.setToken(response.access_token))
     );
   }
 
-  logout(): void {
+  logout(silent = false): void {
     this.removeToken();
-    this.router.navigate(['/wzlogin']);
+    if (!silent) this.router.navigate(['/wzlogin']);
   }
 
   isLoggedIn(): boolean {
     return !!this.getToken();
   }
 
-  // --- JWT helpers ---
-  private decodeToken(): any | null {
-    const token = this.getToken();
-    if (!token) return null;
+  /** Manually ask subscribers (e.g. sidebar) to rebuild */
+  triggerRefresh(): void {
+    this.refreshSubject.next();
+  }
+
+  // ---------- JWT helpers ----------
+  private decodeTokenRaw(token?: string): any | null {
+    const t = token ?? this.getToken();
+    if (!t) return null;
     try {
-      const parts = token.split('.');
+      const parts = t.split('.');
       if (parts.length !== 3) return null;
-      const decodedPayload = b64UrlDecode(parts[1]);
+      const decodedPayload = b64UrlDecodeToUtf8(parts[1]);
       return JSON.parse(decodedPayload);
     } catch (e) {
       console.error('Failed to decode token:', e);
@@ -94,19 +130,27 @@ export class AuthService {
     }
   }
 
-  private getUserFromToken(): UserPublic | null {
-    const decoded = this.decodeToken();
+  private isExpired(token?: string): boolean {
+    const payload = this.decodeTokenRaw(token);
+    const exp = payload?.exp;
+    if (!exp) return false; // if no exp, assume not expired
+    const nowSec = Math.floor(Date.now() / 1000);
+    return nowSec >= exp;
+  }
+
+  private getUserFromToken(token?: string): UserPublic | null {
+    const decoded = this.decodeTokenRaw(token);
     if (!decoded) return null;
 
     return {
       id: decoded.user_id ?? 0,
-      name: decoded.sub ?? '',
-      username: decoded.sub ?? '',
-      email: '',
+      name: decoded.name ?? decoded.sub ?? decoded.username ?? '',
+      username: decoded.sub ?? decoded.username ?? '',
+      email: decoded.email ?? '',
       roles: Array.isArray(decoded.roles) ? decoded.roles : [],
       designation: decoded.designation ?? '',
       status: decoded.status ?? '',
-      mobile: '',
+      mobile: decoded.mobile ?? '',
       created_at: '',
       updated_at: '',
       last_login_at: decoded.last_login_at ?? '',
@@ -115,12 +159,12 @@ export class AuthService {
   }
 
   getUserNameFromToken(): string | null {
-    const decoded = this.decodeToken();
+    const decoded = this.decodeTokenRaw();
     return decoded?.name ?? decoded?.username ?? decoded?.sub ?? null;
   }
 
   getUserRolesFromToken(): string[] | null {
-    const decoded = this.decodeToken();
+    const decoded = this.decodeTokenRaw();
     return Array.isArray(decoded?.roles) ? decoded.roles : null;
   }
 

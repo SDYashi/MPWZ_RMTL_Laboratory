@@ -373,6 +373,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
         test_status: this.testStatus,
         approver_id: this.approverId ?? null,
         report_type: this.report_type ?? 'SMART AGAINST METER',
+        remark: r.remark
       }));
   }
 

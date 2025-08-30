@@ -1,17 +1,23 @@
 <div class="container-fluid mt-2">
   <div class="card shadow">
-    <div class="card-header text-white" style=" background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;">
-      <h5 class="mb-0"> List of Registered Laboratory information </h5>
+    <div class="card-header text-white" style="background-color:#151433; font-weight: bold;">
+      <h5 class="mb-0"> List of Laboratories</h5>
     </div>
-    <div class="card-body" style="background-color: whitesmoke;">
-      <div class="table-responsive">
-        <table class="table table-hover table-bordered">
+    <div class="card-body" style="background-color: whitesmoke; overflow-x: auto;">
+      <div class="table-responsive mt-2">
+        <table class="table table-hover table-bordered overflow-x-auto">
           <thead>
-            <tr style="background-color:#705211; color: white ; font-weight: bold;">
+            <tr style="background-color:#705211; color: white; font-weight: bold;">
               <th>ID</th>
               <th>Lab Name</th>
               <th>Location</th>
+              <th>Header Name</th>
+              <th>Header Address</th>
+              <th>Header Contact</th>
+              <th>Header Email</th>
               <th>Status</th>
+              <th>Created At</th>
+              <th>Updated At</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -19,15 +25,22 @@
             <tr *ngFor="let lab of labs">
               <td>{{ lab.id }}</td>
               <td>{{ lab.lab_name }}</td>
-              <td>{{ lab.lab_location }}</td>
+              <td>{{ lab.lab_location || '—' }}</td>
+              <td>{{ lab.lab_pdfheader_name || '—' }}</td>
+              <td>{{ lab.lab_pdfheader_address || '—' }}</td>
+              <td>{{ lab.lab_pdfheader_contact_no || '—' }}</td>
+              <td>{{ lab.lab_pdfheader_email || '—' }}</td>
               <td>{{ lab.status }}</td>
+              <td>{{ lab.created_at | date:'short' }}</td>
+              <td>{{ lab.updated_at | date:'short' }}</td>
               <td>
                 <button class="btn btn-sm btn-primary me-2" (click)="editLab(lab)">
-                  <i class="fas fa-edit"></i>                 </button>
+                  <i class="fas fa-edit"></i>
+                </button>
               </td>
             </tr>
             <tr *ngIf="labs.length === 0">
-              <td colspan="5" class="text-center text-muted">No labs found.</td>
+              <td colspan="11" class="text-center text-muted">No labs found.</td>
             </tr>
           </tbody>
         </table>

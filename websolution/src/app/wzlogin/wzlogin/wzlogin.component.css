@@ -1,5 +1,4 @@
-
-
+/* Container */
 .login-container {
   min-height: 100vh;
   display: flex;
@@ -12,6 +11,7 @@
   padding: 20px;
 }
 
+/* Card */
 .login-card {
   background: white;
   border-radius: 12px;
@@ -20,77 +20,65 @@
   width: 100%;
   max-width: 450px;
   transition: all 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-  }
 }
 
+/* Header */
 .login-header {
   margin-bottom: 30px;
-
-  .logo {
-    height: 60px;
-    margin: 0 auto 20px;
-    display: block;
-  }
-
-  h2 {
-    font-weight: 600;
-    color: #2c3e50;
-  }
+}
+.login-header .logo {
+  height: 60px;
+  margin: 0 auto 20px;
+  display: block;
+}
+.login-header h2 {
+  font-weight: 600;
+  color: #2c3e50;
 }
 
-.login-form {
-  .form-control {
-    height: 50px;
-    border-radius: 8px;
-    border: 1px solid #dfe7ef;
-    padding-left: 45px;
-
-    &:focus {
-      border-color: #4a6cf7;
-      box-shadow: 0 0 0 0.25rem rgba(74, 108, 247, 0.25);
-    }
-  }
-
-  .input-group-text {
-    background: transparent;
-    border-right: none;
-    color: #7a7a7a;
-  }
-
-  .btn-primary {
-    background-color: #4a6cf7;
-    border: none;
-    border-radius: 8px;
-    font-weight: 500;
-    height: 50px;
-    transition: all 0.3s;
-
-    &:hover {
-      background-color: #3a5ce4;
-      transform: translateY(-2px);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
-  }
+/* Form */
+.login-form .form-control {
+  height: 50px;
+  border-radius: 8px;
+  border: 1px solid #dfe7ef;
+  padding-left: 45px;
+}
+.login-form .form-control:focus {
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 0.25rem rgba(74, 108, 247, 0.25);
+}
+.login-form .input-group-text {
+  background: transparent;
+  border-right: none;
+  color: #7a7a7a;
 }
 
-.social-login {
-  button {
-    width: 40px;
-    height: 40px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s;
-
-    &:hover {
-      transform: translateY(-3px);
-    }
-  }
+/* Button */
+.login-form .btn-primary {
+  background-color: #4a6cf7;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  height: 50px;
+  transition: all 0.3s;
+}
+.login-form .btn-primary:hover {
+  background-color: #3a5ce4;
+  transform: translateY(-2px);
+}
+.login-form .btn-primary:active {
+  transform: translateY(0);
 }
 
+/* Social login */
+.social-login button {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+.social-login button:hover {
+  transform: translateY(-3px);
+}

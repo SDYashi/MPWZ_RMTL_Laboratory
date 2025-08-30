@@ -373,6 +373,7 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
         test_status: this.testStatus,
         approver_id: this.approverId ?? null,
         report_type: this.report_type ?? 'AGAINST OLD METER',
+        remark: r.remark
       }));
   }
 

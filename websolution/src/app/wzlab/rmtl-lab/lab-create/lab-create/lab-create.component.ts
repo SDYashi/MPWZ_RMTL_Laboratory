@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { ApiServicesService } from 'src/app/services/api-services.service';
@@ -16,7 +15,15 @@ export class LabCreateComponent implements OnInit, AfterViewInit {
   responseSuccess = false;
 
   // Form model
-  lab: any = { lab_name: '', lab_location: '', status: '' };
+  lab: any = { 
+    lab_name: '', 
+    lab_location: '', 
+    status: '',
+    lab_pdfheader_address: null,
+    lab_pdfheader_contact_no: null,
+    lab_pdfheader_name: null,
+    lab_pdfheader_email: null,
+  };
 
   lab_statuses: string[] = [];
 
@@ -35,7 +42,7 @@ export class LabCreateComponent implements OnInit, AfterViewInit {
   private previewModal!: any;
   private alertModal!: any;
 
-  constructor(private http: HttpClient, private apiservies: ApiServicesService) {}
+  constructor(private apiservies: ApiServicesService) {}
 
   ngOnInit(): void {
     // Load enums
@@ -109,7 +116,16 @@ export class LabCreateComponent implements OnInit, AfterViewInit {
 
   resetForm(form: NgForm): void {
     form.resetForm();
-    this.lab = { lab_name: '', lab_location: '', status: '' };
+    this.lab = { 
+      lab_name: '', 
+      lab_location: '', 
+      status: '',
+      lab_pdfheader_address: null,
+      lab_pdfheader_contact_no: null,
+      lab_pdfheader_name: null,
+      lab_pdfheader_email: null,
+    };
     this.touched = { lab_name: false, lab_location: false, status: false };
   }
 }
+

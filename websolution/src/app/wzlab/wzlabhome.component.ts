@@ -73,6 +73,13 @@ export class WzlabhomeComponent implements OnInit {
     this.syncOpenSectionWithRoute();
     this.router.events.pipe(filter(e => e instanceof NavigationEnd))
       .subscribe(() => this.syncOpenSectionWithRoute());
+
+    // if (localStorage.getItem('isReloaded') !== 'true') {
+    //   localStorage.setItem('isReloaded', 'true');
+    // } else {
+    //   window.location.reload();
+    // }
+   
   }
 
   private getUserFromToken(token: string): string | null {
