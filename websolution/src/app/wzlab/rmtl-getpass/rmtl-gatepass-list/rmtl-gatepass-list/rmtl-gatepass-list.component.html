@@ -1,109 +1,124 @@
 <div class="container-fluid mt-4">
-  <div class="card shadow">
-    <div class="card-header text-white" style="background:#151433">
-      <h5 class="mb-0">RMTL — Gatepass List</h5>
+  <div class="card shadow-sm border-0">
+
+    <!-- Header -->
+    <div class="card-header text-white d-flex flex-wrap justify-content-between align-items-center" style="background:#151433">
+      <h5 class="mb-0 d-flex align-items-center gap-2">
+        <i class="fas fa-truck-loading"></i>
+        <span>RMTL — Gatepass List</span>
+      </h5>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-success btn-sm" (click)="exportToExcel()">
+          <i class="fas fa-file-excel me-1"></i> Export to Excel
+        </button>
+      </div>
     </div>
 
     <div class="card-body">
 
-      <div class="d-flex justify-content-end mb-3 gap-2">
-        <button class="btn btn-outline-success" (click)="exportToExcel()">⬇ Export to Excel</button>
-        <!-- <button class="btn btn-outline-danger" (click)="exportToPDF()">⬇ Export to PDF</button> -->
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-3">
-          <label class="form-label mt-2 fw-bold">Start Date</label>
+      <!-- Filters -->
+      <div class="row g-3 align-items-end mb-3">
+        <div class="col-12 col-sm-6 col-md-3">
+          <label class="form-label fw-semibold">Start Date</label>
           <input type="date" class="form-control" [(ngModel)]="startDate" (change)="applyFilters()">
         </div>
-        <div class="col-md-3">
-          <label class="form-label mt-2 fw-bold">End Date</label>
+        <div class="col-12 col-sm-6 col-md-3">
+          <label class="form-label fw-semibold">End Date</label>
           <input type="date" class="form-control" [(ngModel)]="endDate" (change)="applyFilters()">
         </div>
-        <div class="col-md-4">
-          <label class="form-label mt-2 fw-bold">Dispatch Number</label>
+        <div class="col-12 col-md-4">
+          <label class="form-label fw-semibold">Dispatch Number</label>
           <select class="form-select" [(ngModel)]="selectedDispatchNo" (change)="applyFilters()">
-            <option value="">-- All --</option>
+            <option value="">— All —</option>
             <option *ngFor="let d of dispatchNos" [value]="d">{{ d }}</option>
           </select>
         </div>
-        <div class="col-md-2 d-flex align-items-end">
-          <button class="btn btn-outline-secondary w-100" (click)="resetFilters()">Reset</button>
+        <div class="col-12 col-md-2 d-grid">
+          <button class="btn btn-outline-secondary" (click)="resetFilters()">
+            <i class="fas fa-undo me-1"></i> Reset
+          </button>
         </div>
       </div>
 
-<!-- ...existing header/filters... -->
+      <!-- Table -->
+      <div class="table-responsive border rounded" id="printSection" style="max-height: 65vh;">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light position-sticky top-0" style="z-index:1;">
+            <tr class="text-nowrap">
+              <th>#</th>
+              <th>Dispatch No</th>
+              <th class="d-none d-md-table-cell">Report IDs</th>
+              <th>Serial No</th>
+              <th class="d-none d-lg-table-cell">Receiver</th>
+              <th class="d-none d-md-table-cell">Vehicle</th>
+              <th>Created Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of pagedRows(); let i = index">
+              <td class="text-muted">{{ indexOfFirst + i + 1 }}</td>
 
-<div class="table-responsive" id="printSection">
-  <table class="table table-bordered table-striped text-center align-middle">
-    <thead class="table-light">
-      <tr>
-        <th>#</th>
-        <th>Dispatch No</th>
-        <th>Report IDs</th>
-        <th>Serial No</th>
-        <th>Make</th>
-        <th>Receiver</th>
-        <th>Vehicle</th>
-        <th>Created Date</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- use pagedRows() and show absolute serial via indexOfFirst -->
-      <tr *ngFor="let r of pagedRows(); let i = index">
-        <td>{{ indexOfFirst + i + 1 }}</td>
-        <td>{{ r.dispatch_number }}</td>
-        <td>{{ r.report_ids }}</td>
-        <td>{{ r.serial_no }}</td>
-        <td>{{ r.make }}</td>
-        <td>{{ r.receiver }}</td>
-        <td>{{ r.vehicle }}</td>
-        <td>{{ r.created_date }}</td>
-      </tr>
-      <tr *ngIf="!rows.length">
-        <td colspan="8" class="text-muted">No data found</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+              <!-- Click to regenerate PDF -->
+              <td>
+                <button class="btn btn-link p-0 text-decoration-none"
+                        (click)="downloadGatepassByDispatch(r.dispatch_number)"
+                        title="Generate Gatepass PDF again">
+                  <i class="fas fa-file-pdf me-1"></i>{{ r.dispatch_number }}
+                </button>
+              </td>
 
-<!-- Pagination footer -->
-<div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mt-3">
-  <div class="d-flex align-items-center gap-2">
-    <label class="form-label mb-0">Rows per page</label>
-    <select class="form-select form-select-sm" style="width:auto"
-            [(ngModel)]="pageSize" name="pageSize" (ngModelChange)="goToPage(1)">
-      <option *ngFor="let s of pageSizeOptions" [value]="s">{{ s }}</option>
-    </select>
-  </div>
+              <td class="d-none d-md-table-cell"><code class="small">{{ r.report_ids }}</code></td>
+              <td class="fw-semibold">{{ r.serial_no }}</td>
+              <td class="d-none d-lg-table-cell">{{ r.receiver }}</td>
+              <td class="d-none d-md-table-cell">{{ r.vehicle }}</td>
+              <td class="text-nowrap">{{ r.created_date }}</td>
+            </tr>
 
-  <div class="small text-muted">
-    Showing <strong>{{ total === 0 ? 0 : indexOfFirst + 1 }}</strong>–<strong>{{ indexOfLast }}</strong> of <strong>{{ total }}</strong>
-  </div>
+            <tr *ngIf="!rows.length">
+              <td colspan="7" class="text-center text-muted py-4">
+                <i class="far fa-folder-open me-2"></i>No data found
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-  <nav>
-    <ul class="pagination mb-0">
-      <li class="page-item" [class.disabled]="page === 1">
-        <button class="page-link" (click)="goToPage(1)" [disabled]="page === 1">« First</button>
-      </li>
-      <li class="page-item" [class.disabled]="page === 1">
-        <button class="page-link" (click)="prev()" [disabled]="page === 1">‹ Prev</button>
-      </li>
+      <!-- Pagination -->
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mt-3">
+        <div class="d-flex align-items-center gap-2">
+          <label class="form-label mb-0 text-muted">Rows per page</label>
+          <select class="form-select form-select-sm w-auto"
+                  [(ngModel)]="pageSize" name="pageSize" (ngModelChange)="goToPage(1)">
+            <option *ngFor="let s of pageSizeOptions" [value]="s">{{ s }}</option>
+          </select>
+        </div>
 
-      <li class="page-item" *ngFor="let p of pageWindow()" [class.active]="p === page">
-        <button class="page-link" (click)="goToPage(p)">{{ p }}</button>
-      </li>
+        <div class="small text-muted">
+          Showing <strong>{{ total === 0 ? 0 : indexOfFirst + 1 }}</strong>–<strong>{{ indexOfLast }}</strong> of <strong>{{ total }}</strong>
+        </div>
 
-      <li class="page-item" [class.disabled]="page === totalPages">
-        <button class="page-link" (click)="next()" [disabled]="page === totalPages">Next ›</button>
-      </li>
-      <li class="page-item" [class.disabled]="page === totalPages">
-        <button class="page-link" (click)="goToPage(totalPages)" [disabled]="page === totalPages">Last »</button>
-      </li>
-    </ul>
-  </nav>
-</div>
+        <nav aria-label="Pagination">
+          <ul class="pagination pagination-sm mb-0 flex-wrap">
+            <li class="page-item" [class.disabled]="page === 1">
+              <button class="page-link" (click)="goToPage(1)" [disabled]="page === 1">&laquo; First</button>
+            </li>
+            <li class="page-item" [class.disabled]="page === 1">
+              <button class="page-link" (click)="prev()" [disabled]="page === 1">&lsaquo; Prev</button>
+            </li>
 
+            <li class="page-item" *ngFor="let p of pageWindow()" [class.active]="p === page">
+              <button class="page-link" (click)="goToPage(p)">{{ p }}</button>
+            </li>
+
+            <li class="page-item" [class.disabled]="page === totalPages">
+              <button class="page-link" (click)="next()" [disabled]="page === totalPages">Next &rsaquo;</button>
+            </li>
+            <li class="page-item" [class.disabled]="page === totalPages">
+              <button class="page-link" (click)="goToPage(totalPages)" [disabled]="page === totalPages">Last &raquo;</button>
+            </li>
+          </ul>
+        </nav>
+      </div>
 
     </div>
   </div>

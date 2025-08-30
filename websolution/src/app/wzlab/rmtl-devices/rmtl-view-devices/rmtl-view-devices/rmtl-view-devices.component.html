@@ -1,25 +1,32 @@
 <div class="container-fluid mt-4">
   <div class="card shadow-sm">
-    <div class="card-header text-white" style="background:#151433">
-      <h5 class="mb-0">RMTL — View Inward Devices List</h5>
+    <div class="card-header text-white d-flex flex-wrap align-items-center gap-2" style="background:#151433">
+      <h5 class="mb-0 me-auto">RMTL — View Inward Devices List</h5>
+      <span class="badge bg-dark">From: {{ fromDate || '—' }}</span>
+      <span class="badge bg-dark">To: {{ toDate || '—' }}</span>
     </div>
 
     <!-- Filters -->
     <div class="card-body pb-0 mb-3">
       <form class="row g-3 align-items-end">
-        <div class="col-sm-3">
+        <div class="col-sm-6 col-md-3">
           <label class="form-label fw-semibold">From date</label>
           <input type="date" class="form-control" [(ngModel)]="fromDate" name="fromDate">
         </div>
-        <div class="col-sm-3">
+
+        <div class="col-sm-6 col-md-3">
           <label class="form-label fw-semibold">To date</label>
           <input type="date" class="form-control" [(ngModel)]="toDate" name="toDate">
         </div>
-        <div class="col-sm-6 d-flex gap-2">
-          <button type="button" class="btn btn-primary mt-3" (click)="applyFilter()">Apply</button>
-          <button type="button" class="btn btn-outline-primary mt-3" (click)="resetToThisMonth()">Current month</button>
 
-          <!-- Page size -->
+        <div class="col-12 col-md-6 d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-primary mt-3" (click)="applyFilter()">
+            <i class="bi bi-funnel"></i> Apply
+          </button>
+          <button type="button" class="btn btn-outline-primary mt-3" (click)="resetToThisMonth()">
+            <i class="bi bi-calendar2-week"></i> Current month
+          </button>
+
           <div class="ms-auto mt-3 d-flex align-items-center gap-2">
             <label class="form-label mb-0">Rows per page</label>
             <select class="form-select form-select-sm" style="width:auto"
@@ -31,10 +38,11 @@
       </form>
     </div>
 
-    <div class="card-body p-0">
+    <!-- Table (md and up) -->
+    <div class="card-body p-0 d-none d-md-block">
       <div class="table-responsive">
         <table class="table table-bordered table-hover mb-0">
-          <thead class="table-light text-center">
+          <thead class="table-light text-center position-sticky top-0">
             <tr>
               <th>#</th>
               <th>Inward No</th>
@@ -54,12 +62,20 @@
           </thead>
           <tbody>
             <tr *ngIf="loading">
-              <td colspan="14" class="text-center text-muted">Loading…</td>
+              <td colspan="14" class="text-center text-muted">
+                <div class="spinner-border spinner-border-sm me-2"></div> Loading…
+              </td>
             </tr>
 
             <tr *ngFor="let device of pagedDevices(); let i = index">
               <td class="text-center">{{ indexOfFirst + i + 1 }}</td>
-              <td>{{ device.inward_number }}</td>
+              <td>
+                <button class="btn btn-link p-0 fw-semibold"
+                        (click)="downloadInwardReceipt(device.inward_number)"
+                        [title]="'Generate receipt for ' + device.inward_number">
+                  {{ device.inward_number }}
+                </button>
+              </td>
               <td>
                 <span class="badge"
                       [ngClass]="{
@@ -91,6 +107,60 @@
       </div>
     </div>
 
+    <!-- Card List (xs/sm) -->
+    <div class="card-body d-block d-md-none">
+      <div *ngIf="loading" class="text-center text-muted py-3">
+        <div class="spinner-border spinner-border-sm me-2"></div> Loading…
+      </div>
+
+      <div *ngIf="!loading && devices.length === 0" class="text-center text-muted py-3">
+        No devices available for this date range.
+      </div>
+
+      <div class="row g-3">
+        <div class="col-12" *ngFor="let d of pagedDevices(); let i = index">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="small text-muted">Inward No</div>
+                  <button class="btn btn-link p-0 fw-semibold"
+                          (click)="downloadInwardReceipt(d.inward_number)">
+                    {{ d.inward_number }}
+                  </button>
+                </div>
+                <span class="badge"
+                      [ngClass]="{
+                        'bg-info text-dark': d.device_status === 'INWARDED',
+                        'bg-success': d.device_status === 'DISPATCHED',
+                        'bg-warning text-dark': d.device_status === 'PENDING'
+                      }">
+                  {{ d.device_status }}
+                </span>
+              </div>
+
+              <div class="mt-2">
+                <div class="small"><strong>{{ d.device_type }}</strong> • {{ d.make }} • SN: {{ d.serial_number }}</div>
+                <div class="small text-muted">
+                  {{ d.meter_type }} | {{ d.meter_category }} | {{ d.phase }} | {{ d.connection_type }}
+                </div>
+                <div class="small text-muted">
+                  {{ d.voltage_rating }} • {{ d.capacity }} • {{ d.location_name }}
+                </div>
+                <div class="small text-muted">Entry: {{ d.date_of_entry | date: 'dd-MM-yyyy' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile pagination summary -->
+      <div class="mt-3 text-center small text-muted">
+        Showing <strong>{{ total === 0 ? 0 : indexOfFirst + 1 }}</strong>–<strong>{{ indexOfLast }}</strong> of
+        <strong>{{ total }}</strong>
+      </div>
+    </div>
+
     <!-- Pagination footer -->
     <div class="card-footer d-flex flex-wrap gap-2 align-items-center justify-content-between">
       <div class="small text-muted">
@@ -107,7 +177,6 @@
             <button class="page-link" (click)="prev()" [disabled]="page === 1">‹ Prev</button>
           </li>
 
-          <!-- Simple window of pages -->
           <li class="page-item" *ngFor="let p of pageWindow()" [class.active]="p === page">
             <button class="page-link" (click)="goToPage(p)">{{ p }}</button>
           </li>
@@ -121,6 +190,5 @@
         </ul>
       </nav>
     </div>
-
   </div>
 </div>

@@ -153,7 +153,7 @@
 <div class="modal fade" #previewModal tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header border-0">
+      <div class="modal-header border-0" style="background-color: #eae9f1; color: #161515;">
         <h5 class="modal-title fw-bold" id="previewModalLabel">
           <i class="fas fa-search me-2"></i>Confirm Changes
         </h5>
@@ -163,15 +163,15 @@
       <div class="modal-body">
         <div class="list-group">
           <div class="list-group-item d-flex justify-content-between">
-            <span class="fw-semibold">Lab Name</span>
+            <span class="fw-semibold">Laboratory Name</span>
             <span>{{ lab.lab_name || '—' }}</span>
           </div>
           <div class="list-group-item d-flex justify-content-between">
-            <span class="fw-semibold">Location</span>
+            <span class="fw-semibold"> laboratory Location</span>
             <span>{{ lab.lab_location || '—' }}</span>
           </div>
           <div class="list-group-item d-flex justify-content-between">
-            <span class="fw-semibold">Status</span>
+            <span class="fw-semibold"> laboratory Status</span>
             <span>
               <span *ngIf="lab.status; else noStatus" class="badge bg-info text-dark">{{ lab.status }}</span>
               <ng-template #noStatus>—</ng-template>
@@ -179,12 +179,12 @@
           </div>
 
           <div class="list-group-item">
-            <div class="fw-semibold mb-2">PDF Header</div>
+            <div class="fw-semibold mb-2">PDF Header Information</div>
             <div class="small">
-              <div><strong>Name:</strong> {{ lab.lab_pdfheader_name || '—' }}</div>
-              <div><strong>Email:</strong> {{ lab.lab_pdfheader_email || '—' }}</div>
-              <div><strong>Address:</strong> {{ lab.lab_pdfheader_address || '—' }}</div>
-              <div><strong>Contact:</strong> {{ lab.lab_pdfheader_contact_no || '—' }}</div>
+              <div><strong> Laboratory Name:</strong> {{ lab.lab_pdfheader_name || '—' }}</div>
+              <div><strong> laboratory Email:</strong> {{ lab.lab_pdfheader_email || '—' }}</div>
+              <div><strong> laboratory Address:</strong> {{ lab.lab_pdfheader_address || '—' }}</div>
+              <div><strong> laboratory Contact:</strong> {{ lab.lab_pdfheader_contact_no || '—' }}</div>
             </div>
           </div>
         </div>
@@ -214,7 +214,7 @@
 <div class="modal fade" #alertModal tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" [ngClass]="{ 'border-success': responseSuccess, 'border-danger': !responseSuccess }">
-      <div class="modal-header border-0">
+      <div class="modal-header border-0" style="background-color: #eae9f1; color: #161515;">
         <h5 class="modal-title fw-bold" id="alertModalLabel">
           <span class="ms-2">{{ responseSuccess ? 'Done' : 'Error' }}</span>
         </h5>

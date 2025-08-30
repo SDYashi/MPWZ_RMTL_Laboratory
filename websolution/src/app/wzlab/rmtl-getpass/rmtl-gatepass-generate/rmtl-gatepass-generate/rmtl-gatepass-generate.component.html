@@ -3,7 +3,7 @@
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
       <h5 class="mb-0">RMTL — Gatepass Generate</h5>
-      <div class="d-flex align-items-center gap-2">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
         <span class="badge bg-secondary">From: {{ fromDate }}</span>
         <span class="badge bg-secondary">To: {{ toDate }}</span>
       </div>
@@ -55,92 +55,70 @@
           </div>
         </div>
 
-      <div class="table-responsive border rounded">
-  <table class="table table-hover align-middle mb-0">
-    <thead class="table-light">
-      <tr class="text-nowrap">
-        <th style="width:60px;">Pick</th>
-        <th>Device ID</th>
-        <th>Report ID</th>
-        <th>Result</th>
-        <th>Status</th>
-        <th>Method</th>
-        <th>Start</th>
-        <th>End</th>
-        <th>Physical</th>
-        <th>Seal</th>
-        <th>Body</th>
-        <th>Glass</th>
-        <th>Terminal</th>
-        <th>Other</th>
-        <th>Details</th>
-      </tr>
-    </thead>
+        <div class="table-responsive border rounded">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light position-sticky top-0" style="z-index:1;">
+              <tr class="text-nowrap">
+                <th style="width:60px;">Pick</th>
+                <th>Serial No</th>
+                <th class="d-none d-sm-table-cell">Make</th>
+                <th>Report ID</th>
+                <th>Result</th>
+                <th>Status</th>
+                <th class="d-none d-md-table-cell">Method</th>
+                <th class="d-none d-lg-table-cell">Start</th>
+                <th class="d-none d-lg-table-cell">End</th>
+                <th class="text-center" style="width: 90px;">Details</th>
+              </tr>
+            </thead>
 
-    <tbody>
-      <tr *ngFor="let d of devices; trackBy: trackByDeviceId">
-        <td class="text-center">
-          <input type="checkbox" [(ngModel)]="d.selected" (change)="onRowCheckboxChange()">
-        </td>
+            <tbody>
+              <tr *ngFor="let d of devices; trackBy: trackBySerial">
+                <td class="text-center">
+                  <input type="checkbox" [(ngModel)]="d.selected" (change)="onRowCheckboxChange()">
+                </td>
 
-        <td class="fw-semibold">{{ d.device_id }}</td>
+                <td class="fw-semibold">{{ d.serial_number }}</td>
+                <td class="d-none d-sm-table-cell">{{ d.make || '-' }}</td>
+                <td><code class="small">{{ d.report_id }}</code></td>
 
-        <td>
-          <code class="small">{{ d.report_id }}</code>
-        </td>
+                <td>
+                  <span class="badge" [ngClass]="resultClass(d.test_result)">
+                    {{ d.test_result || '-' }}
+                  </span>
+                </td>
 
-        <td>
-          <span class="badge" [ngClass]="resultClass(d.test_result)">
-            {{ d.test_result || '-' }}
-          </span>
-        </td>
+                <td>
+                  <span class="badge" [ngClass]="statusClass(d.test_status)">
+                    {{ d.test_status || '-' }}
+                  </span>
+                </td>
 
-        <td>
-          <span class="badge" [ngClass]="statusClass(d.test_status)">
-            {{ d.test_status || '-' }}
-          </span>
-        </td>
+                <td class="d-none d-md-table-cell">{{ d.test_method || '-' }}</td>
+                <td class="d-none d-lg-table-cell">
+                  <span [title]="d.start_datetime">{{ d.start_datetime | date:'short' }}</span>
+                </td>
+                <td class="d-none d-lg-table-cell">
+                  <span [title]="d.end_datetime">{{ d.end_datetime | date:'short' }}</span>
+                </td>
 
-        <td>{{ d.test_method || '-' }}</td>
-
-        <td>
-          <span [title]="d.start_datetime">
-            {{ d.start_datetime | date:'short' }}
-          </span>
-        </td>
-
-        <td>
-          <span [title]="d.end_datetime">
-            {{ d.end_datetime | date:'short' }}
-          </span>
-        </td>
-
-        <td>{{ d.physical_condition_of_device || '-' }}</td>
-        <td>{{ d.seal_status || '-' }}</td>
-        <td>{{ d.meter_body || '-' }}</td>
-        <td>{{ d.meter_glass_cover || '-' }}</td>
-        <td>{{ d.terminal_block || '-' }}</td>
-        <td>{{ d.other || '-' }}</td>
-
-        <td>
-          <span class="d-inline-block text-truncate" style="max-width: 220px;" [title]="d.details">
-            {{ d.details || '-' }}
-          </span>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
+                <td class="text-center">
+                  <button class="btn btn-sm btn-outline-primary" (click)="openDetailModal(d)">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <div class="d-flex justify-content-end gap-2 mt-3">
-       <button class="btn btn-outline-secondary" type="button" (click)="clearSelection()">    
-         Clear Selection
+          <button class="btn btn-outline-secondary" type="button" (click)="clearSelection()">
+            Clear Selection
           </button>
-<button  class="btn btn-success"  type="button"  (click)="openGatepassModal()"  [disabled]="selectedCount === 0">
-  Generate Gatepass
-</button>
-
+          <button class="btn btn-success" type="button" (click)="openGatepassModal()" [disabled]="selectedCount === 0">
+            Generate Gatepass
+          </button>
         </div>
       </div>
 
@@ -163,7 +141,7 @@
             </thead>
             <tbody>
               <tr>
-                <th>Gatepass ID:/Report IDs:</th>
+                <th>Gatepass ID / Report IDs:</th>
                 <td>{{ gatepassInfo.id }} / {{ gatepassInfo.report_ids }}</td>
                 <th>Receiver Name:</th>
                 <td>{{ gatepassInfo.receiver_name }}</td>
@@ -187,17 +165,13 @@
                 <td>{{ gatepassInfo.created_at }}</td>
               </tr>
               <tr>
-                <th></th>
-                <td></td>
-              </tr>
-              <tr>
-                <th>Serial Numbers:</th>
-                <td  colspan="3">{{ gatepassInfo.serial_numbers }}</td>
+                <th>List of Dispatch Serial Numbers:</th>
+                <td colspan="3">{{ gatepassInfo.serial_numbers }}</td>
               </tr>
             </tbody>
           </table>
           <div class="mt-3">
-            <button class="btn btn-outline-primary" (click)="printGatepass()">  Download/Print Gatepass</button>
+            <button class="btn btn-outline-primary" (click)="printGatepass()">Download/Print Gatepass</button>
           </div>
         </div>
       </div>
@@ -216,82 +190,76 @@
       </div>
 
       <div class="modal-body">
-        <form #gpForm="ngForm">
-          <div class="row g-3">
-                       <!-- SOURCE -->
-      <form #sourceForm="ngForm">
-        <div class="rounded-4 border p-3 p-md-4 bg-light-subtle">
-          <div class="row g-3 align-items-end">
-            <div class="col-md-4">
-              <div class="form-floating">
-                <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type"
-                        (change)="onSourceTypeChange()" required>
-                  <option [ngValue]="''" disabled>Select...</option>
-                  <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
-                </select>
-                <label class="fw-semibold">Source Type</label>
-              </div>
-            </div>
-            <div class="col-md-5">
-              <div class="input-group input-group-lg">
-                <!-- <span class="input-group-text"><i class="bi bi-geo-alt"></i></span> -->
-                <div class="form-floating flex-grow-1">
-                  <input type="text" class="form-control" [(ngModel)]="selectedSourceName"
-                         name="source_name" placeholder="Code" required (keydown.enter)="fetchButtonData()">
-                  <label class="fw-semibold">Location / Store / Vendor Code</label>
+        <!-- ✅ no nested form tags -->
+        <div class="row g-3">
+          <!-- SOURCE -->
+          <div class="rounded-4 border p-3 p-md-4 bg-light-subtle">
+            <div class="row g-3 align-items-end">
+              <div class="col-md-4">
+                <div class="form-floating">
+                  <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type"
+                          (change)="onSourceTypeChange()" required>
+                    <option [ngValue]="''" disabled>Select...</option>
+                    <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
+                  </select>
+                  <label class="fw-semibold">Source Type</label>
                 </div>
               </div>
+              <div class="col-md-5">
+                <div class="input-group input-group-lg">
+                  <div class="form-floating flex-grow-1">
+                    <input type="text" class="form-control" [(ngModel)]="selectedSourceName"
+                           name="source_name" placeholder="Code" required (keydown.enter)="fetchButtonData()">
+                    <label class="fw-semibold">Location / Store / Vendor Code</label>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3 d-grid">
+                <button type="button" class="btn btn-primary py-3" (click)="fetchButtonData()">
+                  <i class="bi bi-search"></i> Fetch
+                </button>
+              </div>
             </div>
-            <div class="col-md-3 d-grid">
-              <button type="button" class="btn btn-primary py-3" (click)="fetchButtonData()">
-                <i class="bi bi-search"></i> Fetch
-              </button>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Dispatch To</label>
+            <input class="form-control" name="dispatch_to" [(ngModel)]="gatepassForm.dispatch_to" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Vehicle</label>
+            <input class="form-control" name="vehicle" [(ngModel)]="gatepassForm.vehicle" required>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Receiver Name</label>
+            <input class="form-control" name="receiver_name" [(ngModel)]="gatepassForm.receiver_name" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Receiver Designation</label>
+            <input class="form-control" name="receiver_designation" [(ngModel)]="gatepassForm.receiver_designation" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Receiver Mobile</label>
+            <input class="form-control" name="receiver_mobile" [(ngModel)]="gatepassForm.receiver_mobile"
+                   required pattern="^[0-9]{10}$" placeholder="10-digit mobile">
+            <div class="form-text">Digits only, e.g. 9876543210</div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Report ID(s)</label>
+            <input class="form-control" name="report_ids" [(ngModel)]="gatepassForm.report_ids" readonly disabled>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Total Serial Numbers </label>
+            <textarea class="form-control" name="serial_numbers"
+                      [(ngModel)]="gatepassForm.serial_numbers" rows="3" required disabled></textarea>
+            <div class="form-text">
+              Prefilled by selection (serials only). You can edit before submit.
             </div>
           </div>
         </div>
-      </form>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Dispatch To</label>
-              <input class="form-control" name="dispatch_to" [(ngModel)]="gatepassForm.dispatch_to" required>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Vehicle</label>
-              <input class="form-control" name="vehicle" [(ngModel)]="gatepassForm.vehicle" required>
-            </div>
-
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Receiver Name</label>
-              <input class="form-control" name="receiver_name" [(ngModel)]="gatepassForm.receiver_name" required>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Receiver Designation</label>
-              <input class="form-control" name="receiver_designation" [(ngModel)]="gatepassForm.receiver_designation" required>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Receiver Mobile</label>
-              <input class="form-control" name="receiver_mobile" [(ngModel)]="gatepassForm.receiver_mobile"
-                     required pattern="^[0-9]{10}$" placeholder="10-digit mobile">
-              <div class="form-text">Digits only, e.g. 9876543210</div>
-            </div>
-
-            <div class="col-12">
-              <label class="form-label fw-semibold">Report ID(s)</label>
-              <input class="form-control" name="report_ids" [(ngModel)]="gatepassForm.report_ids" readonly disabled>
-            </div>
-
-            <div class="col-12">
-              <label class="form-label fw-semibold">Serial Numbers</label>
-              <textarea class="form-control"
-                        name="serial_numbers"
-                        [(ngModel)]="gatepassForm.serial_numbers"
-                        rows="3"
-                        required disabled></textarea>
-              <div class="form-text">
-                Prefilled by selection (format: <code>MAKE1: SN1, SN2 | MAKE2: SN3</code>). You can edit before submit.
-              </div>
-            </div>
-          </div>
-        </form>
       </div>
 
       <div class="modal-footer">
@@ -302,3 +270,68 @@
   </div>
 </div>
 
+<!-- Details Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header text-white" style="background:#151433;">
+        <h5 class="modal-title">Device Details — {{ selectedDetail?.serial_number }}</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeDetailModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light fw-semibold">Device</div>
+              <div class="card-body">
+                <dl class="row mb-0">
+                  <dt class="col-5">Serial No</dt><dd class="col-7">{{ selectedDetail?.serial_number || '-' }}</dd>
+                  <dt class="col-5">Make</dt><dd class="col-7">{{ selectedDetail?.make || '-' }}</dd>
+                  <dt class="col-5">Device Type</dt><dd class="col-7">{{ selectedDetail?.device_type || '-' }}</dd>
+                  <dt class="col-5">Category</dt><dd class="col-7">{{ selectedDetail?.meter_category || '-' }}</dd>
+                  <dt class="col-5">Phase</dt><dd class="col-7">{{ selectedDetail?.phase || '-' }}</dd>
+                  <dt class="col-5">Inward No</dt><dd class="col-7">{{ selectedDetail?.inward_number || '-' }}</dd>
+                  <dt class="col-5">Location</dt><dd class="col-7">{{ selectedDetail?.location_name || '-' }}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light fw-semibold">Testing</div>
+              <div class="card-body">
+                <dl class="row mb-0">
+                  <dt class="col-5">Report ID</dt><dd class="col-7">{{ selectedDetail?.report_id || '-' }}</dd>
+                  <dt class="col-5">Result</dt><dd class="col-7">{{ selectedDetail?.test_result || '-' }}</dd>
+                  <dt class="col-5">Status</dt><dd class="col-7">{{ selectedDetail?.test_status || '-' }}</dd>
+                  <dt class="col-5">Method</dt><dd class="col-7">{{ selectedDetail?.test_method || '-' }}</dd>
+                  <dt class="col-5">Start</dt><dd class="col-7">{{ selectedDetail?.start_datetime | date:'short' }}</dd>
+                  <dt class="col-5">End</dt><dd class="col-7">{{ selectedDetail?.end_datetime | date:'short' }}</dd>
+                  <dt class="col-5">Remarks</dt><dd class="col-7">{{ selectedDetail?.details || '-' }}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light fw-semibold">Assignment</div>
+              <div class="card-body">
+                <dl class="row mb-0">
+                  <dt class="col-5 col-md-3">Assigned Date</dt><dd class="col-7 col-md-9">{{ selectedDetail?.assigned_datetime | date:'short' }}</dd>
+                  <dt class="col-5 col-md-3">Bench</dt><dd class="col-7 col-md-9">{{ selectedDetail?.bench_name || '-' }}</dd>
+                  <dt class="col-5 col-md-3">Assigned To</dt><dd class="col-7 col-md-9">{{ selectedDetail?.user_name || '-' }}</dd>
+                  <dt class="col-5 col-md-3">Assigned By</dt><dd class="col-7 col-md-9">{{ selectedDetail?.assigned_by_name || '-' }}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>        
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" (click)="closeDetailModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

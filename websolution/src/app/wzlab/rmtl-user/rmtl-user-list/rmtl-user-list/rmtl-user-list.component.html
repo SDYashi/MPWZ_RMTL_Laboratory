@@ -1,7 +1,7 @@
 <div class="container-fluid mt-2">
-      <div class="card-header text-white" style=" background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;">
-      <h5 class="mb-0 py-2 px-2">List of registered Users </h5>
-    </div>
+  <div class="card-header text-white" style=" background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;">
+    <h5 class="mb-0 py-2 px-2">List of registered Users </h5>
+  </div>
   <div class="card shadow-sm border-0">
     <div class="card-body p-0">
       <div class="table-responsive">
@@ -15,52 +15,42 @@
               <th>Designation</th>
               <th>Status</th>
               <th>Mobile</th>
-              <th>Lab ID</th>
+              <th>Lab Name</th>
               <th>Roles</th>
-              <!-- <th>Created At</th>
-              <th>Updated At</th>
-              <th>Last Login</th> -->
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let user of users; let i = index">
               <td class="text-center">{{ i + 1 }}</td>
-              <td>{{ user.username }}</td>
-              <td>{{ user.name }}</td>
-              <td>{{ user.email }}</td>
-              <td>{{ user.designation }}</td>
+              <td>{{ user.user.username }}</td>
+              <td>{{ user.user.name }}</td>
+              <td>{{ user.user.email }}</td>
+              <td>{{ user.user.designation }}</td>
               <td class="text-center">
                 <span [ngClass]="{
-                  'badge bg-success': user.status === 'Active',
-                  'badge bg-danger': user.status === 'Inactive',
-                  'badge bg-warning text-dark': user.status === 'Pending'
+                  'badge bg-success': user.user.status === 'ACTIVE',
+                  'badge bg-danger': user.user.status === 'INACTIVE',
+                  'badge bg-warning text-dark': user.user.status === 'PENDING'
                 }">
-                  {{ user.status }}
+                  {{ user.user.status }}
                 </span>
               </td>
-              <td>{{ user.mobile }}</td>
-              <td class="text-center">{{ user.lab_id }}</td>
+              <td>{{ user.user.mobile }}</td>
+              <td class="text-center">{{ user.lab.lab_name }}</td>
               <td>
-                <span *ngFor="let role of user.roles" class="badge bg-info text-dark me-1">
+                <span *ngFor="let role of user.user.roles" class="badge bg-info text-dark me-1">
                   {{ role }}
                 </span>
               </td>
-              <!-- <td>{{ user.created_at | date:'dd/MM/yyyy' }}</td>
-              <td>{{ user.updated_at | date:'dd/MM/yyyy' }}</td>
-              <td>{{ user.last_login_at | date:'dd/MM/yyyy' }}</td> -->
               <td class="text-center">
-                <!-- <button type="button" class="btn btn-primary btn-sm" (click)="onEdit(user)">
-                  <i class="fas fa-edit me-1"></i> Update
-                </button> -->
                 <button
                   type="button"
                   class="btn btn-primary btn-sm"
-                  [routerLink]="['/wzlab/user/edit-user', user.id]"
+                  [routerLink]="['/wzlab/user/edit-user', user.user.id]"
                 >
                   <i class="fas fa-edit me-1"></i>
                 </button>
-
               </td>
             </tr>
           </tbody>

@@ -1,5 +1,11 @@
 import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
+import {
+  InwardReceiptPdfService,
+  InwardReceiptData,
+  InwardReceiptItem
+} from 'src/app/shared/inward-receipt-pdf.service';
+
 declare var bootstrap: any;
 
 interface DeviceRow {
@@ -25,14 +31,7 @@ interface CTRow {
   ct_class?: string | null;
   ct_ratio?: string | null;
   make: string;
-  // capacity: string;
-  // phase: string;
-  // meter_category: string;
-  // meter_class?: string | null;
-  // meter_type: string;
   connection_type: string;
-  // voltage_rating: string;
-  // current_rating: string;
   device_testing_purpose: string;
   remark?: string | null;
   initiator?: string | null;
@@ -87,12 +86,21 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   ctRange: any = this.defaultCtRange();
 
   ctMeta: any = {
-    make: '', 
-    capacity: '', 
-    phase: '', meter_category: '', meter_class: '',
-    meter_type: '', connection_type: '', voltage_rating: '', current_rating: '',
-    serial_number: '', ct_class: '', ct_ratio: '', remark: '',
-    device_testing_purpose: '', initiator: ''
+    make: '',
+    capacity: '',
+    phase: '',
+    meter_category: '',
+    meter_class: '',
+    meter_type: '',
+    connection_type: '',
+    voltage_rating: '',
+    current_rating: '',
+    serial_number: '',
+    ct_class: '',
+    ct_ratio: '',
+    remark: '',
+    device_testing_purpose: '',
+    initiator: ''
   };
 
   // UI helpers (for compact dropdown strips; bind directly to values)
@@ -107,10 +115,16 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   // Lab
   labId: number | null = null;
 
-  // Quick manual add
+  // Quick manual add (Meters)
   quick = { serial: '' };
 
-  constructor(private deviceService: ApiServicesService) {}
+  // Quick manual add (CT)
+  ctQuick = { serial: '' };
+
+  constructor(
+    private deviceService: ApiServicesService,
+    private inwardPdf: InwardReceiptPdfService
+  ) {}
 
   // ---------- Lifecycle ----------
   ngOnInit(): void {
@@ -118,19 +132,19 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       next: (data) => {
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
-        this.phases = data?.phases || [];
+        this.phases = data?.phases || ['SINGLE PHASE'];
         this.meter_categories = data?.meter_categories || [];
         this.meterTypes = data?.meter_types || [];
         this.meter_classes = data?.meter_classes || [];
         this.office_types = data?.office_types || [];
         this.ct_classes = data?.ct_classes || [];
         this.ct_ratios = data?.ct_ratios || [];
-        this.connection_types = data?.connection_types || ['LT', 'HT'];
+        this.connection_types = data?.connection_types || [];
         this.voltage_ratings = data?.voltage_ratings || ['230V'];
         this.current_ratings = data?.current_ratings || ['5-30A'];
         this.device_testing_purpose = data?.device_testing_purposes || ['ROUTINE'];
         this.meter_subcategories = data?.meter_sub_categories || [];
-        this.initiators = data?.initiator || ['CIS'];
+        this.initiators = data?.initiators || [];
 
         this.meterDefaultPurpose = this.device_testing_purpose[0] || 'ROUTINE';
 
@@ -140,13 +154,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           ct_class: this.ct_classes[0] || '',
           ct_ratio: this.ct_ratios[0] || '',
           capacity: this.capacities[0] || '',
-          // phase: this.phases[0] || '',
-          // meter_category: this.meter_categories[0] || '',
-          // meter_class: this.meter_classes[0] || '',
-          // meter_type: this.meterTypes[0] || '',
           connection_type: this.connection_types[0] || 'LT',
-          // voltage_rating: this.voltage_ratings[0] || '230V',
-          // current_rating: this.current_ratings[0] || '5-30A',
           device_testing_purpose: this.meterDefaultPurpose,
           initiator: this.initiators[0] || 'CIS'
         });
@@ -154,6 +162,11 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         // Defaults for meter range form
         Object.assign(this.serialRange, {
           connection_type: this.connection_types[0] || 'LT',
+          phase: this.phases[0] || 'SINGLE PHASE',
+          make: this.makes[0] || '',
+          capacity: this.capacities[0] || '',
+          meter_category: this.meter_categories[0] || '',
+          meter_class: this.meter_classes[0] || '',
           meter_type: this.meterTypes[0] || '',
           voltage_rating: this.voltage_ratings[0] || '230V',
           current_rating: this.current_ratings[0] || '5-30A',
@@ -225,7 +238,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     this.filteredSources = null;
   }
 
-  // ---------- Quick add ----------
+  // ---------- Quick add (Meters) ----------
   quickAddMeter(): void {
     const sn = (this.quick.serial || '').trim();
     if (!sn) return;
@@ -245,6 +258,25 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       remark: null
     });
     this.quick.serial = '';
+  }
+
+  // ---------- Quick add (CT) ----------
+  quickAddCT(): void {
+    const sn = (this.ctQuick.serial || '').trim();
+    if (!sn) return;
+
+    this.cts.push({
+      serial_number: sn,
+      ct_class: (this.ctMeta.ct_class || '').trim() || null,
+      ct_ratio: (this.ctMeta.ct_ratio || '').trim() || null,
+      make: this.ctMeta.make,
+      connection_type: this.ctMeta.connection_type,
+      device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
+      initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
+      remark: ''
+    });
+
+    this.ctQuick.serial = '';
   }
 
   // ---------- Meters ops ----------
@@ -321,7 +353,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     }
     for (let i = Number(start); i <= Number(end); i++) {
       this.devices.push({
-        serial_number: `SN${i}`,
+        serial_number: i.toString(),
         make: this.serialRange.make,
         capacity: this.serialRange.capacity,
         phase: this.serialRange.phase,
@@ -343,18 +375,11 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   // ---------- CT ops ----------
   addCT(): void {
     this.cts.push({
-      serial_number:this.ctMeta.serial_number,
+      serial_number: this.ctMeta.serial_number,
       ct_class: this.ctMeta.ct_class || '',
-      ct_ratio:this.ctMeta.ct_ratio || '',
+      ct_ratio: this.ctMeta.ct_ratio || '',
       make: this.ctMeta.make,
-      // capacity: this.ctMeta.capacity,
-      // phase: this.ctMeta.phase,
-      // meter_category: this.ctMeta.meter_category,
-      // meter_class: this.ctMeta.meter_class || null,
-      // meter_type: this.ctMeta.meter_type,
       connection_type: this.ctMeta.connection_type,
-      // voltage_rating: this.ctMeta.voltage_rating,
-      // current_rating: this.ctMeta.current_rating,
       device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
       initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
       remark: ''
@@ -372,18 +397,11 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     }
     for (let i = Number(start); i <= Number(end); i++) {
       this.cts.push({
-        serial_number: `CT${i}`,
+        serial_number: i.toString(),
         ct_class: (ct_class || '').trim() || null,
         ct_ratio: (ct_ratio || '').trim() || null,
         make: this.ctMeta.make,
-        // capacity: this.ctMeta.capacity,
-        // phase: this.ctMeta.phase,
-        // meter_category: this.ctMeta.meter_category,
-        // meter_class: this.ctMeta.meter_class || null,
-        // meter_type: this.ctMeta.meter_type,
         connection_type: this.ctMeta.connection_type,
-        // voltage_rating: this.ctMeta.voltage_rating,
-        // current_rating: this.ctMeta.current_rating,
         device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
         initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
         remark: ''
@@ -401,7 +419,6 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       const text = (e.target.result as string) || '';
       const lines = text.split(/\r?\n/);
 
-      // Header:
       for (const raw of lines.slice(1)) {
         const line = raw.trim();
         if (!line) continue;
@@ -418,14 +435,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
             ct_class: (ct_class || '').trim() || null,
             ct_ratio: (ct_ratio || '').trim() || null,
             make: make || '',
-            // capacity: capacity || '',
-            // phase: phase || '',
-            // meter_category: meter_category || '',
-            // meter_class: (meter_class || '') || null,
-            // meter_type: meter_type || '',
             connection_type: connection_type || '',
-            // voltage_rating: voltage_rating || '',
-            // current_rating: current_rating || '',
             device_testing_purpose: device_testing_purpose || this.meterDefaultPurpose,
             initiator: initiator || this.initiators[0] || 'CIS',
             remark: (remark || '').trim() || null
@@ -518,8 +528,8 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     const payload = cleaned.map((d: any) => ({
       device_type: 'METER',
       make: d.make,
-      capacity: d.capacity || null,            // required in backend, keep as-is if you rely on validation there
-      phase: d.phase || null,                  // same note as above
+      capacity: d.capacity || null,
+      phase: d.phase || null,
       meter_category: d.meter_category || null,
       meter_class: d.meter_class || null,
       meter_type: d.meter_type || null,
@@ -542,6 +552,38 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     this.deviceService.addnewdevice(payload).subscribe({
       next: () => {
         this.showAlert('Success', 'Meters added!');
+
+        // ---- Build and download Inward Receipt PDF ----
+        const items: InwardReceiptItem[] = payload.map((p: any, idx: number) => ({
+          sl: idx + 1,
+          serial_number: p.serial_number,
+          make: p.make,
+          capacity: p.capacity ?? '',
+          phase: p.phase ?? '',
+          connection_type: p.connection_type ?? '',
+          meter_category: p.meter_category ?? '',
+          meter_type: p.meter_type ?? '',
+          voltage_rating: p.voltage_rating ?? '',
+          current_rating: p.current_rating ?? '',
+          purpose: p.device_testing_purpose,
+          remark: p.remark || ''
+        }));
+
+        const receipt: InwardReceiptData = {
+          title: 'RMTL Inward Receipt',
+          orgName: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd',
+          lab_id: this.labId ?? undefined,
+          office_type: this.selectedSourceType,
+          location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
+          location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
+          date_of_entry: this.todayISO(),
+          device_type: 'METER',
+          total: items.length,
+          items,
+          serials_csv: items.map(i => i.serial_number).join(', ')
+        };
+
+        this.inwardPdf.download(receipt, { fileName: `Inward_Receipt_METER_${this.todayISO()}.pdf` });
         this.devices = [];
       },
       error: (err) => {
@@ -566,14 +608,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         ct_class: (ct.ct_class ?? '').trim() || null,
         ct_ratio: (ct.ct_ratio ?? '').trim() || null,
         make: ct.make,
-        // capacity: ct.capacity,
-        // phase: ct.phase,
-        // meter_category: ct.meter_category,
-        // meter_class: (ct.meter_class ?? '').trim() || null,
-        // meter_type: ct.meter_type,
         connection_type: ct.connection_type,
-        // voltage_rating: ct.voltage_rating,
-        // current_rating: ct.current_rating,
         device_testing_purpose: (ct.device_testing_purpose || this.meterDefaultPurpose),
         initiator: ct.initiator || this.initiators[0] || 'CIS',
         remark: (ct.remark ?? '').trim() || null
@@ -587,14 +622,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
 
     // Optional pre-submit enum guard
     const bad = cleaned.filter(r =>
-      // !this.in(this.capacities, r.capacity) ||
-      // !this.in(this.phases, r.phase) ||
       !this.in(this.connection_types, r.connection_type) ||
-      // !this.in(this.meter_categories, r.meter_category) ||
-      // !this.in(this.meter_classes, r.meter_class ?? '') ||
-      // !this.in(this.meterTypes, r.meter_type) ||
-      // !this.in(this.voltage_ratings, r.voltage_rating) ||
-      // !this.in(this.current_ratings, r.current_rating) ||
       !this.in(this.initiators, r.initiator)
     );
     if (bad.length) {
@@ -629,6 +657,33 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     this.deviceService.addnewdevice(payload).subscribe({
       next: () => {
         this.showAlert('Success', 'CTs added!');
+
+        const items: InwardReceiptItem[] = payload.map((p: any, idx: number) => ({
+          sl: idx + 1,
+          serial_number: p.serial_number,
+          make: p.make,
+          connection_type: p.connection_type ?? '',
+          ct_class: p.ct_class ?? '',
+          ct_ratio: p.ct_ratio ?? '',
+          purpose: p.device_testing_purpose,
+          remark: p.remark || ''
+        }));
+
+        const receipt: InwardReceiptData = {
+          title: 'RMTL Inward Receipt',
+          orgName: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd',
+          lab_id: this.labId ?? undefined,
+          office_type: this.selectedSourceType,
+          location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
+          location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
+          date_of_entry: this.todayISO(),
+          device_type: 'CT',
+          total: items.length,
+          items,
+          serials_csv: items.map(i => i.serial_number).join(', ')
+        };
+
+        this.inwardPdf.download(receipt, { fileName: `Inward_Receipt_CT_${this.todayISO()}.pdf` });(receipt);
         this.cts = [];
       },
       error: (err) => {

@@ -41,6 +41,7 @@
         <button class="btn btn-success" (click)="openAssignModal()" [disabled]="!hasSelectedDevices()">
           <i class="fas fa-user-plus"></i> Assign Selected
         </button>
+        <br><br>
       </div>
   <table class="table table-bordered table-hover">
     <thead class="table-light text-center">
@@ -112,7 +113,7 @@
   <div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
-        <div class="modal-header text-white"style=" background-color:#151433; color: rgb(242, 236, 236); font-weight: bold;">
+        <div class="modal-header border-0" style="background-color: #eae9f1; color: #161515;">
           <h5 class="modal-title">Assign Devices to Bench & User </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
@@ -127,7 +128,7 @@
             <div class="col-md-6">
               <label class="form-label fw-bold">Select User</label>
               <select class="form-select" [(ngModel)]="assignedUser">
-                <option *ngFor="let user of users" [value]="user.id">{{ user.name }}</option>
+                <option *ngFor="let user of users" [value]="user.user.id">{{ user.user.name }}</option>
               </select>
             </div>
           </div>
@@ -139,4 +140,23 @@
       </div>
     </div>
   </div>
+  <!-- Alert Modal -->
+<!-- Alert Modal -->
+<div class="modal fade" id="alertModal" #alertModal tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4" >
+      <div class="modal-header rounded-top-4" style="background-color: #eae9f1; color: #161515;">
+        <h5 class="modal-title">{{ modalTitle }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">{{ modalMessage }}</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div>

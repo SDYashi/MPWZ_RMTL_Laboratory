@@ -156,6 +156,8 @@ export interface Assignment {
   assigned_datetime?: string; // ISO 8601 string
   assignment_status?: 'open' | 'complete' | 'cancelled';
   device_statusts?: string[];
+  status?: string;
+  assigned_devices?: string[];
 }
 
 export interface Testing {
