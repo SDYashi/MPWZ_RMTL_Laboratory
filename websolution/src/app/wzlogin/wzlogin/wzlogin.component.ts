@@ -17,8 +17,9 @@ export class WzloginComponent {
   };
   showPassword = false;
   isLoading = false;
+  // authService: any;
 
-  constructor(private apiservice: ApiServicesService, private router: Router) {}
+  constructor(private apiservice: ApiServicesService, private authService: AuthService, private router: Router) {}
 
  onLogin(form: NgForm): void {
   if (form.valid) {
@@ -28,6 +29,7 @@ export class WzloginComponent {
       next: (response) => {
         console.log('Login successful:', response);
         localStorage.setItem('access_token', response.access_token);  // use access_token
+        this.authService.setToken(response.access_token);
         this.isLoading = false;
         this.router.navigate(['/wzlab/dashboard']);
       },

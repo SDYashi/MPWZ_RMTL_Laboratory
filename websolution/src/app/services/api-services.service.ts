@@ -452,7 +452,7 @@ getLabReportUsageStock(lab_id: number) {
   return this.http.get<any>(`${this.baseUrl}/reports/lab-report-usage-stock/${lab_id}`);
 }
 getdailytestingreport(start_date: string, end_date: string) {
-  return this.http.get<any>(`${this.baseUrl}/dashboard/daily-testing-report/?start_date=${start_date}&end_date=${end_date}`);
+  return this.http.get<any>(`${this.baseUrl}/reports/daily-testing-report/?start_date=${start_date}&end_date=${end_date}`);
 }
 getdevicesummaryreports(){
   return this.http.get<any>(`${this.baseUrl}/reports/all/device-summary-report/`);

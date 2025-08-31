@@ -107,7 +107,7 @@
 
                 <td style="min-width:160px">
                   <input class="form-control form-control-sm" [(ngModel)]="r.serial" [name]="'b_serial_'+i"
-                         (ngModelChange)="onSerialChanged(i, r.serial)" required readonly>
+                         (ngModelChange)="onSerialChanged(i, r.serial)" required >
                   <div *ngIf="r.notFound" class="small text-danger">Not in assigned list</div>
                 </td>
 

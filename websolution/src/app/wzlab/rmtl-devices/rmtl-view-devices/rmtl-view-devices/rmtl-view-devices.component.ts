@@ -6,23 +6,25 @@ import {
   InwardReceiptItem
 } from 'src/app/shared/inward-receipt-pdf.service';
 
+type DeviceStatus = 'INWARDED' | 'DISPATCHED' | 'PENDING' | string;
+
 @Component({
   selector: 'app-rmtl-view-devices',
   templateUrl: './rmtl-view-devices.component.html',
   styleUrls: ['./rmtl-view-devices.component.css']
 })
 export class RmtlViewDevicesComponent implements OnInit {
-  // Raw list (all fetched)
+  // Raw list
   private allDevices: any[] = [];
 
-  // Filtered list (visible)
+  // Visible list
   devices: any[] = [];
 
   fromDate = '';
   toDate = '';
   loading = false;
 
-  // Pagination state
+  // Pagination
   page = 1;
   pageSize = 25;
   pageSizeOptions = [10, 25, 50, 100];
@@ -51,17 +53,26 @@ export class RmtlViewDevicesComponent implements OnInit {
     return dt.toISOString().slice(0, 10);
   }
 
-  // -------- Data load + client-side date filter --------
+  // -------- Load + Filter --------
   fetchDevices(): void {
     this.loading = true;
 
-    // If you have a date-filtered endpoint, prefer it here:
+    // Prefer calling a date-filtered endpoint if available:
     // this.api.getInwardDevices(this.fromDate, this.toDate).subscribe({...})
 
     this.api.getDevices().subscribe({
       next: (response) => {
-        this.allDevices = Array.isArray(response) ? response : [];
-        this.applyFilter(false); // rebuild using current date range
+        const rows = Array.isArray(response) ? response : [];
+
+        // Normalize/guard: ensure we have inward_date for filtering + display
+        this.allDevices = rows.map((r) => ({
+          ...r,
+          // keep original but ensure strings
+          inward_date: r.inward_date || (r.created_at ? (r.created_at as string).slice(0, 10) : null),
+          device_status: (r.device_status || '').toUpperCase() as DeviceStatus
+        }));
+
+        this.applyFilter(false);
         this.loading = false;
       },
       error: (error) => {
@@ -75,27 +86,26 @@ export class RmtlViewDevicesComponent implements OnInit {
     });
   }
 
-  /** Apply date filter client-side (inclusive) */
-  applyFilter(refetch: boolean = true): void {
+  /** Apply date filter (inclusive) */
+  applyFilter(refetch: boolean = false): void {
     if (refetch) {
-      // re-fetch from server if you prefer; otherwise filter locally
       this.fetchDevices();
       return;
     }
 
-    // local filter
     const from = this.fromDate ? new Date(this.fromDate + 'T00:00:00') : null;
     const to   = this.toDate   ? new Date(this.toDate   + 'T23:59:59') : null;
 
-    const inRange = (dtStr?: string) => {
-      if (!dtStr) return false;
-      const dt = new Date(dtStr);
+    const inRange = (d: any) => {
+      const str = d?.inward_date || null;
+      if (!str) return false;
+      const dt = new Date(str + 'T00:00:00');
       if (from && dt < from) return false;
       if (to && dt > to) return false;
       return true;
     };
 
-    this.devices = this.allDevices.filter(d => inRange(d.date_of_entry));
+    this.devices = this.allDevices.filter(inRange);
     this.total = this.devices.length;
     this.page = 1;
   }
@@ -105,15 +115,13 @@ export class RmtlViewDevicesComponent implements OnInit {
     this.applyFilter();
   }
 
-  // ------- Pagination helpers (client-side) -------
+  // ------- Pagination helpers -------
   get indexOfFirst(): number {
     return (this.page - 1) * this.pageSize;
   }
-
   get indexOfLast(): number {
     return Math.min(this.indexOfFirst + this.pageSize, this.total);
   }
-
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.total / this.pageSize));
   }
@@ -127,16 +135,12 @@ export class RmtlViewDevicesComponent implements OnInit {
     if (p < 1 || p > this.totalPages) return;
     this.page = p;
   }
-
   next(): void {
     if (this.page < this.totalPages) this.page++;
   }
-
   prev(): void {
     if (this.page > 1) this.page--;
   }
-
-  /** Generates a small window of page numbers around the current page */
   pageWindow(radius: number = 2): number[] {
     const start = Math.max(1, this.page - radius);
     const end = Math.min(this.totalPages, this.page + radius);
@@ -145,18 +149,36 @@ export class RmtlViewDevicesComponent implements OnInit {
     return arr;
   }
 
-  // -------- Inward Receipt PDF on click of Inward No --------
+  // ------- UI helpers -------
+  statusBadgeClass(status?: string): string {
+    switch ((status || '').toUpperCase()) {
+      case 'INWARDED':
+        return 'bg-info text-dark';
+      case 'DISPATCHED':
+        return 'bg-success';
+      case 'PENDING':
+        return 'bg-warning text-dark';
+      default:
+        return 'bg-secondary';
+    }
+  }
+
+  deviceTypeIcon(type?: string): string {
+    const t = (type || '').toUpperCase();
+    if (t === 'METER') return 'bi-cpu';
+    if (t === 'CT' || t === 'PT') return 'bi-lightning';
+    return 'bi-box';
+    // requires Bootstrap Icons; adjust to fontawesome if you use that
+  }
+
+  // -------- PDF Receipt --------
   downloadInwardReceipt(inwardNo: string): void {
     if (!inwardNo) return;
 
-    // group all rows with this inward no (from full data, not just current page)
     const group = this.allDevices.filter(d => d.inward_number === inwardNo);
     if (!group.length) return;
 
-    // Use first row to populate header-ish fields
     const first = group[0];
-
-    // Build items for receipt
     const items: InwardReceiptItem[] = group.map((d: any, i: number) => ({
       sl: i + 1,
       serial_number: d.serial_number,
@@ -172,23 +194,21 @@ export class RmtlViewDevicesComponent implements OnInit {
       remark: d.remark ?? ''
     }));
 
-    // Prepare receipt payload for the PDF service
     const receipt: InwardReceiptData = {
       title: 'RMTL Inward Receipt',
       orgName: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd',
       inward_no: inwardNo,
       lab_id: first?.lab_id ?? undefined,
       office_type: first?.office_type ?? undefined,
-      location_code: first?.location_code ?? first?.code ?? null,
+      location_code: first?.location_code ?? null,
       location_name: first?.location_name ?? null,
-      date_of_entry: first?.date_of_entry ?? this.toYMD(new Date()),
+      date_of_entry: first?.inward_date || this.toYMD(new Date()),
       device_type: first?.device_type ?? 'METER',
       total: items.length,
       items,
       serials_csv: items.map(i => i.serial_number).join(', ')
     };
 
-    // Download
     const fileName = `Inward_Receipt_${receipt.device_type || 'DEVICE'}_${receipt.date_of_entry || ''}.pdf`;
     this.inwardPdf.download(receipt, { fileName });
   }

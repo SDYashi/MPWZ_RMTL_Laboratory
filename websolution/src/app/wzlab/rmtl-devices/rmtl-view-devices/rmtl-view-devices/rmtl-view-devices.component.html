@@ -1,26 +1,28 @@
 <div class="container-fluid mt-4">
-  <div class="card shadow-sm">
+  <div class="card shadow-sm border-0">
     <div class="card-header text-white d-flex flex-wrap align-items-center gap-2" style="background:#151433">
-      <h5 class="mb-0 me-auto">RMTL — View Inward Devices List</h5>
+      <h5 class="mb-0 me-auto">RMTL — View Inward Devices</h5>
+
+      <!-- Quick chips -->
       <span class="badge bg-dark">From: {{ fromDate || '—' }}</span>
       <span class="badge bg-dark">To: {{ toDate || '—' }}</span>
     </div>
 
     <!-- Filters -->
-    <div class="card-body pb-0 mb-3">
+    <div class="card-body pb-0" style="background-color: #f7f7f9;">
       <form class="row g-3 align-items-end">
-        <div class="col-sm-6 col-md-3">
+        <div class="col-12 col-md-3">
           <label class="form-label fw-semibold">From date</label>
           <input type="date" class="form-control" [(ngModel)]="fromDate" name="fromDate">
         </div>
 
-        <div class="col-sm-6 col-md-3">
+        <div class="col-12 col-md-3">
           <label class="form-label fw-semibold">To date</label>
           <input type="date" class="form-control" [(ngModel)]="toDate" name="toDate">
         </div>
 
         <div class="col-12 col-md-6 d-flex flex-wrap gap-2">
-          <button type="button" class="btn btn-primary mt-3" (click)="applyFilter()">
+          <button type="button" class="btn btn-primary mt-3" (click)="applyFilter(false)">
             <i class="bi bi-funnel"></i> Apply
           </button>
           <button type="button" class="btn btn-outline-primary mt-3" (click)="resetToThisMonth()">
@@ -28,7 +30,7 @@
           </button>
 
           <div class="ms-auto mt-3 d-flex align-items-center gap-2">
-            <label class="form-label mb-0">Rows per page</label>
+            <label class="form-label mb-0">Rows</label>
             <select class="form-select form-select-sm" style="width:auto"
                     [(ngModel)]="pageSize" name="pageSize" (ngModelChange)="goToPage(1)">
               <option *ngFor="let s of pageSizeOptions" [value]="s">{{ s }}</option>
@@ -38,76 +40,84 @@
       </form>
     </div>
 
-    <!-- Table (md and up) -->
-    <div class="card-body p-0 d-none d-md-block">
+    <!-- Desktop table -->
+    <div class="card-body p-0 d-none d-md-block mt-3">
       <div class="table-responsive">
-        <table class="table table-bordered table-hover mb-0">
-          <thead class="table-light text-center position-sticky top-0">
+        <table class="table table-hover table-bordered mb-0 align-middle">
+          <thead class="table-light text-center position-sticky top-0" style="z-index:1;">
             <tr>
               <th>#</th>
               <th>Inward No</th>
               <th>Status</th>
-              <th>Device Type</th>
+              <th>Type</th>
               <th>Make</th>
-              <th>Serial Number</th>
+              <th>Serial</th>
               <th>Meter Type</th>
               <th>Category</th>
               <th>Phase</th>
               <th>Voltage</th>
               <th>Capacity</th>
-              <th>Connection</th>
+              <th>Conn.</th>
               <th>Location</th>
-              <th>Date of Entry</th>
+              <th>Initiator</th>
+              <th>Inward Date</th>
             </tr>
           </thead>
+
           <tbody>
             <tr *ngIf="loading">
-              <td colspan="14" class="text-center text-muted">
+              <td colspan="15" class="text-center text-muted">
                 <div class="spinner-border spinner-border-sm me-2"></div> Loading…
               </td>
             </tr>
 
-            <tr *ngFor="let device of pagedDevices(); let i = index">
+            <tr *ngFor="let d of pagedDevices(); let i = index">
               <td class="text-center">{{ indexOfFirst + i + 1 }}</td>
+
               <td>
                 <button class="btn btn-link p-0 fw-semibold"
-                        (click)="downloadInwardReceipt(device.inward_number)"
-                        [title]="'Generate receipt for ' + device.inward_number">
-                  {{ device.inward_number }}
+                        (click)="downloadInwardReceipt(d.inward_number)"
+                        [title]="'Download inward receipt: ' + d.inward_number">
+                  {{ d.inward_number }}
                 </button>
               </td>
-              <td>
-                <span class="badge"
-                      [ngClass]="{
-                        'bg-info text-dark': device.device_status === 'INWARDED',
-                        'bg-success': device.device_status === 'DISPATCHED',
-                        'bg-warning text-dark': device.device_status === 'PENDING'
-                      }">
-                  {{ device.device_status }}
+
+              <td class="text-center">
+                <span class="badge" [ngClass]="statusBadgeClass(d.device_status)">
+                  {{ d.device_status || '—' }}
                 </span>
               </td>
-              <td>{{ device.device_type }}</td>
-              <td>{{ device.make }}</td>
-              <td>{{ device.serial_number }}</td>
-              <td>{{ device.meter_type }}</td>
-              <td>{{ device.meter_category }}</td>
-              <td>{{ device.phase }}</td>
-              <td>{{ device.voltage_rating }}</td>
-              <td>{{ device.capacity }}</td>
-              <td>{{ device.connection_type }}</td>
-              <td>{{ device.location_name }}</td>
-              <td>{{ device.date_of_entry | date: 'dd-MM-yyyy' }}</td>
+
+              <td>
+                <i class="bi" [ngClass]="deviceTypeIcon(d.device_type)" title="{{ d.device_type }}"></i>
+                <span class="ms-1">{{ d.device_type || '—' }}</span>
+              </td>
+
+              <td>{{ d.make || '—' }}</td>
+              <td class="fw-semibold">{{ d.serial_number || '—' }}</td>
+              <td>{{ d.meter_type || '—' }}</td>
+              <td>{{ d.meter_category || '—' }}</td>
+              <td>{{ d.phase || '—' }}</td>
+              <td>{{ d.voltage_rating || '—' }}</td>
+              <td>{{ d.capacity || '—' }}</td>
+              <td>{{ d.connection_type || '—' }}</td>
+              <td>
+                <div class="small fw-semibold mb-1">{{ d.location_name || '—' }}</div>
+                <div class="text-muted small">{{ d.office_type || '' }} {{ d.location_code ? '('+d.location_code+')' : '' }}</div>
+              </td>
+              <td>{{ d.initiator || '—' }}</td>
+              <td>{{ d.inward_date | date:'dd-MM-yyyy' }}</td>
             </tr>
 
             <tr *ngIf="!loading && devices.length === 0">
-              <td colspan="14" class="text-center text-muted">No devices available for this date range.</td>
+              <td colspan="15" class="text-center text-muted">No devices available for this date range.</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Card List (xs/sm) -->
+    <!-- Mobile cards -->
     <div class="card-body d-block d-md-none">
       <div *ngIf="loading" class="text-center text-muted py-3">
         <div class="spinner-border spinner-border-sm me-2"></div> Loading…
@@ -119,35 +129,45 @@
 
       <div class="row g-3">
         <div class="col-12" *ngFor="let d of pagedDevices(); let i = index">
-          <div class="card border-0 shadow-sm">
+          <div class="card border-0 shadow-sm rounded-3">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start">
                 <div>
                   <div class="small text-muted">Inward No</div>
-                  <button class="btn btn-link p-0 fw-semibold"
+                  <button class="btn btn-link p-0 fw-semibold text-decoration-none"
                           (click)="downloadInwardReceipt(d.inward_number)">
                     {{ d.inward_number }}
                   </button>
                 </div>
-                <span class="badge"
-                      [ngClass]="{
-                        'bg-info text-dark': d.device_status === 'INWARDED',
-                        'bg-success': d.device_status === 'DISPATCHED',
-                        'bg-warning text-dark': d.device_status === 'PENDING'
-                      }">
-                  {{ d.device_status }}
+                <span class="badge" [ngClass]="statusBadgeClass(d.device_status)">
+                  {{ d.device_status || '—' }}
                 </span>
               </div>
 
               <div class="mt-2">
-                <div class="small"><strong>{{ d.device_type }}</strong> • {{ d.make }} • SN: {{ d.serial_number }}</div>
-                <div class="small text-muted">
-                  {{ d.meter_type }} | {{ d.meter_category }} | {{ d.phase }} | {{ d.connection_type }}
+                <div class="small">
+                  <i class="bi me-1" [ngClass]="deviceTypeIcon(d.device_type)"></i>
+                  <strong>{{ d.device_type || '—' }}</strong> • {{ d.make || '—' }} • SN: {{ d.serial_number || '—' }}
                 </div>
                 <div class="small text-muted">
-                  {{ d.voltage_rating }} • {{ d.capacity }} • {{ d.location_name }}
+                  {{ d.meter_type || '—' }} | {{ d.meter_category || '—' }} | {{ d.phase || '—' }} | {{ d.connection_type || '—' }}
                 </div>
-                <div class="small text-muted">Entry: {{ d.date_of_entry | date: 'dd-MM-yyyy' }}</div>
+                <div class="small text-muted">
+                  {{ d.voltage_rating || '—' }} • {{ d.capacity || '—' }}
+                </div>
+                <div class="small">
+                  <strong>Location:</strong> {{ d.location_name || '—' }}
+                  <span class="text-muted"> {{ d.office_type || '' }} {{ d.location_code ? '('+d.location_code+')' : '' }}</span>
+                </div>
+                <div class="small">
+                  <strong>Initiator:</strong> {{ d.initiator || '—' }}
+                </div>
+                <div class="small text-muted">Inward: {{ d.inward_date | date:'dd-MM-yyyy' }}</div>
+
+                <div class="small mt-1" *ngIf="d.device_testing_purpose || d.remark">
+                  <strong>Purpose:</strong> {{ d.device_testing_purpose || '—' }} |
+                  <strong>Remark:</strong> {{ d.remark || '—' }}
+                </div>
               </div>
             </div>
           </div>
@@ -164,8 +184,8 @@
     <!-- Pagination footer -->
     <div class="card-footer d-flex flex-wrap gap-2 align-items-center justify-content-between">
       <div class="small text-muted">
-        Showing <strong>{{ total === 0 ? 0 : indexOfFirst + 1 }}</strong>–
-        <strong>{{ indexOfLast }}</strong> of <strong>{{ total }}</strong>
+        Showing <strong>{{ total === 0 ? 0 : indexOfFirst + 1 }}</strong>–<strong>{{ indexOfLast }}</strong>
+        of <strong>{{ total }}</strong>
       </div>
 
       <nav>

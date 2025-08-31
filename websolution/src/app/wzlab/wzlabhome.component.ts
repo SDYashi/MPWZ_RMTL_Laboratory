@@ -1,8 +1,9 @@
 // src/app/wzlabhome/wzlabhome.component.ts
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { AuthService } from '../core/auth.service';
-import { filter } from 'rxjs/operators';
+import { filter, map, takeUntil } from 'rxjs/operators';
+import { Subject } from 'rxjs';
 
 type SectionKey =
   | 'LABManagement'
@@ -21,9 +22,11 @@ type SectionKey =
   templateUrl: './wzlabhome.component.html',
   styleUrls: ['./wzlabhome.component.css']
 })
-export class WzlabhomeComponent implements OnInit {
+export class WzlabhomeComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
+
   currentUrl = '';
-  currentUser: string | null = null;
+  currentUserName: string | null = null;
 
   // Layout
   sidebarCollapsed = false;
@@ -55,40 +58,51 @@ export class WzlabhomeComponent implements OnInit {
     { key: 'approvalMenu',       prefixes: ['/wzlab/approval'] },
   ];
 
-  constructor(private router: Router, public authService: AuthService) {
+  constructor(
+    private router: Router,
+    public authService: AuthService,
+    private cdr: ChangeDetectorRef
+  ) {
     this.currentUrl = this.router.url.replace('/', '');
   }
 
   ngOnInit(): void {
-    const token = localStorage.getItem('access_token');
-    this.currentUser = token ? this.getUserFromToken(token) : null;
+    // React to login / token set — updates immediately without reload
+    this.authService.user$
+      .pipe(
+        takeUntil(this.destroy$),
+        map(u => u?.name || u?.username || null)
+      )
+      .subscribe(name => {
+        this.currentUserName = name;
+        this.cdr.markForCheck();
+      });
+
+    // React to role changes
+    this.authService.roles$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.cdr.markForCheck());
+
+    // If anything calls triggerRefresh()
+    this.authService.refresh$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.cdr.markForCheck());
+
+    // layout + routing
     this.checkScreenSize();
-
-    const user = this.authService.getuserfromtoken();
-    const userId = user?.id ?? null;
-    const labId = user?.lab_id ?? null;
-    localStorage.setItem('currentUserId', userId?.toString() ?? '');
-    localStorage.setItem('currentLabId', labId?.toString() ?? '');
-
     this.syncOpenSectionWithRoute();
-    this.router.events.pipe(filter(e => e instanceof NavigationEnd))
+    this.router.events
+      .pipe(takeUntil(this.destroy$), filter(e => e instanceof NavigationEnd))
       .subscribe(() => this.syncOpenSectionWithRoute());
-
-    // if (localStorage.getItem('isReloaded') !== 'true') {
-    //   localStorage.setItem('isReloaded', 'true');
-    // } else {
-    //   window.location.reload();
-    // }
-   
   }
 
-  private getUserFromToken(token: string): string | null {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload?.sub ?? payload?.username ?? payload?.name ?? null;
-    } catch {
-      return null;
-    }
+  onKeyToggleSection(key: SectionKey) {
+    this.sections[key] = !this.sections[key];
+    this.cdr.markForCheck();
+  }
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   isRouteActive(paths: string[]): boolean {
@@ -121,13 +135,6 @@ export class WzlabhomeComponent implements OnInit {
     if (matched) this.sections[matched.key] = true;
   }
 
-  onKeyToggleSection(evt: KeyboardEvent, key: SectionKey) {
-    if (evt.key === 'Enter' || evt.key === ' ') {
-      evt.preventDefault();
-      this.toggleSection(key);
-    }
-  }
-
   // expose simple helpers for template
   hasAny(roles: string[]) {
     return this.authService.hasAny(roles);
@@ -137,7 +144,6 @@ export class WzlabhomeComponent implements OnInit {
   }
 
   logout() {
-    localStorage.removeItem('access_token');
-    this.router.navigate(['/wzlogin']);
+    this.authService.logout(); // uses service to clear + navigate
   }
 }
