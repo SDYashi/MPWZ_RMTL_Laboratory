@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
 @Component({
@@ -12,7 +13,7 @@ export class RmtlUserListComponent implements OnInit{
   users: any[] = [];
   response_msg: any;
 
-  constructor(private  http: HttpClient, private router: Router, private apiservice: ApiServicesService) { }
+  constructor(private authService: AuthService, private  http: HttpClient, private router: Router, private apiservice: ApiServicesService) { }
   ngOnInit(): void {
     this.apiservice.getallUsers().subscribe({
       next: (response) => {
@@ -29,5 +30,12 @@ export class RmtlUserListComponent implements OnInit{
 onEdit(user: any): void {
   this.router.navigate(['wzlab/user/edit-user'], { state: { user } });
 }
+  // expose simple helpers for template
+  hasAny(roles: string[]) {
+    return this.authService.hasAny(roles);
+  }
+  canShow(allow: string[], deny: string[] = []) {
+    return this.authService.canShow(allow, deny);
+  }
   
 }

@@ -31,7 +31,7 @@
             <td>{{ client.contact_no }}</td>
             <td>{{ client.email }}</td>
             <td>{{ client.address }}</td>
-            <td>
+            <td *ngIf="canShow(['ADMIN'])">
               <button class="btn btn-sm btn-primary me-2" (click)="editClient(client.id)">
                 <i class="fas fa-edit"></i> 
               </button>

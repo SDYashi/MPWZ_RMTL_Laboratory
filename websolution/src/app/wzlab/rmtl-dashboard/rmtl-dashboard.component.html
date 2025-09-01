@@ -441,10 +441,10 @@
             <div id="wf-disp" class="accordion-collapse collapse" data-bs-parent="#wfAccordion">
               <div class="accordion-body pt-2">
                 <ul class="timeline small">
-                  <li *ngFor="let x of firstN(recent?.recent_dispatcheds, 6)">
+                  <li *ngFor="let x of firstN(recent?.recent_gatepasses, 6)">
                     <span class="text-truncate" title="{{ x.text }}">{{ x.text }}</span>
                   </li>
-                  <li class="text-muted" *ngIf="!(recent?.recent_dispatcheds?.length)">No data</li>
+                  <li class="text-muted" *ngIf="!(recent?.recent_gatepasses?.length)">No data</li>
                 </ul>
               </div>
             </div>

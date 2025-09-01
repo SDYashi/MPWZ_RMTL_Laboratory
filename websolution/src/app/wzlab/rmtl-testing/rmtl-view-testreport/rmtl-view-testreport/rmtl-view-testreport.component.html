@@ -1,138 +1,239 @@
 <div class="container-fluid mt-4">
-  <div class="card shadow">
-    <div class="card-header text-white" style="background:#151433">
-      <h5 class="mb-0">RMTL — View Test Reports</h5>
+  <div class="card shadow border-0">
+    <!-- Header -->
+    <div class="card-header py-3" style="background:#151433">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <h5 class="mb-0 text-white d-flex align-items-center gap-2">
+          <i class="fas fa-clipboard-list"></i>
+          RMTL — View Test Reports
+        </h5>
+
+        <!-- quick stats -->
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge rounded-pill bg-secondary">
+            From: {{ filters.from || '—' }}
+          </span>
+          <span class="badge rounded-pill bg-secondary">
+            To: {{ filters.to || '—' }}
+          </span>
+          <span class="badge rounded-pill bg-info text-dark">
+            Total: {{ filtered.length }}
+          </span>
+          <span class="badge rounded-pill"
+                [ngClass]="{'bg-success': pageRows.length, 'bg-warning text-dark': !pageRows.length}">
+            Page: {{ page }} / {{ totalPages || 1 }}
+          </span>
+        </div>
+      </div>
     </div>
 
     <div class="card-body">
 
-<!-- Filters -->
-<div class="row g-3 align-items-end">
-  <div class="col-md-4">
-    <label class="form-label">From</label>
-    <input type="date" class="form-control"
-           [(ngModel)]="filters.from"
-           (change)="onDateChanged()">
-  </div>
-  <div class="col-md-4">
-    <label class="form-label">To</label>
-    <input type="date" class="form-control"
-           [(ngModel)]="filters.to"
-           (change)="onDateChanged()">
-  </div>
-  <div class="col-md-4">
-    <label class="form-label">Report Type</label>
-    <select class="form-select"
-            [(ngModel)]="filters.report_type"
-            (change)="onReportTypeChanged()">
-      <option value="">All</option>
-      <option *ngFor="let rt of reportTypes" [value]="rt">{{ rt }}</option>
-    </select>
-  </div>
-</div>
+      <!-- Filters -->
+      <div class="border rounded-3 p-3 p-md-4 mb-3 bg-light-subtle">
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-md-4">
+            <label class="form-label fw-semibold">From</label>
+            <input type="date" class="form-control" [(ngModel)]="filters.from" (change)="onDateChanged()">
+          </div>
 
+          <div class="col-12 col-md-4">
+            <label class="form-label fw-semibold">To</label>
+            <input type="date" class="form-control" [(ngModel)]="filters.to" (change)="onDateChanged()">
+          </div>
 
-      <div class="d-flex gap-2 justify-content-end mt-3">
-        <button class="btn btn-outline-secondary" (click)="resetFilters()">Reset</button>
-        <button class="btn btn-outline-success" (click)="exportCSV()">Export CSV</button>
+          <div class="col-12 col-md-4">
+            <label class="form-label fw-semibold">Report Type</label>
+            <select class="form-select" [(ngModel)]="filters.report_type" (change)="onReportTypeChanged()">
+              <option value="">All</option>
+              <option *ngFor="let rt of reportTypes" [value]="rt">{{ rt }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 justify-content-end mt-3">
+          <button class="btn btn-outline-secondary" (click)="resetFilters()">
+            <i class="fas fa-rotate"></i> Reset
+          </button>
+          <button class="btn btn-outline-success" (click)="exportCSV()">
+            <i class="fas fa-file-csv"></i> Export CSV
+          </button>
+        </div>
       </div>
 
-    
-    <!-- Table -->
-<div class="table-responsive mt-3">
-  <table class="table table-bordered align-middle text-center table-hover">
-    <thead class="table-dark">
-      <tr>
-        <th>#</th>
-        <th>ID</th>
-        <th>Device</th>
-        <th>Assignment</th>
-        <th>Terminal Block</th>
-        <th>Meter Body</th>
-        <th>Glass Cover</th>
-        <th>Seal</th>
-        <th>Method</th>
-        <th>Status</th>
-        <th>Result</th>
-        <th>Condition</th>
-        <th>Burned</th>
-        <th>Start</th>
-        <th>End</th>
-        <th>Error %</th>
-        <th>Report Type</th>      
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let r of pageRows; let i=index">
-        <td>{{ (page-1)*pageSize + i + 1 }}</td>
-        <!-- <td>{{ r.id }}</td> -->
-        <td>{{ r.device_id }}</td>
-        <td>{{ r.assignment_id }}</td>
-        <td>{{ r.terminal_block }}</td>
-        <td>{{ r.meter_body }}</td>
-        <td>{{ r.meter_glass_cover }}</td>
-        <td>{{ r.seal_status }}</td>
-        <td>{{ r.test_method }}</td>
-        <td>
-          <span class="badge"
-            [ngClass]="{
-              'bg-success': r.test_status==='COMPLETED',
-              'bg-warning text-dark': r.test_status==='UNTESTABLE'
-            }">
-            {{ r.test_status }}
-          </span>
-        </td>
-        <td>
-          <span class="badge"
-            [ngClass]="{
-              'bg-success': r.test_result==='PASS',
-              'bg-danger': r.test_result==='FAIL',
-              'bg-warning text-dark': r.test_result==='PENDING'
-            }">
-            {{ r.test_result }}
-          </span>
-        </td>
-        <td>{{ r.physical_condition_of_device }}</td>
-        <td>
-          <span [ngClass]="{'text-danger fw-bold': r.is_burned, 'text-success': !r.is_burned}">
-            {{ r.is_burned ? 'YES' : 'NO' }}
-          </span>
-        </td>
-        <td>{{ r.start_datetime | date:'short' }}</td>
-        <td>{{ r.end_datetime | date:'short' }}</td>
-        <td>{{ r.error_percentage }}%</td>
-        <td>{{ r.report_type }}</td>
-        <td>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-primary" (click)="openDetails(r)" data-bs-toggle="offcanvas" data-bs-target="#detailsCanvas">Details</button>
-            <!-- <button class="btn btn-outline-secondary" (click)="edit(r)">Edit</button>
-            <button class="btn btn-outline-dark" (click)="print(r)">Print</button> -->
+      <!-- Loading & Error -->
+      <div *ngIf="loading" class="alert alert-light border d-flex align-items-center gap-2">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Loading reports…
+      </div>
+      <div *ngIf="!loading && error" class="alert alert-danger">
+        {{ error }}
+      </div>
+
+      <!-- Table -->
+      <div class="table-responsive mt-3">
+        <table class="table table-bordered align-middle text-center table-hover mb-3"
+               style="--bs-table-bg:#fff; --bs-table-striped-bg:#f8f9fa;">
+          <thead class="table-dark position-sticky top-0" style="z-index:1">
+            <tr>
+              <th style="min-width:56px;">#</th>
+              <th style="min-width:90px;">Device ID</th>
+              <th style="min-width:90px;">Assign ID</th>
+              <th style="min-width:140px;">Terminal Block</th>
+              <th style="min-width:120px;">Meter Body</th>
+              <th style="min-width:120px;">Glass Cover</th>
+              <th style="min-width:100px;">Seal</th>
+              <th style="min-width:110px;">Method</th>
+              <th style="min-width:110px;">Status</th>
+              <th style="min-width:110px;">Result</th>
+              <th style="min-width:140px;">Condition</th>
+              <th style="min-width:90px;">Burned</th>
+              <th style="min-width:160px;">Start</th>
+              <th style="min-width:160px;">End</th>
+              <th style="min-width:100px;">Error %</th>
+              <th style="min-width:160px;">Report Type</th>
+              <th style="min-width:140px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of pageRows; let i=index" class="align-middle">
+              <td class="text-muted">{{ (page-1)*pageSize + i + 1 }}</td>
+
+              <!-- both flattened and nested shapes -->
+              <td>{{ r.device_id || r.testing?.device_id || r.device?.id || '-' }}</td>
+              <td>{{ r.assignment_id || r.testing?.assignment_id || r.assignment?.id || '-' }}</td>
+
+              <td>{{ r.terminal_block || r.testing?.terminal_block || '-' }}</td>
+              <td>{{ r.meter_body || r.testing?.meter_body || '-' }}</td>
+              <td>{{ r.meter_glass_cover || r.testing?.meter_glass_cover || '-' }}</td>
+              <td>{{ r.seal_status || r.testing?.seal_status || '-' }}</td>
+
+              <td><span class="badge rounded-pill bg-secondary">
+                {{ r.test_method || r.testing?.test_method || '-' }}
+              </span></td>
+
+              <td>
+                <span class="badge rounded-pill"
+                  [ngClass]="{
+                    'bg-success': (r.test_status || r.testing?.test_status) === 'COMPLETED',
+                    'bg-warning text-dark': (r.test_status || r.testing?.test_status) === 'UNTESTABLE',
+                    'bg-secondary': !(r.test_status || r.testing?.test_status)
+                  }">
+                  {{ r.test_status || r.testing?.test_status || '-' }}
+                </span>
+              </td>
+
+              <td>
+                <span class="badge rounded-pill"
+                  [ngClass]="{
+                    'bg-success': (r.test_result || r.testing?.test_result) === 'PASS',
+                    'bg-danger': (r.test_result || r.testing?.test_result) === 'FAIL',
+                    'bg-warning text-dark': (r.test_result || r.testing?.test_result) === 'PENDING',
+                    'bg-secondary': !(r.test_result || r.testing?.test_result)
+                  }">
+                  {{ r.test_result || r.testing?.test_result || '-' }}
+                </span>
+              </td>
+
+              <td>{{ r.physical_condition_of_device || r.testing?.physical_condition_of_device || '-' }}</td>
+
+              <td>
+                <span [ngClass]="{'text-danger fw-semibold': (r.is_burned ?? r.testing?.is_burned) === true, 'text-success': (r.is_burned ?? r.testing?.is_burned) !== true}">
+                  {{ (r.is_burned ?? r.testing?.is_burned) ? 'YES' : 'NO' }}
+                </span>
+              </td>
+
+              <td>{{ (r.start_datetime || r.testing?.start_datetime) | date:'short' }}</td>
+              <td>{{ (r.end_datetime || r.testing?.end_datetime) | date:'short' }}</td>
+
+              <td>{{ (r.error_percentage ?? r.testing?.error_percentage) ?? '-' }}<span *ngIf="(r.error_percentage ?? r.testing?.error_percentage) !== null && (r.error_percentage ?? r.testing?.error_percentage) !== undefined">%</span></td>
+
+              <td>{{ r.report_type || r.testing?.report_type || '-' }}</td>
+
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-primary"
+                          (click)="openDetails(r)"
+                          data-bs-toggle="offcanvas"
+                          data-bs-target="#detailsCanvas">
+                    <i class="fas fa-eye"></i> Details
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="!pageRows.length && !loading && !error">
+              <td colspan="17" class="py-4 text-muted">
+                <i class="far fa-folder-open me-2"></i>No reports found for selected filters.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination (Responsive, Attractive) -->
+      <div class="rmtl-pager mt-2">
+        <!-- Top row: page-size + showing + desktop jump -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <div class="d-flex align-items-center gap-2">
+            <label class="small text-muted mb-0">Rows per page</label>
+            <select class="form-select form-select-sm w-auto" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+              <option *ngFor="let s of pageSizeOptions" [value]="s">{{ s }}</option>
+            </select>
+            <span class="small text-muted ms-2">
+              Showing {{ filtered.length ? ((page-1)*pageSize + 1) : 0 }}–{{ Math.min(page*pageSize, filtered.length) }} of {{ filtered.length }}
+            </span>
           </div>
-        </td>
-      </tr>
-      <tr *ngIf="!pageRows.length">
-        <td colspan="19" class="text-muted">No reports found</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
 
-    
-
-      <!-- Pagination -->
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="small text-muted">
-          Showing {{ (page-1)*pageSize + 1 }}–{{ Math.min(page*pageSize, filtered.length) }} of {{ filtered.length }}
+          <div class="d-none d-md-flex align-items-center gap-2">
+            <label class="small text-muted mb-0">Go to</label>
+            <input type="number" class="form-control form-control-sm w-auto" [min]="1" [max]="totalPages"
+                   [(ngModel)]="gotoInput" (keyup.enter)="goto(gotoInput || 1)">
+            <button class="btn btn-sm btn-outline-primary" (click)="goto(gotoInput || 1)">Go</button>
+          </div>
         </div>
-        <nav>
-          <ul class="pagination pagination-sm mb-0">
-            <li class="page-item" [class.disabled]="page===1"><a class="page-link" (click)="goto(page-1)">Prev</a></li>
-            <li class="page-item" *ngFor="let p of pages" [class.active]="p===page">
-              <a class="page-link" (click)="goto(p)">{{ p }}</a>
+
+        <!-- Desktop / tablet: full pagination with ellipses -->
+        <nav class="d-none d-md-block">
+          <ul class="pagination pagination-sm justify-content-end mb-0 pagination-rounded shadow-sm">
+            <li class="page-item" [class.disabled]="page===1">
+              <a class="page-link" (click)="goto(page-1)" aria-label="Previous">
+                <i class="fas fa-angle-left"></i>
+              </a>
             </li>
-            <li class="page-item" [class.disabled]="page===pages[pages.length-1]"><a class="page-link" (click)="goto(page+1)">Next</a></li>
+
+            <li *ngFor="let p of pageWindow"
+                class="page-item"
+                [class.active]="p===page"
+                [class.disabled]="p==='…'">
+              <a *ngIf="p!=='…'" class="page-link" (click)="goto(p)">{{ p }}</a>
+              <span *ngIf="p==='…'" class="page-link">…</span>
+            </li>
+
+            <li class="page-item" [class.disabled]="page===totalPages">
+              <a class="page-link" (click)="goto(page+1)" aria-label="Next">
+                <i class="fas fa-angle-right"></i>
+              </a>
+            </li>
           </ul>
         </nav>
+
+        <!-- Mobile: compact bar -->
+        <div class="d-flex d-md-none align-items-center justify-content-between gap-2 mt-2">
+          <button class="btn btn-sm btn-outline-secondary flex-fill" [disabled]="page===1" (click)="goto(page-1)">
+            <i class="fas fa-chevron-left me-1"></i> Prev
+          </button>
+
+          <div class="d-flex align-items-center gap-2">
+            <select class="form-select form-select-sm" [(ngModel)]="page" (change)="goto(page)">
+              <option *ngFor="let p of allPages" [value]="p">Page {{ p }}</option>
+            </select>
+          </div>
+
+          <button class="btn btn-sm btn-outline-secondary flex-fill" [disabled]="page===totalPages" (click)="goto(page+1)">
+            Next <i class="fas fa-chevron-right ms-1"></i>
+          </button>
+        </div>
       </div>
 
     </div>
@@ -142,70 +243,61 @@
 <!-- Offcanvas: Details -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="detailsCanvas">
   <div class="offcanvas-header">
-    <h5 class="offcanvas-title">Report Details</h5>
+    <h5 class="offcanvas-title d-flex align-items-center gap-2">
+      <i class="fas fa-file-alt"></i> Report Details
+    </h5>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
   </div>
-  <div class="offcanvas-body" *ngIf="selected">
-    <div class="small text-muted mb-2">ID: {{ selected.id }}</div>
 
-    <div class="row g-2">
-      <div class="col-6"><strong>Date:</strong> {{ selected.tested_date | date:'yyyy-MM-dd' }}</div>
-      <div class="col-6"><strong>Inward:</strong> {{ selected.inward_no || '-' }}</div>
-      <div class="col-4"><strong>Device:</strong> {{ selected.device_type }}</div>
-      <div class="col-8"><strong>Report Type:</strong> {{ selected.report_type }}</div>
-      <div class="col-6"><strong>Serial:</strong> {{ selected.serial_number }}</div>
-      <div class="col-6"><strong>Make:</strong> {{ selected.make }}</div>
-      <div class="col-12"><strong>Result:</strong> {{ selected.result }}</div>
+  <div class="offcanvas-body" *ngIf="selected as s">
+    <!-- top meta -->
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <span class="badge bg-dark">Report: {{ (s.report_id || s.testing?.report_id) || '-' }}</span>
+      <span class="badge bg-primary">Type: {{ s.report_type || s.testing?.report_type || '-' }}</span>
+      <span class="badge bg-info text-dark">Status: {{ s.test_status || s.testing?.test_status || '-' }}</span>
+      <span class="badge bg-success">Result: {{ s.test_result || s.testing?.test_result || '-' }}</span>
     </div>
 
-    <hr>
+    <div class="row g-2">
+      <div class="col-6"><strong>Start:</strong> {{ (s.start_datetime || s.testing?.start_datetime) | date:'medium' }}</div>
+      <div class="col-6"><strong>End:</strong> {{ (s.end_datetime || s.testing?.end_datetime) | date:'medium' }}</div>
 
-    <!-- Device specifics -->
-    <ng-container *ngIf="selected.device_type==='METER'">
-      <div><strong>Category:</strong> {{ selected.meter_category || '-' }}</div>
-      <div><strong>Phase:</strong> {{ selected.phase || '-' }}</div>
-      <div><strong>Meter Type:</strong> {{ selected.meter_type || '-' }}</div>
-    </ng-container>
+      <div class="col-6"><strong>Device ID:</strong> {{ s.device_id || s.testing?.device_id || s.device?.id || '-' }}</div>
+      <div class="col-6"><strong>Assignment ID:</strong> {{ s.assignment_id || s.testing?.assignment_id || s.assignment?.id || '-' }}</div>
 
-    <ng-container *ngIf="selected.device_type==='CT'">
-      <div><strong>CT Class:</strong> {{ selected.ct_class || '-' }}</div>
-      <div><strong>CT Ratio:</strong> {{ selected.ct_ratio || '-' }}</div>
-      <div><strong>Burden(VA):</strong> {{ selected.burden_va ?? '-' }}</div>
-    </ng-container>
+      <div class="col-6"><strong>Serial:</strong> {{ s.serial_number || s.device?.serial_number || '-' }}</div>
+      <div class="col-6"><strong>Make:</strong> {{ s.make || s.device?.make || '-' }}</div>
 
-    <hr>
+      <div class="col-6"><strong>Inward No:</strong> {{ s.inward_no || s.device?.inward_number || '-' }}</div>
+      <div class="col-6"><strong>Inward Date:</strong> {{ (s.inward_date || s.device?.inward_date) | date:'yyyy-MM-dd' }}</div>
 
-    <!-- Report-type specific -->
-    <ng-container *ngIf="['stopdefective','contested'].includes(selected.report_type)">
-      <div><strong>Observation:</strong> {{ selected.observation || '-' }}</div>
-      <div><strong>Cause:</strong> {{ selected.cause || '-' }}</div>
-    </ng-container>
+      <div class="col-6"><strong>Meter Category:</strong> {{ s.meter_category || s.device?.meter_category || '-' }}</div>
+      <div class="col-6"><strong>Phase:</strong> {{ s.phase || s.device?.phase || '-' }}</div>
 
-    <ng-container *ngIf="['P4_ONM','P4_vig'].includes(selected.report_type)">
-      <div><strong>Site:</strong> {{ selected.site || '-' }}</div>
-      <div><strong>Load(kW):</strong> {{ selected.load_kw ?? '-' }}</div>
-      <div><strong>Inspection Ref:</strong> {{ selected.inspection_ref || '-' }}</div>
-    </ng-container>
+      <div class="col-6"><strong>Meter Type:</strong> {{ s.meter_type || s.device?.meter_type || '-' }}</div>
+      <div class="col-6"><strong>Voltage:</strong> {{ s.voltage_rating || s.device?.voltage_rating || '-' }}</div>
+    </div>
 
-    <ng-container *ngIf="['Solar netmeter','Solar Generation Meter'].includes(selected.report_type)">
-      <div><strong>Solar kWp:</strong> {{ selected.solar_kwp ?? '-' }}</div>
-      <div><strong>Inverter Make:</strong> {{ selected.inverter_make || '-' }}</div>
-      <div><strong>Grid Voltage:</strong> {{ selected.grid_voltage ?? '-' }}</div>
-    </ng-container>
+    <hr class="my-3">
 
-    <ng-container *ngIf="selected.report_type==='CT Testing'">
-      <div><strong>Magnetization:</strong> {{ selected.magnetization_test || '-' }}</div>
-      <div><strong>Ratio Error(%):</strong> {{ selected.ratio_error_pct ?? '-' }}</div>
-      <div><strong>Phase Angle(min):</strong> {{ selected.phase_angle_min ?? '-' }}</div>
-    </ng-container>
+    <div class="row g-2">
+      <div class="col-6"><strong>Terminal Block:</strong> {{ s.terminal_block || s.testing?.terminal_block || '-' }}</div>
+      <div class="col-6"><strong>Meter Body:</strong> {{ s.meter_body || s.testing?.meter_body || '-' }}</div>
+      <div class="col-6"><strong>Glass Cover:</strong> {{ s.meter_glass_cover || s.testing?.meter_glass_cover || '-' }}</div>
+      <div class="col-6"><strong>Seal:</strong> {{ s.seal_status || s.testing?.seal_status || '-' }}</div>
 
-    <hr>
-    <div><strong>Tested By:</strong> {{ selected.tested_by || '-' }}</div>
-    <div><strong>Remarks:</strong> {{ selected.remarks || '-' }}</div>
+      <div class="col-6"><strong>Condition:</strong> {{ s.physical_condition_of_device || s.testing?.physical_condition_of_device || '-' }}</div>
+      <div class="col-6"><strong>Error %:</strong> {{ (s.error_percentage ?? s.testing?.error_percentage) ?? '-' }}</div>
 
-    <div class="d-flex gap-2 mt-3">
-      <!-- <button class="btn btn-outline-secondary btn-sm" (click)="edit(selected)">Edit</button>
-      <button class="btn btn-dark btn-sm" (click)="print(selected)">Print</button> -->
+      <div class="col-6"><strong>Test Method:</strong> {{ s.test_method || s.testing?.test_method || '-' }}</div>
+      <div class="col-6"><strong>Burned:</strong>
+        <span [ngClass]="{'text-danger fw-semibold': (s.is_burned ?? s.testing?.is_burned) === true, 'text-success': (s.is_burned ?? s.testing?.is_burned) !== true}">
+          {{ (s.is_burned ?? s.testing?.is_burned) ? 'YES' : 'NO' }}
+        </span>
+      </div>
+
+      <div class="col-12"><strong>Details/Remarks:</strong> {{ s.details || s.testing?.details || s.remarks || '-' }}</div>
+      <div class="col-12"><strong>Approver Remark:</strong> {{ s.approver_remark || s.testing?.approver_remark || '-' }}</div>
     </div>
   </div>
 </div>

@@ -33,7 +33,7 @@
               <td>{{ lab.status }}</td>
               <td>{{ lab.created_at | date:'short' }}</td>
               <td>{{ lab.updated_at | date:'short' }}</td>
-              <td>
+                  <td *ngIf="canShow(['ADMIN'])">
                 <button class="btn btn-sm btn-primary me-2" (click)="editLab(lab)">
                   <i class="fas fa-edit"></i>
                 </button>

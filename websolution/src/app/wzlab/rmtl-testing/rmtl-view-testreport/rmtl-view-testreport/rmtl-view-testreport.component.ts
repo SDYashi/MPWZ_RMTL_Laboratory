@@ -2,8 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
-
-type DeviceType = any;   // keep your real enums
+type DeviceType = any;   // replace with your enums/interfaces if available
 type ReportType = any;
 type TestReport = any;
 
@@ -29,10 +28,16 @@ export class RmtlViewTestreportComponent implements OnInit {
   filtered: TestReport[] = [];
   pageRows: TestReport[] = [];
 
-  // client pagination
+  // pagination controls
   page = 1;
-  pageSize = 1000;
-  pages: number[] = [];
+  pageSize = 50; // attractive default; adjust if needed
+  pageSizeOptions = [10, 25, 50, 100, 250, 500, 1000];
+
+  pages: number[] = [];      // legacy reference
+  allPages: number[] = [];   // for mobile <select>
+  pageWindow: Array<number | '…'> = []; // desktop ellipses window
+  totalPages = 1;
+  gotoInput: number | null = null;
 
   // ui state
   loading = false;
@@ -66,9 +71,6 @@ export class RmtlViewTestreportComponent implements OnInit {
 
   /** Decide final date range to send to API based on filters */
   private resolveDateRange(): { from: string; to: string } {
-    // If both dates empty → current month
-    // If report_type selected and both dates empty → current month
-    // If either/both provided → use provided; if only one side provided, fill the other sensibly
     const hasFrom = !!this.filters.from;
     const hasTo = !!this.filters.to;
 
@@ -102,7 +104,6 @@ export class RmtlViewTestreportComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    // Decide the final range per the rules above
     const { from, to } = this.resolveDateRange();
 
     this.api.getTestingRecords(
@@ -114,14 +115,13 @@ export class RmtlViewTestreportComponent implements OnInit {
       null, // lab_id
       null, // offset
       null, // limit
-      this.filters.report_type, // report_type, // limit
-      this.filters.from, // start_date
+      this.filters.report_type, // report_type
+      from, // start_date (FIX: use resolved 'from')
       to    // end_date
-      // add other params if your API supports them
     ).subscribe({
       next: (data) => {
         this.all = Array.isArray(data) ? data : [];
-        // We no longer do date filtering here; API has already done it.
+        // Server already filtered by date; optionally filter further by report_type here if needed
         this.filtered = this.all.slice();
         this.repaginate();
         this.loading = false;
@@ -132,6 +132,9 @@ export class RmtlViewTestreportComponent implements OnInit {
         this.filtered = [];
         this.pageRows = [];
         this.pages = [];
+        this.totalPages = 1;
+        this.allPages = [];
+        this.pageWindow = [];
         this.loading = false;
       }
     });
@@ -150,28 +153,66 @@ export class RmtlViewTestreportComponent implements OnInit {
     this.fetchFromServer(true); // loads current month by rule
   }
 
-  // Client Pagination
+  // ===== Pagination helpers =====
+  private buildPageWindow(current: number, total: number, radius = 1): Array<number|'…'> {
+    // Always show 1, last, current±radius, and glue with ellipses where gaps exist
+    const set = new Set<number>();
+    const add = (n: number) => { if (n >= 1 && n <= total) set.add(n); };
+
+    add(1); add(total);
+    for (let d = -radius; d <= radius; d++) add(current + d);
+    // Smoother edges
+    add(2); add(3); add(total - 1); add(total - 2);
+
+    const sorted = Array.from(set).sort((a, b) => a - b);
+    const out: Array<number|'…'> = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const n = sorted[i];
+      if (i === 0) { out.push(n); continue; }
+      const prev = sorted[i - 1];
+      if (n === prev + 1) {
+        out.push(n);
+      } else {
+        out.push('…', n);
+      }
+    }
+    return out;
+  }
+
   private repaginate(): void {
-    const totalPages = Math.max(1, Math.ceil(this.filtered.length / this.pageSize));
-    this.pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+    this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.pageSize));
+    if (this.page > this.totalPages) this.page = this.totalPages;
+
     const start = (this.page - 1) * this.pageSize;
     this.pageRows = this.filtered.slice(start, start + this.pageSize);
+
+    // build arrays
+    this.allPages = Array.from({ length: this.totalPages }, (_, i) => i + 1);
+    this.pageWindow = this.buildPageWindow(this.page, this.totalPages, 1);
+    this.pages = this.allPages; // kept for any older references
   }
 
   goto(p: number): void {
-    if (p < 1) return;
-    const max = this.pages[this.pages.length - 1] || 1;
-    if (p > max) return;
-    this.page = p;
+    if (!p) return;
+    const next = Math.max(1, Math.min(this.totalPages, Math.floor(p)));
+    if (next === this.page) return;
+    this.page = next;
     this.repaginate();
   }
 
-  // Actions (unchanged)
-  openDetails(r: TestReport): void { this.selected = r; }
+  onPageSizeChange(): void {
+    this.page = 1; // reset to first page for clarity
+    this.repaginate();
+  }
+
+  // ===== Actions =====
+  openDetails(r: TestReport): void {
+    this.selected = r;
+  }
   // edit(r: TestReport): void { this.router.navigate(['/rmtl/edit-testreport', r.id]); }
   // print(r: TestReport): void { this.router.navigate(['/rmtl/testreport/print', r.id]); }
 
-  // CSV export (unchanged)
+  // ===== CSV export =====
   exportCSV(): void {
     const headers = [
       'id','tested_date','device_type','report_type','serial_number','make','result','inward_no',
@@ -179,10 +220,13 @@ export class RmtlViewTestreportComponent implements OnInit {
       'observation','cause','site','load_kw','inspection_ref','solar_kwp','inverter_make','grid_voltage',
       'magnetization_test','ratio_error_pct','phase_angle_min','tested_by','remarks'
     ];
-    const rows = this.filtered.map(r => headers.map(k => (r as any)[k] ?? ''));
+
+    const val = (r: any, k: string) => (r?.[k] ?? r?.testing?.[k] ?? r?.device?.[k] ?? '');
+
+    const rows = this.filtered.map(r => headers.map(k => val(r, k)));
     const csv = [headers, ...rows]
       .map(row => row.map(v => {
-        const s = String(v);
+        const s = String(v ?? '');
         return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
       }).join(','))
       .join('\n');

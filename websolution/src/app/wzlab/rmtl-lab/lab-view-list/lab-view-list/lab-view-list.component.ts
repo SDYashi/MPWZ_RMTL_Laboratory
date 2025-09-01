@@ -66,7 +66,13 @@ editLab(lab: any) {
 
 }
 
-
+  // expose simple helpers for template
+  hasAny(roles: string[]) {
+    return this.authService.hasAny(roles);
+  }
+  canShow(allow: string[], deny: string[] = []) {
+    return this.authService.canShow(allow, deny);
+  }
 
 
 }

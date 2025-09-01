@@ -49,7 +49,7 @@
              [class.show]="sections['LABManagement'] || isRouteActive(['/wzlab/testing-laboratory'])"
              id="LABManagement">
           <div class="submenu d-flex flex-column">
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN'])"
                routerLink="/wzlab/testing-laboratory/labs-create" routerLinkActive="active">Add New Laboratory</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                routerLink="/wzlab/testing-laboratory/labs-list" routerLinkActive="active">List Existing Laboratory</a>
@@ -73,7 +73,7 @@
              [class.show]="sections['userManagement'] || isRouteActive(['/wzlab/user'])"
              id="userManagement">
           <div class="submenu d-flex flex-column">
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN'])"
                routerLink="/wzlab/user/create-user" routerLinkActive="active">Add Laboratory User Account</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                routerLink="/wzlab/user/user-list" routerLinkActive="active">List Laboratory Users</a>
@@ -97,7 +97,7 @@
              [class.show]="sections['benchManagement'] || isRouteActive(['/wzlab/testing-bench'])"
              id="benchManagement">
           <div class="submenu d-flex flex-column">
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN'])"
                routerLink="/wzlab/testing-bench/add-bench" routerLinkActive="active">Add New Testing Bench</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                routerLink="/wzlab/testing-bench/view-bench-list" routerLinkActive="active">List Existing Benches</a>
@@ -121,7 +121,7 @@
              [class.show]="sections['vendorManagement'] || isRouteActive(['/wzlab/vendor', '/wzlab/supply-vendors'])"
              id="vendorManagement">
           <div class="submenu d-flex flex-column">
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN'])"
                routerLink="/wzlab/supply-vendors/add-supply-vendors" routerLinkActive="active">Add Vendor</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                routerLink="/wzlab/supply-vendors/list-supply-vendors" routerLinkActive="active">List Vendors</a>
@@ -145,7 +145,7 @@
              [class.show]="sections['storeManagement'] || isRouteActive(['/wzlab/store'])"
              id="storeManagement">
           <div class="submenu d-flex flex-column">
-            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN'])"
                routerLink="/wzlab/store/add-store" routerLinkActive="active">Add Source Stores</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                routerLink="/wzlab/store/view-store-list" routerLinkActive="active">View Source Stores</a>
