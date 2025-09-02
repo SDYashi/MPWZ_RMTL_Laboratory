@@ -1,8 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-(pdfMake as any).vfs = pdfFonts.vfs;
+import { SolarGenMeterCertificatePdfService, GenHeader, GenRow } from 'src/app/shared/solargen-certificate-pdf.service';
 
 type TDocumentDefinitions = any;
 
@@ -46,14 +44,14 @@ interface CertRow {
   dial_test?: string;
   remark?: string;
   test_result?: string;
-  
 }
 
+type ModalAction = 'reload' | 'removeRow' | 'submit' | null;
 interface ModalState {
   open: boolean;
   title: string;
   message: string;
-  action: 'reload' | 'removeRow' | 'submit' | null;
+  action: ModalAction;
   payload?: any;
 }
 
@@ -86,18 +84,32 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   alertSuccess: string | null = null;
   alertError: string | null = null;
 
-  // optional: approver id if you use it in backend
-  approverId: number | null = null;
+  // small alert modal
+  alert = {
+    open: false,
+    type: 'info' as 'success' | 'error' | 'warning' | 'info',
+    title: '',
+    message: '',
+    autoCloseMs: 0 as number | 0,
+    _t: 0 as any
+  };
+
+  // enums
   office_types: any;
   commentby_testers: any;
+  test_results: any;
+
   selectedSourceType: any;
   selectedSourceName: string = '';
   filteredSources: any;
-  test_results: any;
+
   // report type for backend
   report_type = 'SOLAR_GENERATION_METER';
 
-  constructor(private api: ApiServicesService) {}
+  constructor(
+    private api: ApiServicesService,
+    private pdfSvc: SolarGenMeterCertificatePdfService
+  ) {}
 
   ngOnInit(): void {
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
@@ -117,17 +129,20 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
     this.reloadAssigned(false);
   }
 
-        // ---------- Source fetch ----------
+  // ---------- Source fetch ----------
   fetchButtonData(): void {
-    if (!this.selectedSourceType || !this.selectedSourceType) {
-       alert('Missing Input');
+    if (!this.selectedSourceType || !this.selectedSourceName) {
+      this.openAlert('warning', 'Missing Input', 'Select a source type and enter code.');
       return;
     }
     this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
-      next: (data) => (this.filteredSources = data, 
-        this.header.location_name = this.filteredSources.name,
-        this.header.location_code = this.filteredSources.code ) ,
-      error: () => alert('Failed to fetch source details. Check the code and try again.')
+      next: (data) => {
+        this.filteredSources = data;
+        this.header.location_name = this.filteredSources?.name ?? '';
+        this.header.location_code = this.filteredSources?.code ?? '';
+        this.openAlert('success', 'Source loaded', 'Office/Store/Vendor fetched.', 1200);
+      },
+      error: () => this.openAlert('error', 'Lookup failed', 'Check the code and try again.')
     });
   }
 
@@ -135,6 +150,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
     this.selectedSourceName = '';
     this.filteredSources = [];
   }
+
   // ======= Computed chips =======
   get matchedCount(){ return (this.rows ?? []).filter(r => !!r.meter_sr_no && !r.notFound).length; }
   get unknownCount(){ return (this.rows ?? []).filter(r => !!r.notFound).length; }
@@ -174,7 +190,6 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
         this.rebuildSerialIndex(asg);
 
-
         if (replaceRows) {
           this.rows = asg.map(a => {
             const d = a.device || ({} as MeterDevice);
@@ -192,7 +207,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         }
         this.loading = false;
       },
-      error: () => { this.loading = false; }
+      error: () => { this.loading = false; this.openAlert('error','Reload failed','Could not fetch assigned meters.'); }
     });
   }
 
@@ -217,7 +232,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   }
 
   addRow() { this.rows.push(this.emptyRow()); }
-  removeRow(i: number) { this.rows.splice(i, 1); }
+  private doRemoveRow(i: number) { if (i>=0 && i<this.rows.length){ this.rows.splice(i,1); if (!this.rows.length) this.rows.push(this.emptyRow()); } }
   trackByRow(i: number, r: CertRow) { return `${r.assignment_id || 0}_${r.device_id || 0}_${r.meter_sr_no || ''}_${i}`; }
 
   displayRows(): CertRow[] {
@@ -237,78 +252,94 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
     r.difference = v;
   }
 
-  // ========= Submit flow =========
-  private toYMD(d: Date){ const dt = new Date(d.getTime() - d.getTimezoneOffset()*60000); return dt.toISOString().slice(0,10); }
+  // ========= helpers =========
+  private numOrNull(v:any){ const n = Number(v); return isFinite(n) ? n : null; }
   private isoOn(dateStr?: string){ const d = dateStr? new Date(dateStr+'T10:00:00') : new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString(); }
 
   private inferredTestResult(r: CertRow): string | undefined {
     const vals = [r.starting_current_test, r.creep_test, r.dial_test].map(v => (v || '').toString().toLowerCase());
-    const hasAny = vals.some(v => v.length);
-    if (!hasAny) return undefined;
+    if (!vals.some(v => v)) return r.test_result || undefined;
     if (vals.some(v => v.includes('fail'))) return 'FAIL';
-    return 'PASS';
+    return r.test_result || 'PASS';
   }
 
- private buildPayloadForPreview(): any[] {
-  return (this.rows || [])
-    .filter(r => (r.meter_sr_no || '').trim())
-    .map(r => {
-      const when = this.isoOn(r.date_of_testing);
+  /** Fully map to Testing model columns */
+  private buildPayload(): any[] {
+    const requester = this.header.location_name || this.filteredSources?.name || null;
 
-      // Build the details object first
-      const detailsObj = {
-        consumer_name: r.consumer_name || '',
-        address: r.address || '',
-        certificate_no: r.certificate_no || '',
-        testing_fees: Number(r.testing_fees ?? 0),
-        mr_no: r.mr_no || '',
-        mr_date: r.mr_date || '',
-        ref_no: r.ref_no || '',
-        starting_reading: Number(r.starting_reading ?? 0),
-        final_reading_r: Number(r.final_reading_r ?? 0),
-        final_reading_e: Number(r.final_reading_e ?? 0),
-        difference: Number(r.difference ?? 0),
-        starting_current_test: r.starting_current_test || '',
-        creep_test: r.creep_test || '',
-        dial_test: r.dial_test || '',
-        remark: r.remark || '',
-      };
-
-      return {
+    return (this.rows || [])
+      .filter(r => (r.meter_sr_no || '').trim())
+      .map(r => ({
         device_id: r.device_id ?? 0,
         assignment_id: r.assignment_id ?? 0,
-        start_datetime: when,
-        end_datetime: when,
 
-        // ✅ send a string, not an object
-        details: JSON.stringify(detailsObj),
+        start_datetime: this.isoOn(r.date_of_testing),
+        end_datetime:   this.isoOn(r.date_of_testing),
 
-        physical_condition_of_device: '-',
-        seal_status: '-',
-        meter_glass_cover: '-',
-        terminal_block: '-',
-        meter_body: '-',
-        other: '-',
+        physical_condition_of_device: null,
+        seal_status: null,
+        meter_glass_cover: null,
+        terminal_block: null,
+        meter_body: null,
+        other: null,
         is_burned: false,
-        reading_before_test: 0,
-        reading_after_test: 0,
-        ref_start_reading: 0,
-        ref_end_reading: 0,
-        error_percentage: 0,
 
-        test_result: this.inferredTestResult(r),
-        test_method: this.testMethod,
-        test_status: this.testStatus,
-        approver_id: this.approverId ?? null,
-        report_type: this.report_type
-      };
-    });
-}
+        reading_before_test: this.numOrNull(r.starting_reading),
+        reading_after_test:  this.numOrNull(r.final_reading_r),
+        ref_start_reading: null,
+        ref_end_reading: null,
+        error_percentage: null,
 
+        // result/meta
+        details: r.remark || null,
+        test_result: this.inferredTestResult(r) || null,
+        test_method: this.testMethod || null,
+        test_status: this.testStatus || null,
 
-  // modal
-  openConfirm(action: ModalState['action'], payload?: any){
-    if (action !== 'submit') { this.alertSuccess = null; this.alertError = null; }
+        // new columns
+        consumer_name: r.consumer_name || null,
+        consumer_address: r.address || null,
+        certificate_number: r.certificate_no || null,
+        testing_fees: this.numOrNull(r.testing_fees),
+        fees_mr_no: r.mr_no || null,
+        fees_mr_date: r.mr_date || null,
+        ref_no: r.ref_no || null,
+
+        start_reading: this.numOrNull(r.starting_reading),
+        final_reading: this.numOrNull(r.final_reading_r),
+        final_reading_export: this.numOrNull(r.final_reading_e),
+        difference: this.numOrNull(r.difference),
+
+        test_requester_name: requester,
+        meter_removaltime_reading: null,
+        meter_removaltime_metercondition: null,
+        any_other_remarkny_zone: null,
+
+        dail_test_kwh_rsm: null,
+        recorderedbymeter_kwh: null,
+        starting_current_test: null, // UI strings; keep null unless API accepts strings
+        creep_test: null,
+        dail_test: null,
+        final_remarks: r.remark || null,
+
+        p4_division: null,
+        p4_no: null,
+        p4_date: null,
+        p4_metercodition: null,
+
+        approver_id: null,
+        approver_remark: null,
+
+        report_id: null,
+        report_type: this.report_type,
+
+        created_by: String(this.currentUserId || ''),
+      }));
+  }
+
+  // ========= confirm & alerts =========
+  openConfirm(action: ModalAction, payload?: any){
+    this.alertSuccess = null; this.alertError = null;
     this.modal.action = action; this.modal.payload = payload;
 
     switch(action){
@@ -325,15 +356,23 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
     const a = this.modal.action, p = this.modal.payload;
     if (a !== 'submit') this.closeModal();
     if (a === 'reload') this.reloadAssigned(true);
-    if (a === 'removeRow') this.removeRow(p?.index);
+    if (a === 'removeRow') { this.doRemoveRow(p?.index); this.openAlert('success','Row removed','The row has been removed.',1200); }
     if (a === 'submit') this.doSubmitBatch();
   }
 
   private doSubmitBatch(){
-    const payload = this.buildPayloadForPreview();
+    const payload = this.buildPayload();
     if (!payload.length){
       this.alertError = 'No valid rows to submit.';
-      this.alertSuccess = null;
+      this.openAlert('warning', 'Nothing to submit', 'Please add at least one valid row.');
+      return;
+    }
+
+    // Optional: date required
+    const missingDt = payload.findIndex(p => !p.start_datetime);
+    if (missingDt !== -1){
+      this.alertError = `Row #${missingDt+1} is missing Date of Testing.`;
+      this.openAlert('warning', 'Validation error', this.alertError);
       return;
     }
 
@@ -344,172 +383,60 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
     this.api.postTestReports(payload).subscribe({
       next: () => {
         this.submitting = false;
-        try { this.downloadPdf(); } catch(e){ console.error('PDF generation failed:', e); }
+
+        // PDF after successful save
+        const hdr: GenHeader = {
+          location_code: this.header.location_code,
+          location_name: this.header.location_name,
+          testMethod: this.testMethod,
+          testStatus: this.testStatus
+        };
+        const rows: GenRow[] = (this.rows || []).filter(r => (r.meter_sr_no||'').trim()).map(r => ({
+          certificate_no: r.certificate_no || null,
+          consumer_name: r.consumer_name || null,
+          address: r.address || null,
+          meter_make: r.meter_make || null,
+          meter_sr_no: r.meter_sr_no || null,
+          meter_capacity: r.meter_capacity || null,
+          date_of_testing: r.date_of_testing || null,
+          testing_fees: this.numOrNull(r.testing_fees),
+          mr_no: r.mr_no || null,
+          mr_date: r.mr_date || null,
+          ref_no: r.ref_no || null,
+          starting_reading: this.numOrNull(r.starting_reading),
+          final_reading_r: this.numOrNull(r.final_reading_r),
+          final_reading_e: this.numOrNull(r.final_reading_e),
+          difference: this.numOrNull(r.difference),
+          starting_current_test: r.starting_current_test || null,
+          creep_test: r.creep_test || null,
+          dial_test: r.dial_test || null,
+          test_result: r.test_result || this.inferredTestResult(r) || null,
+          remark: r.remark || null
+        }));
+        this.pdfSvc.download(hdr, rows);
+
         this.alertSuccess = 'Batch Certificate submitted successfully!';
-        this.alertError = null;
+        this.openAlert('success', 'Submitted', 'Batch certificate submitted successfully!');
         this.rows = [ this.emptyRow() ];
         setTimeout(()=> this.closeModal(), 1200);
       },
       error: (err) => {
         this.submitting = false;
-        this.alertSuccess = null;
         this.alertError = 'Error submitting certificate. Please verify fields and try again.';
+        this.openAlert('error','Submission failed','Something went wrong while submitting the batch.');
         console.error(err);
       }
     });
   }
 
-  // ================= PDF =================
-private row2page(
-  r: CertRow,
-  meta: { zone: string; method: string; status: string }
-): any[] {
-
-  const headerBlock = {
-    columns: [
-      {
-        width: '*',
-        stack: [
-          { text: 'OFFICE OF THE ASSISTANT ENGINEER (R.M.T.L.) M.T. DN.-I', alignment: 'center', bold: true, fontSize: 11 },
-          { text: 'M.P.P.K.V.V.CO.LTD. INDORE', alignment: 'center', bold: true, margin: [0, 2, 0, 0], fontSize: 10 },
-          { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', margin: [0, 6, 0, 2], fontSize: 10 },
-          { text: 'SOLAR GENERATOR METER TEST REPORT', style: 'hindiTitle', alignment: 'center', margin: [0, 4, 0, 0] },
-        ],
-      }
-    ],
-    columnGap: 12,
-    margin: [0, 0, 0, 4],
-  };
-
-  const headerLine = {
-    text: `DC/Zone: ${meta.zone}    •    Test Method: ${meta.method || '-'}    •    Test Status: ${meta.status || '-'}`,
-    alignment: 'center',
-    style: 'hdrSmall',
-    margin: [0, 6, 0, 8],
-  };
-
-  const two = (label: string, value: any) => [
-    { text: label, style: 'lbl' },
-    { text: (value ?? '').toString(), style: 'val' },
-  ];
-
-  const mrText = `${r.mr_no ?? ''}${r.mr_no && r.mr_date ? '  DT  ' : ''}${r.mr_date ?? ''}`;
-
-  const detailsTable = {
-    style: 'tableTight',
-    layout: 'lightHorizontalLines',
-    table: {
-      // Simple, compact 2-column table
-      widths: [150, '*'],
-      body: [
-        two('Name of consumer', r.consumer_name),
-        two('Address', r.address),
-        two('Meter Make', r.meter_make),
-        two('Meter Sr. No.', r.meter_sr_no),
-        two('Meter Capacity', r.meter_capacity),
-        two('Testing Fees Rs.', r.testing_fees),
-        two('M.R. No & Date', mrText),
-        two('Ref.', r.ref_no),
-        two('Date of Testing', r.date_of_testing),
-        two('Starting Reading', r.starting_reading),
-        // Final readings in a single line to save space
-        two('Final Reading', `R- ${r.final_reading_r ?? ''}    E- ${r.final_reading_e ?? ''}`),
-        two('Difference', r.difference),
-        two('Starting Current Test', r.starting_current_test),
-        two('Creep Test', r.creep_test),
-        two('Dial Test', r.dial_test),
-        two('Remark', r.remark),
-      ],
-      // Keep rows on the same page (each cert is a page)
-      dontBreakRows: true,
-    },
-    margin: [0, 6, 0, 6],
-  };
-
-  const sign = {
-    columns: [
-      {
-        width: '*',
-        alignment: 'center',
-        stack: [
-          { text: 'Tested by', style: 'footRole' },
-          { text: '\n____________________________', alignment: 'center' },
-          { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
-        ],
-      },
-      {
-        width: '*',
-        alignment: 'center',
-        stack: [
-          { text: 'Verified by', style: 'footRole' },
-          { text: '\n____________________________', alignment: 'center' },
-          { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
-        ],
-      },
-      {
-        width: '*',
-        alignment: 'center',
-        stack: [
-          { text: 'Approved by', style: 'footRole' },
-          { text: '\n____________________________', alignment: 'center' },
-          { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
-        ],
-      },
-    ],
-    margin: [0, 40, 0, 0],
-  };
-
-  // One certificate per page
-  return [
-    headerBlock,
-    headerLine,
-    detailsTable,
-    sign,
-    { text: '', pageBreak: 'after' },
-  ];
-}
-
-private buildDoc(): TDocumentDefinitions {
-  const pages: any[] = [];
-  const meta = {
-    zone: (this.header.location_code ? this.header.location_code + ' - ' : '') + (this.header.location_name || ''),
-    method: this.testMethod || '',
-    status: this.testStatus || '',
-  };
-
-  const data = this.rows.filter(r => (r.meter_sr_no || '').trim());
-  data.forEach(r => pages.push(...this.row2page(r, meta)));
-
-  return {
-    pageSize: 'A4',
-    pageMargins: [24, 22, 24, 28], // slightly tighter
-    defaultStyle: { fontSize: 9, lineHeight: 1.05 }, // compact and readable
-    styles: {
-      lbl: { bold: true, fontSize: 9, color: '#111' },
-      val: { fontSize: 9, color: '#111' },
-      hindiTitle: { fontSize: 16, bold: true, color: '#111' },
-      hdrSmall: { fontSize: 9, color: '#333' },
-      tableTight: { fontSize: 9 },
-      footRole: { fontSize: 9, bold: true },
-      footTiny: { fontSize: 8, color: '#444' },
-      lblRight: { fontSize: 8, color: '#444', alignment: 'right' },
-      bigRight: { fontSize: 10, bold: true, alignment: 'right' },
-    },
-    content: pages,
-    footer: (current: number, total: number) => ({
-      columns: [
-        { text: `Page ${current} of ${total}`, alignment: 'left', margin: [24, 0, 0, 0] },
-        { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 24, 0] },
-      ],
-      fontSize: 8,
-    }),
-    info: { title: 'Solar_GENERATIONMETER_Certificate' },
-  };
-}
-
-
-  private downloadPdf() {
-    const doc = this.buildDoc();
-    pdfMake.createPdf(doc).download('SOLAR_GENERATIONMETER_CERTIFICATES.pdf');
+  // alert modal helpers
+  openAlert(type: 'success'|'error'|'warning'|'info', title: string, message: string, autoCloseMs: number = 0){
+    if (this.alert._t){ clearTimeout(this.alert._t); }
+    this.alert = { open: true, type, title, message, autoCloseMs, _t: 0 };
+    if (autoCloseMs > 0){ this.alert._t = setTimeout(()=> this.closeAlert(), autoCloseMs); }
+  }
+  closeAlert(){
+    if (this.alert._t){ clearTimeout(this.alert._t); }
+    this.alert.open = false;
   }
 }

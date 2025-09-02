@@ -1,10 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-(pdfMake as any).vfs = pdfFonts.vfs;
-
-type TDocumentDefinitions = any;
+import { P4VigReportPdfService, VigHeader, VigRow } from 'src/app/shared/p4vig-report-pdf.service';
 
 interface MeterDevice {
   id: number;
@@ -17,14 +13,12 @@ interface MeterDevice {
 interface AssignmentItem { id: number; device_id: number; device?: MeterDevice | null; }
 
 interface Row {
-  // main
   serial: string;
   make: string;
   capacity: string;
   removal_reading?: number;
   test_result?: string;
 
-  // top sheet
   consumer_name?: string;
   address?: string;
   account_number?: string;
@@ -33,7 +27,6 @@ interface Row {
   panchanama_date?: string;
   condition_at_removal?: string;
 
-  // rmtl
   testing_date?: string;
   is_burned: boolean;
   seal_status: string;
@@ -52,7 +45,6 @@ interface Row {
 
   remark?: string;
 
-  // assignment
   assignment_id?: number;
   device_id?: number;
   notFound?: boolean;
@@ -60,11 +52,13 @@ interface Row {
   _open?: boolean;
 }
 
+type ModalAction = 'submit' | 'removeRow' | 'reload' | null;
+
 interface ModalState {
   open: boolean;
   title: string;
   message?: string;
-  action: 'submit' | null;
+  action: ModalAction;
   payload?: any;
 }
 
@@ -112,8 +106,18 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   alertError: string | null = null;
   testResults: any;
   commentby_testers: any;
-  meta: any
-  constructor(private api: ApiServicesService) {}
+
+  // ===== alert modal =====
+  alert = {
+    open: false,
+    type: 'info' as 'success' | 'error' | 'warning' | 'info',
+    title: '',
+    message: '',
+    autoCloseMs: 0 as number | 0,
+    _t: 0 as any
+  };
+
+  constructor(private api: ApiServicesService, private pdfSvc: P4VigReportPdfService) {}
 
   ngOnInit(): void {
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
@@ -133,15 +137,13 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       }
     });
 
-    // build index without altering UI
     this.reloadAssigned(false);
   }
 
   // ---------- Source fetch ----------
   fetchButtonData(): void {
-    // FIX: validate both type and name
     if (!this.selectedSourceType || !this.selectedSourceName) {
-      alert('Missing Input');
+      this.openAlert('warning', 'Missing input', 'Select a source type and enter code.');
       return;
     }
     this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
@@ -149,8 +151,9 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         this.filteredSources = data;
         this.header.location_name = this.filteredSources?.name ?? '';
         this.header.location_code = this.filteredSources?.code ?? '';
+        this.openAlert('success', 'Source loaded', 'Office/Store/Vendor fetched.', 1200);
       },
-      error: () => alert('Failed to fetch source details. Check the code and try again.')
+      error: () => this.openAlert('error', 'Lookup failed', 'Check the code and try again.')
     });
   }
 
@@ -172,7 +175,14 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     };
   }
   addRow(){ this.rows.push(this.emptyRow({ _open: true })); }
-  removeRow(i:number){ this.rows.splice(i,1); if (!this.rows.length) this.addRow(); }
+
+  /** remove with bounds check; caller ensures confirmation */
+  private doRemoveRow(i:number){
+    if (i < 0 || i >= this.rows.length) return;
+    this.rows.splice(i,1);
+    if (!this.rows.length) this.addRow();
+  }
+
   trackByRow(i:number, r:Row){ return `${r.assignment_id || 0}_${r.device_id || 0}_${r.serial || ''}_${i}`; }
 
   displayRows(): Row[] {
@@ -230,7 +240,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         }
         this.loading = false;
       },
-      error: ()=>{ this.loading=false; }
+      error: ()=>{ this.loading=false; this.openAlert('error', 'Reload failed', 'Could not fetch assigned meters.'); }
     });
   }
 
@@ -249,65 +259,109 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     }
   }
 
-  // ===== payload / submit =====
-  private isoOn(dateStr?: string){ const d = dateStr? new Date(dateStr+'T10:00:00') : new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString(); }
+  // ===== numbers / dates =====
+  private isoOn(dateStr?: string){
+    const d = dateStr? new Date(dateStr+'T10:00:00') : new Date();
+    return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString();
+  }
+  private numOrNull(v:any){ const n = Number(v); return isFinite(n) ? n : null; }
 
+  /** Map to backend Testing model, filling all available columns */
   private buildPayload(): any[] {
-    // Choose a sensible timestamp; for contested we’ll use testing_date (or today if blank)
     return (this.rows||[])
       .filter(r => (r.serial||'').trim())
-      .map(r => ({
-        device_id: r.device_id ?? 0,
-        assignment_id: r.assignment_id ?? 0,
+      .map(r => {
+        const start = this.numOrNull(r.reading_before_test);
+        const end   = this.numOrNull(r.reading_after_test);
+        const diff  = (start != null && end != null) ? (end - start) : null;
 
-        // testing window
-        start_datetime: this.isoOn(r.testing_date),
-        end_datetime: this.isoOn(r.testing_date),
+        return {
+          device_id: r.device_id ?? 0,
+          assignment_id: r.assignment_id ?? 0,
+          start_datetime: this.isoOn(r.testing_date),
+          end_datetime: this.isoOn(r.testing_date),
 
-        // lab condition fields
-        is_burned: !!r.is_burned,
-        seal_status: r.seal_status || '-',
-        meter_glass_cover: r.meter_glass_cover || '-',
-        terminal_block: r.terminal_block || '-',
-        meter_body: r.meter_body || '-',
-        other: r.other || '-',
+          physical_condition_of_device: null,
+          seal_status: r.seal_status || null,
+          meter_glass_cover: r.meter_glass_cover || null,
+          terminal_block: r.terminal_block || null,
+          meter_body: r.meter_body || null,
+          other: r.other || null,
+          is_burned: !!r.is_burned,
 
-        // readings
-        reading_before_test: Number(r.reading_before_test) || 0,
-        reading_after_test: Number(r.reading_after_test) || 0,
-        rsm_kwh: Number(r.rsm_kwh) || 0,
-        meter_kwh: Number(r.meter_kwh) || 0,
-        error_percentage: Number(r.error_percentage) || 0,
+          reading_before_test: this.numOrNull(r.reading_before_test),
+          reading_after_test: this.numOrNull(r.reading_after_test),
+          ref_start_reading: null,
+          ref_end_reading: null,
+          error_percentage: this.numOrNull(r.error_percentage),
 
-        // results & meta
-        test_result: r.test_result || undefined,
-        test_method: this.testMethod || null,
-        test_status: this.testStatus || null,
+          details: r.remark || null,
+          test_result: r.test_result || null,
+          test_method: this.testMethod || null,
+          test_status: this.testStatus || null,
 
-        // contested top sheet (stored for record)
-        consumer_name: r.consumer_name || null,
-        address: r.address || null,
-        account_number: r.account_number || null,
-        division_zone: r.division_zone || this.filteredSources.division_zone || null,
-        panchanama_no: r.panchanama_no || null,
-        panchanama_date: r.panchanama_date || null,
-        condition_at_removal: r.condition_at_removal || null,
-        removal_reading: Number(r.removal_reading) || 0,
+          consumer_name: r.consumer_name || null,
+          consumer_address: r.address || null,
+          certificate_number: null,
+          testing_fees: null,
+          fees_mr_no: null,
+          fees_mr_date: null,
+          ref_no: r.account_number || null,
 
-        // free remark
-        details: r.remark || null,
+          start_reading: this.numOrNull(r.reading_before_test),
+          final_reading: this.numOrNull(r.reading_after_test),
+          final_reading_export: null,
+          difference: diff,
 
-        // explicitly mark report type (server can branch if needed)
-        report_type: 'P4_VIG'
-      }));
+          test_requester_name: r.division_zone || null,
+          meter_removaltime_reading: this.numOrNull(r.removal_reading),
+          meter_removaltime_metercondition: null,
+          any_other_remarkny_zone: r.condition_at_removal || null,
+
+          dail_test_kwh_rsm: this.numOrNull(r.rsm_kwh),
+          recorderedbymeter_kwh: this.numOrNull(r.meter_kwh),
+          starting_current_test: null,
+          creep_test: null,
+          dail_test: null,
+          final_remarks: r.remark || null,
+
+          p4_division: r.division_zone || null,
+          p4_no: r.panchanama_no || null,
+          p4_date: r.panchanama_date || null,
+          p4_metercodition: r.condition_at_removal || null,
+
+          approver_id: null,
+          approver_remark: null,
+
+          report_id: null,
+          report_type: 'P4_VIG',
+
+          created_by: String(this.currentUserId || ''),
+        };
+      });
   }
 
-  openConfirm(action: 'submit', payload?: any){
+  // ===== confirm modal =====
+  openConfirm(action: ModalAction, payload?: any){
     this.alertSuccess = null;
     this.alertError = null;
     this.modal.action = action;
     this.modal.payload = payload;
-    this.modal.title = 'Submit Batch — Preview';
+
+    if (action === 'submit'){
+      this.modal.title = 'Submit Batch — Preview';
+      this.modal.message = '';
+    } else if (action === 'removeRow'){
+      const i = (payload?.index ?? 0) + 1;
+      this.modal.title = 'Remove Row';
+      this.modal.message = `Are you sure you want to remove row #${i}?`;
+    } else if (action === 'reload'){
+      this.modal.title = 'Reload Assigned Devices';
+      this.modal.message = 'This will replace current rows with the latest assigned devices. Continue?';
+    } else {
+      this.modal.title = '';
+      this.modal.message = '';
+    }
     this.modal.open = true;
   }
 
@@ -318,18 +372,37 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   }
 
   confirmModal(){
-    if (this.modal.action === 'submit') this.doSubmit();
+    if (this.modal.action === 'submit'){
+      this.doSubmit();
+      return;
+    }
+    if (this.modal.action === 'removeRow'){
+      const idx = this.modal.payload?.index ?? -1;
+      this.doRemoveRow(idx);
+      this.closeModal();
+      this.openAlert('success', 'Row removed', 'The row has been removed.', 1500);
+      return;
+    }
+    if (this.modal.action === 'reload'){
+      this.closeModal();
+      this.reloadAssigned(true);
+      this.openAlert('info', 'Reload started', 'Fetching the latest assigned devices…', 1200);
+      return;
+    }
   }
 
+  // ===== submit =====
   private doSubmit(){
     const payload = this.buildPayload();
     if (!payload.length){
       this.alertError = 'No valid rows to submit.';
+      this.openAlert('warning', 'Nothing to submit', 'Please add at least one valid row.');
       return;
     }
     const missingIdx = payload.findIndex(p => !p.test_result);
     if (missingIdx !== -1){
       this.alertError = `Row #${missingIdx+1} is missing Test Result (OK/DEF/PASS/FAIL).`;
+      this.openAlert('warning', 'Validation error', this.alertError);
       return;
     }
 
@@ -337,14 +410,54 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     this.alertSuccess = null;
     this.alertError = null;
 
-    // 🔗 Post to your existing endpoint. Change the method/name if your service differs.
     this.api.postTestReports(payload).subscribe({
       next: () => {
         this.submitting = false;
-        // auto-generate/download PDF after successful save
-        try { this.downloadPdf(); } catch(e){ console.error('PDF generation failed:', e); }
+
+        // PDF after successful save
+        const header: VigHeader = {
+          location_code: this.header.location_code,
+          location_name: this.header.location_name,
+          testMethod: this.testMethod,
+          testStatus: this.testStatus
+        };
+        const rows: VigRow[] = (this.rows || []).filter(r => (r.serial||'').trim()).map(r => ({
+          serial: r.serial,
+          make: r.make,
+          capacity: r.capacity,
+          removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
+          test_result: r.test_result,
+
+          consumer_name: r.consumer_name,
+          address: r.address,
+          account_number: r.account_number,
+          division_zone: r.division_zone,
+          panchanama_no: r.panchanama_no,
+          panchanama_date: r.panchanama_date,
+          condition_at_removal: r.condition_at_removal,
+
+          testing_date: r.testing_date,
+          is_burned: r.is_burned,
+          seal_status: r.seal_status,
+          meter_glass_cover: r.meter_glass_cover,
+          terminal_block: r.terminal_block,
+          meter_body: r.meter_body,
+          other: r.other,
+
+          reading_before_test: this.numOrNull(r.reading_before_test) ?? undefined,
+          reading_after_test: this.numOrNull(r.reading_after_test) ?? undefined,
+          rsm_kwh: this.numOrNull(r.rsm_kwh) ?? undefined,
+          meter_kwh: this.numOrNull(r.meter_kwh) ?? undefined,
+          error_percentage: this.numOrNull(r.error_percentage) ?? undefined,
+          starting_current_test: r.starting_current_test,
+          creep_test: r.creep_test,
+
+          remark: r.remark
+        }));
+        this.pdfSvc.download(header, rows);
+
         this.alertSuccess = 'Batch submitted successfully!';
-        // clear and close after a short delay
+        this.openAlert('success', 'Submitted', 'Batch submitted successfully!');
         this.rows = [ this.emptyRow() ];
         setTimeout(()=> this.closeModal(), 1200);
       },
@@ -352,185 +465,21 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         console.error(e);
         this.submitting = false;
         this.alertError = 'Error submitting batch.';
+        this.openAlert('error', 'Submission failed', 'Something went wrong while submitting the batch.');
       }
     });
   }
 
-  // ===== PDF (unchanged except meta computed from header/method/status) =====
-  private dotted(n=10){ return '·'.repeat(n); }
-
-  private pageForRow(r:Row, meta:{zone:string, method:string, status:string}): any[] {
-    const title = [
-      { text: 'MADHYA PRADESH PASCHIM KSHETRA VIDHYUT VITRAN CO. LTD., POLOGROUND INDORE', alignment:'center', bold:true },
-      { text: 'TEST RESULT FOR CONTESTED METER', alignment:'center', margin:[0,4,0,6] },
-      { text: `DC/Zone: ${meta.zone}    •    Test Method: ${meta.method || '-' }    •    Test Status: ${meta.status || '-'}`,
-        alignment:'center', fontSize:9, color:'#555', margin:[0,0,0,8] }
-    ];
-
-    const two = (label:string, value:any)=> ([{text:label, style:'lbl'}, {text:(value ?? '').toString()}]);
-
-    const topInfo = {
-      layout:'lightHorizontalLines',
-      table:{
-        widths:[210,'*'],
-        body:[
-          two('1. NAME OF CONSUMER', r.consumer_name),
-          two('2. ADDRESS', r.address),
-          two('3. ACCOUNT NUMBER', r.account_number),
-          two('4. NAME OF DIVISION/ZONE', r.division_zone),
-          two('5. PANCHANAMA NO. & DATE', `${r.panchanama_no || ''}${r.panchanama_no && r.panchanama_date ? '   Dt ' : ''}${r.panchanama_date || ''}`),
-          two('6. METER CONDITION AS NOTED AT THE TIME OF REMOVAL', r.condition_at_removal),
-        ]
-      }
-    };
-
-    const detailMeter = {
-      layout:'lightHorizontalLines',
-      margin:[0,6,0,0],
-      table:{
-        widths:['*','*','*','*'],
-        body:[
-          [{text:'METER NO.', style:'lbl'}, {text:'MAKE', style:'lbl'}, {text:'CAPACITY', style:'lbl'}, {text:'READING', style:'lbl'}],
-          [r.serial || '', r.make || '', r.capacity || '', (r.removal_reading ?? '').toString()]
-        ]
-      }
-    };
-
-    const rmtlHead = { text:'TO BE FILLED BY TESTING SECTION LABORATORY (RMTL)', alignment:'center', bold:true, margin:[0,8,0,4] };
-
-    const physTable = {
-      layout:'lightHorizontalLines',
-      table:{
-        widths:[210,'*'],
-        body:[
-          two('1. DATE OF TESTING', r.testing_date),
-          two('2A) WHETHER FOUND BURNT', r.is_burned ? 'YES' : 'NO'),
-          two('2B) METER BODY SEAL', r.seal_status),
-          two('2C) METER GLASS', r.meter_glass_cover),
-          two('2D) TERMINAL BLOCK', r.terminal_block),
-          two('2E) METER BODY COVER', r.meter_body),
-          two('2F) ANY OTHER', r.other),
-        ]
-      }
-    };
-
-    const beforeAfter = {
-      layout:'lightHorizontalLines',
-      margin:[0,6,0,0],
-      table:{
-        widths:['*','*','*','*','*'],
-        body:[
-          [
-            {text:'KWH RECORDED BY RSS/RSM', style:'lbl'},
-            {text:'KWH RECORDED BY METER', style:'lbl'},
-            {text:'% ERROR', style:'lbl'},
-            {text:'STARTING CURRENT TEST', style:'lbl'},
-            {text:'CREEP TEST', style:'lbl'}
-          ],
-          [
-            (r.rsm_kwh ?? '').toString(),
-            (r.meter_kwh ?? '').toString(),
-            (r.error_percentage ?? '').toString(),
-            r.starting_current_test || '',
-            r.creep_test || ''
-          ]
-        ]
-      }
-    };
-
-    const readFound = {
-      layout:'lightHorizontalLines',
-      margin:[0,6,0,0],
-      table:{
-        widths:['*','*'],
-        body:[
-          [{text:'READING AS FOUND — BEFORE TEST', style:'lbl'}, {text:'AFTER TEST', style:'lbl'}],
-          [(r.reading_before_test ?? '').toString(), (r.reading_after_test ?? '').toString()]
-        ]
-      }
-    };
-
-    const testRes = {
-      margin:[0,6,0,0],
-      text:`4. TEST RESULT : ${r.test_result || this.dotted(15)}`
-    };
-
-    const remark = {
-      margin:[0,8,0,0],
-      stack:[
-        { text:'REMARKS', style:'lbl' },
-        { text: r.remark || '', margin:[0,4,0,0] }
-      ]
-    };
-
-    const sign = {
-      margin:[0,14,0,0],
-      columns:[
-              {
-        columns: [
-          {
-            width: '*',
-            stack: [
-              { text: 'Tested by', style: 'footRole' },
-              { text: '\n\n____________________________', alignment: 'center' },
-              { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
-            ],
-          },
-          {
-            width: '*',
-            stack: [
-              { text: 'Verified by', style: 'footRole' },
-              { text: '\n\n____________________________', alignment: 'center' },
-              { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
-            ],
-          },
-          {
-            width: '*',
-            stack: [
-              { text: 'Approved by', style: 'footRole' },
-              { text: '\n\n____________________________', alignment: 'center' },
-              { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
-            ],
-          },
-        ],
-        margin: [0, 8, 0, 0]
-      },
-      ]
-    };
-
-    return [ ...title, topInfo, detailMeter, rmtlHead, physTable, readFound, beforeAfter, testRes, remark, sign ];
+  // ===== alert helpers =====
+  openAlert(type: 'success'|'error'|'warning'|'info', title: string, message: string, autoCloseMs: number = 0){
+    if (this.alert._t){ clearTimeout(this.alert._t); }
+    this.alert = { open: true, type, title, message, autoCloseMs, _t: 0 };
+    if (autoCloseMs > 0){
+      this.alert._t = setTimeout(()=> this.closeAlert(), autoCloseMs);
+    }
   }
-
-  private buildDoc(): TDocumentDefinitions {
-    const zone = (this.header.location_code ? this.header.location_code + ' - ' : '') + (this.header.location_name || '');
-    const meta = { zone, method: this.testMethod || '', status: this.testStatus || '' };
-
-    const content:any[] = [];
-    const data = this.rows.filter(r => (r.serial || '').trim());
-    data.forEach((r, idx) => {
-      content.push(...this.pageForRow(r, meta));
-      if (idx < data.length-1) content.push({ text:'', pageBreak:'after' });
-    });
-
-    return {
-      pageSize:'A4',
-      pageMargins:[28,28,28,36],
-      defaultStyle:{ fontSize:10 },
-      styles:{ lbl:{ bold:true } },
-      content,
-      footer: (current:number,total:number)=>({
-        columns:[
-          { text:`Page ${current} of ${total}`, alignment:'left', margin:[28,0,0,0] },
-          { text:'M.P.P.K.V.V.CO. LTD., INDORE', alignment:'right', margin:[0,0,28,0] }
-        ],
-        fontSize:8
-      }),
-      info:{ title:'P4_VIG_Contested_Report' }
-    };
-  }
-
-  downloadPdf(){
-    const doc = this.buildDoc();
-    pdfMake.createPdf(doc).download('P4_VIG_CONTESTED_REPORTS.pdf');
+  closeAlert(){
+    if (this.alert._t){ clearTimeout(this.alert._t); }
+    this.alert.open = false;
   }
 }

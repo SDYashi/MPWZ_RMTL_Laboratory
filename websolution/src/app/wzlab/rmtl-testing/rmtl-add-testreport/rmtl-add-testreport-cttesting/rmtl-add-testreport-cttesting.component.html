@@ -13,13 +13,19 @@
       <!-- Toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
         <button class="btn btn-outline-danger" (click)="openConfirm('reload')">⟳ Load Assigned</button>
+
+        <!-- NEW: Manual PDF download (uses service) -->
+        <button class="btn btn-outline-success" (click)="downloadPdfNow()" [disabled]="!ctRows?.length">
+          ⬇ Download PDF
+        </button>
+
         <div class="ms-auto d-flex gap-2">
           <input class="form-control" style="min-width:260px" [(ngModel)]="filterText" name="filterText"
                  placeholder="Filter by CT No / Make / Remark">
-         
         </div>
       </div>
-                <!-- SOURCE -->
+
+      <!-- SOURCE -->
       <form #sourceForm="ngForm" class="mb-4">
         <div class="rounded-4 border p-3 p-md-4 bg-light-subtle">
           <div class="row g-3 align-items-end">
@@ -36,7 +42,6 @@
 
             <div class="col-md-5">
               <div class="input-group input-group-lg">
-                <!-- <span class="input-group-text"><i class="bi bi-geo-alt"></i></span> -->
                 <div class="form-floating flex-grow-1">
                   <input type="text" class="form-control" [(ngModel)]="selectedSourceName"
                          name="source_name" placeholder="Code" required (keydown.enter)="fetchButtonData()">
@@ -53,6 +58,7 @@
           </div>
         </div>
       </form>
+
       <!-- Batch header (Zone/DC + Method/Status) -->
       <div class="card shadow-sm mb-3">
         <div class="card-body">
@@ -96,7 +102,7 @@
 
             <div class="col-md-3">
               <label class="form-label fw-bold">No. of C.T</label>
-              <input class="form-control" [(ngModel)]="header.no_of_ct" name="no_of_ct"  readonly>
+              <input class="form-control" [(ngModel)]="header.no_of_ct" name="no_of_ct" readonly>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">CITY CLASS</label>

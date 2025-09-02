@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-(pdfMake as any).vfs = pdfFonts.vfs;
+
+// ⬇️ NEW: import the PDF service + types
+import { CtReportPdfService, CtHeader, CtPdfRow } from 'src/app/shared/ct-report-pdf.service';
 
 type TDocumentDefinitions = any;
 
@@ -93,7 +93,8 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   makes: any;
   ct_classes: any;
 
-  constructor(private api: ApiServicesService) {}
+  // ⬇️ Inject the PDF service
+  constructor(private api: ApiServicesService, private ctPdf: CtReportPdfService) {}
 
   ngOnInit(): void {
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
@@ -116,10 +117,10 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     this.reloadAssigned(false);
   }
 
-        // ---------- Source fetch ----------
+  // ---------- Source fetch ----------
   fetchButtonData(): void {
     if (!this.selectedSourceType || !this.selectedSourceType) {
-       alert('Missing Input');
+      alert('Missing Input');
       return;
     }
     this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
@@ -220,7 +221,10 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
 
   // ===== Submit + modal =====
 
-  private isoOn(dateStr?: string){ const d = dateStr ? new Date(dateStr+'T10:00:00') : new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString(); }
+  private isoOn(dateStr?: string){
+    const d = dateStr ? new Date(dateStr+'T10:00:00') : new Date();
+    return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString();
+  }
 
   /** Compute test result from remark (OK/PASS -> PASS, DEF/FAIL -> FAIL), otherwise undefined */
   private inferResult(remark: string): 'PASS'|'FAIL'|undefined {
@@ -229,7 +233,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     if (/\bok\b|\bpass\b/.test(t)) return 'PASS';
     if (/\bfail\b|\bdef\b|\bdefective\b/.test(t)) return 'FAIL';
     return undefined;
-    }
+  }
 
   /** Build payload; IMPORTANT: stringify `details` to avoid psycopg2 "can't adapt dict" */
   private buildPayload(): any[] {
@@ -332,8 +336,8 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     this.api.postTestReports(payload).subscribe({
       next: () => {
         this.submitting = false;
-        // PDF only after success
-        try { this.downloadPdf(); } catch(e){ console.error('PDF generation failed:', e); }
+        // ⬇️ PDF only after success, via service
+        try { this.downloadPdfNow(); } catch(e){ console.error('PDF generation failed:', e); }
         this.alertSuccess = 'CT Testing report submitted successfully!';
         this.alertError = null;
         this.ctRows = [ this.emptyCtRow() ];
@@ -348,158 +352,48 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     });
   }
 
-  // ===== PDF (compact A4) =====
+  // ===== PDF via service =====
 
-  private buildHeaderBlock(meta:{zone:string, method:string, status:string}){
-    return [
-      { text: 'OFFICE OF THE ASSISTANT ENGINEER (R.M.T.L.) M.T. DN.-I', alignment: 'center', bold: true, fontSize: 11 },
-      { text: 'M.P.P.K.V.V.CO.LTD. INDORE', alignment: 'center', bold: true, margin: [0, 2, 0, 0], fontSize: 10 },
-      { text: 'CT TESTING TestReport', alignment: 'center', margin: [0, 6, 0, 2], fontSize: 12, bold: true },
-  
-    ];
-  }
-  private zoneMethodStatusLine(meta:{zone:string, method:string, status:string}){
+  /** Map current form header + method/status into service header */
+  private toCtHeader(): CtHeader {
     return {
-      text: `DC/Zone: ${meta.zone}    •    Test Method: ${meta.method || '-' }    •    Test Status: ${meta.status || '-'}`,
-      alignment: 'center', fontSize: 9, color: '#333', margin: [0,4,0,6]
-    };
-  }
-  private infoTable() {
-    const two = (label: string, value: any) => ([{ text: label, style: 'lbl' }, { text: (value ?? '').toString(), style: 'val' }]);
-    return {
-      style: 'tableTight',
-      layout: 'lightHorizontalLines',
-      table: {
-        widths: [160, '*'],
-        body: [
-          two('Name of consumer', this.header.consumer_name),
-          two('Address', this.header.address),
-          two('No. of C.T', this.header.no_of_ct),
-          two('CITY CLASS', this.header.city_class),
-          two('Ref.', this.header.ref_no),
-          two('C.T Make', this.header.ct_make),
-          two('M.R. / Txn & Date', `${this.header.mr_no || ''}${this.header.mr_no && this.header.mr_date ? '  DT  ' : ''}${this.header.mr_date || ''}`),
-          two('Amount Deposited (₹)', this.header.amount_deposited),
-          two('Date of Testing', this.header.date_of_testing),
-        ]
-      },
-      margin: [0, 30, 0, 6]
+      location_code: this.header.location_code,
+      location_name: this.header.location_name,
+      consumer_name: this.header.consumer_name,
+      address: this.header.address,
+      no_of_ct: this.header.no_of_ct,
+      city_class: this.header.city_class,
+      ref_no: this.header.ref_no,
+      ct_make: this.header.ct_make,
+      mr_no: this.header.mr_no,
+      mr_date: this.header.mr_date,
+      amount_deposited: this.header.amount_deposited,
+      date_of_testing: this.header.date_of_testing,
+      primary_current: this.header.primary_current,
+      secondary_current: this.header.secondary_current,
+      testMethod: this.testMethod,
+      testStatus: this.testStatus
     };
   }
 
-  private detailsTable() {
-    const body:any[] = [[
-      { text: '#', style: 'th', alignment: 'center' },
-      { text: 'C.T No.', style: 'th' },
-      { text: 'Make', style: 'th' },
-      { text: 'Cap.', style: 'th' },
-      { text: 'Ratio', style: 'th' },
-      { text: 'Polarity', style: 'th' },
-      { text: 'Remark', style: 'th' },
-    ]];
-
-    this.ctRows
+  /** Filter & convert rows into service rows */
+  private toCtRows(): CtPdfRow[] {
+    return (this.ctRows || [])
       .filter(r => (r.ct_no || '').trim())
-      .forEach((r, i) => {
-        body.push([
-          { text: String(i + 1), alignment: 'center' },
-          r.ct_no || '-',
-          r.make || '-',
-          r.cap || '-',
-          r.ratio || '-',
-          r.polarity || '-',
-          r.remark || '-'
-        ]);
-      });
-
-    return {
-      style: 'tableTight',
-      layout: 'lightHorizontalLines',
-      table: {
-        headerRows: 1,
-        widths: ['auto', '*', '*', 'auto', 'auto', 'auto', '*'],
-        body,
-        dontBreakRows: true
-      },
-      margin: [0, 0, 0, 6]
-    };
+      .map(r => ({
+        ct_no: r.ct_no || '-',
+        make: r.make || '-',
+        cap: r.cap || '-',
+        ratio: r.ratio || '-',
+        polarity: r.polarity || '-',
+        remark: r.remark || '-'
+      }));
   }
 
-  private signBlock(meta:{zone:string}){
-    return [
-      { text: `Primary Current: ${this.header.primary_current || ''} Amp    •    Secondary Current: ${this.header.secondary_current || ''} Amp`, style: 'tiny', margin:[0,2,0,8], alignment:'center' },
-      {
-        columns: [
-          {
-            width: '*',
-            alignment: 'center',
-            stack: [
-              { text: 'Tested by', style: 'footRole' },
-              { text: '\n____________________________', alignment: 'center' },
-              { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
-            ],
-          },
-          {
-            width: '*',
-            alignment: 'center',
-            stack: [
-              { text: 'Verified by', style: 'footRole' },
-              { text: '\n____________________________', alignment: 'center' },
-              { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
-            ],
-          },
-          {
-            width: '*',
-            alignment: 'center',
-            stack: [
-              { text: 'Approved by', style: 'footRole' },
-              { text: '\n____________________________', alignment: 'center' },
-              { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
-            ],
-          },
-        ],
-        margin: [0, 0, 0, 0]
-      }
-    ];
-  }
-
-  private buildDoc(): TDocumentDefinitions {
-    const zone = (this.header.location_code ? this.header.location_code + ' - ' : '') + (this.header.location_name || '');
-    const meta = { zone, method: this.testMethod || '', status: this.testStatus || '' };
-
-    return {
-      pageSize: 'A4',
-      pageMargins: [24, 22, 24, 28],
-      defaultStyle: { fontSize: 9, lineHeight: 1.05 },
-      styles: {
-        lbl: { bold: true, fontSize: 9, color: '#111' },
-        val: { fontSize: 9, color: '#111' },
-        th: { bold: true, fontSize: 9 },
-        tableTight: { fontSize: 9 },
-        footRole: { fontSize: 9, bold: true },
-        footTiny: { fontSize: 8, color: '#444' },
-        tiny: { fontSize: 9, color: '#333' }
-      },
-      content: [
-        ...this.buildHeaderBlock(meta),
-        this.zoneMethodStatusLine(meta),
-        this.infoTable(),
-        this.detailsTable(),
-        ...this.signBlock(meta),
-      ],
-      footer: (current:number, total:number) => ({
-        columns: [
-          { text: `Page ${current} of ${total}`, alignment: 'left', margin: [24, 0, 0, 0] },
-          { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 24, 0] }
-        ],
-        fontSize: 8
-      }),
-      info: { title: 'CT_Testing_TestReport' }
-    };
-  }
-
-  private downloadPdf(){
-    const doc = this.buildDoc();
-    pdfMake.createPdf(doc).download('CT_TESTING_TestReport.pdf');
+  /** Public action for toolbar button & submit-success */
+  downloadPdfNow(){
+    const header = this.toCtHeader();
+    const rows = this.toCtRows();
+    this.ctPdf.download(header, rows);
   }
 }

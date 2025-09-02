@@ -1,8 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-(pdfMake as any).vfs = pdfFonts.vfs;
+import { P4onmReportPdfService, P4ONMReportHeader, P4ONMReportRow } from 'src/app/shared/p4onm-report-pdf.service';
+
 type TDocumentDefinitions = any;
 
 interface MeterDevice {
@@ -28,7 +27,7 @@ interface DeviceRow {
   assignment_id: number;
   notFound?: boolean;
 
-  // AE/JE Zone sheet
+  // AE/JE Zone slip
   form_no?: string;
   form_date?: string;
   consumer_name?: string;
@@ -64,10 +63,12 @@ interface DeviceRow {
 
   _open?: boolean;
 }
+
 interface ModalState {
   open: boolean; title: string; message: string;
   action: 'clear' | 'reload' | 'removeRow' | 'submit' | null | string[]; payload?: any;
 }
+
 @Component({
   selector: 'app-rmtl-add-testreport-p4onm',
   templateUrl: './rmtl-add-testreport-p4onm.component.html',
@@ -79,9 +80,19 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   comment_bytester: any[] = [];
   test_methods: any[] = [];
   test_statuses: any[] = [];
+  test_results: any[] = [];
+  physical_conditions: any[] = []; seal_statuses: any[] = []; glass_covers: any[] = [];
+  terminal_blocks: any[] = []; meter_bodies: any[] = []; makes: any[] = []; capacities: any[] = [];
+  phases: any;
 
   // header + rows
   batch = { header: { zone: '', phase: '', date: '', location_code: '', location_name: '' }, rows: [] as DeviceRow[] };
+
+  // source selector
+  office_types: string[] = [];
+  selectedSourceType: string = '';
+  selectedSourceName: string = '';
+  filteredSources: any;
 
   // ids
   currentUserId = 0; currentLabId = 0;
@@ -93,18 +104,12 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   payload: any[] = []; testMethod: string | null = null; testStatus: string | null = null;
   approverId: number | null = null;
 
-  physical_conditions: any[] = []; seal_statuses: any[] = []; glass_covers: any[] = [];
-  terminal_blocks: any[] = []; meter_bodies: any[] = []; makes: any[] = []; capacities: any[] = [];
-  test_results: any[] = []; report_type = 'P4_ONM';
-  office_types: any;
-  selectedSourceType: any;
-  selectedSourceName: string = '';
-  filteredSources: any;
+  report_type = 'P4_ONM';
 
+  // serial index from assigned list
   private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; phase?: string; }> = {};
-  phases: any;
 
-  constructor(private api: ApiServicesService) {}
+  constructor(private api: ApiServicesService, private pdfSvc: P4onmReportPdfService) {}
 
   ngOnInit(): void {
     this.batch.header.date = this.toYMD(new Date());
@@ -122,46 +127,54 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
         this.meter_bodies = d?.meter_bodies || [];
         this.makes = d?.makes || [];
         this.capacities = d?.capacities || [];
-        this.report_type = d?.test_report_types?.P4_ONM || 'P4_ONM';
         this.office_types = d?.office_types || [];
+        this.report_type = d?.test_report_types?.P4_ONM || 'P4_ONM';
         this.phases = d?.phases || [];
       }
     });
+
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
     this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+
     this.doReloadAssignedWithoutAddingRows();
   }
 
-      // ---------- Source fetch ----------
+  // ---------- Source fetch ----------
   fetchButtonData(): void {
-    if (!this.selectedSourceType || !this.selectedSourceType) {
-       alert('Missing Input');
+    if (!this.selectedSourceType || !this.selectedSourceName) {
+      alert('Please select Source Type and enter Location/Store/Vendor Code.');
       return;
     }
     this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
-      next: (data) => (this.filteredSources = data, 
-        this.batch.header.location_name = this.filteredSources.name,
-        this.batch.header.location_code = this.filteredSources.code ) ,
+      next: (data) => {
+        this.filteredSources = data;
+        this.batch.header.location_name = this.filteredSources?.name || '';
+        this.batch.header.location_code = this.filteredSources?.code || '';
+      },
       error: () => alert('Failed to fetch source details. Check the code and try again.')
     });
   }
+  onSourceTypeChange(): void { this.selectedSourceName = ''; this.filteredSources = null; }
 
-  onSourceTypeChange(): void {
-    this.selectedSourceName = '';
-    this.filteredSources = [];
-  }
-
+  // ---------- Counts ----------
   get totalCount(){ return this.batch?.rows?.length ?? 0; }
   get matchedCount(){ return (this.batch?.rows ?? []).filter(r => !!r.serial && !r.notFound).length; }
   get unknownCount(){ return (this.batch?.rows ?? []).filter(r => !!r.notFound).length; }
 
+  // ---------- Assigned cache ----------
   private rebuildSerialIndex(asg: AssignmentItem[]): void {
     this.serialIndex = {};
     for (const a of asg) {
       const d = a?.device ?? null;
       const s = (d?.serial_number || '').toUpperCase().trim();
       if (!s) continue;
-      this.serialIndex[s] = { make: d?.make || '', capacity: d?.capacity || '', device_id: d?.id ?? a.device_id ?? 0, assignment_id: a?.id ?? 0, phase: d?.phase || '' };
+      this.serialIndex[s] = {
+        make: d?.make || '',
+        capacity: d?.capacity || '',
+        device_id: d?.id ?? a.device_id ?? 0,
+        assignment_id: a?.id ?? 0,
+        phase: d?.phase || ''
+      };
     }
   }
 
@@ -171,10 +184,19 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
       next: (data: any) => {
         const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
         this.rebuildSerialIndex(asg);
+
         this.batch.rows = asg.map(a => {
           const d = a.device || ({} as MeterDevice);
-          return this.emptyRow({ serial: d.serial_number || '', make: d.make || '', capacity: d.capacity || '', device_id: d.id ?? a.device_id ?? 0, assignment_id: a.id ?? 0, notFound: false });
+          return this.emptyRow({
+            serial: d.serial_number || '',
+            make: d.make || '',
+            capacity: d.capacity || '',
+            device_id: d.id ?? a.device_id ?? 0,
+            assignment_id: a.id ?? 0,
+            notFound: false
+          });
         });
+
         if (!this.batch.rows.length) this.addBatchRow();
         if (!this.batch.header.phase) {
           const uniq = new Set(asg.map(a => (a.device?.phase || '').toUpperCase()).filter(Boolean));
@@ -213,6 +235,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
     });
   }
 
+  // ---------- Rows ----------
   private emptyRow(seed?: Partial<DeviceRow>): DeviceRow {
     return {
       serial: '', make: '', capacity: '', remark: '', test_result: undefined, test_method: 'MANUAL',
@@ -260,45 +283,180 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   }
   trackRow(i:number, r:DeviceRow){ return `${r.assignment_id||0}_${r.device_id||0}_${r.serial||''}_${i}`; }
 
-  // helpers
+  // ---------- Utils ----------
   private toYMD(d: Date){ const dt = new Date(d.getTime() - d.getTimezoneOffset()*60000); return dt.toISOString().slice(0,10); }
   private isoOn(dateStr?: string){ const d = dateStr? new Date(dateStr+'T10:00:00') : new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString(); }
-
-  private buildPayloadForPreview(): any[] {
-    const when = this.isoOn(this.batch.header.date);
-    return (this.batch.rows||[]).filter(r => (r.serial||'').trim()).map(r => ({
-      device_id: r.device_id ?? 0, assignment_id: r.assignment_id ?? 0,
-      start_datetime: when, end_datetime: when,
-      physical_condition_of_device: r.physical_condition_of_device || '-', seal_status: r.seal_status || '-',
-      meter_glass_cover: r.meter_glass_cover || '-', terminal_block: r.terminal_block || '-',
-      meter_body: r.meter_body || '-', other: r.other || '-', is_burned: !!r.is_burned,
-      reading_before_test: Number(r.reading_before_test)||0, reading_after_test: Number(r.reading_after_test)||0,
-      ref_start_reading: Number(r.ref_start_reading)||0, ref_end_reading: Number(r.ref_end_reading)||0,
-      error_percentage: Number(r.error_percentage)||0,
-      details: r.device_id ?? 0, test_result: (r.test_result as string) || undefined,
-      test_method: this.testMethod, test_status: this.testStatus, approver_id: this.approverId ?? null,
-      report_type: this.report_type || 'P4_ONM',
-    }));
+  private numOrNull(v: any): number | null { const n = Number(v); return isFinite(n) ? n : null; }
+  private parseAmount(val?: string): number | null {
+    if (!val) return null;
+    const m = val.replace(/,/g,'').match(/(\d+(\.\d+)?)/);
+    return m ? Number(m[1]) : null;
+  }
+  private joinNonEmpty(parts: Array<string | undefined | null>, sep = ' - ') {
+    return parts.filter(Boolean).join(sep);
   }
 
+  // ---------- Payload (map to backend `Testing` model fields) ----------
+  private buildPayloadForPreview(): any[] {
+    const whenISO = this.isoOn(this.batch.header.date);
+
+    return (this.batch.rows || [])
+      .filter(r => (r.serial || '').trim())
+      .map(r => {
+        const start = this.numOrNull(r.reading_before_test);
+        const end   = this.numOrNull(r.reading_after_test);
+        const diff  = (start != null && end != null) ? (end - start) : null;
+
+        return {
+          // keys in Testing model
+          device_id: r.device_id ?? 0,
+          assignment_id: r.assignment_id ?? 0,
+          start_datetime: whenISO,
+          end_datetime: whenISO,
+
+          physical_condition_of_device: r.physical_condition_of_device || null,
+          seal_status: r.seal_status || null,
+          meter_glass_cover: r.meter_glass_cover || null,
+          terminal_block: r.terminal_block || null,
+          meter_body: r.meter_body || null,
+          other: r.other || null,
+          is_burned: !!r.is_burned,
+
+          reading_before_test: this.numOrNull(r.reading_before_test),
+          reading_after_test: this.numOrNull(r.reading_after_test),
+
+          details: r.remark || null,                    // free text detail
+          test_result: (r.test_result as string) || null,
+          test_method: this.testMethod || null,
+          ref_start_reading: this.numOrNull(r.ref_start_reading),
+          ref_end_reading: this.numOrNull(r.ref_end_reading),
+          test_status: this.testStatus || null,
+          error_percentage: this.numOrNull(r.error_percentage),
+
+          // ---- Newly added columns in Testing model ----
+          consumer_name: r.consumer_name || null,
+          consumer_address: r.address || null,
+          certificate_number: null, // not captured in UI
+
+          testing_fees: this.parseAmount(r.payment_particulars),
+          fees_mr_no: r.receipt_no || null,
+          fees_mr_date: r.receipt_date || null, // YYYY-MM-DD
+          ref_no: r.account_no_ivrs || null,
+
+          start_reading: this.numOrNull(r.reading_before_test),
+          final_reading: this.numOrNull(r.reading_after_test),
+          final_reading_export: null,
+          difference: diff,
+
+          test_requester_name: r.p4onm_by || null,
+          meter_removaltime_reading: this.numOrNull(r.removal_reading),
+          meter_removaltime_metercondition: null, // numeric in model; UI provides text -> leave null
+          any_other_remarkny_zone: r.condition_at_removal || null,
+
+          dail_test_kwh_rsm: this.numOrNull(r.rsm_kwh),
+          recorderedbymeter_kwh: this.numOrNull(r.meter_kwh),
+          starting_current_test: null, // model expects number; UI has text OK/FAIL/NA -> leave null
+          creep_test: null,            // model expects number; UI has text -> leave null
+          dail_test: null,
+          final_remarks: r.remark || null,
+
+          p4_division: null,                  // not captured in UI
+          p4_no: null,                        // not captured in UI
+          p4_date: null,                      // not captured in UI
+          p4_metercodition: r.condition_at_removal || null,
+
+          approver_id: this.approverId ?? null,
+          approver_remark: null,
+
+          report_id: null,
+          report_type: this.report_type || 'P4_ONM',
+
+          created_by: String(this.currentUserId || ''),
+          // created_at/updated_at managed by server
+        };
+      });
+  }
+
+  // ---------- Submit & PDF ----------
   private doSubmitBatch(): void {
     this.payload = this.buildPayloadForPreview();
-    if (!this.payload.length){ this.alertError='No valid rows to submit.'; this.alertSuccess=null; return; }
+    if (!this.payload.length){
+      this.alertError='No valid rows to submit.'; this.alertSuccess=null; return;
+    }
     const missing = this.payload.findIndex(p => !p.test_result);
-    if (missing!==-1){ this.alertError = `Row #${missing+1} is missing Test Result (PASS/FAIL).`; this.alertSuccess=null; return; }
+    if (missing!==-1){
+      this.alertError = `Row #${missing+1} is missing Test Result (PASS/FAIL).`;
+      this.alertSuccess=null; return;
+    }
 
     this.submitting = true; this.alertSuccess=null; this.alertError=null;
     this.api.postTestReports(this.payload).subscribe({
       next: () => {
         this.submitting = false;
-        try { this.downloadContestedPdfFromBatch(); } catch(e){ console.error('PDF generation failed:', e); }
-        this.alertSuccess = 'Batch Report submitted successfully!'; this.alertError=null;
-        this.batch.rows = [this.emptyRow()]; setTimeout(()=>this.closeModal(),1200);
+
+        // Build PDF via service
+        const header: P4ONMReportHeader = {
+          date: this.batch.header.date || this.toYMD(new Date()),
+          phase: this.batch.header.phase || '',
+          location_code: this.batch.header.location_code || '',
+          location_name: this.batch.header.location_name || '',
+          zone: this.joinNonEmpty([this.batch.header.location_code, this.batch.header.location_name], ' - '),
+          testerName: localStorage.getItem('currentUserName') || ''
+        };
+
+        const rows: P4ONMReportRow[] = (this.batch.rows || [])
+          .filter(r => (r.serial || '').trim())
+          .map(r => ({
+            serial: r.serial,
+            make: r.make,
+            capacity: r.capacity,
+            removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
+
+            consumer_name: r.consumer_name,
+            account_no_ivrs: r.account_no_ivrs,
+            address: r.address,
+            p4onm_by: r.p4onm_by,
+            payment_particulars: r.payment_particulars,
+            receipt_no: r.receipt_no,
+            receipt_date: r.receipt_date,
+            condition_at_removal: r.condition_at_removal,
+
+            testing_date: r.testing_date || this.batch.header.date,
+            physical_condition_of_device: r.physical_condition_of_device,
+            is_burned: !!r.is_burned,
+            seal_status: r.seal_status,
+            meter_glass_cover: r.meter_glass_cover,
+            terminal_block: r.terminal_block,
+            meter_body: r.meter_body,
+            other: r.other,
+
+            reading_before_test: this.numOrNull(r.reading_before_test) ?? undefined,
+            reading_after_test: this.numOrNull(r.reading_after_test) ?? undefined,
+
+            rsm_kwh: this.numOrNull(r.rsm_kwh) ?? undefined,
+            meter_kwh: this.numOrNull(r.meter_kwh) ?? undefined,
+            error_percentage: this.numOrNull(r.error_percentage) ?? undefined,
+
+            starting_current_test: r.starting_current_test || undefined,
+            creep_test: r.creep_test || undefined,
+
+            remark: r.remark || undefined
+          }));
+
+        this.pdfSvc.downloadFromBatch(header, rows, { fileName: `P4_ONM_${header.date}.pdf` });
+
+        this.alertSuccess = 'Batch Report submitted successfully!';
+        this.alertError = null;
+        this.batch.rows = [this.emptyRow()];
+        setTimeout(()=>this.closeModal(),1200);
       },
-      error: (e) => { this.submitting=false; this.alertSuccess=null; this.alertError='Error submitting report.'; console.error(e); }
+      error: (e) => {
+        this.submitting=false; this.alertSuccess=null; this.alertError='Error submitting report.'; console.error(e);
+      }
     });
   }
 
+  // ---------- Modal ----------
   openConfirm(action: ModalState['action'], payload?: any){
     if (action!=='submit'){ this.alertSuccess=null; this.alertError=null; }
     this.modal.action = action; this.modal.payload = payload;
@@ -312,150 +470,12 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
     this.modal.open = true;
   }
   closeModal(){ this.modal.open=false; this.modal.action=null; this.modal.payload=undefined; }
-  confirmModal(){ const a=this.modal.action, p=this.modal.payload; if(a!=='submit') this.closeModal(); if(a==='reload') this.doReloadAssigned(); if(a==='removeRow') this.doRemoveRow(p?.index); if(a==='clear') this.doClearRows(); if(a==='submit') this.doSubmitBatch(); }
-
-  // ===== PDF: sheet layout (one page per meter) =====
-  private buildPrintableSnapshot(){
-    const rows = (this.batch.rows||[]).filter(r=> (r.serial||'').trim()).map(r=>({
-      ...r,
-      testing_date: r.testing_date || this.batch.header.date,
-    }));
-    const meta = {
-      zone: (this.batch.header.location_code ? this.batch.header.location_code + ' - ' : '') + (this.batch.header.location_name || ''),
-      date: this.batch.header.date || this.toYMD(new Date()),
-    };
-    return { rows, meta };
-  }
-
-  private dotted(n=20){ return '·'.repeat(n); }
-
-  private pageForRow(r:any, meta:any): any[] {
-    const topTitle = { text: 'OFFICE OF AE/JE MPPKVVCo.Ltd Zone', alignment: 'center', bold: true, margin: [0,0,0,6] };
-    const topLine = {
-      columns: [
-        { text: `NO ${r.form_no || this.dotted(20)}` },
-        { text: `DATE ${r.form_date || meta.date}`, alignment: 'right' }
-      ],
-      margin: [0,0,0,6]
-    };
-    const reporttypetitle = { text: 'P4_ONM METER TEST REPORT', style: 'hindiTitle', alignment: 'center', fontSize: 24, margin: [0,0,0,4] };
-
-    const slip = {
-      layout: 'lightHorizontalLines',
-      table: {
-        widths: ['auto','*'],
-        body: [
-          [{text:'Name of Consume', bold:true}, r.consumer_name || '' ],
-          [{text:'Account No / IVRS No.', bold:true}, r.account_no_ivrs || '' ],
-          [{text:'Address', bold:true}, r.address || '' ],
-          [{text:'P4_ONM Meter by Consumer/Zone', bold:true}, r.p4onm_by || '' ],
-          [{text:'Particular of payment of Testing Charges', bold:true}, r.payment_particulars || '' ],
-          [{text:'Receipt No and Date', bold:true}, `${r.receipt_no || ''}    ${r.receipt_date || ''}` ],
-          [{text:'Meter Condition as noted at the time of removal', bold:true}, r.condition_at_removal || '' ],
-        ]
-      }
-    };
-
-    const slipMeter = {
-      layout: 'noBorders',
-      margin: [0,6,0,0],
-      table: {
-        widths: ['*','*','*','*'],
-        body: [
-          [{text:'Meter No.',bold:true},{text:'Make',bold:true},{text:'Capacity',bold:true},{text:'Reading',bold:true}],
-          [r.serial || this.dotted(15), r.make || this.dotted(12), r.capacity || this.dotted(12), (r.removal_reading ?? '') || this.dotted(12)]
-        ]
-      }
-    };
-
-    const slipSign = { text: 'JE/AE   MPPKVVCo.ltd', alignment: 'right', margin:[0,2,0,8], italics:true, fontSize:9 };
-
-    const midHeads = [
-      { text:'REGIONAL METER TESTING LABORATORY, INDORE', alignment:'center', bold:true },
-      { text:'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN CO. LTD.', alignment:'center', fontSize:9, margin:[0,1,0,0]},
-      { text:'To Filled By Testing Section Laboratory (RMTL)', alignment:'center', margin:[0,2,0,6] }
-    ];
-
-    const rmtlGrid = {
-      layout:'lightHorizontalLines',
-      table:{
-        widths:['auto','*'],
-        body:[
-          [{text:'Date of Testing',bold:true}, r.testing_date || meta.date],
-          [{text:'Physical Condition of Meter',bold:true}, r.physical_condition_of_device || '' ],
-          [{text:'Whether found Burnt',bold:true}, (r.is_burned ? 'YES' : 'NO')],
-          [{text:'Meter Body Seal',bold:true}, r.seal_status || '' ],
-          [{text:'Meter Glass Cover',bold:true}, r.meter_glass_cover || '' ],
-          [{text:'Terminal Block',bold:true}, r.terminal_block || '' ],
-          [{text:'Meter Body',bold:true}, r.meter_body || '' ],
-          [{text:'Any Other',bold:true}, r.other || '' ],
-          // Before/After row below to match image
-          [{text:'Before Test',bold:true}, (r.reading_before_test ?? '').toString()],
-          [{text:'After Test',bold:true}, (r.reading_after_test ?? '').toString()],
-        ]
-      },
-      margin:[0,0,0,6]
-    };
-
-    const remarkLines = {
-      margin:[0,6,0,0],
-      stack:[
-        { text:'Remark:-', bold:true, margin:[0,0,0,2] },
-        { canvas:[ {type:'line', x1:0, y1:0, x2:540, y2:0, lineWidth:0.5},
-                   {type:'line', x1:0, y1:10, x2:540, y2:10, lineWidth:0.5},
-                   {type:'line', x1:0, y1:20, x2:540, y2:20, lineWidth:0.5} ],
-          margin:[0,2,0,0] }
-      ]
-    };
-
-    const dialLine = {
-      margin:[0,8,0,0],
-      text:
-        `Dial Test KWH Recorded by RSM Meter ${r.rsm_kwh ?? this.dotted(10)}  / KWH Recorded by meter ${r.meter_kwh ?? this.dotted(10)}  ,Over all`,
-      fontSize:10
-    };
-
-    const errorLine = {
-      margin:[0,4,0,0],
-      text:
-        `% Error ${ (r.error_percentage ?? this.dotted(6)) }   Starting Current Test ${ r.starting_current_test || this.dotted(8) }   Creep Test ${ r.creep_test || this.dotted(8) }   Other ${ r.remark || this.dotted(8) }`,
-      fontSize:10
-    };
-
-    const testedBy = {
-      margin:[0,16,0,0],
-      stack:[
-        { text:'Tested by', alignment:'center', bold:true },
-        { text:'\n', fontSize:6 },
-        { text:'AE (RMTL)', alignment:'center' }
-      ]
-    };
-
-    return [ topTitle, topLine,reporttypetitle, slip, slipMeter, slipSign, ...midHeads, rmtlGrid, remarkLines, dialLine, errorLine, testedBy ];
-  }
-
-  private buildContestedDoc(rows:any[], meta:any): TDocumentDefinitions {
-    const content:any[] = [];
-    rows.forEach((r, idx) => {
-      content.push(...this.pageForRow(r, meta));
-      if (idx < rows.length-1) content.push({ text:'', pageBreak:'after' });
-    });
-    return {
-      pageSize:'A4', pageMargins:[28,28,28,36], defaultStyle:{fontSize:10},
-      content,
-      footer: (current: number, total: number) => ({
-        columns: [
-          { text:`Page ${current} of ${total}`, alignment:'left', margin:[28,0,0,0] },
-          { text:'M.P.P.K.V.V.CO. LTD., INDORE', alignment:'right', margin:[0,0,28,0] }
-        ], fontSize:8
-      }),
-      info:{ title:`P4_ONM_${meta.date}` }
-    };
-  }
-
-  private downloadContestedPdfFromBatch(): void {
-    const snap = this.buildPrintableSnapshot();
-    const doc = this.buildContestedDoc(snap.rows, snap.meta);
-    pdfMake.createPdf(doc).download(`P4_ONM_${snap.meta.date}.pdf`);
+  confirmModal(){
+    const a=this.modal.action, p=this.modal.payload;
+    if(a!=='submit') this.closeModal();
+    if(a==='reload') this.doReloadAssigned();
+    if(a==='removeRow') this.doRemoveRow(p?.index);
+    if(a==='clear') this.doClearRows();
+    if(a==='submit') this.doSubmitBatch();
   }
 }
