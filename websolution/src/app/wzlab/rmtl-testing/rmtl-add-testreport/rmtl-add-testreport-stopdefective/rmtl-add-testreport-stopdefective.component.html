@@ -219,9 +219,8 @@
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modal.open}" *ngIf="modal.open">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header"
-             [ngClass]="{'bg-primary text-white': modal.action==='submit','bg-danger text-white': modal.action==='removeRow','bg-dark text-white': modal.action==='reload' || modal.action==='clear'}">
-          <h5 class="modal-title">{{ modal.title }}</h5>
+        <div class="modal-header border-0" style="background-color: #eae9f1; color: #161515;">
+             <h5 class="modal-title">{{ modal.title }}</h5>
           <button type="button" class="btn-close" (click)="closeModal()"></button>
         </div>
 
