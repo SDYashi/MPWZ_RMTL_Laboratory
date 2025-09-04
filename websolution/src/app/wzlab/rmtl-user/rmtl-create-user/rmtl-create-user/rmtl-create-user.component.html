@@ -126,8 +126,8 @@
               [(ngModel)]="user.lab_id"
               #lab_id="ngModel"
               class="form-select"
-              required
-            >
+              multiple
+              required >
               <option value="" disabled>Select lab</option>
               <option *ngFor="let lab of labs" [value]="lab.id">{{ lab.lab_name }}</option>
             </select>
@@ -142,7 +142,7 @@
             <select
               name="status"
               [(ngModel)]="user.status"
-              class="form-select"
+              class="form-select"              
               required
             >
               <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>

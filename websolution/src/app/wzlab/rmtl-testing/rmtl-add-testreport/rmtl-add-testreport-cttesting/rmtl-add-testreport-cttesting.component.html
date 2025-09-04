@@ -15,7 +15,7 @@
         <button class="btn btn-outline-danger" (click)="openConfirm('reload')">⟳ Load Assigned</button>
 
         <!-- NEW: Manual PDF download (uses service) -->
-        <button class="btn btn-outline-success" (click)="downloadPdfNow()" [disabled]="!ctRows?.length">
+        <button class="btn btn-outline-success" (click)="downloadPdfNow()" [disabled]="!ctRows.length">
           ⬇ Download PDF
         </button>
 

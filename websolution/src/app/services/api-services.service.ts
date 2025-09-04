@@ -247,8 +247,8 @@ getAssignments(): Observable<Assignment[]> {
 getAssignmentsByStatus (assignment_status: string): Observable<Assignment[]> {
   return this.http.get<Assignment[]>(`${this.baseUrl}/assignments-by-status?assignment_status=${assignment_status}`);
 }
-getAssignmentsByStatusDatewise (assignment_status: string, start_date: string, end_date: string): Observable<Assignment[]> {
-  return this.http.get<Assignment[]>(`${this.baseUrl}/assignments-by-status?assignment_status=${assignment_status}&start_date=${start_date}&end_date=${end_date}`);
+getAssignmentsByStatusDatewise (assignment_status: string, start_date: string, end_date: string, lab_id: number): Observable<Assignment[]> {
+  return this.http.get<Assignment[]>(`${this.baseUrl}/assignments-by-status?assignment_status=${assignment_status}&start_date=${start_date}&end_date=${end_date}&lab_id=${lab_id}`);
 }
 
 getAssignment(id: number): Observable<Assignment> {

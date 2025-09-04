@@ -20,6 +20,7 @@ export class RmtlAssignedListComponent {
   // Data
   assignmentHistory: any[] = [];
   filteredHistory: any[] = [];
+  labids:any;
 
   // Pagination (client-side)
   page = 1;
@@ -49,6 +50,15 @@ export class RmtlAssignedListComponent {
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     this.fromDate = start.toISOString().slice(0, 10);
     this.toDate = now.toISOString().slice(0, 10);
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        this.labids = [payload?.lab_id || ''];
+      } catch (err) {
+        console.error('Invalid token format', err);
+      }
+    }
 
     this.loadHistory();
   }
@@ -64,7 +74,7 @@ export class RmtlAssignedListComponent {
     // If your service already supports query params, expose them:
     // Example expected signature in ApiServicesService:
     // getAssignmentsByStatus(status?: string, fromDate?: string, toDate?: string)
-    this.api.getAssignmentsByStatusDatewise(this.selectedStatus || '', this.fromDate || '', this.toDate || '')
+    this.api.getAssignmentsByStatusDatewise(this.selectedStatus || '', this.fromDate || '', this.toDate || '',this.labids||'')
       .subscribe({
         next: (response) => {
           // If server returns array:
