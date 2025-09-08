@@ -109,8 +109,8 @@ deleteUserRole(id: number): Observable<any> {
 }
 
 // --- Device Endpoints ---
-getDevices(): Observable<Device[]> {
-  return this.http.get<Device[]>(`${this.baseUrl}/devices/`);
+getDevices( startDate: string, endDate: string): Observable<Device[]> {
+  return this.http.get<Device[]>(`${this.baseUrl}/devices/?start_date=${startDate}&end_date=${endDate}`);
 }
 
 

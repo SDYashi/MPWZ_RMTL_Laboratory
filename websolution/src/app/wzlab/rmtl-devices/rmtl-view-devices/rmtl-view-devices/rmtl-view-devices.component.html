@@ -22,13 +22,9 @@
         </div>
 
         <div class="col-12 col-md-6 d-flex flex-wrap gap-2">
-          <button type="button" class="btn btn-primary mt-3" (click)="applyFilter(false)">
-            <i class="bi bi-funnel"></i> Apply
+          <button type="button" class="btn btn-primary mt-3" (click)="fetchDevices()">
+            <i class="bi bi-funnel"></i> Search
           </button>
-          <button type="button" class="btn btn-outline-primary mt-3" (click)="resetToThisMonth()">
-            <i class="bi bi-calendar2-week"></i> Current month
-          </button>
-
           <div class="ms-auto mt-3 d-flex align-items-center gap-2">
             <label class="form-label mb-0">Rows</label>
             <select class="form-select form-select-sm" style="width:auto"

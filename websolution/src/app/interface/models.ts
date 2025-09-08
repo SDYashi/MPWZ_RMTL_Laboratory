@@ -59,6 +59,9 @@ export interface UserRoleLink {
 }
 
 export interface Device {
+  office_type: undefined;
+  location_name: any;
+  _date: any;
   device_status: string;
   created_at: any;
   inward_date: string | null;

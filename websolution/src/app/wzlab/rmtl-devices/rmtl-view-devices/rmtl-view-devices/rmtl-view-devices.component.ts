@@ -27,7 +27,7 @@ export class RmtlViewDevicesComponent implements OnInit {
   // Pagination
   page = 1;
   pageSize = 25;
-  pageSizeOptions = [10, 25, 50, 100];
+  pageSizeOptions = [100, 500, 1000, 10000];
   total = 0;
 
   constructor(
@@ -54,37 +54,76 @@ export class RmtlViewDevicesComponent implements OnInit {
   }
 
   // -------- Load + Filter --------
+  // fetchDevices(): void {
+  //   this.loading = true;
+
+  //   // Prefer calling a date-filtered endpoint if available:
+  //   // this.api.getInwardDevices(this.fromDate, this.toDate).subscribe({...})
+
+  //   this.api.getDevices( this.fromDate, this.toDate).subscribe({
+  //     next: (response) => {
+  //       const rows = Array.isArray(response) ? response : [];
+
+  //       // Normalize/guard: ensure we have inward_date for filtering + display
+  //       this.allDevices = rows.map((r) => ({
+  //         ...r,
+  //         inward_date: r.inward_date || (r.created_at ? (r.created_at as string).slice(0, 10) : null),
+  //         device_status: (r.device_status || '').toUpperCase() as DeviceStatus
+  //       }));
+
+  //       this.applyFilter(false);
+  //       this.loading = false;
+  //     },
+  //     error: (error) => {
+  //       console.error('Error fetching devices:', error);
+  //       this.allDevices = [];
+  //       this.devices = [];
+  //       this.total = 0;
+  //       this.page = 1;
+  //       this.loading = false;
+  //     }
+  //   });
+  // }
+
   fetchDevices(): void {
-    this.loading = true;
+  this.loading = true;
 
-    // Prefer calling a date-filtered endpoint if available:
-    // this.api.getInwardDevices(this.fromDate, this.toDate).subscribe({...})
+  this.api.getDevices(this.fromDate, this.toDate).subscribe({
+    next: (response: any) => {
+      // Accept either shape: [{...}, {...}] OR { device: [...], totalrecord, pagesize }
+      const rows = Array.isArray(response?.device)
+        ? response.device
+        : Array.isArray(response)
+          ? response
+          : [];
 
-    this.api.getDevices().subscribe({
-      next: (response) => {
-        const rows = Array.isArray(response) ? response : [];
-
-        // Normalize/guard: ensure we have inward_date for filtering + display
-        this.allDevices = rows.map((r) => ({
-          ...r,
-          // keep original but ensure strings
-          inward_date: r.inward_date || (r.created_at ? (r.created_at as string).slice(0, 10) : null),
-          device_status: (r.device_status || '').toUpperCase() as DeviceStatus
-        }));
-
-        this.applyFilter(false);
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error fetching devices:', error);
-        this.allDevices = [];
-        this.devices = [];
-        this.total = 0;
-        this.page = 1;
-        this.loading = false;
+      // Optional: use API-provided totals/page size if present
+      this.total = Number(response?.totalrecord ?? rows.length) || rows.length;
+      if (response?.pagesize) {
+        this.pageSize = Number(response.pagesize) || this.pageSize;
       }
-    });
-  }
+
+      // Normalize/guard fields for filtering + display
+      this.allDevices = rows.map((r: any) => ({
+        ...r,
+        inward_date: r?.inward_date || (r?.created_at ? String(r.created_at).slice(0, 10) : null),
+        device_status: (r?.device_status || '').toUpperCase() as DeviceStatus
+      }));
+
+      this.applyFilter(false);
+      this.loading = false;
+    },
+    error: (error) => {
+      console.error('Error fetching devices:', error);
+      this.allDevices = [];
+      this.devices = [];
+      this.total = 0;
+      this.page = 1;
+      this.loading = false;
+    }
+  });
+}
+
 
   /** Apply date filter (inclusive) */
   applyFilter(refetch: boolean = false): void {
