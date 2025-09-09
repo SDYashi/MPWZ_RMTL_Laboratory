@@ -8,13 +8,9 @@
       <!-- NOTE: use Preview flow -->
       <form (ngSubmit)="openPreview(labForm)" #labForm="ngForm" novalidate>
         <div class="row">
-            <!-- Lab Name (required) -->
           <div class="col-md-6">
-            <div class="row mb-3">
-              <div class="col-md-3 text-md-end">
-                <label for="lab_name" class="col-form-label fw-bold">Laboratory Name</label>
-              </div>
               <div class="col-md-9">
+                  <label for="lab_name" class="col-form-label fw-bold">Laboratory Name</label>
                 <input
                   type="text"
                   id="lab_name"
@@ -27,16 +23,10 @@
                   (blur)="touched['lab_name'] = true"  readonly/>
                 <div class="invalid-feedback">Lab Name is required.</div>
               </div>
-            </div>
           </div>
 
-          <!-- Location (required) -->
           <div class="col-md-6">
-            <div class="row mb-3">
-              <div class="col-md-3 text-md-end">
-                <label for="lab_location" class="col-form-label fw-bold">Laboratory Location</label>
-              </div>
-              <div class="col-md-9">
+                   <label for="lab_location" class="col-form-label fw-bold">Laboratory Location</label>
                 <input
                   type="text"
                   id="lab_location"
@@ -49,16 +39,10 @@
                   (blur)="touched['lab_location'] = true" />
                 <div class="invalid-feedback">Location is required.</div>
               </div>
-            </div>
-          </div>
-
-          <!-- Status (required) -->
+      
           <div class="col-md-6">
-            <div class="row mb-3">
-              <div class="col-md-3 text-md-end">
-                <label for="status" class="col-form-label fw-bold">Laboratory Status</label>
-              </div>
-              <div class="col-md-9">
+
+                   <label for="status" class="col-form-label fw-bold">Laboratory Status</label>
                 <select
                   id="status"
                   name="status"
@@ -71,13 +55,29 @@
                   <option *ngFor="let s of lab_statuses" [value]="s">{{ s | titlecase }}</option>
                 </select>
                 <div class="invalid-feedback">Status is required.</div>
+              </div> 
+          <div class="col-md-6">
+            <!-- Lab Type (required) -->
+                  <label for="lab_type" class="col-form-label fw-bold">Laboratory Type</label>
+                <select
+                  id="lab_type"
+                  name="lab_type"
+                  class="form-select"
+                  [(ngModel)]="lab.lab_type"
+                  required
+                  [class.is-invalid]="(labForm.submitted || touched['lab_type']) && !lab.lab_type"
+                  (blur)="touched['lab_type'] = true"
+                >
+                  <option value="" disabled>Select type</option>
+                  <option *ngFor="let labtype of labtypes" [value]="labtype">{{ labtype }}</option>
+                </select>
+                <div class="invalid-feedback">Lab Type is required.</div>
               </div>
             </div>
-          </div>
-        </div>
+      
 
         <!-- PDF Header (Optional) -->
-        <div class="row">
+        <div class="row mt-3">
           <div class="col-12">
             <div class="border rounded p-3 bg-white">
               <h6 class="fw-bold mb-3">PDF Header Laboratory Information</h6>
@@ -176,6 +176,10 @@
               <span *ngIf="lab.status; else noStatus" class="badge bg-info text-dark">{{ lab.status }}</span>
               <ng-template #noStatus>—</ng-template>
             </span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="fw-semibold"> laboratory Type</span>
+            <span>{{ lab.lab_type || '—' }}</span>
           </div>
 
           <div class="list-group-item">

@@ -10,6 +10,7 @@
             <tr style="background-color:#705211; color: white; font-weight: bold;">
               <th>ID</th>
               <th>Lab Name</th>
+              <th>Lab Type</th>
               <th>Location</th>
               <th>Header Name</th>
               <th>Header Address</th>
@@ -25,6 +26,7 @@
             <tr *ngFor="let lab of labs">
               <td>{{ lab.id }}</td>
               <td>{{ lab.lab_name }}</td>
+              <td>{{lab.lab_type}}</td>
               <td>{{ lab.lab_location || '—' }}</td>
               <td>{{ lab.lab_pdfheader_name || '—' }}</td>
               <td>{{ lab.lab_pdfheader_address || '—' }}</td>

@@ -19,6 +19,7 @@ export class LabCreateComponent implements OnInit, AfterViewInit {
     lab_name: '', 
     lab_location: '', 
     status: '',
+    lab_type: '',
     lab_pdfheader_address: null,
     lab_pdfheader_contact_no: null,
     lab_pdfheader_name: null,
@@ -41,6 +42,7 @@ export class LabCreateComponent implements OnInit, AfterViewInit {
   // Bootstrap.Modal instances
   private previewModal!: any;
   private alertModal!: any;
+  labtypes: any;
 
   constructor(private apiservies: ApiServicesService) {}
 
@@ -49,6 +51,7 @@ export class LabCreateComponent implements OnInit, AfterViewInit {
     this.apiservies.getEnums().subscribe({
       next: (res) => {
         this.lab_statuses = res?.lab_statuses || [];
+        this.labtypes = res?.labtypes || [];
       },
       error: (err) => {
         console.error('Failed to load master data', err);
@@ -120,6 +123,7 @@ export class LabCreateComponent implements OnInit, AfterViewInit {
       lab_name: '', 
       lab_location: '', 
       status: '',
+      lab_type: '',
       lab_pdfheader_address: null,
       lab_pdfheader_contact_no: null,
       lab_pdfheader_name: null,

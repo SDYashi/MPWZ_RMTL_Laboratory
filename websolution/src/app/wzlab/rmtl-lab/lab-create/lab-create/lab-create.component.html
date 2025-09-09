@@ -18,116 +18,143 @@
     <div class="card-body">
       <form #labForm="ngForm" (ngSubmit)="openPreview(labForm)" novalidate>
 
-        <!-- Lab Name (required) -->
-        <div class="mb-3">
-          <label for="lab_name" class="form-label mt-2 fw-bold">Laboratory Name</label>
-          <input
-            type="text"
-            class="form-control"
-            id="lab_name"
-            name="lab_name"
-            [(ngModel)]="lab.lab_name"
-            required
-            maxlength="120"
-            [class.is-invalid]="(labForm.submitted || touched['lab_name']) && !lab.lab_name"
-            (blur)="touched['lab_name'] = true"
-          />
-          <div class="invalid-feedback">Laboratory Name is required.</div>
-        </div>
-
-        <!-- Lab Location (required) -->
-        <div class="mb-3">
-          <label for="lab_location" class="form-label mt-2 fw-bold">Laboratory Location</label>
-          <input
-            type="text"
-            class="form-control"
-            id="lab_location"
-            name="lab_location"
-            [(ngModel)]="lab.lab_location"
-            required
-            maxlength="160"
-            [class.is-invalid]="(labForm.submitted || touched['lab_location']) && !lab.lab_location"
-            (blur)="touched['lab_location'] = true"
-          />
-          <div class="invalid-feedback">Laboratory Location is required.</div>
-        </div>
-
-        <!-- Status (required) -->
-        <div class="mb-4">
-          <label for="status" class="form-label mt-2 fw-bold"> Laboratory Status</label>
-          <select
-            id="status"
-            name="status"
-            class="form-select"
-            [(ngModel)]="lab.status"
-            required
-            [class.is-invalid]="(labForm.submitted || touched['status']) && !lab.status"
-            (blur)="touched['status'] = true"
-          >
-            <option value="" disabled>Select status</option>
-            <option *ngFor="let status of lab_statuses" [value]="status">{{ status }}</option>
-          </select>
-          <div class="invalid-feedback">Status is required.</div>
-        </div>
-
-        <!-- PDF Header (optional block) -->
-        <div class="border rounded-3 p-3 bg-light">
-          <div class="mb-2 fw-bold text-secondary">PDF Header information</div>
-
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">Header Laboratory Name</label>
+        <div class="row g-3">
+          <!-- Lab Name (required) -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="lab_name" class="form-label mt-2 fw-bold">Laboratory Name</label>
               <input
                 type="text"
                 class="form-control"
-                name="lab_pdfheader_name"
-                [(ngModel)]="lab.lab_pdfheader_name"
+                id="lab_name"
+                name="lab_name"
+                [(ngModel)]="lab.lab_name"
+                required
+                maxlength="120"
+                [class.is-invalid]="(labForm.submitted || touched['lab_name']) && !lab.lab_name"
+                (blur)="touched['lab_name'] = true"
+              />
+              <div class="invalid-feedback">Laboratory Name is required.</div>
+            </div>
+          </div>
+
+          <!-- Lab Location (required) -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="lab_location" class="form-label mt-2 fw-bold">Laboratory Location</label>
+              <input
+                type="text"
+                class="form-control"
+                id="lab_location"
+                name="lab_location"
+                [(ngModel)]="lab.lab_location"
+                required
                 maxlength="160"
+                [class.is-invalid]="(labForm.submitted || touched['lab_location']) && !lab.lab_location"
+                (blur)="touched['lab_location'] = true"
+              />
+              <div class="invalid-feedback">Laboratory Location is required.</div>
+            </div>
+          </div>
+
+          <!-- Status (required) -->
+          <div class="col-md-6">
+            <div class="mb-4">
+              <label for="status" class="form-label mt-2 fw-bold">Laboratory Status</label>
+              <select
+                id="status"
+                name="status"
+                class="form-select"
+                [(ngModel)]="lab.status"
+                required
+                [class.is-invalid]="(labForm.submitted || touched['status']) && !lab.status"
+                (blur)="touched['status'] = true"
+              >
+                <option value="" disabled>Select status</option>
+                <option *ngFor="let status of lab_statuses" [value]="status">{{ status }}</option>
+              </select>
+              <div class="invalid-feedback">Status is required.</div>
+            </div>
+          </div>
+          <!-- Lab Type (required) -->
+          <div class="col-md-6">
+            <div class="mb-4">
+              <label for="lab_type" class="form-label mt-2 fw-bold">Laboratory Type</label>
+              <select
+                id="lab_type"
+                name="lab_type"
+                class="form-select"
+                [(ngModel)]="lab.lab_type"
+                required
+                [class.is-invalid]="(labForm.submitted || touched['lab_type']) && !lab.lab_type"
+                (blur)="touched['lab_type'] = true"
+              >
+                <option value="" disabled>Select type</option>
+                <option *ngFor="let labtype of labtypes" [value]="labtype">{{ labtype }}</option>
+              </select>
+              <div class="invalid-feedback">Lab Type is required.</div>
+            </div>
+          </div>
+
+          <!-- PDF Header (optional block) -->
+          <div class="col-md-12 border rounded-3 p-3 bg-light">
+            <div class="mb-2 fw-bold text-secondary">PDF Header information</div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Header Laboratory Name</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="lab_pdfheader_name"
+                  [(ngModel)]="lab.lab_pdfheader_name"
+                  maxlength="160"
+                  />
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Header Laboratory Email</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  name="lab_pdfheader_email"
+                  [(ngModel)]="lab.lab_pdfheader_email"
+                  maxlength="160"
+                  #emailCtrl="ngModel"
+                  email
                 />
-            </div>
-
-            <div class="col-md-6">
-              <label class="form-label">Header Laboratory Email</label>
-              <input
-                type="email"
-                class="form-control"
-                name="lab_pdfheader_email"
-                [(ngModel)]="lab.lab_pdfheader_email"
-                maxlength="160"
-                #emailCtrl="ngModel"
-                email
-              />
-              <div class="text-danger small mt-1" *ngIf="emailCtrl.invalid && emailCtrl.touched">
-                Please enter a valid email.
+                <div class="text-danger small mt-1" *ngIf="emailCtrl.invalid && emailCtrl.touched">
+                  Please enter a valid email.
+                </div>
               </div>
-            </div>
 
-            <div class="col-md-6">
-              <label class="form-label">Header Laboratory Contact No.</label>
-              <input
-                type="text"
-                class="form-control"
-                name="lab_pdfheader_contact_no"
-                [(ngModel)]="lab.lab_pdfheader_contact_no"
-                maxlength="20"
-                #phoneCtrl="ngModel"
-                pattern="^[0-9+\-\s()]{6,20}$"
-                (blur)="phoneCtrl.control.markAsTouched()"
-              />
-              <div class="text-danger small mt-1" *ngIf="phoneCtrl.invalid && phoneCtrl.touched">
-                Please enter a valid phone number.
+              <div class="col-md-6">
+                <label class="form-label">Header Laboratory Contact No.</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="lab_pdfheader_contact_no"
+                  [(ngModel)]="lab.lab_pdfheader_contact_no"
+                  maxlength="20"
+                  #phoneCtrl="ngModel"
+                  pattern="^[0-9+\-\s()]{6,20}$"
+                  (blur)="phoneCtrl.control.markAsTouched()"
+                />
+                <div class="text-danger small mt-1" *ngIf="phoneCtrl.invalid && phoneCtrl.touched">
+                  Please enter a valid phone number.
+                </div>
               </div>
-            </div>
 
-            <div class="col-md-6">
-              <label class="form-label">Header Laboratory Address</label>
-              <textarea
-                class="form-control"
-                name="lab_pdfheader_address"
-                [(ngModel)]="lab.lab_pdfheader_address"
-                rows="2"
-                maxlength="500"
-                 ></textarea>
+              <div class="col-md-6">
+                <label class="form-label">Header Laboratory Address</label>
+                <textarea
+                  class="form-control"
+                  name="lab_pdfheader_address"
+                  [(ngModel)]="lab.lab_pdfheader_address"
+                  rows="2"
+                  maxlength="500"
+                   ></textarea>
+              </div>
             </div>
           </div>
         </div>
@@ -179,9 +206,13 @@
                   <ng-template #noStatus>—</ng-template>
                 </span>
               </div>
+              <div class="list-group-item d-flex justify-content-between">
+                <span class="fw-semibold">Lab Type</span>
+                <span>{{ lab.lab_type || '—' }}</span>
+              </div>
             </div>
           </div>
-
+ 
           <div class="col-md-6">
             <div class="list-group">
               <div class="list-group-item d-flex justify-content-between">

@@ -4,6 +4,8 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
 
 declare var bootstrap: any; // ensure Bootstrap bundle JS in index.html
 
+type LabChip = { id: number; lab_name: string };
+
 @Component({
   selector: 'app-rmtl-create-user',
   templateUrl: './rmtl-create-user.component.html',
@@ -12,20 +14,20 @@ declare var bootstrap: any; // ensure Bootstrap bundle JS in index.html
 export class RmtlCreateUserComponent implements OnInit, AfterViewInit {
   user: any = this.userDefault();
   labs: Lab[] = [];
-  roles: string[] = ['ADMIN', 'OFFICER_INCHARGE']; // will be replaced by API enums if available
-  statuses: string[] = ['ACTIVE', 'INACTIVE', 'PENDING'];
+  roles: string[] = [];
+  statuses: string[] = [];
 
-  // multi-select roles binding
- selectedRoles: string[] = []; // ensure it's never undefined
+  // Multi-select state
+  selectedRoles: string[] = [];
+  selectedLabs: LabChip[] = [];
 
-
-  // UI/UX
   showPassword = false;
   loading = false;
-
-  // server response
   response_msg: string | null = null;
-  response_success: boolean = false;
+  response_success = false;
+
+  // For custom validation messages on multi-selects
+  showValidation = false;
 
   // Modals
   @ViewChild('previewModal') previewModalEl!: ElementRef;
@@ -42,11 +44,12 @@ export class RmtlCreateUserComponent implements OnInit, AfterViewInit {
       error: (error) => console.error('Error fetching labs:', error)
     });
 
-    // Load roles from enums if available
+    // Load roles/statuses
     this.apiservice.getEnums().subscribe({
       next: (response) => {
         if (response?.roles?.length) {
           this.roles = response.roles;
+          this.statuses = response.user_statuses || [];
         }
       },
       error: (error) => console.error('Error fetching enums:', error)
@@ -58,6 +61,82 @@ export class RmtlCreateUserComponent implements OnInit, AfterViewInit {
     this.alertModal = new bootstrap.Modal(this.alertModalEl?.nativeElement, { backdrop: 'static' });
   }
 
+  // ----- Labels / display -----
+  get selectedLabsLabel(): string {
+    return this.selectedLabs.length
+      ? this.selectedLabs.map(l => l.lab_name).join(', ')
+      : 'Select Labs';
+  }
+
+  // ----- Validation -----
+  get labsValid(): boolean {
+    return this.selectedLabs.length > 0;
+  }
+
+  get rolesValid(): boolean {
+    return this.selectedRoles.length > 0;
+  }
+
+  // ----- Labs multi-select -----
+  isLabSelected(id?: number): boolean {
+    if (id == null) return false;
+    return this.selectedLabs.some(l => Number(l.id) === Number(id));
+  }
+
+  onLabToggle(ev: Event, lab: Lab): void {
+    const input = ev.target as HTMLInputElement | null;
+    const checked = !!input?.checked;
+
+    const id = lab?.id;
+    const lab_name = (lab as any)?.lab_name ?? '';
+    if (id == null) return; // ignore labs without id
+
+    if (checked) {
+      if (!this.isLabSelected(id)) {
+        this.selectedLabs = [...this.selectedLabs, { id: Number(id), lab_name }];
+      }
+    } else {
+      this.selectedLabs = this.selectedLabs.filter(l => Number(l.id) !== Number(id));
+    }
+    // keep user.labs synced
+    this.user.labs = this.selectedLabs.map(l => l.id);
+  }
+
+  selectAllLabs(): void {
+    this.selectedLabs = this.labs
+      .filter(l => l?.id != null)
+      .map(l => ({ id: Number(l.id), lab_name: (l as any).lab_name ?? '' }));
+    this.user.labs = this.selectedLabs.map(l => l.id);
+  }
+
+  clearLabs(): void {
+    this.selectedLabs = [];
+    this.user.labs = [];
+  }
+
+  // ----- Roles multi-select -----
+  onRoleToggle(ev: Event, role: string): void {
+    const input = ev.target as HTMLInputElement | null;
+    const checked = !!input?.checked;
+
+    if (checked) {
+      if (!this.selectedRoles.includes(role)) {
+        this.selectedRoles = [...this.selectedRoles, role];
+      }
+    } else {
+      this.selectedRoles = this.selectedRoles.filter(r => r !== role);
+    }
+  }
+
+  selectAllRoles(): void {
+    this.selectedRoles = [...this.roles];
+  }
+
+  clearRoles(): void {
+    this.selectedRoles = [];
+  }
+
+  // ----- Defaults & helpers -----
   userDefault() {
     return {
       lab_id: '',
@@ -68,14 +147,31 @@ export class RmtlCreateUserComponent implements OnInit, AfterViewInit {
       designation: '',
       status: 'ACTIVE',
       mobile: '',
-      rolesStr: '' // kept for compatibility if needed
+      rolesStr: '',
+      labs: [] as number[]
     };
   }
 
-  // Open Preview
+  labName(id: any): string | null {
+    const lab = this.labs?.find(l => String(l.id) === String(id));
+    return lab ? (lab as any).lab_name : null;
+    // adjust key if your interface uses a different property name
+  }
+
+  get maskedPassword(): string {
+    const len = (this.user?.password || '').length;
+    return len ? '•'.repeat(len) : '—';
+  }
+
+  // ----- Preview flow -----
   openPreview(form: any): void {
+    this.showValidation = true;
+
     if (form.invalid) {
       form.control.markAllAsTouched();
+      return;
+    }
+    if (!this.labsValid || !this.rolesValid) {
       return;
     }
     this.previewModal.show();
@@ -87,21 +183,27 @@ export class RmtlCreateUserComponent implements OnInit, AfterViewInit {
 
   closeAlert(): void {
     this.alertModal?.hide();
-    // Optional: clear inline alert after closing modal
     this.response_msg = null;
   }
 
-  // Submit after confirm
+  // ----- Submit after confirm -----
   onConfirmSubmit(): void {
     this.loading = true;
     this.closePreview();
 
-    // Prefer multi-select roles; if none, fall back to CSV in rolesStr
     const roles =
-      (this.selectedRoles && this.selectedRoles.length)
+      this.selectedRoles?.length
         ? this.selectedRoles
         : (this.user.rolesStr
-            ? this.user.rolesStr.split(',').map((r: string) => r.trim()).filter((r: string) => r)
+            ? this.user.rolesStr.split(',').map((r: string) => r.trim()).filter(Boolean)
+            : []);
+
+    
+    const labs =
+      this.selectedLabs?.length
+        ? this.selectedLabs
+        : (this.user.labs
+            ? this.user.labs.map((l: number) => l)
             : []);
 
     const payload = {
@@ -113,7 +215,8 @@ export class RmtlCreateUserComponent implements OnInit, AfterViewInit {
       designation: this.user.designation || null,
       status: this.user.status,
       mobile: this.user.mobile || null,
-      roles
+      roles,
+      labs 
     };
 
     this.apiservice.createUser(payload).subscribe({
@@ -121,9 +224,13 @@ export class RmtlCreateUserComponent implements OnInit, AfterViewInit {
         this.response_msg = 'User created successfully!';
         this.response_success = true;
         this.loading = false;
-        // reset form state
+
+        // reset
         this.user = this.userDefault();
         this.selectedRoles = [];
+        this.clearLabs();
+        this.showValidation = false;
+
         this.alertModal.show();
       },
       error: (error) => {
@@ -136,20 +243,8 @@ export class RmtlCreateUserComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // Inline submit kept for compatibility (not used now)
+  // Optional: legacy submit
   onSubmit(): void {
-    // Now we use preview -> confirm. Keeping this to not break existing (no-op).
     this.openPreview({ invalid: false, control: { markAllAsTouched() {} } });
-  }
-
-  // Helpers
-  labName(id: any): string | null {
-    const lab = this.labs?.find(l => String(l.id) === String(id));
-    return lab ? lab.lab_name : null;
-  }
-
-  get maskedPassword(): string {
-    const len = (this.user?.password || '').length;
-    return len ? '•'.repeat(len) : '—';
   }
 }

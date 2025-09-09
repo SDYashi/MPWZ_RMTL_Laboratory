@@ -14,11 +14,12 @@ export class LabEditComponent implements OnInit, AfterViewInit {
     id: '',
     lab_name: '',
     lab_location: '',
-    status: ''
+    status: '',
+    lab_type: '',
   };
 
   // statuses: load from API if available; fallback provided
-  lab_statuses: string[] = ['OPERATIONAL', 'NON_OPERATIONAL'];
+  // lab_statuses: string[] = ['OPERATIONAL', 'NON_OPERATIONAL'];
 
   loading = false;
   responseMessage = '';
@@ -28,7 +29,8 @@ export class LabEditComponent implements OnInit, AfterViewInit {
   touched: Record<string, boolean> = {
     lab_name: false,
     lab_location: false,
-    status: false
+    status: false,
+    lab_type: false
   };
 
   // Modals
@@ -36,6 +38,8 @@ export class LabEditComponent implements OnInit, AfterViewInit {
   @ViewChild('alertModal') alertModalEl!: ElementRef;
   private previewModal!: any;
   private alertModal!: any;
+  lab_statuses: any;
+  labtypes: any
 
   constructor(
     private router: Router,
@@ -44,10 +48,15 @@ export class LabEditComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     // If you have enums, uncomment to load:
-    // this.apiService.getEnums().subscribe({
-    //   next: (res) => this.lab_statuses = res?.lab_statuses?.length ? res.lab_statuses : this.lab_statuses,
-    //   error: () => {}
-    // });
+    this.apiService.getEnums().subscribe({
+      next: (res) => {
+        this.lab_statuses = res?.lab_statuses || [];
+        this.labtypes = res?.labtypes || [];
+      },
+      error: (err) => {
+        console.error('Failed to load master data', err);
+      }
+    });
 
     const state = history.state;
 
@@ -89,6 +98,7 @@ export class LabEditComponent implements OnInit, AfterViewInit {
     this.touched['lab_name'] = this.touched['lab_name'] || !this.lab.lab_name;
     this.touched['lab_location'] = this.touched['lab_location'] || !this.lab.lab_location;
     this.touched['status'] = this.touched['status'] || !this.lab.status;
+    this.touched['lab_type'] = this.touched['lab_type'] || !this.lab.lab_type;
 
     if (form.invalid) {
       form.control.markAllAsTouched();

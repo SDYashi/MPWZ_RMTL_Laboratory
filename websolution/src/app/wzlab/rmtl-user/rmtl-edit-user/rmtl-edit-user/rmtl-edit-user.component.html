@@ -5,16 +5,16 @@
     </div>
 
     <div class="card-body">
-      <form #editForm="ngForm" (ngSubmit)="openPreview(editForm)" novalidate>
+      <form #editForm="ngForm" (ngSubmit)="openPreview(editForm)" novalidate autocomplete="off">
         <div class="row">
-          <div class="col-md-6">
-            <!-- Username (readonly) -->
+          <div class="col-md-4">
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Username</label>
               <input name="username" [(ngModel)]="user.username" class="form-control" readonly />
             </div>
+          </div>
 
-            <!-- Name -->
+          <div class="col-md-4">
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Name</label>
               <input
@@ -29,8 +29,9 @@
                 Name is required.
               </div>
             </div>
+          </div>
 
-            <!-- Email -->
+          <div class="col-md-4">
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Email</label>
               <input
@@ -48,15 +49,17 @@
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="col-md-6">
-            <!-- Designation -->
+        <div class="row">
+          <div class="col-md-4">
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Designation</label>
               <input name="designation" [(ngModel)]="user.designation" class="form-control" placeholder="Optional" />
             </div>
+          </div>
 
-            <!-- Mobile -->
+          <div class="col-md-4">
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Mobile</label>
               <input
@@ -71,38 +74,128 @@
                 Enter a valid phone number (7–15 digits).
               </div>
             </div>
+          </div>
 
-            <!-- Status -->
+          <div class="col-md-4">
             <div class="mb-3">
               <label class="form-label mt-2 fw-bold">Status</label>
               <select name="status" [(ngModel)]="user.status" #statusCtl="ngModel" class="form-select" required>
                 <option value="" disabled>Select status</option>
-                <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+                <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
               </select>
               <div class="text-danger small mt-1" *ngIf="(editForm.submitted || statusCtl.touched) && statusCtl.invalid">
                 Status is required.
               </div>
             </div>
+          </div>
+        </div>
 
-            <!-- Roles (multi-select) -->
-            <div class="mb-3">
-              <label class="form-label mt-2 fw-bold">Roles</label>
-              <select
-                name="roles"
-                [(ngModel)]="selectedRoles"
-                #rolesCtl="ngModel"
-                class="form-select"
-                multiple
-                required
-              >
-                <option *ngFor="let r of allRoles" [value]="r">{{ r }}</option>
-              </select>
-              <div class="form-text">Hold Ctrl/Cmd to select multiple roles.</div>
-              <div class="text-danger small mt-1" *ngIf="(editForm.submitted || rolesCtl.touched) && rolesCtl.invalid">
-                Select at least one role.
-              </div>
+        <div class="row">
+          <!-- Labs (multi-select) -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label mt-2 fw-bold">Labs Access Assignment</label>
+
+            <div class="dropdown w-100">
+              <button
+                class="btn btn-outline-primary dropdown-toggle w-100 text-start"
+                type="button"
+                data-bs-toggle="dropdown"
+                data-bs-auto-close="outside"
+                aria-expanded="false">
+                {{ labsLabel }}
+              </button>
+
+              <ul class="dropdown-menu p-2 w-100" style="max-height: 260px; overflow-y: auto;">
+                <li class="d-flex justify-content-between align-items-center px-2 mb-2">
+                  <div class="small text-muted">Select labs</div>
+                  <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-light" (click)="selectAllLabs()">All</button>
+                    <button type="button" class="btn btn-light" (click)="clearLabs()">Clear</button>
+                  </div>
+                </li>
+
+                <li *ngFor="let lab of labs">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      [checked]="isLabSelected(lab?.id)"
+                      (change)="onLabToggle($event, lab)"
+                      [id]="'lab_' + (lab?.id || 'x')" />
+                    <label class="form-check-label" [for]="'lab_' + (lab?.id || 'x')">
+                      {{ lab.lab_name }}
+                    </label>
+                  </div>
+                </li>
+              </ul>
             </div>
 
+            <!-- chips preview -->
+            <div class="mt-2" *ngIf="selectedLabs.length">
+              <span class="badge bg-light text-dark border me-1 mb-1" *ngFor="let l of selectedLabs">
+                {{ l.lab_name }}
+              </span>
+            </div>
+
+            <div class="text-danger small mt-1" *ngIf="showValidation && !labsValid">
+              At least one lab is required.
+            </div>
+          </div>
+
+          <!-- Roles (multi-select) -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label mt-2 fw-bold">Select Roles for User</label>
+
+            <div class="dropdown w-100">
+              <button
+                class="btn btn-outline-primary w-100 text-start dropdown-toggle"
+                type="button"
+                data-bs-toggle="dropdown"
+                data-bs-auto-close="outside"
+                aria-expanded="false">
+                {{ rolesLabel }}
+              </button>
+
+              <ul class="dropdown-menu w-100 p-2" style="max-height: 260px; overflow-y: auto;">
+                <li class="d-flex justify-content-between align-items-center px-2 mb-2">
+                  <div class="small text-muted">Select roles</div>
+                  <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-light" (click)="selectAllRoles()">All</button>
+                    <button type="button" class="btn btn-light" (click)="clearRoles()">Clear</button>
+                  </div>
+                </li>
+
+                <li *ngFor="let role of allRoles">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      [checked]="isRoleSelected(role)"
+                      (change)="onRoleToggle($event, role)"
+                      [id]="'role_' + role" />
+                    <label class="form-check-label" [for]="'role_' + role">
+                      {{ role }}
+                    </label>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- chips preview -->
+            <div class="mt-2" *ngIf="selectedRoles.length">
+              <span class="badge bg-light text-dark border me-1 mb-1" *ngFor="let r of selectedRoles">
+                {{ r }}
+              </span>
+            </div>
+
+            <div class="text-danger small mt-1" *ngIf="showValidation && !rolesValid">
+              At least one role is required.
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mt-auto">
             <button class="btn btn-success" type="submit" [disabled]="loading">
               <i class="fas fa-eye me-1"></i> Preview Changes
             </button>
@@ -142,13 +235,20 @@
           </div>
           <div class="col-12">
             <strong>Roles:</strong>
-            <span *ngIf="selectedRoles?.length; else noRoles">{{ selectedRoles.join(', ') }}</span>
+            <span *ngIf="selectedRoles?.length; else noRoles">{{ rolesLabel }}</span>
             <ng-template #noRoles>—</ng-template>
+          </div>
+          <div class="col-12">
+            <strong>Labs:</strong>
+            <span *ngIf="selectedLabs?.length; else noLabs">
+              {{ labsLabel }}
+            </span>
+            <ng-template #noLabs>—</ng-template>
           </div>
         </div>
 
         <div class="alert alert-warning mt-3 mb-0"
-             *ngIf="!user.name || !user.email || !user.status || !(selectedRoles?.length)">
+             *ngIf="!user.name || !user.email || !user.status || !(selectedRoles?.length) || !(selectedLabs?.length)">
           <i class="fas fa-exclamation-triangle me-1"></i>
           Some required fields are missing. Please close and complete them.
         </div>
@@ -158,8 +258,7 @@
         <button type="button" class="btn btn-outline-secondary" (click)="closePreview()">Cancel</button>
         <button type="button" class="btn btn-success"
                 (click)="onConfirmUpdate()"
-             [disabled]="!user.name || !user.email || !user.status || selectedRoles.length === 0 || loading">
-
+                [disabled]="!canSave || loading">
           <i class="fas fa-save me-1"></i> Save Changes
           <span *ngIf="loading" class="spinner-border spinner-border-sm ms-2" role="status"></span>
         </button>
@@ -172,11 +271,11 @@
 <div class="modal fade" #alertModal tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" [ngClass]="{ 'border-success': responseSuccess, 'border-danger': !responseSuccess }">
-       <div class="modal-header border-1" style="background-color: #eae9f1; color: #161515;">
-        <h5 class="modal-title fw-bold" id="previewModalLabel">
-          <span class="ms-2">{{ responseSuccess ? 'Done' : 'Error' }}</span>   
+      <div class="modal-header border-1" style="background-color: #eae9f1; color: #161515;">
+        <h5 class="modal-title fw-bold">
+          <span class="ms-2">{{ responseSuccess ? 'Done' : 'Error' }}</span>
         </h5>
-        <button type="button" class="btn-close text-white" (click)="closePreview()" aria-label="Close"></button>
+        <button type="button" class="btn-close" (click)="closeAlert()" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <p class="mb-0">{{ responseMsg }}</p>
