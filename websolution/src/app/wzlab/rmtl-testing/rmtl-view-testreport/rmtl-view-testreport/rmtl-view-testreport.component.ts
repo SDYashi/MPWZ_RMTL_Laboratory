@@ -140,6 +140,11 @@ export class RmtlViewTestreportComponent implements OnInit {
     });
   }
 
+  downloadTestreports_byreportidwithReportTypes(report_type: string, dispatchNo: string){
+  
+    
+  }
+
   /** When the user changes any date or report_type, re-query the API */
   onDateChanged(): void {
     this.fetchFromServer(true);

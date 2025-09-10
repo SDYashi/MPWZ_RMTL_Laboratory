@@ -138,13 +138,11 @@
               <div class="p-4 bg-white rounded-4 shadow-sm border-dashed">
                 <h6 class="mb-2 text-primary fw-bold">Upload Device List (CSV)</h6>
                 <p class="text-muted small mb-3">
-                  Header: <code>serial_number,make,capacity,phase,connection_type,meter_category,meter_class,meter_type,remark,voltage_rating,current_rating,device_testing_purpose,ct_class,ct_ratio</code>
+                  Header: <code>serial_number</code>
                 </p>
                 <div class="d-flex flex-column flex-md-row align-items-center gap-2">
                   <input type="file" accept=".csv" (change)="handleCSVUpload($event)" class="form-control">
-                  <button class="btn btn-outline-primary" type="button" (click)="addDevice()">
-                    <i class="bi bi-plus"></i> Add Empty Row
-                  </button>
+                  
                 </div>
               </div>
             </div>
@@ -168,7 +166,7 @@
                   </div>
                   <div class="col-md-4 d-grid">
                     <button type="button" class="btn btn-outline-primary h-100" (click)="addSerialRange()">
-                      ➕ Add Range
+                      ➕ Add Range 
                     </button>
                   </div>
                 </div>
@@ -181,13 +179,13 @@
                 <div class="row g-3">
                   <div class="col-md-6">
                     <div class="form-floating">
-                      <input type="text" class="form-control" [(ngModel)]="quick.serial" name="quick_serial" placeholder="Serial">
+                      <input type="text" class="form-control" [(ngModel)]="quick.serial" name="quick_serial" placeholder="Serial" (keyup.enter)="quickAddMeter()">
                       <label>Serial Number</label>
                     </div>
                   </div>
                   <div class="col-md-6 d-grid">
                     <button class="btn btn-outline-success" type="button" (click)="quickAddMeter()">
-                      <i class="bi bi-plus-circle"></i> Quick Add
+                      <i class="bi bi-plus-circle"></i> Quick Add Meter 
                     </button>
                   </div>
                 </div>
@@ -273,10 +271,7 @@
                   <td><input type="text" [(ngModel)]="device.remark" name="remark{{i}}" class="form-control form-control-sm"></td>
 
                   <td class="text-center">
-                    <button type="button" class="btn btn-icon btn-sm btn-outline-danger" (click)="removeDevice(i)"
-                            title="Remove">
-                      <i class="bi bi-x-lg"></i>
-                    </button>
+                    <button type="button" class="btn btn-icon btn-sm btn-outline-danger" (click)="removeDevice(i)"> ✕ </button>
                   </td>
                 </tr>
                 <tr *ngIf="!devices?.length">
@@ -291,11 +286,11 @@
           <!-- Sticky actions -->
           <div class="action-bar d-flex align-items-center gap-2 mt-3">
             <button type="button" class="btn btn-outline-success" (click)="addDevice()">
-              + Add Device
+              + Add New Row
             </button>
             <div class="ms-auto">
               <button type="button" class="btn btn-primary" [disabled]="!devices.length" (click)="submitDevices()">
-                <i class="bi bi-cloud-upload"></i> Add Devices
+                <i class="bi bi-cloud-upload"></i> Validate & Submit 
               </button>
             </div>
           </div>
@@ -353,7 +348,7 @@
               <div class="p-4 bg-white rounded-4 shadow-sm border">
                 <h6 class="mb-2 text-primary fw-bold">Upload CT List (CSV)</h6>
                 <p class="text-muted small mb-3">
-                  Header: <code>serial_number,ct_class,ct_ratio,make,capacity,phase,meter_category,meter_class,meter_type,connection_type,voltage_rating,current_rating,device_testing_purpose,remark</code>
+                  Header: <code>serial_number</code>
                 </p>
                 <input type="file" accept=".csv" (change)="handleCTCSVUpload($event)" class="form-control">
               </div>
@@ -386,35 +381,14 @@
   <div class="p-4 bg-white rounded-4 shadow-sm border">
     <h6 class="mb-3 text-primary fw-bold">Quick Add CT</h6>
     <div class="row g-3 align-items-end">
-      <div class="col-md-4">
+      <div class="col-md-6">
         <div class="form-floating">
-          <input type="text" class="form-control" [(ngModel)]="ctQuick.serial" name="ct_quick_serial" placeholder="Serial">
+          <input type="text" class="form-control" [(ngModel)]="ctQuick.serial" name="ct_quick_serial" placeholder="Serial" (keyup.enter)="quickAddCT()">
           <label>CT Serial Number</label>
         </div>
       </div>
-
-      <div class="col-md-3">
-        <div class="form-floating">
-          <select class="form-select" [(ngModel)]="ctMeta.ct_class" name="ct_quick_class">
-            <option value="">--</option>
-            <option *ngFor="let option of ct_classes" [value]="option">{{ option }}</option>
-          </select>
-          <label>CT Class</label>
-        </div>
-      </div>
-
-      <div class="col-md-3">
-        <div class="form-floating">
-          <select class="form-select" [(ngModel)]="ctMeta.ct_ratio" name="ct_quick_ratio">
-            <option value="">--</option>
-            <option *ngFor="let option of ct_ratios" [value]="option">{{ option }}</option>
-          </select>
-          <label>CT Ratio</label>
-        </div>
-      </div>
-
-      <div class="col-md-2 d-grid">
-        <button class="btn btn-outline-success" type="button" (click)="quickAddCT()">
+      <div class="col-md-6 d-grid">
+        <button class="btn btn-outline-success py-3" type="button" (click)="quickAddCT()">
           <i class="bi bi-plus-circle"></i> Quick Add CT
         </button>
       </div>
@@ -426,17 +400,13 @@
           </div>
 
           <hr class="my-4">
-
           <!-- CT TABLE (fixed one stray <td>) -->
           <div class="table-responsive rounded-4 border overflow-auto" style="max-height: 52vh;">
             <table class="table table-sm table-hover align-middle mb-0 table-modern">
               <thead class="table-light position-sticky top-0">
                 <tr class="text-center text-nowrap">
                   <th>S.No</th><th>Serial No</th><th>CT Class</th><th>CT Ratio</th><th>Make</th>
-                  <!-- <th>Capacity</th><th>Phase</th><th>Category</th><th>Meter Type</th> -->
-                  <th>Conn. Type</th>
-                  <!-- <th>Voltage</th><th>Current</th> -->
-                  <th>Purpose</th><th>Remark</th><th></th>
+                  <th>Conn. Type</th><th>Purpose</th><th>Remark</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -464,47 +434,11 @@
                     </select>
                   </td>
 
-                  <!-- <td>
-                    <select class="form-select form-select-sm" [(ngModel)]="ct.capacity" name="ct_capacity{{i}}">
-                      <option *ngFor="let option of capacities" [value]="option">{{ option }}</option>
-                    </select>
-                  </td>
-
-                  <td>
-                    <select class="form-select form-select-sm" [(ngModel)]="ct.phase" name="ct_phase{{i}}">
-                      <option *ngFor="let option of phases" [value]="option">{{ option }}</option>
-                    </select>
-                  </td>
-
-                  <td>
-                    <select class="form-select form-select-sm" [(ngModel)]="ct.meter_category" name="ct_category{{i}}">
-                      <option *ngFor="let option of meter_categories" [value]="option">{{ option }}</option>
-                    </select>
-                  </td>
-
-                  <td>
-                    <select class="form-select form-select-sm" [(ngModel)]="ct.meter_type" name="ct_meter_type{{i}}">
-                      <option *ngFor="let option of meterTypes" [value]="option">{{ option }}</option>
-                    </select>
-                  </td> -->
-
                   <td>
                     <select class="form-select form-select-sm" [(ngModel)]="ct.connection_type" name="ct_connection_type{{i}}">
                       <option *ngFor="let option of connection_types" [value]="option">{{ option }}</option>
                     </select>
                   </td>
-
-                  <!-- <td>
-                    <select class="form-select form-select-sm" [(ngModel)]="ct.voltage_rating" name="ct_voltage{{i}}">
-                      <option *ngFor="let option of voltage_ratings" [value]="option">{{ option }}</option>
-                    </select>
-                  </td>
-
-                  <td>
-                    <select class="form-select form-select-sm" [(ngModel)]="ct.current_rating" name="ct_current{{i}}">
-                      <option *ngFor="let option of current_ratings" [value]="option">{{ option }}</option>
-                    </select>
-                  </td> -->
 
                   <td>
                     <select class="form-select form-select-sm" [(ngModel)]="ct.device_testing_purpose" name="ct_purpose{{i}}" required>
@@ -515,9 +449,7 @@
                   <td><input type="text" [(ngModel)]="ct.remark" name="ct_remark{{i}}" class="form-control form-control-sm"></td>
 
                   <td class="text-center">
-                    <button type="button" class="btn btn-icon btn-sm btn-outline-danger" (click)="removeCT(i)">
-                      <i class="bi bi-x-lg"></i>
-                    </button>
+                    <button type="button" class="btn btn-icon btn-sm btn-outline-danger" (click)="removeCT(i)">✕ </button>
                   </td>
                 </tr>
                 <tr *ngIf="!cts?.length">
@@ -528,10 +460,10 @@
           </div>
 
           <div class="action-bar d-flex align-items-center gap-2 mt-3">
-            <button type="button" class="btn btn-outline-success" (click)="addCT()">+ Add CT</button>
+            <button type="button" class="btn btn-outline-success" (click)="addCT()">+ Add New Row</button>
             <div class="ms-auto">
               <button type="button" class="btn btn-primary" [disabled]="!cts.length" (click)="submitCTs()">
-                <i class="bi bi-cloud-upload"></i> Add CTs
+                <i class="bi bi-cloud-upload"></i> Validate & Submit
               </button>
             </div>
           </div>
@@ -545,7 +477,7 @@
 <div class="modal fade" id="alertModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4">
-      <div class="modal-header bg-primary text-white rounded-top-4">
+      <div class="modal-header  text-white rounded-top-4"  style="background:#151433">
         <h5 class="modal-title">{{ alertTitle }}</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>

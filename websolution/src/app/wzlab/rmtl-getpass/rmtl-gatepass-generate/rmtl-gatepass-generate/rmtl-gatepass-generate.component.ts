@@ -82,7 +82,7 @@ export class RmtlGatepassGenerateComponent implements OnInit {
   // Date filters (default: current month)
   fromDate: string = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
   toDate: string = new Date().toISOString().slice(0, 10);
-
+  assignmentStatus: string = 'APPROVED';
   // Report IDs
   reportIds: string[] = [];
   selectedReportId: string = '';
@@ -95,6 +95,7 @@ export class RmtlGatepassGenerateComponent implements OnInit {
   loadingList = false;
   loadingDevices = false;
   errorMsg = '';
+  selectedInwordNo:any;
 
   // Gatepass created summary
   gatepassInfo: any = null;
@@ -125,10 +126,12 @@ export class RmtlGatepassGenerateComponent implements OnInit {
   private payload: any;
   currentUser: any;
   currentLabId: any;
+  inwordNos: any;
 
   constructor(private api: ApiServicesService) {}
 
   ngOnInit(): void {
+    this.loadinwordnos();
     this.loadReportIds();
     this.api.getEnums().subscribe({
       next: (d) => {
@@ -141,6 +144,21 @@ export class RmtlGatepassGenerateComponent implements OnInit {
       this.currentUser = decoded.username;
       this.currentLabId = decoded.lab_id;
     }
+  }
+  onReportselectedInwordNoChange() {
+   this.api.getDevicesByInwardNo(this.selectedInwordNo).subscribe({
+     next: (d) => {
+       this.devices = d || [];
+     }
+   })
+  }
+
+  loadinwordnos() {
+    this.api.getinwordnos(this.fromDate, this.toDate, this.assignmentStatus).subscribe({
+      next: (d) => {
+        this.inwordNos = d || [];
+      }
+    });
   }
 
   // ---------- Derived ----------

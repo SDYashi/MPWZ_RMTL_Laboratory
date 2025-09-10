@@ -88,6 +88,23 @@
               </div>
             </div>
           </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label mt-2 fw-bold">Laboratory Name</label>
+            <select
+              name="lab_id"
+              [(ngModel)]="user.lab_id"
+              #lab_id="ngModel"
+              class="form-select"
+              required>
+              <option value="" disabled>Select Laboratory</option>
+              <option *ngFor="let lab of labs" [value]="lab.id">{{ lab.lab_name }}</option>
+            </select>
+            <div class="text-danger small mt-1" *ngIf="(user.submitted || lab_id.touched) && lab_id.invalid">
+              <span>Lab is required.</span>
+            </div>
+          </div>
+
+
         </div>
 
         <div class="row">

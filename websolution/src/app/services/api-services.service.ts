@@ -118,6 +118,10 @@ getDevices_by_source(sourceType: string, sourceId: string) {
   return this.http.get(`/api/devices?source_type=${sourceType}&source_id=${sourceId}`);
 }
 
+getDevicesbySerailno(serialno: string): Observable<Device[]> {
+  return this.http.get<Device[]>(`${this.baseUrl}/devices/?serial_no=${serialno}`);
+}
+
 
 getDevice(id: number): Observable<Device> {
   return this.http.get<Device>(`${this.baseUrl}/devices/${id}`);
@@ -159,8 +163,10 @@ getDevicesByReportId(reportId: string) {
 }
 
 
-getDevicesByInwardNo(inward_no: string) {
-  return this.http.get<any>(`/api/devices/by-inward/${inward_no}`);
+getDevicesByInwardNo(inward_number: string) {
+  return this.http.get<any>(`/devices-by-inward-bydaterange`, {
+    params: { inward_number }
+  });
 }
 // --- Testing Endpoints ---
 postTestReports( payload: TestReportPayload[]): Observable<TestReportPayload[]> {
@@ -287,6 +293,21 @@ getdistinctinwordno(fromDate?: string, toDate?: string): Observable<string[]> {
   return this.http.get<string[]>(`${this.baseUrl}/distinct-inward/devices-unassigned`, { params });
 }
 
+getinwordnos( fromDate?: string, toDate?: string, assignment_status?: string): Observable<string[]> {
+  let params = new HttpParams();
+  
+  if (assignment_status) {
+    params = params.set('assignment_status', assignment_status);
+  }
+  if (fromDate) {
+    params = params.set('fromDate', fromDate);
+  }
+  if (toDate) {
+    params = params.set('toDate', toDate);
+  }
+  return this.http.get<string[]>(`${this.baseUrl}/distinct-inward/assignment-status`, { params });
+}
+
 getDevicelistbyinwordno(inward_number: string): Observable<string[]> {  
   return this.http.get<string[]>(`${this.baseUrl}/devices-unassigned?inward_number=${inward_number}`);
 }
@@ -396,13 +417,23 @@ getTestedDevices(start_date: string, end_date: string, device_status: string,lab
 approveDevices(device_ids: Array<number | string>, note?: string) {
     let params = new HttpParams();
     if (note) params = params.set('note', note);
-
     return this.http.put<any>(
       `${this.baseUrl}/testing/bulk/approve_byoic/`,
       device_ids,           
       { params }
     );
   }
+
+
+rejectDevices(device_id: string | number) {
+  let params = new HttpParams();
+  params = params.set('device_id', device_id.toString());
+  return this.http.post<any>(`${this.baseUrl}/devices-rejectbyoic/`, {}, { params });
+}
+
+// rejectDevices(device_id: string | number) {
+//   return this.http.post<any>(`${this.baseUrl}/devices-rejectbyoic/${device_id}`, {});
+// }
 
 getTestedDevicesByInwardAndReportType(inward_no: string, report_type: string) {
   return this.http.get<any>(`${this.baseUrl}/testing/by-inward-and-report-type?inward_no=${inward_no}&report_type=${report_type}`);

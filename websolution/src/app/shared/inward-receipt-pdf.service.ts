@@ -16,6 +16,7 @@ export interface InwardReceiptItem {
   current_rating?: string;
   purpose?: string;
   remark?: string;
+  inward_no?: string;
   // CT extras
   ct_class?: string | null;
   ct_ratio?: string | null;
@@ -89,7 +90,7 @@ export class InwardReceiptPdfService {
           [
             { text: `Total Items: ${count}` },
             { text: `Generated At: ${createdAtStr}` },
-            { text: '-' }
+            { text: `Inward No: ${d.inward_no ?? '-'}` }
           ]
         ]
       },

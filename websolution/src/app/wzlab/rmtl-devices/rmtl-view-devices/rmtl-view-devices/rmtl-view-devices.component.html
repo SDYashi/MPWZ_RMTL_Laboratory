@@ -10,30 +10,35 @@
 
     <!-- Filters -->
     <div class="card-body pb-0" style="background-color: #f7f7f9;">
-      <form class="row g-3 align-items-end">
+      <div class="row g-3 align-items-end">
         <div class="col-12 col-md-3">
-          <label class="form-label fw-semibold">From date</label>
-          <input type="date" class="form-control" [(ngModel)]="fromDate" name="fromDate">
-        </div>
-
-        <div class="col-12 col-md-3">
-          <label class="form-label fw-semibold">To date</label>
-          <input type="date" class="form-control" [(ngModel)]="toDate" name="toDate">
-        </div>
-
-        <div class="col-12 col-md-6 d-flex flex-wrap gap-2">
-          <button type="button" class="btn btn-primary mt-3" (click)="fetchDevices()">
-            <i class="bi bi-funnel"></i> Search
-          </button>
-          <div class="ms-auto mt-3 d-flex align-items-center gap-2">
-            <label class="form-label mb-0">Rows</label>
-            <select class="form-select form-select-sm" style="width:auto"
-                    [(ngModel)]="pageSize" name="pageSize" (ngModelChange)="goToPage(1)">
-              <option *ngFor="let s of pageSizeOptions" [value]="s">{{ s }}</option>
-            </select>
+          <div class="form-floating">
+            <input type="date" class="form-control" [(ngModel)]="fromDate" name="fromDate" id="fromDate">
+            <label for="fromDate" class="form-label fw-semibold">From date</label>
           </div>
         </div>
-      </form>
+
+        <div class="col-12 col-md-3">
+          <div class="form-floating">
+            <input type="date" class="form-control" [(ngModel)]="toDate" name="toDate" id="toDate">
+            <label for="toDate" class="form-label fw-semibold">To date</label>
+          </div>
+        </div>
+         <div class="col-12 col-md-3">
+              <div class="form-floating">
+                <input type="text" class="form-control" [(ngModel)]="searchText" name="searchText" placeholder="Search by make/model/serial/category/phase/connection"
+                       id="searchText">
+                        <!-- (keyup.enter)="fetchDevicesbySerailno()" -->
+                        
+                <label for="searchText" class="form-label fw-semibold">Search by Serial Numbers</label>
+              </div>
+         </div>
+         <div class="col-12 col-md-3">          
+            <button type="button" class="btn btn-danger mt-3 py-3 fw-semibold" (click)="fetchDevicesOrBySerial()">
+              <i class="bi bi-funnel"></i> Search Records
+            </button>
+        </div>
+      </div>
     </div>
 
     <!-- Desktop table -->
@@ -179,6 +184,12 @@
 
     <!-- Pagination footer -->
     <div class="card-footer d-flex flex-wrap gap-2 align-items-center justify-content-between">
+      
+          
+              <select class="form-select form-select-sm py-2" style="width:auto"
+                      [(ngModel)]="pageSize" name="pageSize" (ngModelChange)="goToPage(1)">
+                <option *ngFor="let s of pageSizeOptions" [value]="s">{{ s }}</option>
+              </select>
       <div class="small text-muted">
         Showing <strong>{{ total === 0 ? 0 : indexOfFirst + 1 }}</strong>–<strong>{{ indexOfLast }}</strong>
         of <strong>{{ total }}</strong>

@@ -86,6 +86,7 @@ export class RmtlTestreportPendingComponent implements OnInit {
   // result modal data
   approvedIds: Array<number | string> = [];
   failedList: Array<{ id: any; reason?: string }> = [];
+  rejecting: any;
 
   constructor(
     private api: ApiServicesService,
@@ -331,6 +332,24 @@ private normalizeApiList(list: any[]): TestedDeviceRow[] {
   }
   private isObjectPayload(x: any): x is { approved_ids?: any[]; failed?: Array<{ id: any; reason?: string }> } {
     return x && typeof x === 'object' && !Array.isArray(x);
+  }
+  submitRejection(): void {
+    if (this.rejecting) return;
+ const id = this.rows.find((r) => r.selected && r.canApprove)?.device_id || this.rows.find((r) => r.selected && r.canApprove)?.id;
+
+ if (!id) return;
+
+ this.rejecting = true;
+ this.api.rejectDevices(id).subscribe({
+   next: () => {
+     this.rejecting = false;
+     this.fetchTestedDevices();
+   },
+   error: (err) => {
+     console.error(err);
+     this.rejecting = false;
+   },
+ });
   }
 
   submitApproval(): void {

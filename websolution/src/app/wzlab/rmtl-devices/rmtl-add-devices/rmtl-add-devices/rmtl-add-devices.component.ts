@@ -215,6 +215,12 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       error: () => this.showAlert('Error', 'Failed to load dropdown data.')
     });
   }
+  onConnectionTypeChange(device: any) {
+    const idx = this.connection_types.findIndex(val => val === device.connection_type);
+    if (idx > -1) {
+      device.phase = this.phases[idx];
+    }
+  }
 
   ngAfterViewInit(): void {
     const modalEl = document.getElementById('alertModal');
@@ -242,6 +248,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   quickAddMeter(): void {
     const sn = (this.quick.serial || '').trim();
     if (!sn) return;
+    if (this.devices.some(d => (d.serial_number || '').trim() === sn)) return;
     this.devices.push({
       serial_number: sn,
       make: this.serialRange.make,
@@ -264,7 +271,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   quickAddCT(): void {
     const sn = (this.ctQuick.serial || '').trim();
     if (!sn) return;
-
+    if (this.cts.some(ct => (ct.serial_number || '').trim() === sn)) return;
     this.cts.push({
       serial_number: sn,
       ct_class: (this.ctMeta.ct_class || '').trim() || null,
@@ -301,49 +308,57 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   removeDevice(index: number): void { this.devices.splice(index, 1); }
   clearMeters(): void { this.devices = []; }
 
-  handleCSVUpload(event: any): void {
-    const file = event?.target?.files?.[0];
-    if (!file) return;
+// ---------- CSV (Meters): only serial_number required ----------
+handleCSVUpload(event: any): void {
+  const file = event?.target?.files?.[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      const text = (e.target.result as string) || '';
-      const lines = text.split(/\r?\n/);
+  const reader = new FileReader();
+  reader.onload = (e: any) => {
+    const text = (e.target.result as string) || '';
+    // Normalize line endings & strip BOM
+    const clean = text.replace(/^\uFEFF/, '').trim();
+    if (!clean) return;
 
-      // Header:
-      // serial_number,make,capacity,phase,connection_type,meter_category,meter_class,meter_type,remark,voltage_rating,current_rating,device_testing_purpose,ct_class,ct_ratio,initiator
-      for (const raw of lines.slice(1)) {
-        const line = raw.trim();
-        if (!line) continue;
-        const cols = line.split(',').map(c => c.trim());
-        const [
-          serial_number, make, capacity, phase, connection_type, meter_category, meter_class,
-          meter_type, remark, voltage_rating, current_rating, device_testing_purpose, ct_class, ct_ratio, initiator
-        ] = cols;
+    const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return;
 
-        if (serial_number) {
-          this.devices.push({
-            serial_number,
-            make: make || '',
-            capacity: capacity || '',
-            phase: phase || '',
-            connection_type: connection_type || '',
-            meter_category: meter_category || '',
-            meter_class: (meter_class || '') || null,
-            meter_type: meter_type || '',
-            voltage_rating: voltage_rating || '',
-            current_rating: current_rating || '',
-            device_testing_purpose: device_testing_purpose || this.meterDefaultPurpose,
-            initiator: initiator || this.initiators[0] || 'CIS',
-            ct_class: (ct_class || '') || null,
-            ct_ratio: (ct_ratio || '') || null,
-            remark: (remark || '') || null
-          });
-        }
-      }
-    };
-    reader.readAsText(file);
-  }
+    // Detect if header present by checking for the word serial in first line
+    const hasHeader = /^serial(_|\s|-)?number/i.test(lines[0]) || /^serial/i.test(lines[0]);
+    const dataLines = hasHeader ? lines.slice(1) : lines;
+
+    for (const raw of dataLines) {
+      if (!raw) continue;
+
+      // Support both single-column and legacy multi-column CSVs
+      const cols = raw.split(',').map(c => c.trim());
+      const serial_number = (cols[0] || '').trim();
+
+      if (!serial_number) continue;
+      if (this.devices.some(d => (d.serial_number || '').trim() === serial_number)) continue;
+      // Push with dropdown/default values
+      this.devices.push({
+        serial_number,
+        make: this.serialRange.make,
+        capacity: this.serialRange.capacity,
+        phase: this.serialRange.phase,
+        connection_type: this.serialRange.connection_type,
+        meter_category: this.serialRange.meter_category,
+        meter_class: (this.serialRange.meter_class || '').trim() || null,
+        meter_type: this.serialRange.meter_type,
+        voltage_rating: this.serialRange.voltage_rating,
+        current_rating: this.serialRange.current_rating,
+        device_testing_purpose: this.serialRange.device_testing_purpose || this.meterDefaultPurpose,
+        initiator: this.serialRange.initiator || this.initiators[0] || 'CIS',
+        remark: null,
+        ct_class: (cols[12] || '').trim() || null,
+        ct_ratio: (cols[13] || '').trim() || null,
+      });
+    }
+  };
+  reader.readAsText(file);
+}
+
 
   addSerialRange(): void {
     const { start, end } = this.serialRange;
@@ -352,8 +367,10 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       return;
     }
     for (let i = Number(start); i <= Number(end); i++) {
+        const sn = i.toString();
+        if (this.devices.some(d => (d.serial_number || '').trim() === sn)) continue;
       this.devices.push({
-        serial_number: i.toString(),
+        serial_number:sn,
         make: this.serialRange.make,
         capacity: this.serialRange.capacity,
         phase: this.serialRange.phase,
@@ -396,8 +413,10 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       return;
     }
     for (let i = Number(start); i <= Number(end); i++) {
+        const sn = i.toString();
+        if (this.cts.some(ct => (ct.serial_number || '').trim() === sn)) continue;
       this.cts.push({
-        serial_number: i.toString(),
+        serial_number: sn,
         ct_class: (ct_class || '').trim() || null,
         ct_ratio: (ct_ratio || '').trim() || null,
         make: this.ctMeta.make,
@@ -410,41 +429,46 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     this.ctRange = this.defaultCtRange();
   }
 
-  handleCTCSVUpload(event: any): void {
-    const file = event?.target?.files?.[0];
-    if (!file) return;
+// ---------- CSV (CTs): only serial_number required ----------
+handleCTCSVUpload(event: any): void {
+  const file = event?.target?.files?.[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      const text = (e.target.result as string) || '';
-      const lines = text.split(/\r?\n/);
+  const reader = new FileReader();
+  reader.onload = (e: any) => {
+    const text = (e.target.result as string) || '';
+    const clean = text.replace(/^\uFEFF/, '').trim();
+    if (!clean) return;
 
-      for (const raw of lines.slice(1)) {
-        const line = raw.trim();
-        if (!line) continue;
-        const cols = line.split(',').map(c => c.trim());
-        const [
-          serial_number, ct_class, ct_ratio,
-          make, capacity, phase, meter_category, meter_class, meter_type, connection_type,
-          voltage_rating, current_rating, device_testing_purpose, remark, initiator
-        ] = cols;
+    const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return;
 
-        if (serial_number) {
-          this.cts.push({
-            serial_number,
-            ct_class: (ct_class || '').trim() || null,
-            ct_ratio: (ct_ratio || '').trim() || null,
-            make: make || '',
-            connection_type: connection_type || '',
-            device_testing_purpose: device_testing_purpose || this.meterDefaultPurpose,
-            initiator: initiator || this.initiators[0] || 'CIS',
-            remark: (remark || '').trim() || null
-          });
-        }
-      }
-    };
-    reader.readAsText(file);
-  }
+    // Detect header
+    const hasHeader = /^serial(_|\s|-)?number/i.test(lines[0]) || /^serial/i.test(lines[0]);
+    const dataLines = hasHeader ? lines.slice(1) : lines;
+
+    for (const raw of dataLines) {
+      if (!raw) continue;
+
+      const cols = raw.split(',').map(c => c.trim());
+      const serial_number = (cols[0] || '').trim();
+      if (!serial_number) continue;
+      if (this.cts.some(ct => (ct.serial_number || '').trim() === serial_number)) continue;
+      this.cts.push({
+        serial_number,
+        ct_class: (this.ctMeta.ct_class || '').trim() || null,
+        ct_ratio: (this.ctMeta.ct_ratio || '').trim() || null,
+        make: this.ctMeta.make,
+        connection_type: this.ctMeta.connection_type,
+        device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
+        initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
+        remark: ''
+      });
+    }
+  };
+  reader.readAsText(file);
+}
+
 
   // ---------- Validation helpers ----------
   private ensureSourceSelected(): boolean {
@@ -588,7 +612,8 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       },
       error: (err) => {
         console.error('Submit meters error:', err);
-        this.showAlert('Error', 'Error while submitting meters.');
+        this.showAlert('Error', err.error?.detail);
+       
       }
     });
   }
@@ -676,6 +701,8 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           office_type: this.selectedSourceType,
           location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
           location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
+          // inward_no: this.inwardNo,
+          inward_no: 'INW-2051-36524-12541',
           date_of_entry: this.todayISO(),
           device_type: 'CT',
           total: items.length,
@@ -703,21 +730,22 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   }
 
   // ---------- CSV Templates ----------
-  downloadMeterCSVTemplate(): void {
-    const header = 'serial_number,make,capacity,phase,connection_type,meter_category,meter_class,meter_type,remark,voltage_rating,current_rating,device_testing_purpose,ct_class,ct_ratio,initiator\n';
-    const blob = new Blob([header], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'meter_template.csv'; a.click();
-    URL.revokeObjectURL(url);
-  }
+downloadMeterCSVTemplate(): void {
+  const header = 'serial_number\n'; // only serial now
+  const blob = new Blob([header], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'meter_template.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
 
-  downloadCTCSVTemplate(): void {
-    const header = 'serial_number,ct_class,ct_ratio,make,capacity,phase,meter_category,meter_class,meter_type,connection_type,voltage_rating,current_rating,device_testing_purpose,remark,initiator\n';
-    const blob = new Blob([header], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'ct_template.csv'; a.click();
-    URL.revokeObjectURL(url);
-  }
+downloadCTCSVTemplate(): void {
+  const header = 'serial_number\n'; // only serial now
+  const blob = new Blob([header], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'ct_template.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
 
   // ---------- Modal helper ----------
   showAlert(title: string, message: string): void {
