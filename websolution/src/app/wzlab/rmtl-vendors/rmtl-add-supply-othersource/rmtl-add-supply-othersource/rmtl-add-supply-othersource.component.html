@@ -1,0 +1,182 @@
+<div class="container-fluid mt-4">
+  <div class="card shadow-lg border-0">
+    <div class="card-header text-white" style="background-color:#151433; font-weight:bold;">
+      <h5 class="mb-0"> Add Other Source Organization Details</h5>
+    </div>
+
+    <div class="card-body">
+      <form #clientForm="ngForm" (ngSubmit)="openPreview(clientForm)" novalidate>
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Client Code</label>
+            <input
+              type="text"
+              class="form-control"
+              name="code"
+              [(ngModel)]="client.code"
+              #code="ngModel"
+              required
+              placeholder="Enter unique code"
+            />
+            <div class="text-danger small mt-1" *ngIf="(clientForm.submitted || code.touched) && code.invalid">
+              Code is required.
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Client Name</label>
+            <input
+              type="text"
+              class="form-control"
+              name="name"
+              [(ngModel)]="client.name"
+              #name="ngModel"
+              required
+              placeholder="Enter client name"
+            />
+            <div class="text-danger small mt-1" *ngIf="(clientForm.submitted || name.touched) && name.invalid">
+              Name is required.
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Project No</label>
+            <input type="text" class="form-control" name="project_no" [(ngModel)]="client.project_no" placeholder="Enter project number" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Vendor Category</label>
+            <select
+              class="form-select"
+              name="vendor_category"
+              [(ngModel)]="client.vendor_category"
+              #vendor_category="ngModel"
+              required
+            >
+              <option value="" disabled>Select Vendor...</option>
+              <option *ngFor="let vendor of vendorlist" [value]="vendor">{{ vendor }}</option>
+            </select>
+            <div class="text-danger small mt-1" *ngIf="(clientForm.submitted || vendor_category.touched) && vendor_category.invalid">
+              Vendor category is required.
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Contact Person</label>
+            <input type="text" class="form-control" name="contact_person" [(ngModel)]="client.contact_person" placeholder="Contact person name" />
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Contact No</label>
+            <input
+              type="tel"
+              class="form-control"
+              name="contact_no"
+              [(ngModel)]="client.contact_no"
+              #contact_no="ngModel"
+              pattern="^[0-9]{7,15}$"
+              placeholder="7–15 digits"
+            />
+            <div class="text-danger small mt-1" *ngIf="(clientForm.submitted || contact_no.touched) && contact_no.invalid">
+              Enter a valid phone number (7–15 digits).
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Email</label>
+            <input
+              type="email"
+              class="form-control"
+              name="email"
+              [(ngModel)]="client.email"
+              #email="ngModel"
+              placeholder="example@mail.com"
+            />
+            <div class="text-danger small mt-1" *ngIf="(clientForm.submitted || email.touched) && email.invalid">
+              Enter a valid email address.
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="form-label fw-bold">Address</label>
+            <textarea class="form-control" rows="3" name="address" [(ngModel)]="client.address" placeholder="Enter full address"></textarea>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-start">
+          <button type="submit" class="btn btn-success me-2" [disabled]="loading">
+            <i class="fas fa-eye me-1"></i> Preview
+          </button>
+          <button type="button" class="btn btn-secondary" [disabled]="loading" (click)="resetForm(clientForm)">
+            <i class="fas fa-redo-alt me-1"></i> Reset
+          </button>
+          <span *ngIf="loading" class="spinner-border spinner-border-sm text-success ms-2" role="status"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" #previewModal tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0" style="background-color: #eae9f1; color: #161515;">
+        <h5 class="modal-title fw-bold" id="previewModalLabel">
+          <i class="fas fa-search me-2"></i>Confirm Other Source Details
+        </h5>
+        <button type="button" class="btn-close" (click)="closePreview()" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6"><strong>Code:</strong> {{ client.code || '—' }}</div>
+          <div class="col-md-6"><strong>Name:</strong> {{ client.name || '—' }}</div>
+          <div class="col-md-6"><strong>Project No:</strong> {{ client.project_no || '—' }}</div>
+          <div class="col-md-6"><strong>OtherSource Category:</strong> {{ client.vendor_category || '—' }}</div>
+          <div class="col-md-6"><strong>Contact Person:</strong> {{ client.contact_person || '—' }}</div>
+          <div class="col-md-6"><strong>Contact No:</strong> {{ client.contact_no || '—' }}</div>
+          <div class="col-md-6"><strong>Email:</strong> {{ client.email || '—' }}</div>
+          <div class="col-12"><strong>Address:</strong> {{ client.address || '—' }}</div>
+        </div>
+
+        <div class="alert alert-warning mt-3 mb-0" *ngIf="!canSubmitPreview()">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          Required fields missing or invalid. Please close and complete them.
+        </div>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" (click)="closePreview()">Cancel</button>
+        <button type="button" class="btn btn-success" (click)="onConfirmSubmit()" [disabled]="!canSubmitPreview() || loading">
+          <i class="fas fa-save me-1"></i> Submit
+          <span *ngIf="loading" class="spinner-border spinner-border-sm ms-2" role="status"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Alert Modal (Success / Error) -->
+<div class="modal fade" #alertModal tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" [ngClass]="{ 'border-success': response_success, 'border-danger': !response_success }">
+       <div class="modal-header border-0" style="background-color: #eae9f1; color: #161515;">
+        <h5 class="modal-title fw-bold" id="previewModalLabel">
+          <span class="ms-2">{{ response_success ? 'Done' : 'Error' }}</span>   
+        </h5>
+        <button type="button" class="btn-close" (click)="closePreview()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">{{ response_msg }}</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn" [ngClass]="response_success ? 'btn-success' : 'btn-danger'" (click)="closeAlert()">OK</button>
+      </div>
+    </div>
+  </div>
+</div>

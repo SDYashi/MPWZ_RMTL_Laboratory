@@ -120,6 +120,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
 
   // Quick manual add (CT)
   ctQuick = { serial: '' };
+  impkwhs: any;
 
   constructor(
     private deviceService: ApiServicesService,
@@ -132,7 +133,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       next: (data) => {
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
-        this.phases = data?.phases || ['SINGLE PHASE'];
+        this.phases = data?.phases || [];
         this.meter_categories = data?.meter_categories || [];
         this.meterTypes = data?.meter_types || [];
         this.meter_classes = data?.meter_classes || [];
@@ -141,12 +142,17 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         this.ct_ratios = data?.ct_ratios || [];
         this.connection_types = data?.connection_types || [];
         this.voltage_ratings = data?.voltage_ratings || ['230V'];
-        this.current_ratings = data?.current_ratings || ['5-30A'];
+        // this.current_ratings = data?.current_ratings || ['5-30A', '20-40A', '20-100A'];
+        this.current_ratings = data?.impkwh || [];
         this.device_testing_purpose = data?.device_testing_purposes || ['ROUTINE'];
         this.meter_subcategories = data?.meter_sub_categories || [];
         this.initiators = data?.initiators || [];
-
         this.meterDefaultPurpose = this.device_testing_purpose[0] || 'ROUTINE';
+
+        this.serialRange.connection_type = this.serialRange.connection_type || (this.connection_types[0] || 'LT');
+        this.serialRange.phase = this.coercePhaseForConn(this.serialRange.connection_type, this.serialRange.phase);
+
+        // this.ctMeta.phase = this.coercePhaseForConn(this.ctMeta.connection_type, this.ctMeta.phase);
 
         // Defaults for CT meta / CSV fallback
         Object.assign(this.ctMeta, {
@@ -184,7 +190,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           { key: 'meter_category',         label: 'Category',    options: this.meter_categories },
           { key: 'meter_type',             label: 'Meter Type',  options: this.meterTypes },
           { key: 'voltage_rating',         label: 'Voltage',     options: this.voltage_ratings },
-          { key: 'current_rating',         label: 'Current',     options: this.current_ratings },
+          { key: 'current_rating',         label: 'ImpKWH',     options: this.current_ratings },
           { key: 'device_testing_purpose', label: 'Purpose',     options: this.device_testing_purpose },
           { key: 'initiator',              label: 'Initiator',   options: this.initiators }
         ];
@@ -215,12 +221,17 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       error: () => this.showAlert('Error', 'Failed to load dropdown data.')
     });
   }
-  onConnectionTypeChange(device: any) {
-    const idx = this.connection_types.findIndex(val => val === device.connection_type);
-    if (idx > -1) {
-      device.phase = this.phases[idx];
-    }
-  }
+// When connection type changes on the defaults strip (top of Meters tab)
+onDefaultsConnectionTypeChange(): void {
+  const conn = this.serialRange.connection_type;
+  this.serialRange.phase = this.coercePhaseForConn(conn, this.serialRange.phase);
+}
+
+// When connection type changes for a specific meter row
+onRowConnectionTypeChange(device: DeviceRow): void {
+  device.phase = this.coercePhaseForConn(device.connection_type, device.phase);
+}
+
 
   ngAfterViewInit(): void {
     const modalEl = document.getElementById('alertModal');
@@ -504,7 +515,7 @@ handleCTCSVUpload(event: any): void {
       return;
     }
     if (!this.ensureSourceSelected() || !this.ensureLabId()) return;
-
+    
     // Use values as-is (only trim serial & remark / convert blanks later)
     const cleaned = this.devices
       .map((d: DeviceRow, idx: number) => ({
@@ -776,4 +787,36 @@ downloadCTCSVTemplate(): void {
       initiator: ''
     };
   }
+
+  // ---------- Add below your enums/arrays ----------
+
+// Map Connection → allowed Phase values (using your exact strings)
+private PhaseByConn: Record<string, string[]> = {
+  LT: [
+    'SINGLE PHASE',
+    'THREE PHASE WHOLE CURRENT',
+    'THREE PHASE CT OPERATED'
+  ],
+  HT: [
+    'CT OPERATED',
+    'PT OPERATED'
+  ],
+  OTHER: [
+    'NA'
+  ]
+};
+
+// Return phase options for a given connection type, or all phases
+getPhaseOptions(connType?: string): string[] {
+  const base = (connType && this.PhaseByConn[connType]) ? this.PhaseByConn[connType] : this.phases;
+  return base.filter(p => this.phases.includes(p));
+}
+
+// Ensure a (conn, phase) pair is valid. If not, fix it to the first allowed phase.
+private coercePhaseForConn(connType: string, currentPhase?: string | null): string {
+  const allowed = this.getPhaseOptions(connType);
+  if (!allowed.length) return currentPhase || '';
+  return currentPhase && allowed.includes(currentPhase) ? currentPhase : allowed[0];
+}
+
 }

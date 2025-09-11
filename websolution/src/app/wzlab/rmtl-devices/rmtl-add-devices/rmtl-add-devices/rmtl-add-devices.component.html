@@ -102,16 +102,42 @@
           <!-- Defaults strip -->
           <div class="bg-body-tertiary rounded-4 border p-3">
             <div class="row g-3">
-              <div class="col-md-3" *ngFor="let def of meterDefaultsUI">
+              <!-- <div class="col-md-3" *ngFor="let def of meterDefaultsUI">
                 <div class="form-floating">
                   <select class="form-select" [(ngModel)]="serialRange[def.key]" name="def_{{def.key}}">
                     <option *ngFor="let option of def.options" [value]="option">{{ option }}</option>
                   </select>
                   <label class="fw-semibold">{{ def.label }}</label>
                 </div>
-              </div>
+              </div> -->
+                       <div class="col-md-3" *ngFor="let def of meterDefaultsUI">
+  <div class="form-floating">
+    <!-- Dynamic Phase options tied to current defaults' connection type -->
+    <select *ngIf="def.key === 'phase'; else normalDefaultSelect"
+            class="form-select"
+            [(ngModel)]="serialRange.phase"
+            name="def_phase">
+      <option *ngFor="let option of getPhaseOptions(serialRange.connection_type)" [value]="option">
+        {{ option }}
+      </option>
+    </select>
+
+    <ng-template #normalDefaultSelect>
+      <select class="form-select"
+              [(ngModel)]="serialRange[def.key]"
+              name="def_{{def.key}}"
+              (ngModelChange)="def.key === 'connection_type' ? onDefaultsConnectionTypeChange() : null">
+        <option *ngFor="let option of def.options" [value]="option">{{ option }}</option>
+      </select>
+    </ng-template>
+
+    <label class="fw-semibold">{{ def.label }}</label>
+  </div>
+</div>
             </div>
           </div>
+ 
+
 
           <!-- Sub tabs -->
           <ul class="nav nav-tabs custom-tabs flex-nowrap overflow-auto mb-3 mt-3" id="entryTab" role="tablist">

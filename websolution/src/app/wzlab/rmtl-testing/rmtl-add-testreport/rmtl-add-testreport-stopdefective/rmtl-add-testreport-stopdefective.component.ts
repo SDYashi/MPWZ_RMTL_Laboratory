@@ -148,6 +148,14 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     this.doReloadAssignedWithoutAddingRows();
   }
 
+  errorpercentage_calculate(i: number) {
+    const row = this.batch.rows[i];
+    if (row.reading_before_test && row.reading_after_test && row.ref_start_reading && row.ref_end_reading) {
+      row.error_percentage = Math.round(((row.reading_after_test - row.reading_before_test) - (row.ref_end_reading - row.ref_start_reading)) / (row.ref_end_reading - row.ref_start_reading) * 100);
+    }
+    return 0;
+  }
+
   // ===================== Derived counts =====================
   get totalCount(): number { return this.batch?.rows?.length ?? 0; }
   get matchedCount(): number { return (this.batch?.rows ?? []).filter(r => !!r.serial && !r.notFound).length; }

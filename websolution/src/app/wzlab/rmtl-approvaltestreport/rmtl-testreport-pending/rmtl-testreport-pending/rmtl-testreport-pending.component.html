@@ -46,6 +46,7 @@
             <tr class="text-nowrap">
               <th style="width:58px;">Pick</th>
               <th>Device</th>
+              <th>Testing ID</th>
               <th>Serial</th>
               <th>Make</th>
               <th>Type/Category</th>
@@ -73,6 +74,7 @@
 
 
               <td class="fw-semibold">{{ r.device_id || r.id }}</td>
+              <td>{{ r.testing_id || '-' }}</td>
               <td>{{ r.serial_number || '-' }}</td>
               <td>{{ r.make || '-' }}</td>
 
@@ -208,7 +210,7 @@
       </div>
       <div class="modal-body">
         <p class="mb-2">
-          You’re about to approve <strong>{{ selectedCount }}</strong> eligible device(s).
+          You Selected Testing for approve <strong>{{ selectedCount }}</strong> only eligible device(s).
           <br><span class="text-muted small">Rows not eligible will be ignored automatically.</span>
         </p>
         <div class="mb-2">
@@ -217,14 +219,14 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline-secondary" data-bs-dismiss="modal" [disabled]="approving">Cancel</button>
+        <button class="btn btn-outline-secondary me-auto " (click)="submitRejection()" [disabled]="approving || selectedCount===0">
+          <span *ngIf="approving" class="spinner-border spinner-border-sm me-1"></span>
+          Reject
+        </button>
+        <button class="btn btn-outline-danger" data-bs-dismiss="modal" [disabled]="approving">Cancel</button>
         <button class="btn btn-success" (click)="submitApproval()" [disabled]="approving || selectedCount===0">
           <span *ngIf="approving" class="spinner-border spinner-border-sm me-1"></span>
           Approve
-        </button>
-        <button class="btn btn-outline-danger" (click)="submitRejection()" [disabled]="approving || selectedCount===0">
-          <span *ngIf="approving" class="spinner-border spinner-border-sm me-1"></span>
-          Reject
         </button>
       </div>
     </div>

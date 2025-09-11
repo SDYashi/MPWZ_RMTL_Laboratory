@@ -40,6 +40,7 @@ export interface TestedDeviceRow {
   initiator?: string;
   canApprove?: boolean;
   selected?: boolean;
+  testing_id?: number;
 }
 
 @Component({
@@ -216,6 +217,7 @@ private normalizeApiList(list: any[]): TestedDeviceRow[] {
       device_type: dev?.device_type ?? d?.device_type,
       device_testing_purpose: dev?.device_testing_purpose ?? d?.device_testing_purpose,
       initiator: dev?.initiator ?? d?.initiator,
+      testing_id: tst?.id ?? tst?.testing_id ?? d?.testing_id ?? d?.id,
 
       // UI flags
       canApprove,
@@ -335,7 +337,7 @@ private normalizeApiList(list: any[]): TestedDeviceRow[] {
   }
   submitRejection(): void {
     if (this.rejecting) return;
- const id = this.rows.find((r) => r.selected && r.canApprove)?.device_id || this.rows.find((r) => r.selected && r.canApprove)?.id;
+ const id = this.rows.find((r) => r.selected && r.canApprove)?.testing_id ?? null;
 
  if (!id) return;
 

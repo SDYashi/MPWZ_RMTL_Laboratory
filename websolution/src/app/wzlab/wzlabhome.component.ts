@@ -49,7 +49,7 @@ export class WzlabhomeComponent implements OnInit, OnDestroy {
     { key: 'LABManagement',      prefixes: ['/wzlab/testing-laboratory'] },
     { key: 'userManagement',     prefixes: ['/wzlab/user'] },
     { key: 'benchManagement',    prefixes: ['/wzlab/testing-bench'] },
-    { key: 'vendorManagement',   prefixes: ['/wzlab/vendor', '/wzlab/supply-vendors'] },
+    { key: 'vendorManagement',   prefixes: ['/wzlab/vendor', '/wzlab/supply-vendors', '/wzlab/supply-othersource' ] },
     { key: 'storeManagement',    prefixes: ['/wzlab/store'] },
     { key: 'userAssignments',    prefixes: ['/wzlab/assignement'] },
     { key: 'receivedDispatch',   prefixes: ['/wzlab/devices', '/wzlab/getpass'] },

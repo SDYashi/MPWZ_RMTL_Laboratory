@@ -118,13 +118,17 @@
           <i class="fas fa-chevron-down chevron"></i>
         </button>
         <div class="collapse"
-             [class.show]="sections['vendorManagement'] || isRouteActive(['/wzlab/vendor', '/wzlab/supply-vendors'])"
-             id="vendorManagement">
+             [class.show]="sections['vendorManagement'] || isRouteActive(['/wzlab/vendor', '/wzlab/supply-vendors','/wzlab/supply-othersource','/wzlab/supply-othersource'])"
+              id="vendorManagement">
           <div class="submenu d-flex flex-column">
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN'])"
                routerLink="/wzlab/supply-vendors/add-supply-vendors" routerLinkActive="active">Add Vendor</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN'])"
+               routerLink="/wzlab/supply-vendors/add-supply-othersource" routerLinkActive="active">Add OtherSource Location</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
-               routerLink="/wzlab/supply-vendors/list-supply-vendors" routerLinkActive="active">List Vendors</a>
+               routerLink="/wzlab/supply-vendors/list-supply-vendors" routerLinkActive="active">List Registered Vendors</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               routerLink="/wzlab/supply-vendors/list-supply-othersource" routerLinkActive="active">List OtherSource Location</a>
           </div>
         </div>
       </li>

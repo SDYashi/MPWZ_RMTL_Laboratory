@@ -294,7 +294,7 @@
       <div class="col-6"><strong>Glass Cover:</strong> {{ s.meter_glass_cover || s.testing?.meter_glass_cover || '-' }}</div>
       <div class="col-6"><strong>Seal:</strong> {{ s.seal_status || s.testing?.seal_status || '-' }}</div>
 
-      <div class="col-6"><strong>Condition:</strong> {{ s.physical_condition_of_device || s.testing?.physical_condition_of_device || '-' }}</div>
+      <div class="col-6"><strong>Testing Condition:</strong> {{ s.physical_condition_of_device || s.testing?.physical_condition_of_device || '-' }}</div>
       <div class="col-6"><strong>Error %:</strong> {{ (s.error_percentage ?? s.testing?.error_percentage) ?? '-' }}</div>
 
       <div class="col-6"><strong>Test Method:</strong> {{ s.test_method || s.testing?.test_method || '-' }}</div>
@@ -302,10 +302,13 @@
         <span [ngClass]="{'text-danger fw-semibold': (s.is_burned ?? s.testing?.is_burned) === true, 'text-success': (s.is_burned ?? s.testing?.is_burned) !== true}">
           {{ (s.is_burned ?? s.testing?.is_burned) ? 'YES' : 'NO' }}
         </span>
-      </div>
+      </div>  
+      <div class="col-6"><strong>Tested By:</strong> {{ s.tested_by || s.user?.username || s.user?.name || '-' }}</div>
+      <div class="col-6"><strong>Tested On:</strong> {{ s.tested_on || s.testing_bench?.bench_name ||s.testing_bench?.type|| '-' }}</div>  
 
       <div class="col-12"><strong>Details/Remarks:</strong> {{ s.details || s.testing?.details || s.remarks || '-' }}</div>
       <div class="col-12"><strong>Approver Remark:</strong> {{ s.approver_remark || s.testing?.approver_remark || '-' }}</div>
     </div>
+    
   </div>
 </div>

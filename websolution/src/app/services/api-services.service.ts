@@ -218,6 +218,21 @@ deleteVendor(id: number): Observable<any> {
   return this.http.delete(`${this.baseUrl}/vendors/${id}`);
 }
 
+createOtherSource(others: Vendor): Observable<Vendor> {
+  return this.http.post<Vendor>(`${this.baseUrl}/others/`, others);
+}
+getOtherSource(): Observable<Vendor[]> {
+  return this.http.get<Vendor[]>(`${this.baseUrl}/others/`);
+}
+getOtherSourcelocation(id: number): Observable<Vendor> {
+  return this.http.get<Vendor>(`${this.baseUrl}/others/${id}`);
+}
+updateOtherSource(id: number, other: Vendor): Observable<Vendor> {
+  return this.http.put<Vendor>(`${this.baseUrl}/others/${id}`, other);
+}
+
+
+
 // --- Store Endpoints ---
 getStores(): Observable<Store[]> {
   return this.http.get<Store[]>(`${this.baseUrl}/stores/`);
@@ -425,10 +440,10 @@ approveDevices(device_ids: Array<number | string>, note?: string) {
   }
 
 
-rejectDevices(device_id: string | number) {
-  let params = new HttpParams();
-  params = params.set('device_id', device_id.toString());
-  return this.http.post<any>(`${this.baseUrl}/devices-rejectbyoic/`, {}, { params });
+rejectDevices(id: string | number) {
+  // let params = new HttpParams();
+  // params = params.set('device_id', device_id.toString());
+  return this.http.put<any>(`${this.baseUrl}/testing/${id}`, null);
 }
 
 // rejectDevices(device_id: string | number) {
