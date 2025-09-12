@@ -48,6 +48,10 @@ getLabs(): Observable<Lab[]> {
 getLab(id: number): Observable<Lab> {
   return this.http.get<Lab>(`${this.baseUrl}/labs/${id}`);
 }
+getLabInfo(labId: number) {
+  // returns { lab_name, address_line, email, phone, benches?: string[] }
+  return this.http.get(`/api/labs/${labId}`);
+}
 getlabstatus(): Observable<Lab[]> {
   return this.http.get<Lab[]>(`${this.baseUrl}/labs/`);
 }
@@ -164,10 +168,10 @@ getDevicesByReportId(reportId: string) {
 
 
 getDevicesByInwardNo(inward_number: string) {
-  return this.http.get<any>(`/devices-by-inward-bydaterange`, {
-    params: { inward_number }
-  });
+  return this.http.get<any>(`/testing/inwardno/${inward_number}`);
 }
+
+
 // --- Testing Endpoints ---
 postTestReports( payload: TestReportPayload[]): Observable<TestReportPayload[]> {
   return this.http.post<TestReportPayload[]>(`${this.baseUrl}/testing/bulk/`, payload);

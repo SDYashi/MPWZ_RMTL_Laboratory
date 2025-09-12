@@ -1,8 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiServicesService } from 'src/app/services/api-services.service';
-
-type DeviceType = any;   // replace with your enums/interfaces if available
+import{ ContestedReportPdfService,ContestedReportHeader, ContestedReportRow } from 'src/app/shared/contested-report-pdf.service'; 
+import {CtReportPdfService, CtHeader, CtPdfRow } from 'src/app/shared/ct-report-pdf.service';
+import { P4onmReportPdfService, P4ONMReportHeader, P4ONMReportRow } from 'src/app/shared/p4onm-report-pdf.service';
+import { P4VigReportPdfService, VigHeader, VigRow } from 'src/app/shared/p4vig-report-pdf.service';
+import { SolarGenMeterCertificatePdfService, GenHeader, GenRow } from 'src/app/shared/solargen-certificate-pdf.service';
+import { SolarNetMeterCertificatePdfService, SolarHeader, SolarRow } from 'src/app/shared/solarnetmeter-certificate-pdf.service';
+import type { TDocumentDefinitions } from 'pdfmake/interfaces';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
+(pdfMake as any).vfs = pdfFonts.vfs;
+type TDocumentDefinition = /*unresolved*/ any;
+type DeviceType = any;   
 type ReportType = any;
 type TestReport = any;
 
@@ -140,10 +150,68 @@ export class RmtlViewTestreportComponent implements OnInit {
     });
   }
 
-  downloadTestreports_byreportidwithReportTypes(report_type: string, dispatchNo: string){
-  
-    
+  downloadTestreports_byreportidwithReportTypes(report_id: string, report_type: string) {
+  if (!report_id || !report_type) {
+    console.warn("Invalid report type or report id");
+    return;
   }
+
+  // Call backend to fetch report data by report_id
+  this.api.getDevicesByReportId(report_id).subscribe({
+    next: (data) => {
+      let docDefinition: TDocumentDefinitions;
+
+      // switch (report_type) {
+      //   case 'CONTESTED':
+      //     ContestedReportPdfService.downloadFromBatch(data as ContestedReportHeader, data as ContestedReportRow[]);
+      //     break;
+
+      //   case 'CT TESTING':
+      //     docDefinition = CtReportPdfService.generatePdf(data as CtPdfRow, data as CtHeader);
+      //     break;
+
+      //   case 'P4ONM':
+      //     docDefinition = P4onmReportPdfService.generatePdf(data as P4ONMReportRow, data as P4ONMReportHeader);
+      //     break;
+
+      //   case 'P4VIG':
+      //     docDefinition = P4VigReportPdfService.generatePdf(data as VigRow, data as VigHeader);
+      //     break;
+
+      //   case 'SOLARGENERATORMETER':
+      //     docDefinition = SolarGenMeterCertificatePdfService.generatePdf(data as GenRow, data as GenHeader);
+      //     break;
+
+      //   case 'SOLARNETMETER':
+      //     docDefinition = SolarNetMeterCertificatePdfService.generatePdf(data as SolarRow, data as SolarHeader);
+      //     break;
+
+      //   default:
+      //     // fallback generic pdf
+      //     docDefinition = {
+      //       content: [
+      //         { text: 'Test Report', style: 'header' },
+      //         { text: `Report ID: ${report_id}`, margin: [0, 10, 0, 5] },
+      //         { text: `Report Type: ${report_type}` },
+      //         { text: 'This report format is not yet implemented.', margin: [0, 20, 0, 0] }
+      //       ],
+      //       styles: {
+      //         header: { fontSize: 18, bold: true }
+      //       }
+      //     };
+      // }
+
+      // if (docDefinition) {
+      //   pdfMake.createPdf(docDefinition).open(); // opens in new tab
+      // }
+    },
+    error: (err) => {
+      console.error("Failed to fetch report data:", err);
+      alert("Could not generate PDF. Try again later.");
+    }
+  });
+}
+
 
   /** When the user changes any date or report_type, re-query the API */
   onDateChanged(): void {

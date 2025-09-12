@@ -6,7 +6,7 @@ const routes: Routes = [
   {path:'list-devices',loadChildren:()=>import('./rmtl-view-devices/rmtl-view-devices.module').then(m=>m.RmtlViewDevicesModule)},
   {path:'add-devices',loadChildren:()=>import('./rmtl-add-devices/rmtl-add-devices.module').then(m=>m.RmtlAddDevicesModule)},
   {path:'edit-devices',loadChildren:()=>import('./rmtl-edit-devices/rmtl-edit-devices.module').then(m=>m.RmtlEditDevicesModule)},
-  {path:'dashboard-devices',loadChildren:()=>import('./rmtl-dashboard-devices/rmtl-dashboard-devices.module').then(m=>m.RmtlDashboardDevicesModule)}
+  {path:'view-dashboard-devices',loadChildren:()=>import('./rmtl-dashboard-devices/rmtl-dashboard-devices.module').then(m=>m.RmtlDashboardDevicesModule)}
   
 ];
 

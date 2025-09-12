@@ -99,13 +99,15 @@
           <tbody>
             <tr *ngFor="let r of pageRows; let i=index" class="align-middle">
               <td class="text-muted">{{ (page-1)*pageSize + i + 1 }}</td>
-              <td>
-                <button class="btn btn-link p-0 text-decoration-none"
-                        (click)="downloadTestreports_byreportidwithReportTypes(r.report_id || r.testing?.report_id, r.report_type)"
-                        title="Generate Gatepass PDF again">
-                  <i class="fas fa-file-pdf me-1"></i>{{ r.report_id || r.testing?.report_id }}
-                </button>
-              </td>              
+                <td>
+                  <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+                          (click)="downloadTestreports_byreportidwithReportTypes(r.report_id || r.testing?.report_id, r.report_type)"
+                          title="Download PDF Report">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>{{ r.report_id || r.testing?.report_id }}</span>
+                  </button>
+                </td>
+            
   
               <!-- both flattened and nested shapes -->
               <td>{{ r.device_id || r.testing?.device_id || r.device?.id || '-' }}</td>

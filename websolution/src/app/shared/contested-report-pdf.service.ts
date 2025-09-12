@@ -65,6 +65,9 @@ export interface ContestedReportPdfOptions {
 
 @Injectable({ providedIn: 'root' })
 export class ContestedReportPdfService {
+  static downloadFromBatch(arg0: ContestedReportHeader, arg1: ContestedReportRow[]) {
+    throw new Error('Method not implemented.');
+  }
   downloadFromBatch(header: ContestedReportHeader, rows: ContestedReportRow[], opts: ContestedReportPdfOptions = {}): void {
     const doc = this.buildDoc(header, rows);
     const name = opts.fileName || `CONTESTED_${header.date}.pdf`;
