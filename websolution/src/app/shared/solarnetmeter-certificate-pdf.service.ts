@@ -8,6 +8,19 @@ export type SolarHeader = {
   location_name?: string | null;
   testMethod?: string | null;
   testStatus?: string | null;
+
+  // PDF header extras
+  testing_bench?: string | null;
+  testing_user?: string | null;
+  date?: string | null;
+
+  // Lab info + logos
+  lab_name?: string | null;
+  lab_address?: string | null;
+  lab_email?: string | null;
+  lab_phone?: string | null;
+  leftLogoUrl?: string | null;   // http/https/relative OR data URL
+  rightLogoUrl?: string | null;  // http/https/relative OR data URL
 };
 
 export type SolarRow = {
@@ -39,52 +52,120 @@ export type SolarRow = {
   remark?: string | null;
 };
 
+type TDocument = any;
+
 @Injectable({ providedIn: 'root' })
 export class SolarNetMeterCertificatePdfService {
 
-  private header(meta: { zone: string; method: string; status: string }) {
+  async download(header: SolarHeader, rows: SolarRow[], fileName = 'SOLAR_NETMETER_CERTIFICATES.pdf'): Promise<void> {
+    const doc = await this.buildDocWithLogos(header, rows);
+    await new Promise<void>(resolve => pdfMake.createPdf(doc).download(fileName, () => resolve()));
+  }
+  async open(header: SolarHeader, rows: SolarRow[]) {
+    const doc = await this.buildDocWithLogos(header, rows);
+    pdfMake.createPdf(doc).open();
+  }
+  async print(header: SolarHeader, rows: SolarRow[]) {
+    const doc = await this.buildDocWithLogos(header, rows);
+    pdfMake.createPdf(doc).print();
+  }
+
+  // -------------------- internals --------------------
+  private theme = {
+    grid: '#e6e9ef',
+    subtle: '#5d6b7a',
+    labelBg: '#f5f5f7'
+  };
+
+  private async buildDocWithLogos(header: SolarHeader, rows: SolarRow[]): Promise<TDocument> {
+    const images: Record<string, string> = {};
+    const isData = (u?: string | null) => !!u && /^data:image\/[a-zA-Z]+;base64,/.test(u || '');
+
+    const toDataURL = async (url: string) => {
+      const abs = new URL(url, document.baseURI).toString();
+      const res = await fetch(abs, { cache: 'no-cache' });
+      if (!res.ok) throw new Error(`logo fetch failed ${abs}`);
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    };
+
+    try {
+      if (header.leftLogoUrl) {
+        images['leftLogo'] = isData(header.leftLogoUrl) ? header.leftLogoUrl! : await toDataURL(header.leftLogoUrl!);
+      }
+      if (header.rightLogoUrl) {
+        images['rightLogo'] = isData(header.rightLogoUrl) ? header.rightLogoUrl! : await toDataURL(header.rightLogoUrl!);
+      }
+      // mirror if only one logo is provided
+      if (!images['leftLogo'] && images['rightLogo']) images['leftLogo'] = images['rightLogo'];
+      if (!images['rightLogo'] && images['leftLogo']) images['rightLogo'] = images['leftLogo'];
+    } catch {
+      // ignore logo errors
+    }
+
+    return this.buildDoc(header, rows, images);
+  }
+
+  private headerBar(meta: any, images: Record<string, string>) {
+    const logoBox: [number, number] = [42, 42];
     return {
       margin: [40, 16, 40, 6],
-      stack: [
+      columns: [
+        images['leftLogo'] ? { image: 'leftLogo', fit: logoBox, margin: [0, 0, 10, 0] } : { width: logoBox[0], text: '' },
         {
-          columns: [
-            { width: 16, text: '' },
-            {
-              width: '*',
-              stack: [
-                { text: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN CO. LTD.', bold: true, alignment: 'center', fontSize: 11 },
-                { text: 'REMOTE METERING TESTING LABORATORY, INDORE', bold: true, alignment: 'center', fontSize: 11, margin: [0, 2, 0, 0] },
-                { text: 'MPPKVVCL Near Conference Hall, Polo Ground, Indore – 452003 (MP)', alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] },
-                { text: 'Email: aermtlindore@gmail.com   |   Ph: 0731-29978514', alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] },
-              ]
-            },
-            { width: 16, text: '' }
+          width: '*',
+          stack: [
+            { text: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN CO. LTD.', bold: true, alignment: 'center', fontSize: 11 },
+            { text: meta.lab_name , bold: true, alignment: 'center', fontSize: 11, margin: [0, 2, 0, 0] },
+            { text: meta.lab_address , alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] },
+            { text: `Email: ${meta.lab_email || '-'}   |   Ph: ${meta.lab_phone || '-'}`, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] },
           ]
         },
-        { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1, lineColor: '#c7c7c7' }], margin: [0, 2, 0, 0] },
-        {
-          text: `DC/Zone: ${meta.zone || '-'}    •    Test Method: ${meta.method || '-'}    •    Test Status: ${meta.status || '-'}`,
-          alignment: 'center',
-          fontSize: 9,
-          color: '#555',
-          margin: [0, 6, 0, 0]
-        }
+        images['rightLogo'] ? { image: 'rightLogo', fit: logoBox, margin: [10, 0, 0, 0] } : { width: logoBox[0], text: '' }
       ]
     };
   }
 
-  private page(r: SolarRow) {
-    const sectionHeader = { bold: true, fontSize: 12, margin: [0, 10, 0, 6], decoration: 'underline' };
+  private metaRow(meta: any) {
+    const lbl = { bold: true, fillColor: this.theme.labelBg };
+    return {
+      layout: 'noBorders',
+      margin: [0, 6, 0, 10],
+      table: {
+        widths: ['auto', '*', 'auto', '*', 'auto', '*'],
+        body: [[
+          { text: 'DC/Zone', ...lbl }, { text: meta.zone || '-' },
+          { text: 'Method',  ...lbl }, { text: meta.method || '-' },
+          { text: 'Status',  ...lbl }, { text: meta.status || '-' },
+        ],
+        [
+          { text: 'Bench',   ...lbl }, { text: meta.bench || '-' },
+          { text: 'User',    ...lbl }, { text: meta.user || '-' },
+          { text: 'Date',    ...lbl }, { text: meta.date || '-' },
+        ]]
+      }
+    };
+  }
+
+  private page(r: SolarRow, meta: any) {
+    const sectionHeader = { bold: true, fontSize: 12, margin: [0, 8, 0, 6], decoration: 'underline' };
     const label = { bold: true, fillColor: '#f5f5f5', margin: [0, 2, 0, 2] };
     const value = { margin: [0, 2, 0, 2] };
     const noBorders = 'noBorders';
 
     const blocks: any[] = [
-      { text: 'SOLAR NET METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0, 5, 0, 0] },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#c7c7c7' }], margin: [0, 4, 0, 6] },
+      { text: 'SOLAR NET METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0, 0, 0, 6] },
+      this.metaRow(meta),
     ];
 
     if (r.certificate_no) {
-      blocks.push({ text: `Certificate No: ${r.certificate_no}`, alignment: 'right', bold: true, margin: [0, 0, 0, 8] });
+      blocks.push({ text: `Certificate No: ${r.certificate_no}`, alignment: 'right', bold: true, margin: [0, 0, 0, 6] });
     }
 
     // Consumer & Meter
@@ -102,7 +183,7 @@ export class SolarNetMeterCertificatePdfService {
           ]
         },
         layout: { defaultBorder: false, fillColor: (i: number) => (i % 2 === 0 ? '#f9f9f9' : null) },
-        margin: [0, 0, 0, 12]
+        margin: [0, 0, 0, 10]
       }
     );
 
@@ -120,7 +201,7 @@ export class SolarNetMeterCertificatePdfService {
           ]
         },
         layout: { defaultBorder: false, fillColor: (i: number) => (i % 2 === 0 ? '#f9f9f9' : null) },
-        margin: [0, 0, 0, 12]
+        margin: [0, 0, 0, 10]
       }
     );
 
@@ -137,7 +218,7 @@ export class SolarNetMeterCertificatePdfService {
           ]
         },
         layout: { defaultBorder: false, fillColor: (i: number) => (i % 2 === 0 ? '#f9f9f9' : null) },
-        margin: [0, 0, 0, 12]
+        margin: [0, 0, 0, 10]
       }
     );
 
@@ -155,8 +236,8 @@ export class SolarNetMeterCertificatePdfService {
             [{ text: 'Remarks', ...label }, { text: r.remark || '-', ...value }],
           ]
         },
-        layout: { defaultBorder: false, fillColor: (i: number) => (i % 2 === 0 ? '#f9f9f9' : null) },
-        margin: [0, 0, 0, 18]
+        layout: { defaultBorder: false, fillColor: (i: number) => (i === 0 ? '#f0f3f8' : i % 2 === 0 ? '#fafafa' : null) },
+        margin: [0, 0, 0, 16]
       }
     );
 
@@ -191,20 +272,27 @@ export class SolarNetMeterCertificatePdfService {
     return blocks;
   }
 
-  private buildDoc(header: SolarHeader, rows: SolarRow[]) {
+  private buildDoc(header: SolarHeader, rows: SolarRow[], images: Record<string, string>) {
     const meta = {
       zone: (header.location_code ? header.location_code + ' - ' : '') + (header.location_name || ''),
-      method: header.testMethod || '',
-      status: header.testStatus || ''
+      method: header.testMethod || '-',
+      status: header.testStatus || '-',
+      bench: header.testing_bench || '-',
+      user: header.testing_user || '-',
+      date: header.date || new Date().toLocaleDateString(),
+      lab_name: header.lab_name || '-',
+      lab_address: header.lab_address || '-',
+      lab_email: header.lab_email || '-',
+      lab_phone: header.lab_phone ||'-',
     };
 
-    const data = rows.filter(r => (r.meter_sr_no || '').trim());
+    const data = (rows || []).filter(r => (r.meter_sr_no || '').trim());
     const content: any[] = [];
 
     if (data.length > 1) {
       content.push(
-        { text: 'SOLAR NET METER TEST REPORTS', alignment: 'center', bold: true, fontSize: 16, margin: [0, 140, 0, 10] },
-        { text: `Batch Summary • Generated on ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, margin: [0, 0, 0, 16] },
+        { text: 'SOLAR NET METER TEST REPORTS', alignment: 'center', bold: true, fontSize: 16, margin: [0, 120, 0, 10] },
+        { text: `Batch Summary • Generated on ${meta.date}`, alignment: 'center', fontSize: 10, margin: [0, 0, 0, 16] },
         {
           table: {
             headerRows: 1,
@@ -221,7 +309,7 @@ export class SolarNetMeterCertificatePdfService {
     }
 
     data.forEach((r, i) => {
-      content.push(...this.page(r));
+      content.push(...this.page(r, meta));
       if (i < data.length - 1) content.push({ text: '', pageBreak: 'after' });
     });
 
@@ -229,7 +317,8 @@ export class SolarNetMeterCertificatePdfService {
       pageSize: 'A4',
       pageMargins: [40, 110, 40, 60],
       defaultStyle: { font: 'Roboto', fontSize: 10 },
-      header: () => this.header(meta),
+      images,
+      header: this.headerBar(meta, images),
       footer: (currentPage: number, pageCount: number) => ({
         margin: [40, 0, 40, 8],
         columns: [
@@ -244,10 +333,5 @@ export class SolarNetMeterCertificatePdfService {
       },
       content
     } as any;
-  }
-
-  download(header: SolarHeader, rows: SolarRow[]) {
-    const doc = this.buildDoc(header, rows);
-    pdfMake.createPdf(doc).download('SOLAR_NETMETER_CERTIFICATES.pdf');
   }
 }

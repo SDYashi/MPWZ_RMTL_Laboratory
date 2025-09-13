@@ -6,18 +6,29 @@ import pdfFonts from 'pdfmake/build/vfs_fonts';
 type TDocumentDefinitions = any;
 
 export interface ContestedReportHeader {
-  /** YYYY-MM-DD */
-  date: string;
+  date: string;                // YYYY-MM-DD
   phase?: string;
-  /** e.g. "3420100 - Zone ABC" */
-  zone?: string;
+  zone?: string;               // e.g., "3420100 - Zone ABC"
   location_code?: string;
   location_name?: string;
   testerName?: string;
+
+  testing_bench?: string;
+  testing_user?: string;
+  approving_user?: string;
+
+  lab_name?: string;
+  lab_address?: string;
+  lab_email?: string;
+  lab_phone?: string;
+
+  leftLogoUrl?: string;
+  rightLogoUrl?: string;       // right logo enabled
+
+  report_id?: string;          // e.g., "CON-2025-000123"
 }
 
 export interface ContestedReportRow {
-  // Top slip (AE/JE)
   serial: string;
   make?: string;
   capacity?: string;
@@ -29,12 +40,9 @@ export interface ContestedReportRow {
   contested_by?: string;
   payment_particulars?: string;
   receipt_no?: string;
-  /** YYYY-MM-DD */
-  receipt_date?: string;
+  receipt_date?: string;       // YYYY-MM-DD
 
-  // RMTL section
-  /** YYYY-MM-DD */
-  testing_date?: string;
+  testing_date?: string;       // YYYY-MM-DD
   physical_condition_of_device?: string;
   is_burned?: boolean;
   seal_status?: string;
@@ -50,12 +58,9 @@ export interface ContestedReportRow {
   meter_kwh?: number;
   error_percentage?: number;
 
-  /** OK/FAIL/NA (free text from UI) */
-  starting_current_test?: string;
-  /** OK/FAIL/NA (free text from UI) */
-  creep_test?: string;
+  starting_current_test?: string; // OK/FAIL/NA
+  creep_test?: string;            // OK/FAIL/NA
 
-  /** Free text remark */
   remark?: string;
 }
 
@@ -65,200 +70,283 @@ export interface ContestedReportPdfOptions {
 
 @Injectable({ providedIn: 'root' })
 export class ContestedReportPdfService {
-  static downloadFromBatch(arg0: ContestedReportHeader, arg1: ContestedReportRow[]) {
-    throw new Error('Method not implemented.');
-  }
-  downloadFromBatch(header: ContestedReportHeader, rows: ContestedReportRow[], opts: ContestedReportPdfOptions = {}): void {
-    const doc = this.buildDoc(header, rows);
+  async downloadFromBatch(header: ContestedReportHeader, rows: ContestedReportRow[], opts: ContestedReportPdfOptions = {}): Promise<void> {
+    const doc = await this.buildDocWithLogos(header, rows);
     const name = opts.fileName || `CONTESTED_${header.date}.pdf`;
-    pdfMake.createPdf(doc).download(name);
+    await new Promise<void>((resolve) => pdfMake.createPdf(doc).download(name, () => resolve()));
   }
 
-  openFromBatch(header: ContestedReportHeader, rows: ContestedReportRow[]): void {
-    const doc = this.buildDoc(header, rows);
+  async openFromBatch(header: ContestedReportHeader, rows: ContestedReportRow[]): Promise<void> {
+    const doc = await this.buildDocWithLogos(header, rows);
     pdfMake.createPdf(doc).open();
   }
 
-  printFromBatch(header: ContestedReportHeader, rows: ContestedReportRow[]): void {
-    const doc = this.buildDoc(header, rows);
+  async printFromBatch(header: ContestedReportHeader, rows: ContestedReportRow[]): Promise<void> {
+    const doc = await this.buildDocWithLogos(header, rows);
     pdfMake.createPdf(doc).print();
   }
 
   // -------------------- Internals --------------------
-
-  private buildDoc(header: ContestedReportHeader, rows: ContestedReportRow[]): TDocumentDefinitions {
-    const meta = {
-      date: header.date,
-      zone: header.zone || this.joinNonEmpty([header.location_code, header.location_name], ' - '),
-      testerName: header.testerName || '',
+  private async buildDocWithLogos(header: ContestedReportHeader, rows: ContestedReportRow[]) {
+    const images: Record<string, string> = {};
+    const toDataURL = async (url: string) => {
+      const abs = new URL(url, document.baseURI).toString();
+      const res = await fetch(abs);
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
     };
 
-    const content: any[] = [];
-    rows.forEach((r, idx) => {
-      content.push(...this.pageForRow(r, meta));
-      if (idx < rows.length - 1) content.push({ text: '', pageBreak: 'after' });
-    });
+    try {
+      if (header.leftLogoUrl) images['leftLogo'] = await toDataURL(header.leftLogoUrl);
+      if (header.rightLogoUrl) {
+        images['rightLogo'] = await toDataURL(header.rightLogoUrl);
+      } else if (images['leftLogo']) {
+        images['rightLogo'] = images['leftLogo']; // mirror if only one provided
+      }
+    } catch {
+      // ignore logo errors
+    }
+
+    return this.buildDoc(header, rows, images);
+  }
+
+  // ---------- Theme & helpers ----------
+  private theme = {
+    primary: '#0b5ed7',
+    ok: '#198754',
+    fail: '#dc3545',
+    na: '#6c757d',
+    grid: '#e6e9ef',
+    subtleText: '#5d6b7a',
+    labelBg: '#f8f9fc'
+  };
+
+  private dotted(n = 12) { return '·'.repeat(n); }
+  private join(parts: Array<string | undefined | null>, sep = ' ') { return parts.filter(Boolean).join(sep); }
+  private yesNo(v?: boolean) { return v ? 'YES' : 'NO'; }
+  private badge(val?: string) {
+    const v = (val || '').toUpperCase();
+    const color = v === 'OK' ? this.theme.ok : v === 'FAIL' ? this.theme.fail : this.theme.na;
+    return {
+      table: {
+        widths: ['*'],
+        body: [[{ text: v || 'NA', color: '#fff', alignment: 'center', bold: true }]]
+      },
+      layout: {
+        hLineWidth: () => 0,
+        vLineWidth: () => 0,
+        fillColor: () => color,
+        paddingLeft: () => 4,
+        paddingRight: () => 4,
+        paddingTop: () => 1,
+        paddingBottom: () => 1
+      },
+      width: 48
+    };
+  }
+
+  private buildDoc(header: ContestedReportHeader, rows: ContestedReportRow[], images: Record<string, string> = {}): TDocumentDefinitions {
+    const meta = {
+      date: header.date,
+      phase: header.phase || '',
+      zone: header.zone || this.join([header.location_code, header.location_name], ' - '),
+      testing_bench: header.testing_bench || '-',
+      testing_user: header.testing_user || '-',
+      approving_user: header.approving_user || '-',
+      lab_name: header.lab_name || 'REGINAL METERING TESTING LABORATORY INDORE',
+      lab_address: header.lab_address || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003',
+      lab_email: header.lab_email || 'testinglabwzind@gmail.com',
+      lab_phone: header.lab_phone || '0731-2997802',
+      report_id: header.report_id || `CON-${header.date.replace(/-/g, '')}-${Math.floor(1000 + Math.random()*9000)}`
+    };
+
+    const row = rows[0]; // single-page target
 
     return {
       pageSize: 'A4',
-      pageMargins: [28, 28, 28, 36],
-      defaultStyle: { fontSize: 10 },
-      content,
+      pageMargins: [18, 70, 18, 34],
+      images,
+      header: this.headerBar(meta, images),
       footer: (current: number, total: number) => ({
         columns: [
-          { text: `Page ${current} of ${total}`, alignment: 'left', margin: [28, 0, 0, 0] },
-          { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 28, 0] }
+          { text: `Page ${current} of ${total}`, alignment: 'left', margin: [18, 0, 0, 0], color: this.theme.subtleText },
+          { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 18, 0], color: this.theme.subtleText }
         ],
         fontSize: 8
       }),
-      info: { title: `CONTESTED_${meta.date}` }
+      defaultStyle: { fontSize: 9, color: '#111' },
+      styles: {
+        small: { fontSize: 8.5, color: this.theme.subtleText },
+        sectionTitle: { bold: true, fontSize: 11, color: '#0b2237', margin: [0, 8, 0, 2] },
+        labelCell: { bold: true, fillColor: this.theme.labelBg },
+        valueCell: {},
+      },
+      tableLayouts: {
+        tightGrid: {
+          hLineWidth: () => 0.5,
+          vLineWidth: () => 0.5,
+          hLineColor: () => this.theme.grid,
+          vLineColor: () => this.theme.grid,
+          paddingLeft: () => 4,
+          paddingRight: () => 4,
+          paddingTop: () => 2,
+          paddingBottom: () => 2
+        }
+      },
+      content: this.singlePageForRow(row, meta)
     };
   }
 
-  private dotted(n = 20) { return '·'.repeat(n); }
+  // Header like screenshot: 2 logos + centered multi-line text
+  private headerBar(meta: any, images: Record<string,string>) {
+    const labName = (meta.lab_name || 'REGINAL METERING TESTING LABORATORY INDORE').toString().toUpperCase();
+    const addr    = meta.lab_address || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003';
+    const mail    = meta.lab_email  || 'testinglabwzind@gmail.com';
+    const phone   = meta.lab_phone  || '0731-2997802';
 
-  private joinNonEmpty(parts: Array<string | undefined | null>, sep = ' ') {
-    return parts.filter(Boolean).join(sep);
-  }
-
-  private pageForRow(r: ContestedReportRow, meta: { date: string; zone?: string; testerName?: string; }): any[] {
-    const topTitle = {
-      stack: [
-        { text: 'OFFICE OF AE/JE MPPKVVCo.Ltd Zone', alignment: 'center', bold: true, margin: [0, 0, 0, 2] },
-        { text: meta.zone || '', alignment: 'center', italics: true, fontSize: 9, margin: [0, 0, 0, 6] }
+    return {
+      margin: [18, 10, 18, 8],
+      columns: [
+        images['leftLogo']  ? { image: 'leftLogo',  width: 28, alignment: 'left' } : { width: 28, text: '' },
+        {
+          width: '*',
+          stack: [
+            { text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED', alignment: 'center', bold: true, fontSize: 13 },
+            { text: labName, alignment: 'center', color: '#666', margin: [0, 2, 0, 0], fontSize: 12 },
+            { text: addr, alignment: 'center', color: '#666', margin: [0, 2, 0, 0], fontSize: 10 },
+            { text: `Email: ${mail} • Phone: ${phone}`, alignment: 'center', color: '#666', margin: [0, 2, 0, 0], fontSize: 10 }
+          ]
+        },
+        images['rightLogo'] ? { image: 'rightLogo', width: 28, alignment: 'right' } : { width: 28, text: '' }
       ]
     };
+  }
 
-    const topLine = {
-      columns: [
-        { text: `NO ${this.dotted(20)}` },
-        { text: `DATE ${meta.date}`, alignment: 'right' },
-      ],
-      margin: [0, 0, 0, 6]
-    };
+  // ----------------- Content builder (fixed margins + single-line heading) -----------------
+private singlePageForRow(
+  r: ContestedReportRow,
+  meta: {
+    date: string; phase: string; zone?: string;
+    testing_bench: string; testing_user: string; approving_user: string;
+    lab_name: string; lab_address: string; lab_email: string; lab_phone: string; report_id: string;
+  }
+): any[] {
 
-    const reporttypetitle = { text: 'CONTESTED METER TEST REPORT', alignment: 'center', bold: true, margin: [0, 0, 0, 6] };
+  // helpers – 4 columns: label/value + label/value
+  const row4 = (l1: string, v1: any, l2: string, v2: any) => ([
+    { text: l1, style: 'labelCell' }, { text: (v1 ?? '').toString(), style: 'valueCell' },
+    { text: l2, style: 'labelCell' }, { text: (v2 ?? '').toString(), style: 'valueCell' },
+  ]);
+  // long value that should take the rest of the row
+  const row2 = (label: string, value: any) => ([
+    { text: label, style: 'labelCell' },
+    { text: (value ?? '').toString(), style: 'valueCell', colSpan: 3 }, {}, {}
+  ]);
 
-    const slip = {
-      layout: 'lightHorizontalLines',
-      table: {
-        widths: ['auto', '*'],
-        body: [
-          [{ text: 'Name of Consumer', bold: true }, r.consumer_name || '' ],
-          [{ text: 'Account No / IVRS No.', bold: true }, r.account_no_ivrs || '' ],
-          [{ text: 'Address', bold: true }, r.address || '' ],
-          [{ text: 'Contested Meter by Consumer/Zone', bold: true }, r.contested_by || '' ],
-          [{ text: 'Particular of payment of Testing Charges', bold: true }, r.payment_particulars || '' ],
-          [{ text: 'Receipt No and Date', bold: true }, `${r.receipt_no || ''}    ${r.receipt_date || ''}` ],
-        ]
-      }
-    };
+  // ---------- Consumer Details (full width) ----------
+  const consumer = {
+    margin: [0, 6, 0, 0],
+    layout: 'tightGrid',
+    table: {
+      widths: ['auto', '*', 'auto', '*'], // labels shrink, values flex
+      body: [
+        row4('Zone/DC', meta.zone || '-', 'Date', meta.date || '-'),
+        row4('Phase', meta.phase || '-', 'Testing Bench', meta.testing_bench || '-'),
+        row4('Testing User', meta.testing_user || '-', 'Approving User', meta.approving_user || '-'),
+        row2('Name of Consumer', r.consumer_name || ''),
+        row2('Account / IVRS', r.account_no_ivrs || ''),
+        row2('Address', r.address || ''),
+        row2('Contested By', r.contested_by || ''),
+        row2('Payment Particulars', r.payment_particulars || ''),
+        row2('Receipt No & Date', `${r.receipt_no || ''}    ${r.receipt_date || ''}`)
+      ]
+    }
+  };
 
-    const slipMeter = {
-      layout: 'noBorders',
-      margin: [0, 6, 0, 0],
-      table: {
-        widths: ['*', '*', '*', '*'],
-        body: [
-          [{ text: 'Meter No.', bold: true }, { text: 'Make', bold: true }, { text: 'Capacity', bold: true }, { text: 'Reading', bold: true }],
-          [
-            r.serial || this.dotted(15),
-            r.make || this.dotted(12),
-            r.capacity || this.dotted(12),
-            (r.removal_reading ?? '').toString() || this.dotted(12)
-          ]
-        ]
-      }
-    };
+  // ---------- Meter & Testing Summary (single full-width table) ----------
+  const summary = {
+    margin: [0, 8, 0, 0],
+    layout: 'tightGrid',
+    table: {
+      widths: ['auto', '*', 'auto', '*'],
+      body: [
+        // single-line section header
+        [{ text: 'METER & TESTING SUMMARY', colSpan: 4, alignment: 'center', bold: true, fillColor: '#f8f9fc' }, {}, {}, {}],
 
-    const slipSign = { text: 'JE/AE   MPPKVVCo.ltd', alignment: 'right', margin: [0, 2, 0, 8], italics: true, fontSize: 9 };
+        // Meter details
+        row4('Meter No.', r.serial || this.dotted(10), 'Make', r.make || this.dotted(10)),
+        row4('Capacity', r.capacity || this.dotted(10), 'Removal Reading', (r.removal_reading ?? '').toString() || this.dotted(8)),
 
-    const midHeads = [
-      { text: 'REGIONAL METER TESTING LABORATORY, INDORE', alignment: 'center', bold: true },
-      { text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN CO. LTD.', alignment: 'center', fontSize: 9, margin: [0, 1, 0, 0] },
-      { text: 'To be filled by Testing Section Laboratory (RMTL)', alignment: 'center', margin: [0, 2, 0, 6] }
-    ];
+        // RMTL checkpoints
+        row4('Physical Condition', r.physical_condition_of_device || '', 'Found Burnt', this.yesNo(r.is_burned)),
+        row4('Body Seal', r.seal_status || '', 'Glass Cover', r.meter_glass_cover || ''),
+        row4('Terminal Block', r.terminal_block || '', 'Meter Body', r.meter_body || ''),
+        row2('Any Other', r.other || ''),
 
-    const rmtlGrid = {
-      layout: 'lightHorizontalLines',
-      table: {
-        widths: ['auto', '*'],
-        body: [
-          [{ text: 'Date of Testing', bold: true }, r.testing_date || meta.date],
-          [{ text: 'Physical Condition of Meter', bold: true }, r.physical_condition_of_device || '' ],
-          [{ text: 'Whether found Burnt', bold: true }, (r.is_burned ? 'YES' : 'NO')],
-          [{ text: 'Meter Body Seal', bold: true }, r.seal_status || '' ],
-          [{ text: 'Meter Glass Cover', bold: true }, r.meter_glass_cover || '' ],
-          [{ text: 'Terminal Block', bold: true }, r.terminal_block || '' ],
-          [{ text: 'Meter Body', bold: true }, r.meter_body || '' ],
-          [{ text: 'Any Other', bold: true }, r.other || '' ],
-          [{ text: 'Before Test', bold: true }, (r.reading_before_test ?? '').toString() ],
-          [{ text: 'After Test', bold: true }, (r.reading_after_test ?? '').toString() ],
+        // Testing data
+        row4('Date of Testing', r.testing_date || meta.date, 'Before Test Reading', (r.reading_before_test ?? '').toString()),
+        row4('After Test Reading', (r.reading_after_test ?? '').toString(), '% Error', (r.error_percentage ?? '').toString()),
+        row4('Dial Test (RSM kWh)', (r.rsm_kwh ?? '').toString(), 'Dial Test (Meter kWh)', (r.meter_kwh ?? '').toString()),
+
+        // Badges for OK/FAIL/NA – embedded as values
+        [
+          { text: 'Starting Current', style: 'labelCell' },
+          this.badge(r.starting_current_test),
+          { text: 'Creep', style: 'labelCell' },
+          this.badge(r.creep_test)
+        ],
+
+        // Remarks (full-span)
+        row2('Remark', r.remark || '')
+      ]
+    }
+  };
+
+  // ---------- Signatures (full width) ----------
+  const signatures = {
+    margin: [0, 10, 0, 0],
+    columns: [
+      {
+        width: '*',
+        stack: [
+          { text: 'Tested by', alignment: 'center', bold: true },
+          { text: '____________________________', alignment: 'center' },
+          { text: 'TESTING ASSISTANT (RMTL)', alignment: 'center', style: 'small' }
         ]
       },
-      margin: [0, 0, 0, 6]
-    };
+      {
+        width: '*',
+        stack: [
+          { text: 'Verified by', alignment: 'center', bold: true },
+          { text: '____________________________', alignment: 'center' },
+          { text: 'JUNIOR ENGINEER (RMTL)', alignment: 'center', style: 'small' }
+        ]
+      },
+      {
+        width: '*',
+        stack: [
+          { text: 'Approved by', alignment: 'center', bold: true },
+          { text: '____________________________', alignment: 'center' },
+          { text: 'ASSISTANT ENGINEER (RMTL)', alignment: 'center', style: 'small' }
+        ]
+      }
+    ]
+  };
 
-    const remarkLines = {
-      margin: [0, 6, 0, 0],
-      stack: [
-        { text: 'Remark:-', bold: true, margin: [0, 0, 0, 2] },
-        {
-          canvas: [
-            { type: 'line', x1: 0, y1: 0, x2: 540, y2: 0, lineWidth: 0.5 },
-            { type: 'line', x1: 0, y1: 10, x2: 540, y2: 10, lineWidth: 0.5 },
-            { type: 'line', x1: 0, y1: 20, x2: 540, y2: 20, lineWidth: 0.5 }
-          ],
-          margin: [0, 2, 0, 0]
-        }
-      ]
-    };
+  return [
+    { text: 'Consumer Details', style: 'sectionTitle', noWrap: true },
+    consumer,
 
-    const dialLine = {
-      margin: [0, 8, 0, 0],
-      text: `Dial Test kWh Recorded by RSM Meter ${r.rsm_kwh ?? this.dotted(10)} / kWh Recorded by meter ${r.meter_kwh ?? this.dotted(10)} , Overall`,
-      fontSize: 10
-    };
+    { text: 'Meter & Testing Summary', style: 'sectionTitle', noWrap: true },
+    summary,
 
-    const errorLine = {
-      margin: [0, 4, 0, 0],
-      text:
-        `% Error ${ (r.error_percentage ?? this.dotted(6)) }   Starting Current Test ${ r.starting_current_test || this.dotted(8) }   Creep Test ${ r.creep_test || this.dotted(8) }   Other ${ r.remark || this.dotted(8) }`,
-      fontSize: 10
-    };
+    signatures
+  ];
+}
 
-    const testedBy = {
-      margin: [0, 20, 0, 0],
-      columns: [
-        {
-          width: '*',
-          stack: [
-            { text: 'Tested by', style: 'footRole' },
-            { text: '\n\n____________________________', alignment: 'center' },
-            { text: meta.testerName || '', style: 'footTiny' },
-            { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
-          ],
-        },
-        {
-          width: '*',
-          stack: [
-            { text: 'Verified by', style: 'footRole' },
-            { text: '\n\n____________________________', alignment: 'center' },
-            { text: meta.testerName || '', style: 'footTiny' },
-            { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
-          ],
-        },
-        {
-          width: '*',
-          stack: [
-            { text: 'Approved by', style: 'footRole' },
-            { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
-          ],
-        },
-      ]
-    };
-
-    return [ topTitle, topLine, reporttypetitle, slip, slipMeter, slipSign, ...midHeads, rmtlGrid, remarkLines, dialLine, errorLine, testedBy ];
-  }
 }

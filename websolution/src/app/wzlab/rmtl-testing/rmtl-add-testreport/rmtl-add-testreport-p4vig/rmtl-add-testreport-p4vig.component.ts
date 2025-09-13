@@ -52,7 +52,7 @@ interface Row {
   _open?: boolean;
 }
 
-type ModalAction = 'submit' | 'removeRow' | 'reload' | null;
+type ModalAction = 'submit' | null;
 
 interface ModalState {
   open: boolean;
@@ -70,24 +70,30 @@ interface ModalState {
 export class RmtlAddTestreportP4vigComponent implements OnInit {
 
   // ===== batch header =====
-  header = { location_code: '', location_name: '' };
+  header = { location_code: '', location_name: '', testing_bench: '', testing_user: '' };
   test_methods: any[] = [];
   test_statuses: any[] = [];
   testMethod: string | null = null;
   testStatus: string | null = null;
 
-  // ===== enums for condition pickers =====
+  // ===== enums =====
   seal_statuses: any[] = [];
   glass_covers: any[] = [];
   terminal_blocks: any[] = [];
   meter_bodies: any[] = [];
 
-  // ===== assignment =====
+  // ===== assignment / lab =====
   device_status: 'ASSIGNED' = 'ASSIGNED';
   currentUserId = 0;
   currentLabId  = 0;
   private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; }> = {};
   loading = false;
+
+  // lab info for PDF header
+  labInfo: {
+    lab_name?: string; address?: string; email?: string; phone?: string;
+    logo_left_url?: string; logo_right_url?: string;
+  } | null = null;
 
   // ===== table =====
   filterText = '';
@@ -117,11 +123,21 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     _t: 0 as any
   };
 
+  // ===== device picker modal =====
+  devicePicker = {
+    open: false,
+    items: [] as AssignmentItem[],
+    selected: new Set<number>(),
+    loading: false,
+    selectAll: false,
+  };
+
   constructor(private api: ApiServicesService, private pdfSvc: P4VigReportPdfService) {}
 
   ngOnInit(): void {
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
     this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+    this.header.testing_user = localStorage.getItem('currentUserName') || '';
 
     this.api.getEnums().subscribe({
       next: (d) => {
@@ -137,7 +153,22 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       }
     });
 
-    this.reloadAssigned(false);
+    // lab info for header
+    this.api.getLabInfo(this.currentLabId).subscribe({
+      next: (info: any) => {
+        this.labInfo = {
+          lab_name: info?.lab_pdfheader_name || info?.lab_name,
+          address: info?.address || info?.address_line,
+          email: info?.email,
+          phone: info?.phone,
+          logo_left_url: info?.logo_left_url,
+          logo_right_url: info?.logo_right_url
+        };
+      }
+    });
+
+    // build serial index without altering rows
+    this.loadAssignedIndexOnly();
   }
 
   // ---------- Source fetch ----------
@@ -175,9 +206,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     };
   }
   addRow(){ this.rows.push(this.emptyRow({ _open: true })); }
-
-  /** remove with bounds check; caller ensures confirmation */
-  private doRemoveRow(i:number){
+  removeRow(i:number){
     if (i < 0 || i >= this.rows.length) return;
     this.rows.splice(i,1);
     if (!this.rows.length) this.addRow();
@@ -195,7 +224,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       (r.consumer_name || '').toLowerCase().includes(q));
   }
 
-  // ===== assignment =====
+  // ===== assignment index only =====
   private rebuildSerialIndex(asg: AssignmentItem[]) {
     this.serialIndex = {};
     for (const a of asg) {
@@ -211,7 +240,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     }
   }
 
-  reloadAssigned(replaceRows:boolean=true) {
+  private loadAssignedIndexOnly() {
     this.loading = true;
     this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
       next: (data:any) => {
@@ -220,28 +249,81 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
 
         const first = asg.find(a=>a.device);
         if (first?.device){
-          this.header.location_code = first.device.location_code ?? '';
-          this.header.location_name = first.device.location_name ?? '';
-        }
-
-        if (replaceRows){
-          this.rows = asg.map(a=>{
-            const d = a.device || ({} as MeterDevice);
-            return this.emptyRow({
-              serial: d.serial_number || '',
-              make: d.make || '',
-              capacity: d.capacity || '',
-              assignment_id: a.id ?? 0,
-              device_id: d.id ?? a.device_id ?? 0,
-              _open: false, notFound:false
-            });
-          });
-          if (!this.rows.length) this.addRow();
+          // prefill zone/dc if empty
+          this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
+          this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
         }
         this.loading = false;
       },
-      error: ()=>{ this.loading=false; this.openAlert('error', 'Reload failed', 'Could not fetch assigned meters.'); }
+      error: ()=>{ this.loading=false; }
     });
+  }
+
+  // ===== open device picker (instead of pushing all) =====
+  openDevicePicker(){
+    this.devicePicker.loading = true;
+    this.devicePicker.items = [];
+    this.devicePicker.selected.clear();
+    this.devicePicker.selectAll = false;
+
+    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
+      next: (data:any) => {
+        const asg:AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+        this.devicePicker.items = asg;
+        // prefill header code/name from the first one (if empty)
+        const first = asg.find(a=>a.device);
+        if (first?.device){
+          if (!this.header.location_code) this.header.location_code = first.device.location_code ?? '';
+          if (!this.header.location_name) this.header.location_name = first.device.location_name ?? '';
+        }
+        this.devicePicker.open = true;
+        this.devicePicker.loading = false;
+      },
+      error: ()=> {
+        this.devicePicker.loading = false;
+        this.openAlert('error', 'Reload failed', 'Could not fetch assigned meters.');
+      }
+    });
+  }
+
+  toggleSelectAll(){
+    this.devicePicker.selectAll = !this.devicePicker.selectAll;
+    this.devicePicker.selected.clear();
+    if (this.devicePicker.selectAll){
+      for (const a of this.devicePicker.items) this.devicePicker.selected.add(a.id);
+    }
+  }
+  toggleSelectOne(id:number){
+    if (this.devicePicker.selected.has(id)) this.devicePicker.selected.delete(id);
+    else this.devicePicker.selected.add(id);
+  }
+  closeDevicePicker(){ this.devicePicker.open = false; }
+
+  addSelectedDevices(){
+    const chosen = new Set(this.devicePicker.selected);
+    if (!chosen.size){ this.closeDevicePicker(); return; }
+
+    const existingSerials = new Set(this.rows.map(r => (r.serial||'').toUpperCase().trim()));
+    for (const a of this.devicePicker.items){
+      if (!chosen.has(a.id)) continue;
+      const d = a.device || ({} as MeterDevice);
+      const serial = (d.serial_number || '').toUpperCase().trim();
+      if (!serial || existingSerials.has(serial)) continue;
+
+      this.rows.push(this.emptyRow({
+        serial: d.serial_number || '',
+        make: d.make || '',
+        capacity: d.capacity || '',
+        assignment_id: a.id ?? 0,
+        device_id: d.id ?? a.device_id ?? 0,
+        _open: true, notFound:false
+      }));
+      existingSerials.add(serial);
+    }
+    if (!this.rows.length) this.addRow();
+
+    this.closeDevicePicker();
+    this.openAlert('success', 'Added', 'Selected devices added to the table.', 1400);
   }
 
   onSerialChanged(i:number, serial:string){
@@ -341,30 +423,14 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       });
   }
 
-  // ===== confirm modal =====
-  openConfirm(action: ModalAction, payload?: any){
+  // ===== submit modal (only for preview/submit) =====
+  openConfirmSubmit(){
     this.alertSuccess = null;
     this.alertError = null;
-    this.modal.action = action;
-    this.modal.payload = payload;
-
-    if (action === 'submit'){
-      this.modal.title = 'Submit Batch — Preview';
-      this.modal.message = '';
-    } else if (action === 'removeRow'){
-      const i = (payload?.index ?? 0) + 1;
-      this.modal.title = 'Remove Row';
-      this.modal.message = `Are you sure you want to remove row #${i}?`;
-    } else if (action === 'reload'){
-      this.modal.title = 'Reload Assigned Devices';
-      this.modal.message = 'This will replace current rows with the latest assigned devices. Continue?';
-    } else {
-      this.modal.title = '';
-      this.modal.message = '';
-    }
+    this.modal.action = 'submit';
+    this.modal.title = 'Submit Batch — Preview';
     this.modal.open = true;
   }
-
   closeModal(){
     this.modal.open = false;
     this.modal.action = null;
@@ -374,20 +440,6 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   confirmModal(){
     if (this.modal.action === 'submit'){
       this.doSubmit();
-      return;
-    }
-    if (this.modal.action === 'removeRow'){
-      const idx = this.modal.payload?.index ?? -1;
-      this.doRemoveRow(idx);
-      this.closeModal();
-      this.openAlert('success', 'Row removed', 'The row has been removed.', 1500);
-      return;
-    }
-    if (this.modal.action === 'reload'){
-      this.closeModal();
-      this.reloadAssigned(true);
-      this.openAlert('info', 'Reload started', 'Fetching the latest assigned devices…', 1200);
-      return;
     }
   }
 
@@ -411,16 +463,27 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     this.alertError = null;
 
     this.api.postTestReports(payload).subscribe({
-      next: () => {
+      next: async () => {
         this.submitting = false;
 
-        // PDF after successful save
+        // PDF header pack
         const header: VigHeader = {
           location_code: this.header.location_code,
           location_name: this.header.location_name,
           testMethod: this.testMethod,
-          testStatus: this.testStatus
+          testStatus: this.testStatus,
+          date: new Date().toISOString().slice(0,10),
+          testing_bench: this.header.testing_bench || null,
+          testing_user: this.header.testing_user || null,
+
+          lab_name: this.labInfo?.lab_name || null,
+          lab_address: this.labInfo?.address || null,
+          lab_email: this.labInfo?.email || null,
+          lab_phone: this.labInfo?.phone || null,
+          leftLogoUrl: '/assets/icons/wzlogo.png',
+          rightLogoUrl: '/assets/icons/wzlogo.png'
         };
+
         const rows: VigRow[] = (this.rows || []).filter(r => (r.serial||'').trim()).map(r => ({
           serial: r.serial,
           make: r.make,
@@ -454,10 +517,12 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
 
           remark: r.remark
         }));
-        this.pdfSvc.download(header, rows);
 
-        this.alertSuccess = 'Batch submitted successfully!';
-        this.openAlert('success', 'Submitted', 'Batch submitted successfully!');
+        // Download PDF via service
+        await this.pdfSvc.download(header, rows);
+
+        this.alertSuccess = 'Batch submitted and PDF downloaded successfully!';
+        this.openAlert('success', 'Submitted', 'Data saved and PDF downloaded.');
         this.rows = [ this.emptyRow() ];
         setTimeout(()=> this.closeModal(), 1200);
       },

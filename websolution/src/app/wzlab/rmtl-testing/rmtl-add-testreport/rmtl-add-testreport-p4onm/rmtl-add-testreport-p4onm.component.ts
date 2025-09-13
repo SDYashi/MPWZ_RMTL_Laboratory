@@ -13,7 +13,16 @@ interface MeterDevice {
   location_code?: string | null;
   location_name?: string | null;
 }
-interface AssignmentItem { id: number; device_id: number; device?: MeterDevice | null; }
+
+interface AssignmentItem {
+  id: number;
+  device_id: number;
+  device?: MeterDevice | null;
+
+  testing_bench?: { bench_name?: string } | null;
+  user_assigned?: { name?: string } | null;
+  assigned_by_user?: { name?: string } | null;
+}
 
 interface DeviceRow {
   serial: string;
@@ -27,7 +36,6 @@ interface DeviceRow {
   assignment_id: number;
   notFound?: boolean;
 
-  // AE/JE Zone slip
   form_no?: string;
   form_date?: string;
   consumer_name?: string;
@@ -40,7 +48,6 @@ interface DeviceRow {
   condition_at_removal?: string;
   removal_reading?: number;
 
-  // RMTL section
   testing_date?: string;
   physical_condition_of_device: string;
   seal_status: string;
@@ -66,7 +73,8 @@ interface DeviceRow {
 
 interface ModalState {
   open: boolean; title: string; message: string;
-  action: 'clear' | 'reload' | 'removeRow' | 'submit' | null | string[]; payload?: any;
+  action: 'clear' | 'submit' | 'pick' | null | string[];
+  payload?: any;
 }
 
 @Component({
@@ -75,7 +83,6 @@ interface ModalState {
   styleUrls: ['./rmtl-add-testreport-p4onm.component.css']
 })
 export class RmtlAddTestreportP4onmComponent implements OnInit {
-  // enums/options
   device_status: 'ASSIGNED' = 'ASSIGNED';
   comment_bytester: any[] = [];
   test_methods: any[] = [];
@@ -85,19 +92,32 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   terminal_blocks: any[] = []; meter_bodies: any[] = []; makes: any[] = []; capacities: any[] = [];
   phases: any;
 
-  // header + rows
-  batch = { header: { zone: '', phase: '', date: '', location_code: '', location_name: '' }, rows: [] as DeviceRow[] };
+  batch = {
+    header: {
+      zone: '',
+      phase: '',
+      date: '',
+      location_code: '',
+      location_name: '',
+      testing_bench: '',
+      testing_user: '',
+      approving_user: ''
+    },
+    rows: [] as DeviceRow[]
+  };
 
-  // source selector
+labInfo: {
+  lab_name?: string; address?: string; email?: string; phone?: string;
+  logo_left_url?: string; logo_right_url?: string;
+} | null = null;
+
   office_types: string[] = [];
   selectedSourceType: string = '';
   selectedSourceName: string = '';
   filteredSources: any;
 
-  // ids
   currentUserId = 0; currentLabId = 0;
 
-  // ui state
   filterText = ''; loading = false; submitting = false;
   modal: ModalState = { open: false, title: '', message: '', action: null };
   alertSuccess: string | null = null; alertError: string | null = null;
@@ -106,8 +126,12 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
 
   report_type = 'P4_ONM';
 
-  // serial index from assigned list
   private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; phase?: string; }> = {};
+
+  picking = false;
+  pickerLoading = false;
+  pickerAssignments: AssignmentItem[] = [];
+  pickerSelected: Record<number, boolean> = {};
 
   constructor(private api: ApiServicesService, private pdfSvc: P4onmReportPdfService) {}
 
@@ -135,6 +159,21 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
 
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
     this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+
+    // Lab info for PDF header
+// in ngOnInit(), when loading lab info:
+this.api.getLabInfo(this.currentLabId).subscribe({
+  next: (info: any) => {
+    this.labInfo = {
+      lab_name: info?.lab_pdfheader_name || info?.lab_name,
+      address: info?.address || info?.address_line,
+      email: info?.email,
+      phone: info?.phone,
+      logo_left_url: info?.logo_left_url,
+      logo_right_url: info?.logo_right_url
+    };
+  }
+});
 
     this.doReloadAssignedWithoutAddingRows();
   }
@@ -178,52 +217,22 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
     }
   }
 
-  doReloadAssigned(): void {
-    this.loading = true;
-    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
-      next: (data: any) => {
-        const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
-        this.rebuildSerialIndex(asg);
-
-        this.batch.rows = asg.map(a => {
-          const d = a.device || ({} as MeterDevice);
-          return this.emptyRow({
-            serial: d.serial_number || '',
-            make: d.make || '',
-            capacity: d.capacity || '',
-            device_id: d.id ?? a.device_id ?? 0,
-            assignment_id: a.id ?? 0,
-            notFound: false
-          });
-        });
-
-        if (!this.batch.rows.length) this.addBatchRow();
-        if (!this.batch.header.phase) {
-          const uniq = new Set(asg.map(a => (a.device?.phase || '').toUpperCase()).filter(Boolean));
-          this.batch.header.phase = uniq.size === 1 ? [...uniq][0] : '';
-        }
-        const first = asg.find(a => a.device);
-        if (first?.device) {
-          this.batch.header.location_code = first.device.location_code ?? '';
-          this.batch.header.location_name = first.device.location_name ?? '';
-        }
-        this.loading = false;
-      },
-      error: () => { this.batch.rows = [this.emptyRow()]; this.loading = false; }
-    });
-  }
-
   private loadDataWithoutAddingRows(asg: AssignmentItem[]): void { this.rebuildSerialIndex(asg); }
+
   doReloadAssignedWithoutAddingRows(): void {
     this.loading = true;
     this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
       next: (data: any) => {
         const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
         this.loadDataWithoutAddingRows(asg);
+
         const first = asg.find(a => a.device);
         if (first?.device) {
-          this.batch.header.location_code = first.device.location_code ?? '';
-          this.batch.header.location_name = first.device.location_name ?? '';
+          // this.batch.header.location_code = first.device.location_code ?? '';
+          // this.batch.header.location_name = first.device.location_name ?? '';
+          this.batch.header.testing_bench = first.testing_bench?.bench_name ?? '';
+          this.batch.header.testing_user = first.user_assigned?.name ?? '';
+          this.batch.header.approving_user = first.assigned_by_user?.name ?? '';
         }
         if (!this.batch.header.phase) {
           const uniq = new Set(asg.map(a => (a.device?.phase || '').toUpperCase()).filter(Boolean));
@@ -233,6 +242,63 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
       },
       error: () => { this.loading = false; }
     });
+  }
+
+  // ---------- Picker ----------
+  openPicker(): void {
+    this.picking = true;
+    this.pickerLoading = true;
+    this.pickerSelected = {};
+    this.pickerAssignments = [];
+
+    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
+      next: (data: any) => {
+        const list: AssignmentItem[] = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
+        this.pickerAssignments = list;
+        this.pickerLoading = false;
+
+        const first = list.find(a => a.device);
+        if (first?.device) {
+          this.batch.header.location_code = first.device.location_code ?? '';
+          this.batch.header.location_name = first.device.location_name ?? '';
+          this.batch.header.testing_bench = first.testing_bench?.bench_name ?? '';
+          this.batch.header.testing_user = first.user_assigned?.name ?? '';
+          this.batch.header.approving_user = first.assigned_by_user?.name ?? '';
+        }
+
+        this.rebuildSerialIndex(list);
+        this.modal = { open: true, title: 'Select Assigned Devices', message: '', action: 'pick', payload: null };
+      },
+      error: () => { this.pickerLoading = false; }
+    });
+  }
+
+  togglePickAll(checked: boolean): void {
+    this.pickerAssignments.forEach(a => this.pickerSelected[a.id] = checked);
+  }
+
+  addPickedToRows(): void {
+    const chosen = this.pickerAssignments.filter(a => this.pickerSelected[a.id]);
+    const existing = new Set(this.batch.rows.map(r => (r.serial || '').toUpperCase().trim()));
+
+    chosen.forEach(a => {
+      const d = a.device || ({} as MeterDevice);
+      const serial = (d.serial_number || '').trim();
+      if (!serial || existing.has(serial.toUpperCase())) return;
+
+      this.batch.rows.push(this.emptyRow({
+        serial,
+        make: d.make || '',
+        capacity: d.capacity || '',
+        device_id: d.id ?? a.device_id ?? 0,
+        assignment_id: a.id ?? 0,
+        notFound: false
+      }));
+      existing.add(serial.toUpperCase());
+    });
+
+    if (!this.batch.rows.length) this.addBatchRow();
+    this.closeModal();
   }
 
   // ---------- Rows ----------
@@ -255,8 +321,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   }
 
   addBatchRow(){ this.batch.rows.push(this.emptyRow()); }
-  private doRemoveRow(i: number){ this.batch.rows.splice(i,1); }
-  private doClearRows(){ this.batch.rows = []; this.addBatchRow(); }
+  doRemoveRow(i: number){ this.batch.rows.splice(i,1); if (!this.batch.rows.length) this.addBatchRow(); }
 
   onSerialChanged(i: number, serial: string){
     const key = (serial || '').toUpperCase().trim();
@@ -296,7 +361,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
     return parts.filter(Boolean).join(sep);
   }
 
-  // ---------- Payload (map to backend `Testing` model fields) ----------
+  // ---------- Payload ----------
   private buildPayloadForPreview(): any[] {
     const whenISO = this.isoOn(this.batch.header.date);
 
@@ -308,7 +373,6 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
         const diff  = (start != null && end != null) ? (end - start) : null;
 
         return {
-          // keys in Testing model
           device_id: r.device_id ?? 0,
           assignment_id: r.assignment_id ?? 0,
           start_datetime: whenISO,
@@ -325,7 +389,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
           reading_before_test: this.numOrNull(r.reading_before_test),
           reading_after_test: this.numOrNull(r.reading_after_test),
 
-          details: r.remark || null,                    // free text detail
+          details: r.remark || null,
           test_result: (r.test_result as string) || null,
           test_method: this.testMethod || null,
           ref_start_reading: this.numOrNull(r.ref_start_reading),
@@ -333,14 +397,13 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
           test_status: this.testStatus || null,
           error_percentage: this.numOrNull(r.error_percentage),
 
-          // ---- Newly added columns in Testing model ----
           consumer_name: r.consumer_name || null,
           consumer_address: r.address || null,
-          certificate_number: null, // not captured in UI
+          certificate_number: null,
 
           testing_fees: this.parseAmount(r.payment_particulars),
           fees_mr_no: r.receipt_no || null,
-          fees_mr_date: r.receipt_date || null, // YYYY-MM-DD
+          fees_mr_date: r.receipt_date || null,
           ref_no: r.account_no_ivrs || null,
 
           start_reading: this.numOrNull(r.reading_before_test),
@@ -350,19 +413,19 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
 
           test_requester_name: r.p4onm_by || null,
           meter_removaltime_reading: this.numOrNull(r.removal_reading),
-          meter_removaltime_metercondition: null, // numeric in model; UI provides text -> leave null
+          meter_removaltime_metercondition: null,
           any_other_remarkny_zone: r.condition_at_removal || null,
 
           dail_test_kwh_rsm: this.numOrNull(r.rsm_kwh),
           recorderedbymeter_kwh: this.numOrNull(r.meter_kwh),
-          starting_current_test: null, // model expects number; UI has text OK/FAIL/NA -> leave null
-          creep_test: null,            // model expects number; UI has text -> leave null
+          starting_current_test: null,
+          creep_test: null,
           dail_test: null,
           final_remarks: r.remark || null,
 
-          p4_division: null,                  // not captured in UI
-          p4_no: null,                        // not captured in UI
-          p4_date: null,                      // not captured in UI
+          p4_division: null,
+          p4_no: null,
+          p4_date: null,
           p4_metercodition: r.condition_at_removal || null,
 
           approver_id: this.approverId ?? null,
@@ -371,8 +434,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
           report_id: null,
           report_type: this.report_type || 'P4_ONM',
 
-          created_by: String(this.currentUserId || ''),
-          // created_at/updated_at managed by server
+          created_by: String(this.currentUserId || '')
         };
       });
   }
@@ -380,6 +442,17 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   // ---------- Submit & PDF ----------
   private doSubmitBatch(): void {
     this.payload = this.buildPayloadForPreview();
+
+    const invalid = (this.batch.rows || []).reduce<number[]>((acc, r, idx) => {
+      if (!r.serial || !r.device_id || !r.assignment_id) acc.push(idx + 1);
+      return acc;
+    }, []);
+    if (invalid.length) {
+      this.alertError = `These rows are missing assignment/device mapping: ${invalid.join(', ')}. Use “Reload / Select Assigned” to pick proper devices or enter a known serial.`;
+      this.alertSuccess = null;
+      return;
+    }
+
     if (!this.payload.length){
       this.alertError='No valid rows to submit.'; this.alertSuccess=null; return;
     }
@@ -391,17 +464,28 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
 
     this.submitting = true; this.alertSuccess=null; this.alertError=null;
     this.api.postTestReports(this.payload).subscribe({
-      next: () => {
+      next: async () => {
         this.submitting = false;
 
-        // Build PDF via service
         const header: P4ONMReportHeader = {
           date: this.batch.header.date || this.toYMD(new Date()),
           phase: this.batch.header.phase || '',
           location_code: this.batch.header.location_code || '',
           location_name: this.batch.header.location_name || '',
           zone: this.joinNonEmpty([this.batch.header.location_code, this.batch.header.location_name], ' - '),
-          testerName: localStorage.getItem('currentUserName') || ''
+
+          testing_bench: this.batch.header.testing_bench || '-',
+          testing_user: this.batch.header.testing_user || (localStorage.getItem('currentUserName') || ''),
+          approving_user: this.batch.header.approving_user || '-',
+
+          lab_name: this.labInfo?.lab_name,
+          lab_address: this.labInfo?.address,
+          lab_email: this.labInfo?.email,
+          lab_phone: this.labInfo?.phone,
+
+          // supply only if you actually have the asset — otherwise leave undefined
+          leftLogoUrl: '/assets/icons/wzlogo.png',
+          rightLogoUrl: '/assets/icons/wzlogo.png'
         };
 
         const rows: P4ONMReportRow[] = (this.batch.rows || [])
@@ -443,7 +527,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
             remark: r.remark || undefined
           }));
 
-        this.pdfSvc.downloadFromBatch(header, rows, { fileName: `P4_ONM_${header.date}.pdf` });
+        await this.pdfSvc.downloadFromBatch(header, rows, { fileName: `P4_ONM_${header.date}.pdf` });
 
         this.alertSuccess = 'Batch Report submitted successfully!';
         this.alertError = null;
@@ -451,7 +535,14 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
         setTimeout(()=>this.closeModal(),1200);
       },
       error: (e) => {
-        this.submitting=false; this.alertSuccess=null; this.alertError='Error submitting report.'; console.error(e);
+        this.submitting=false; this.alertSuccess=null;
+        // Try to surface a readable validation error
+        const msg =
+          (e?.error && (e.error.detail || e.error.message)) ||
+          (typeof e?.error === 'string' ? e.error : '') ||
+          e?.statusText || 'Error submitting report.';
+        this.alertError = `Submit failed (HTTP ${e?.status || 400}). ${msg}`;
+        console.error('HttpErrorResponse', e);
       }
     });
   }
@@ -459,23 +550,25 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   // ---------- Modal ----------
   openConfirm(action: ModalState['action'], payload?: any){
     if (action!=='submit'){ this.alertSuccess=null; this.alertError=null; }
-    this.modal.action = action; this.modal.payload = payload;
+    if (action === 'pick') { this.openPicker(); return; }
     switch(action){
-      case 'reload': this.modal.title='Reload Assigned Devices'; this.modal.message='Replace with latest assigned devices?'; break;
-      case 'removeRow': this.modal.title='Remove Row'; this.modal.message=`Remove row #${(payload?.index ?? 0)+1}?`; break;
-      case 'clear': this.modal.title='Clear All Rows'; this.modal.message='Clear all rows and leave one empty row?'; break;
-      case 'submit': this.payload=this.buildPayloadForPreview(); this.modal.title='Submit Batch Report — Preview'; this.modal.message=''; break;
-      default: this.modal.title=''; this.modal.message='';
+      case 'clear':
+        this.modal = { open: true, title:'Clear All Rows', message:'Clear all rows and leave one empty row?', action:'clear' };
+        break;
+      case 'submit':
+        this.payload=this.buildPayloadForPreview();
+        this.modal = { open: true, title:'Submit Batch Report — Preview', message:'', action:'submit' };
+        break;
+      default:
+        this.modal = { open:false, title:'', message:'', action:null };
     }
-    this.modal.open = true;
   }
   closeModal(){ this.modal.open=false; this.modal.action=null; this.modal.payload=undefined; }
   confirmModal(){
-    const a=this.modal.action, p=this.modal.payload;
-    if(a!=='submit') this.closeModal();
-    if(a==='reload') this.doReloadAssigned();
-    if(a==='removeRow') this.doRemoveRow(p?.index);
-    if(a==='clear') this.doClearRows();
+    const a=this.modal.action;
+    if(a!=='submit' && a!=='pick') this.closeModal();
+    if(a==='clear') { this.batch.rows = []; this.addBatchRow(); this.closeModal(); }
     if(a==='submit') this.doSubmitBatch();
+    if(a==='pick') this.addPickedToRows();
   }
 }

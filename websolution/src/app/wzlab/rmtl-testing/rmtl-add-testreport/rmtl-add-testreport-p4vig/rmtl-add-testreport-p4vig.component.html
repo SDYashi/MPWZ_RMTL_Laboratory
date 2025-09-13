@@ -1,7 +1,7 @@
 <div class="container-fluid mt-4">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
-      <h5 class="mb-0">RMTL — P4 (VIG)  Meter Report</h5>
+      <h5 class="mb-0">RMTL — P4 (VIG) Meter Report</h5>
       <div class="d-flex gap-2">
         <span class="badge bg-secondary">Rows {{ rows.length }}</span>
         <span class="badge bg-success">Known {{ matchedCount }}</span>
@@ -12,9 +12,8 @@
     <div class="card-body">
       <!-- Toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
-        <button type="button" class="btn btn-outline-danger" (click)="openConfirm('reload')">⟳ Reload Assigned</button>
-        <button type="button" class="btn btn-outline-primary" (click)="addRow()">➕ Add Row</button>
-        <div class="ms-auto d-flex gap-2">
+        <button type="button" class="btn btn-outline-danger" (click)="openDevicePicker()">⟳ Reload Assigned</button>
+         <div class="ms-auto d-flex gap-2">
           <input class="form-control" style="min-width:280px" [(ngModel)]="filterText" name="filterText"
                  placeholder="Filter: serial / make / capacity / consumer">
         </div>
@@ -46,7 +45,7 @@
             </div>
 
             <div class="col-md-3 d-grid">
-              <button type="button" class="btn btn-primary py-3" (click)="fetchButtonData()">
+              <button type="button" class="btn btn-success py-3" (click)="fetchButtonData()">
                 <i class="bi bi-search"></i> Search Office/Store/Vendor
               </button>
             </div>
@@ -54,7 +53,7 @@
         </div>
       </form>
 
-      <!-- Batch Header (Zone/DC & Method/Status) -->
+      <!-- Batch Header (Zone/DC & Method/Status + Bench/User) -->
       <div class="card shadow-sm mb-3">
         <div class="card-body">
           <div class="row g-3">
@@ -77,6 +76,17 @@
               <select class="form-select" [(ngModel)]="testStatus" name="test_status">
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Testing Bench</label>
+              <input class="form-control" [(ngModel)]="header.testing_bench" name="testing_bench" placeholder="e.g., zera_one">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Testing User</label>
+              <input class="form-control" [(ngModel)]="header.testing_user" name="testing_user" placeholder="e.g., Admin">
             </div>
           </div>
         </div>
@@ -116,9 +126,11 @@
                 <td style="min-width:140px">
                   <input class="form-control form-control-sm" [(ngModel)]="r.capacity" [name]="'b_capacity_'+i" placeholder="e.g., 5-30A / 3x10-100A" readonly>
                 </td>
+
                 <td style="min-width:140px">
                   <input type="number" class="form-control form-control-sm" [(ngModel)]="r.removal_reading" [name]="'b_read_rm_'+i" step="0.001">
                 </td>
+
                 <td style="min-width:140px">
                   <select class="form-select form-select-sm mb-1" [(ngModel)]="r.remark" [name]="'b_remark_'+i">
                     <option value="">--</option>
@@ -138,8 +150,7 @@
                 </td>
 
                 <td class="text-center d-print-none">
-                  <button class="btn btn-sm btn-outline-danger" title="Remove row"
-                          (click)="openConfirm('removeRow', { index: i })">✕</button>
+                  <button class="btn btn-sm btn-outline-danger" title="Remove row" (click)="removeRow(i)">✕</button>
                 </td>
               </tr>
 
@@ -292,11 +303,13 @@
           </tbody>
         </table>
       </div>
-
-      <button type="button" class="btn btn-primary mt-2" [disabled]="!rows.length"
-              (click)="openConfirm('submit')">
-        {{ submitting ? 'Submitting…' : 'Submit Batch' }}
-      </button>
+      <button type="button" class="btn btn-outline-primary mt-2 me-2" (click)="addRow()">➕ Add Row</button>
+      <div class="d-flex justify-content-end">
+        <button type="button" class="btn btn-primary mt-2 me-2" [disabled]="!rows.length"
+                (click)="openConfirmSubmit()">
+          {{ submitting ? 'Submitting…' : 'Validate & Submit' }}
+        </button>
+      </div>
     </div>
   </div>
 
@@ -309,9 +322,9 @@
     </div>
   </div>
 
-  <!-- Confirm Modal -->
+  <!-- Submit Modal -->
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modal.open}" *ngIf="modal.open">
-    <div class="modal-dialog modal-xl modal-dialog-centered" [ngClass]="{'modal-xl': modal.action==='submit', 'modal-sm': modal.action!=='submit'}">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header border-0" style="background-color: #eae9f1; color: #161515;">
           <h5 class="modal-title">{{ modal.title }}</h5>
@@ -319,52 +332,97 @@
         </div>
 
         <div class="modal-body">
-          <ng-container *ngIf="modal.action==='submit'; else simpleConfirmBody">
-            <div class="row">
-              <div class="col-md-6"><strong>Zone/DC:</strong> {{ header.location_code ? (header.location_code + ' - ') : '' }}{{ header.location_name || '-' }}</div>
-              <div class="col-md-3"><strong>Method:</strong> {{ testMethod || '-' }}</div>
-              <div class="col-md-3"><strong>Status:</strong> {{ testStatus || '-' }}</div>
-            </div>
-            <hr>
-            <div class="table-responsive">
-              <table class="table table-sm table-bordered">
-                <thead>
-                  <tr>
-                    <th>#</th><th>Meter</th><th>Make</th><th>Capacity</th><th>Result</th><th>Remark</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let r of rows; let i=index">
-                    <td>{{ i+1 }}</td>
-                    <td>{{ r.serial }}</td>
-                    <td>{{ r.make }}</td>
-                    <td>{{ r.capacity }}</td>
-                    <td>{{ r.test_result || '—' }}</td>
-                    <td>{{ r.remark || '—' }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <div class="row">
+            <div class="col-md-4"><strong>Zone/DC:</strong> {{ header.location_code ? (header.location_code + ' - ') : '' }}{{ header.location_name || '-' }}</div>
+            <div class="col-md-2"><strong>Method:</strong> {{ testMethod || '-' }}</div>
+            <div class="col-md-2"><strong>Status:</strong> {{ testStatus || '-' }}</div>
+            <div class="col-md-2"><strong>Bench:</strong> {{ header.testing_bench || '-' }}</div>
+            <div class="col-md-2"><strong>User:</strong> {{ header.testing_user || '-' }}</div>
+          </div>
+          <hr>
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+              <thead>
+                <tr>
+                  <th>#</th><th>Meter</th><th>Make</th><th>Capacity</th><th>Result</th><th>Remark</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of rows; let i=index">
+                  <td>{{ i+1 }}</td>
+                  <td>{{ r.serial }}</td>
+                  <td>{{ r.make }}</td>
+                  <td>{{ r.capacity }}</td>
+                  <td>{{ r.test_result || '—' }}</td>
+                  <td>{{ r.remark || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-            <div *ngIf="alertSuccess" class="alert alert-success mt-2">{{ alertSuccess }}</div>
-            <div *ngIf="alertError" class="alert alert-danger mt-2">{{ alertError }}</div>
-          </ng-container>
-
-          <ng-template #simpleConfirmBody>
-            <p class="mb-0">{{ modal.message }}</p>
-          </ng-template>
+          <div *ngIf="alertSuccess" class="alert alert-success mt-2">{{ alertSuccess }}</div>
+          <div *ngIf="alertError" class="alert alert-danger mt-2">{{ alertError }}</div>
         </div>
 
         <div class="modal-footer">
           <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
           <button class="btn btn-primary" (click)="confirmModal()">
-            <ng-container [ngSwitch]="modal.action">
-              <span *ngSwitchCase="'submit'">{{ submitting ? 'Submitting…' : 'Confirm Submit' }}</span>
-              <span *ngSwitchCase="'removeRow'">Confirm</span>
-              <span *ngSwitchCase="'reload'">Confirm</span>
-              <span *ngSwitchDefault>OK</span>
-            </ng-container>
+            {{ submitting ? 'Submitting…' : 'Confirm Submit' }}
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Device Picker Modal -->
+  <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': devicePicker.open}" *ngIf="devicePicker.open">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-0" style="background-color:#eae9f1; color:#161515;">
+          <h5 class="modal-title">Select Assigned Devices</h5>
+          <button type="button" class="btn-close" (click)="closeDevicePicker()"></button>
+        </div>
+        <div class="modal-body">
+          <div *ngIf="devicePicker.loading" class="d-flex align-items-center">
+            <div class="spinner-border me-2"></div> Loading assigned devices…
+          </div>
+          <div *ngIf="!devicePicker.loading">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" id="selAll" [checked]="devicePicker.selectAll" (change)="toggleSelectAll()">
+              <label class="form-check-label" for="selAll">Select All</label>
+            </div>
+            <div class="table-responsive" style="max-height: 55vh; overflow:auto;">
+              <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width:40px;"></th>
+                    <th>Meter No.</th>
+                    <th>Make</th>
+                    <th>Capacity</th>
+                    <th>Zone/DC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let a of devicePicker.items">
+                    <td>
+                      <input type="checkbox" class="form-check-input"
+                             [checked]="devicePicker.selected.has(a.id)"
+                             (change)="toggleSelectOne(a.id)">
+                    </td>
+                    <td>{{ a.device?.serial_number || '—' }}</td>
+                    <td>{{ a.device?.make || '—' }}</td>
+                    <td>{{ a.device?.capacity || '—' }}</td>
+                    <td>{{ (a.device?.location_code || '') + (a.device?.location_name ? ' - ' + a.device?.location_name : '') }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <small class="text-muted">Selected: {{ devicePicker.selected.size }}</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeDevicePicker()">Close</button>
+          <button class="btn btn-primary" (click)="addSelectedDevices()">Add Selected</button>
         </div>
       </div>
     </div>
