@@ -1,8 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
-import { SolarGenMeterCertificatePdfService, GenHeader, GenRow } from 'src/app/shared/solargen-certificate-pdf.service';
-
-type TDocumentDefinitions = any;
+import { SolarGenMeterCertificatePdfService, GenHeader, GenRow } from 'src/app/shared/solargenmeter-certificate-pdf.service';
 
 interface MeterDevice {
   id: number;
@@ -12,7 +10,14 @@ interface MeterDevice {
   location_code?: string | null;
   location_name?: string | null;
 }
-interface AssignmentItem { id: number; device_id: number; device?: MeterDevice | null; }
+interface AssignmentItem {
+  id: number;           // assignment_id
+  device_id: number;
+  device?: MeterDevice | null;
+  testing_bench?: { bench_name?: string } | null;
+  user_assigned?: { name?: string } | null;
+  assigned_by_user?: { name?: string } | null;
+}
 
 interface CertRow {
   _open?: boolean;
@@ -46,7 +51,7 @@ interface CertRow {
   test_result?: string;
 }
 
-type ModalAction = 'reload' | 'removeRow' | 'submit' | null;
+type ModalAction = 'submit' | null;
 interface ModalState {
   open: boolean;
   title: string;
@@ -61,13 +66,21 @@ interface ModalState {
   styleUrls: ['./rmtl-add-testreport-solargeneatormeter.component.css']
 })
 export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
-
+  alert = { open: false, type: 'success', title: 'Success', message: '', autoCloseMs: 0, _t: 0 };
+  // ===== header on form =====
   header = { location_code: '', location_name: '' };
   test_methods: any[] = [];
   test_statuses: any[] = [];
   testMethod: string | null = null;
   testStatus: string | null = null;
 
+  // Testing bench/user + logos
+  testing_bench: string = '';
+  testing_user: string = '';
+  leftLogoUrl: string = '';
+  rightLogoUrl: string = '';
+
+  // ===== assignment =====
   device_status: 'ASSIGNED' = 'ASSIGNED';
   currentUserId = 0;
   currentLabId  = 0;
@@ -84,27 +97,34 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   alertSuccess: string | null = null;
   alertError: string | null = null;
 
-  // small alert modal
-  alert = {
-    open: false,
-    type: 'info' as 'success' | 'error' | 'warning' | 'info',
-    title: '',
-    message: '',
-    autoCloseMs: 0 as number | 0,
-    _t: 0 as any
-  };
-
   // enums
   office_types: any;
   commentby_testers: any;
   test_results: any;
 
+  // source (for DC/Zone lookup)
   selectedSourceType: any;
   selectedSourceName: string = '';
   filteredSources: any;
 
-  // report type for backend
-  report_type = 'SOLAR_GENERATION_METER';
+  // Assigned-device picker modal state
+  asgPicker = {
+    open: false,
+    list: [] as AssignmentItem[],
+    filter: '',
+    selected: {} as Record<number, boolean>, // key: assignment_id
+    replaceExisting: true
+  };
+
+  // lab info fetched from server
+  labInfo: {
+    lab_name?: string | null;
+    address?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    left_logo_url?: string | null;
+    right_logo_url?: string | null;
+  } | null = null;
 
   constructor(
     private api: ApiServicesService,
@@ -114,6 +134,8 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   ngOnInit(): void {
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
     this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+    const userNameFromLS = localStorage.getItem('currentUserName') || '';
+    if (userNameFromLS) this.testing_user = userNameFromLS;
 
     this.api.getEnums().subscribe({
       next: (d) => {
@@ -122,10 +144,27 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         this.office_types  = d?.office_types || [];
         this.commentby_testers = d?.commentby_testers || [];
         this.test_results = d?.test_results || [];
-        this.report_type = d?.test_report_types?.SOLAR_GENERATION_METER || this.report_type;
       }
     });
 
+    // Fetch LAB info (for PDF header + logos)
+    this.api.getLabInfo(this.currentLabId).subscribe({
+      next: (info: any) => {
+        this.labInfo = {
+          lab_name: info?.lab_pdfheader_name || info?.lab_name || null,
+          address:  info?.address || info?.address_line || null,
+          email:    info?.email || null,
+          phone:    info?.phone || null,
+          left_logo_url:  info?.left_logo_url || null,
+          right_logo_url: info?.right_logo_url || null
+        };
+        if (this.labInfo.left_logo_url)  this.leftLogoUrl  = this.labInfo.left_logo_url!;
+        if (this.labInfo.right_logo_url) this.rightLogoUrl = this.labInfo.right_logo_url!;
+      },
+      error: () => {}
+    });
+
+    // Warm assigned (don’t replace table)
     this.reloadAssigned(false);
   }
 
@@ -145,7 +184,6 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
       error: () => this.openAlert('error', 'Lookup failed', 'Check the code and try again.')
     });
   }
-
   onSourceTypeChange(): void {
     this.selectedSourceName = '';
     this.filteredSources = [];
@@ -190,7 +228,17 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
         this.rebuildSerialIndex(asg);
 
+        // set form header fields from first device/bench/user (if present)
+        const first = asg.find(a => a.device);
+        if (first?.device){
+          this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
+          this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
+          this.testing_bench = this.testing_bench || (first.testing_bench?.bench_name ?? '');
+          this.testing_user  = this.testing_user || (first.user_assigned?.name ?? this.testing_user);
+        }
+
         if (replaceRows) {
+          // rarely used (we normally use the picker)
           this.rows = asg.map(a => {
             const d = a.device || ({} as MeterDevice);
             return this.emptyRow({
@@ -205,10 +253,68 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
           });
           if (!this.rows.length) this.rows.push(this.emptyRow());
         }
+
+        // cache list for picker
+        this.asgPicker.list = asg;
+
         this.loading = false;
       },
       error: () => { this.loading = false; this.openAlert('error','Reload failed','Could not fetch assigned meters.'); }
     });
+  }
+
+  // Assigned picker
+  openAssignedPicker() {
+    this.reloadAssigned(false);
+    this.asgPicker.selected = {};
+    this.asgPicker.filter = '';
+    this.asgPicker.replaceExisting = true;
+    this.asgPicker.open = true;
+  }
+  closeAssignedPicker(){ this.asgPicker.open = false; }
+  get filteredAssigned(): AssignmentItem[] {
+    const q = this.asgPicker.filter.trim().toLowerCase();
+    let list = this.asgPicker.list || [];
+    if (!q) return list;
+    return list.filter(a => {
+      const d = a.device || ({} as MeterDevice);
+      return (d.serial_number || '').toLowerCase().includes(q)
+          || (d.make || '').toLowerCase().includes(q)
+          || (d.capacity || '').toLowerCase().includes(q);
+    });
+  }
+  toggleSelectAllVisible(checked: boolean) {
+    for (const a of this.filteredAssigned) {
+      this.asgPicker.selected[a.id] = checked;
+    }
+  }
+  confirmAssignedSelection() {
+    const chosen = this.asgPicker.list.filter(a => this.asgPicker.selected[a.id]);
+    if (!chosen.length){
+      this.openAlert('warning', 'No selection', 'Select at least one device.');
+      return;
+    }
+    const newRows = chosen.map(a => {
+      const d = a.device || ({} as MeterDevice);
+      return this.emptyRow({
+        meter_sr_no: d.serial_number || '',
+        meter_make: d.make || '',
+        meter_capacity: d.capacity || '',
+        assignment_id: a.id ?? 0,
+        device_id: d.id ?? a.device_id ?? 0,
+        _open: true,
+        notFound: false
+      });
+    });
+
+    if (this.asgPicker.replaceExisting) {
+      this.rows = newRows.length ? newRows : [this.emptyRow()];
+    } else {
+      this.rows.push(...newRows);
+    }
+
+    this.closeAssignedPicker();
+    this.openAlert('info', 'Devices added', `${newRows.length} device(s) added.`, 1500);
   }
 
   onSerialChanged(i: number, serial: string) {
@@ -232,7 +338,14 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   }
 
   addRow() { this.rows.push(this.emptyRow()); }
-  private doRemoveRow(i: number) { if (i>=0 && i<this.rows.length){ this.rows.splice(i,1); if (!this.rows.length) this.rows.push(this.emptyRow()); } }
+  removeRow(i: number) {
+    if (i>=0 && i<this.rows.length){
+      this.rows.splice(i,1);
+      if (!this.rows.length) this.rows.push(this.emptyRow());
+      this.openAlert('success', 'Row removed', `Row #${i+1} removed.`, 1200);
+    }
+  }
+
   trackByRow(i: number, r: CertRow) { return `${r.assignment_id || 0}_${r.device_id || 0}_${r.meter_sr_no || ''}_${i}`; }
 
   displayRows(): CertRow[] {
@@ -263,7 +376,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
     return r.test_result || 'PASS';
   }
 
-  /** Fully map to Testing model columns */
+  // Build API payload
   private buildPayload(): any[] {
     const requester = this.header.location_name || this.filteredSources?.name || null;
 
@@ -290,13 +403,11 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         ref_end_reading: null,
         error_percentage: null,
 
-        // result/meta
         details: r.remark || null,
         test_result: this.inferredTestResult(r) || null,
         test_method: this.testMethod || null,
         test_status: this.testStatus || null,
 
-        // new columns
         consumer_name: r.consumer_name || null,
         consumer_address: r.address || null,
         certificate_number: r.certificate_no || null,
@@ -317,7 +428,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
 
         dail_test_kwh_rsm: null,
         recorderedbymeter_kwh: null,
-        starting_current_test: null, // UI strings; keep null unless API accepts strings
+        starting_current_test: null,
         creep_test: null,
         dail_test: null,
         final_remarks: r.remark || null,
@@ -331,33 +442,26 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         approver_remark: null,
 
         report_id: null,
-        report_type: this.report_type,
+        report_type: 'SOLAR_GENERATION_METER',
 
         created_by: String(this.currentUserId || ''),
       }));
   }
 
-  // ========= confirm & alerts =========
-  openConfirm(action: ModalAction, payload?: any){
+  // ========= submit =========
+  openConfirm(action: ModalAction){
     this.alertSuccess = null; this.alertError = null;
-    this.modal.action = action; this.modal.payload = payload;
-
-    switch(action){
-      case 'reload': this.modal.title='Reload Assigned Devices'; this.modal.message='Replace with latest assigned devices?'; break;
-      case 'removeRow': this.modal.title='Remove Row'; this.modal.message=`Remove row #${(payload?.index ?? 0)+1}?`; break;
-      case 'submit': this.modal.title='Submit Batch Certificate — Preview'; this.modal.message=''; break;
-      default: this.modal.title=''; this.modal.message='';
+    this.modal.action = action;
+    if (action === 'submit') {
+      this.modal.title = 'Submit Batch — Preview';
+      this.modal.message = '';
+      this.modal.open = true;
     }
-    this.modal.open = true;
   }
   closeModal(){ this.modal.open=false; this.modal.action=null; this.modal.payload=undefined; }
 
   confirmModal(){
-    const a = this.modal.action, p = this.modal.payload;
-    if (a !== 'submit') this.closeModal();
-    if (a === 'reload') this.reloadAssigned(true);
-    if (a === 'removeRow') { this.doRemoveRow(p?.index); this.openAlert('success','Row removed','The row has been removed.',1200); }
-    if (a === 'submit') this.doSubmitBatch();
+    if (this.modal.action === 'submit') this.doSubmitBatch();
   }
 
   private doSubmitBatch(){
@@ -367,8 +471,6 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
       this.openAlert('warning', 'Nothing to submit', 'Please add at least one valid row.');
       return;
     }
-
-    // Optional: date required
     const missingDt = payload.findIndex(p => !p.start_datetime);
     if (missingDt !== -1){
       this.alertError = `Row #${missingDt+1} is missing Date of Testing.`;
@@ -381,44 +483,62 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
     this.alertError = null;
 
     this.api.postTestReports(payload).subscribe({
-      next: () => {
+      next: async () => {
         this.submitting = false;
 
-        // PDF after successful save
+        // Build PDF header from labInfo + form
         const hdr: GenHeader = {
           location_code: this.header.location_code,
           location_name: this.header.location_name,
           testMethod: this.testMethod,
-          testStatus: this.testStatus
-        };
-        const rows: GenRow[] = (this.rows || []).filter(r => (r.meter_sr_no||'').trim()).map(r => ({
-          certificate_no: r.certificate_no || null,
-          consumer_name: r.consumer_name || null,
-          address: r.address || null,
-          meter_make: r.meter_make || null,
-          meter_sr_no: r.meter_sr_no || null,
-          meter_capacity: r.meter_capacity || null,
-          date_of_testing: r.date_of_testing || null,
-          testing_fees: this.numOrNull(r.testing_fees),
-          mr_no: r.mr_no || null,
-          mr_date: r.mr_date || null,
-          ref_no: r.ref_no || null,
-          starting_reading: this.numOrNull(r.starting_reading),
-          final_reading_r: this.numOrNull(r.final_reading_r),
-          final_reading_e: this.numOrNull(r.final_reading_e),
-          difference: this.numOrNull(r.difference),
-          starting_current_test: r.starting_current_test || null,
-          creep_test: r.creep_test || null,
-          dial_test: r.dial_test || null,
-          test_result: r.test_result || this.inferredTestResult(r) || null,
-          remark: r.remark || null
-        }));
-        this.pdfSvc.download(hdr, rows);
+          testStatus: this.testStatus,
+          testing_bench: this.testing_bench,
+          testing_user: this.testing_user,
+          date: new Date().toLocaleDateString(),
 
-        this.alertSuccess = 'Batch Certificate submitted successfully!';
-        this.openAlert('success', 'Submitted', 'Batch certificate submitted successfully!');
+          lab_name:    this.labInfo?.lab_name || null,
+          lab_address: this.labInfo?.address   || null,
+          lab_email:   this.labInfo?.email     || null,
+          lab_phone:   this.labInfo?.phone     || null,
+          leftLogoUrl:  this.labInfo?.left_logo_url  || this.leftLogoUrl || '/assets/icons/wzlogo.png',
+          rightLogoUrl: this.labInfo?.right_logo_url || this.rightLogoUrl || '/assets/icons/wzlogo.png'
+        };
+
+        const rows: GenRow[] = (this.rows || [])
+          .filter(r => (r.meter_sr_no||'').trim())
+          .map(r => ({
+            certificate_no: r.certificate_no || null,
+            consumer_name: r.consumer_name || null,
+            address: r.address || null,
+            meter_make: r.meter_make || null,
+            meter_sr_no: r.meter_sr_no || null,
+            meter_capacity: r.meter_capacity || null,
+            date_of_testing: r.date_of_testing || null,
+            testing_fees: this.numOrNull(r.testing_fees),
+            mr_no: r.mr_no || null,
+            mr_date: r.mr_date || null,
+            ref_no: r.ref_no || null,
+            starting_reading: this.numOrNull(r.starting_reading),
+            final_reading_r: this.numOrNull(r.final_reading_r),
+            final_reading_e: this.numOrNull(r.final_reading_e),
+            difference: this.numOrNull(r.difference),
+            starting_current_test: r.starting_current_test || null,
+            creep_test: r.creep_test || null,
+            dial_test: r.dial_test || null,
+            test_result: r.test_result || this.inferredTestResult(r) || null,
+            remark: r.remark || null
+          }));
+
+        try {
+          await this.pdfSvc.download(hdr, rows, 'SOLAR_GENERATIONMETER_CERTIFICATES.pdf');
+          this.openAlert('success', 'PDF downloaded', 'Certificates generated and downloaded.', 1500);
+        } catch {
+          this.openAlert('warning', 'PDF error', 'Saved, but PDF could not be generated.');
+        }
+
+        this.alertSuccess = 'Batch submitted successfully!';
         this.rows = [ this.emptyRow() ];
-        setTimeout(()=> this.closeModal(), 1200);
+        setTimeout(()=> this.closeModal(), 800);
       },
       error: (err) => {
         this.submitting = false;
@@ -429,14 +549,23 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
     });
   }
 
-  // alert modal helpers
-  openAlert(type: 'success'|'error'|'warning'|'info', title: string, message: string, autoCloseMs: number = 0){
-    if (this.alert._t){ clearTimeout(this.alert._t); }
-    this.alert = { open: true, type, title, message, autoCloseMs, _t: 0 };
-    if (autoCloseMs > 0){ this.alert._t = setTimeout(()=> this.closeAlert(), autoCloseMs); }
+  // alerts
+openAlert(
+  type: 'success' | 'error' | 'warning' | 'info',
+  title: string,
+  message: string,
+  autoCloseMs: number = 0
+) {
+  if (this.alert._t) { clearTimeout(this.alert._t); }
+  this.alert = { ...this.alert, open: true, type, title, message, autoCloseMs, _t: 0 };
+  if (autoCloseMs > 0) {
+    this.alert._t = setTimeout(() => this.closeAlert(), autoCloseMs) as any;
   }
-  closeAlert(){
-    if (this.alert._t){ clearTimeout(this.alert._t); }
-    this.alert.open = false;
-  }
+}
+
+closeAlert() {
+  if (this.alert._t) { clearTimeout(this.alert._t); }
+  this.alert.open = false;
+}
+
 }

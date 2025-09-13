@@ -5,7 +5,7 @@ import{ ContestedReportPdfService,ContestedReportHeader, ContestedReportRow } fr
 import {CtReportPdfService, CtHeader, CtPdfRow } from 'src/app/shared/ct-report-pdf.service';
 import { P4onmReportPdfService, P4ONMReportHeader, P4ONMReportRow } from 'src/app/shared/p4onm-report-pdf.service';
 import { P4VigReportPdfService, VigHeader, VigRow } from 'src/app/shared/p4vig-report-pdf.service';
-import { SolarGenMeterCertificatePdfService, GenHeader, GenRow } from 'src/app/shared/solargen-certificate-pdf.service';
+import { SolarGenMeterCertificatePdfService, GenHeader, GenRow } from 'src/app/shared/solargenmeter-certificate-pdf.service';
 import { SolarNetMeterCertificatePdfService, SolarHeader, SolarRow } from 'src/app/shared/solarnetmeter-certificate-pdf.service';
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import pdfMake from 'pdfmake/build/pdfmake';

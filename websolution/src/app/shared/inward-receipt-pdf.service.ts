@@ -35,7 +35,7 @@ export interface InwardReceiptData {
   items: InwardReceiptItem[];
   serials_csv?: string;           // convenience: comma list of serials
   logoDataUrl?: string; 
-  inward_no?: string;             // optional base64 logo
+  inward_no?: any;             // optional base64 logo
 }
 
 type TDocumentDefinition = any;

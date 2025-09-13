@@ -13,7 +13,6 @@
       <!-- Top toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
         <button type="button" class="btn btn-outline-danger" (click)="openAssignedPicker()">⟳ Load Assigned (Select)</button>
-     
         <div class="ms-auto d-flex gap-2">
           <input class="form-control" style="min-width:280px" [(ngModel)]="filterText" name="filterText"
                  placeholder="Filter: serial / make / consumer">
@@ -62,11 +61,11 @@
               <label class="form-label fw-bold">Zone/DC Code</label>
               <input class="form-control" [(ngModel)]="header.location_code" name="loc_code" readonly>
             </div>
-              <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Zone/DC Name</label>
               <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" readonly>
             </div>
-             <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method">
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
@@ -79,7 +78,7 @@
               </select>
             </div>
 
-           <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold mt-2">Testing Bench</label>
               <input class="form-control" [(ngModel)]="header.testing_bench" name="testing_bench" placeholder="e.g., zera_one" readonly>
             </div>
@@ -98,8 +97,8 @@
 
       <!-- Main table -->
       <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle"  style="background-color: rgb(173, 233, 199);" >
-          <thead class=" text-center sticky-top" style="top:0; z-index:1;">
+        <table class="table table-hover table-bordered align-middle"  style="background-color: rgb(173, 233, 199);">
+          <thead class="text-center sticky-top" style="top:0; z-index:1;">
             <tr>
               <th>#</th>
               <th>Meter Sr. No.</th>
@@ -157,7 +156,7 @@
                 </td>
 
                 <td class="text-center d-print-none">
-                  <!-- instant remove; no confirmation -->
+                  <!-- instant remove; no confirmation and no alert -->
                   <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeRow(i)">✕</button>
                 </td>
               </tr>
@@ -276,8 +275,8 @@
             <div class="col-md-4"><strong>Zone/DC:</strong> {{ header.location_code ? (header.location_code + ' - ') : '' }}{{ header.location_name || '-' }}</div>
             <div class="col-md-2"><strong>Method:</strong> {{ testMethod || '-' }}</div>
             <div class="col-md-2"><strong>Status:</strong> {{ testStatus || '-' }}</div>
-            <div class="col-md-2"><strong>Bench:</strong> {{ testing_bench || '-' }}</div>
-            <div class="col-md-2"><strong>User:</strong> {{ testing_user || '-' }}</div>
+            <div class="col-md-2"><strong>Bench:</strong> {{ testing_bench || header.testing_bench || '-' }}</div>
+            <div class="col-md-2"><strong>User:</strong> {{ testing_user || header.testing_user || '-' }}</div>
           </div>
           <hr>
           <div class="table-responsive">

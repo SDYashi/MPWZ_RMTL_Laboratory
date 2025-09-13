@@ -31,23 +31,107 @@ export interface CtHeader {
   secondary_current: string;
   testMethod?: string | null;
   testStatus?: string | null;
+
+  // PDF meta / lab info / logos
+  testing_bench?: string | null;
+  testing_user?: string | null;
+  date?: string | null;
+
+  lab_name?: string | null;
+  lab_address?: string | null;
+  lab_email?: string | null;
+  lab_phone?: string | null;
+
+  leftLogoUrl?: string | null;
+  rightLogoUrl?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
 export class CtReportPdfService {
-
-  private buildHeaderBlock(meta:{zone:string, method:string, status:string}) {
-    return [
-      { text: 'OFFICE OF THE ASSISTANT ENGINEER (R.M.T.L.) M.T. DN.-I', alignment: 'center', bold: true, fontSize: 11 },
-      { text: 'M.P.P.K.V.V.CO.LTD. INDORE', alignment: 'center', bold: true, margin: [0, 2, 0, 0], fontSize: 10 },
-      { text: 'CT TESTING TestReport', alignment: 'center', margin: [0, 6, 0, 2], fontSize: 12, bold: true },
-    ];
+  async download(header: CtHeader, rows: CtPdfRow[], fileName = 'CT_TESTING_TestReport.pdf') {
+    const doc = await this.buildDocWithLogos(header, rows);
+    await new Promise<void>(res => pdfMake.createPdf(doc).download(fileName, () => res()));
+  }
+  async open(header: CtHeader, rows: CtPdfRow[]) {
+    const doc = await this.buildDocWithLogos(header, rows);
+    pdfMake.createPdf(doc).open();
+  }
+  async print(header: CtHeader, rows: CtPdfRow[]) {
+    const doc = await this.buildDocWithLogos(header, rows);
+    pdfMake.createPdf(doc).print();
   }
 
-  private zoneMethodStatusLine(meta:{zone:string, method:string, status:string}) {
+  private fmtMoney(n: any) {
+    if (n === null || n === undefined || n === '') return '';
+    const v = Number(n); if (Number.isNaN(v)) return String(n);
+    return `${v.toFixed(2).replace(/\.00$/, '')}/-`;
+  }
+
+  private async buildDocWithLogos(header: CtHeader, rows: CtPdfRow[]) {
+    const images: Record<string, string> = {};
+    const isData = (u?: string | null) => !!u && /^data:image\/[a-zA-Z]+;base64,/.test(u || '');
+    const toDataURL = async (url: string) => {
+      const abs = new URL(url, document.baseURI).toString();
+      const res = await fetch(abs, { cache: 'no-cache' });
+      if (!res.ok) throw new Error(`logo fetch failed ${abs}`);
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result as string);
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    };
+    const safe = async (key: 'leftLogo' | 'rightLogo', url?: string | null) => {
+      if (!url) return;
+      try { images[key] = isData(url) ? url : await toDataURL(url); } catch {}
+    };
+    await Promise.all([
+      safe('leftLogo', header.leftLogoUrl),
+      safe('rightLogo', header.rightLogoUrl)
+    ]);
+    if (!images['leftLogo'] && images['rightLogo']) images['leftLogo'] = images['rightLogo'];
+    if (!images['rightLogo'] && images['leftLogo']) images['rightLogo'] = images['leftLogo'];
+
+    return this.buildDoc(header, rows, images);
+  }
+
+  private headerBar(meta: any, images: Record<string, string>) {
     return {
-      text: `DC/Zone: ${meta.zone}    •    Test Method: ${meta.method || '-' }    •    Test Status: ${meta.status || '-'}`,
-      alignment: 'center', fontSize: 9, color: '#333', margin: [0,4,0,6]
+      margin: [28, 0, 28, 6],
+      columns: [
+        images['leftLogo'] ? { image: 'leftLogo', width: 32, margin: [0, 0, 8, 0] } : { width: 32, text: '' },
+        {
+          width: '*',
+          stack: [
+            { text: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED', alignment: 'center', bold: true, fontSize: 12 },
+            { text: (meta.lab_name || 'REGIONAL METERING TESTING LABORATORY, INDORE'), alignment: 'center', bold: true, fontSize: 11, margin: [0, 2, 0, 0] },
+            { text: (meta.lab_address || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003'), alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] },
+            { text: `Email: ${meta.lab_email || '-'} • Phone: ${meta.lab_phone || '-'}`, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] }
+          ]
+        },
+        images['rightLogo'] ? { image: 'rightLogo', width: 32, margin: [8, 0, 0, 0] } : { width: 32, text: '' }
+      ]
+    };
+  }
+
+  private metaBand(meta: any) {
+    const lbl = { bold: true, fillColor: '#f5f5f5' };
+    return {
+      layout: 'noBorders',
+      margin: [28, 0, 28, 8],
+      table: {
+        widths: ['auto', '*', 'auto', '*', 'auto', '*'],
+        body: [[
+          { text: 'DC/Zone', ...lbl }, { text: meta.zone || '-' },
+          { text: 'Method',  ...lbl }, { text: meta.method || '-' },
+          { text: 'Status',  ...lbl }, { text: meta.status || '-' },
+        ], [
+          { text: 'Bench',   ...lbl }, { text: meta.bench || '-' },
+          { text: 'User',    ...lbl }, { text: meta.user || '-' },
+          { text: 'Date',    ...lbl }, { text: meta.date || '-' },
+        ]]
+      }
     };
   }
 
@@ -68,16 +152,16 @@ export class CtReportPdfService {
           two('Ref.', h.ref_no),
           two('C.T Make', h.ct_make),
           two('M.R. / Txn & Date', `${h.mr_no || ''}${h.mr_no && h.mr_date ? '  DT  ' : ''}${h.mr_date || ''}`),
-          two('Amount Deposited (₹)', h.amount_deposited),
+          two('Amount Deposited (₹)', this.fmtMoney(h.amount_deposited)),
           two('Date of Testing', h.date_of_testing),
         ]
       },
-      margin: [0, 30, 0, 6]
+      margin: [28, 8, 28, 6]
     };
   }
 
   private detailsTable(rows: CtPdfRow[]) {
-    const body:any[] = [[
+    const body: any[] = [[
       { text: '#', style: 'th', alignment: 'center' },
       { text: 'C.T No.', style: 'th' },
       { text: 'Make', style: 'th' },
@@ -108,7 +192,7 @@ export class CtReportPdfService {
         body,
         dontBreakRows: true
       },
-      margin: [0, 0, 0, 6]
+      margin: [28, 0, 28, 6]
     };
   }
 
@@ -142,18 +226,28 @@ export class CtReportPdfService {
             ],
           },
         ],
-        margin: [0, 0, 0, 0]
+        margin: [28, 0, 28, 0]
       }
     ];
   }
 
-  private buildDoc(header: CtHeader, rows: CtPdfRow[]): TDocumentDefinitions {
-    const zone = (header.location_code ? header.location_code + ' - ' : '') + (header.location_name || '');
-    const meta = { zone, method: header.testMethod || '', status: header.testStatus || '' };
+  private buildDoc(header: CtHeader, rows: CtPdfRow[], images: Record<string, string>): TDocumentDefinitions {
+    const meta = {
+      zone: (header.location_code ? header.location_code + ' - ' : '') + (header.location_name || ''),
+      method: header.testMethod || '-',
+      status: header.testStatus || '-',
+      bench: header.testing_bench || '-',
+      user: header.testing_user || '-',
+      date: header.date || header.date_of_testing || new Date().toLocaleDateString(),
+      lab_name: header.lab_name || null,
+      lab_address: header.lab_address || null,
+      lab_email: header.lab_email || null,
+      lab_phone: header.lab_phone || null
+    };
 
     return {
       pageSize: 'A4',
-      pageMargins: [24, 22, 24, 28],
+      pageMargins: [0, 0, 0, 28], // flush to top
       defaultStyle: { fontSize: 9, lineHeight: 1.05 },
       styles: {
         lbl: { bold: true, fontSize: 9, color: '#111' },
@@ -164,26 +258,24 @@ export class CtReportPdfService {
         footTiny: { fontSize: 8, color: '#444' },
         tiny: { fontSize: 9, color: '#333' }
       },
+      images,
       content: [
-        ...this.buildHeaderBlock(meta),
-        this.zoneMethodStatusLine(meta),
+        this.headerBar(meta, images),
+        { canvas: [{ type: 'line', x1: 28, y1: 0, x2: 567 - 28, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
+        { text: 'CT TESTING TEST REPORT', alignment: 'center', margin: [0, 0, 0, 2], fontSize: 12, bold: true },
+        this.metaBand(meta),
         this.infoTable(header),
         this.detailsTable(rows),
         ...this.signBlock(header),
       ],
       footer: (current:number, total:number) => ({
         columns: [
-          { text: `Page ${current} of ${total}`, alignment: 'left', margin: [24, 0, 0, 0] },
-          { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 24, 0] }
+          { text: `Page ${current} of ${total}`, alignment: 'left', margin: [28, 0, 0, 0] },
+          { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 28, 0] }
         ],
         fontSize: 8
       }),
       info: { title: 'CT_Testing_TestReport' }
-    };
-  }
-
-  download(header: CtHeader, rows: CtPdfRow[]) {
-    const doc = this.buildDoc(header, rows);
-    pdfMake.createPdf(doc).download('CT_TESTING_TestReport.pdf');
+    } as any;
   }
 }

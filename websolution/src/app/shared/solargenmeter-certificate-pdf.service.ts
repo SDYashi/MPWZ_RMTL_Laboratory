@@ -3,16 +3,18 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 (pdfMake as any).vfs = pdfFonts.vfs;
 
-export type SolarHeader = {
+export type GenHeader = {
   location_code?: string | null;
   location_name?: string | null;
   testMethod?: string | null;
   testStatus?: string | null;
 
+  // extra for PDF header/meta
   testing_bench?: string | null;
   testing_user?: string | null;
   date?: string | null;
 
+  // lab info + logos
   lab_name?: string | null;
   lab_address?: string | null;
   lab_email?: string | null;
@@ -21,14 +23,21 @@ export type SolarHeader = {
   rightLogoUrl?: string | null;
 };
 
-export type SolarRow = {
-  certificate_no?: string;
-  consumer_name?: string;
-  address?: string;
+export interface StopDefLabInfo {
+  lab_name?: string;
+  address_line?: string;
+  email?: string;
+  phone?: string;
+}
 
-  meter_make?: string;
-  meter_sr_no?: string;
-  meter_capacity?: string;
+export type GenRow = {
+  certificate_no?: string | null;
+  consumer_name?: string | null;
+  address?: string | null;
+
+  meter_make?: string | null;
+  meter_sr_no?: string | null;
+  meter_capacity?: string | null;
 
   date_of_testing?: string | null;
 
@@ -46,24 +55,37 @@ export type SolarRow = {
   creep_test?: string | null;
   dial_test?: string | null;
 
-  test_result?: string | null; // kept (not printed on face in sample)
+  test_result?: string | null;
   remark?: string | null;
 };
 
-type TDocument = any;
+export interface StopDefMeta {
+  zone?: string;
+  phase?: string;
+  date: string;               // YYYY-MM-DD
+  testMethod?: string;
+  testStatus?: string;
+  approverId?: string | number | null;
+  testerName?: string;
+  testing_bench?: string;
+  testing_user?: string;
+  approving_user?: string;
+  lab?: StopDefLabInfo;
+}
 
 @Injectable({ providedIn: 'root' })
-export class SolarNetMeterCertificatePdfService {
+export class SolarGenMeterCertificatePdfService {
 
-  async download(header: SolarHeader, rows: SolarRow[], fileName = 'SOLAR_NETMETER_CERTIFICATES.pdf') {
+  // ---------- public API ----------
+  async download(header: GenHeader, rows: GenRow[], fileName = 'SOLAR_GENERATIONMETER_CERTIFICATES.pdf') {
     const doc = await this.buildDocWithLogos(header, rows);
     await new Promise<void>(res => pdfMake.createPdf(doc).download(fileName, () => res()));
   }
-  async open(header: SolarHeader, rows: SolarRow[]) {
+  async open(header: GenHeader, rows: GenRow[]) {
     const doc = await this.buildDocWithLogos(header, rows);
     pdfMake.createPdf(doc).open();
   }
-  async print(header: SolarHeader, rows: SolarRow[]) {
+  async print(header: GenHeader, rows: GenRow[]) {
     const doc = await this.buildDocWithLogos(header, rows);
     pdfMake.createPdf(doc).print();
   }
@@ -87,14 +109,14 @@ export class SolarNetMeterCertificatePdfService {
   private fmtDateShort(s?: string | null) {
     if (!s) return '';
     const d = new Date(s);
-    if (Number.isNaN(d.getTime())) return s;
+    if (Number.isNaN(d.getTime())) return s as string;
     const dd = d.getDate();
     const mm = d.getMonth() + 1;
     const yy = String(d.getFullYear()).slice(-2);
     return `${dd}/${mm}/${yy}`;
   }
 
-  private async buildDocWithLogos(header: SolarHeader, rows: SolarRow[]): Promise<TDocument> {
+  private async buildDocWithLogos(header: GenHeader, rows: GenRow[]) {
     const images: Record<string,string> = {};
     const isData = (u?: string | null) => !!u && /^data:image\/[a-zA-Z]+;base64,/.test(u || '');
 
@@ -122,32 +144,49 @@ export class SolarNetMeterCertificatePdfService {
     return this.buildDoc(header, rows, images);
   }
 
-  // ---------- header block (fixed: now uses meta + images) ----------
-  private titleBar(meta: any, images: Record<string,string>) {
-    const logoSize = 30;
-    const labName = (meta.lab_name || 'REGINAL METERING TESTING LABORATORY INDORE').toUpperCase();
-    const address = meta.lab_address || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003';
-    const email = meta.lab_email || 'testinglabwzind@gmail.com';
-    const phone = meta.lab_phone || '0731-2997802';
-
+  // ---------- header + meta band ----------
+  private headerBar(meta: any, images: Record<string,string>) {
+    // ZERO top margin overall; add left/right padding here so header aligns with body
     return {
-      margin: [28, 10, 28, 8],
+      margin: [28, 28, 28, 6],
       columns: [
-        images['leftLogo'] ? { image: 'leftLogo', width: logoSize } : { width: logoSize, text: '' },
+        images['leftLogo'] ? { image: 'leftLogo', width: 32, margin: [0, 0, 8, 0] } : { width: 32, text: '' },
         {
           width: '*',
           stack: [
             { text: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED', alignment: 'center', bold: true, fontSize: 13 },
-            { text: labName, alignment: 'center', color: '#444', margin: [0, 2, 0, 0], fontSize: 12 },
-            { text: address, alignment: 'center', color: '#666', margin: [0, 2, 0, 0], fontSize: 10 },
-            { text: `Email: ${email} • Phone: ${phone}`, alignment: 'center', color: '#666', margin: [0, 2, 0, 0], fontSize: 10 }
+            { text: (meta.lab_name || 'REGIONAL METERING TESTING LABORATORY INDORE'), alignment: 'center', bold: true, fontSize: 11, margin: [0, 2, 0, 0] },
+            { text: (meta.lab_address || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003'), alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] },
+            { text: `Email: ${meta.lab_email || '-'} • Phone: ${meta.lab_phone || '-'}`, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] }
           ]
         },
-        images['rightLogo'] ? { image: 'rightLogo', width: logoSize, alignment: 'right' } : { width: logoSize, text: '' }
+        images['rightLogo'] ? { image: 'rightLogo', width: 32, margin: [8, 0, 0, 0] } : { width: 32, text: '' }
       ]
     };
   }
 
+  private metaRow(meta: any) {
+    const lbl = { bold: true, fillColor: '#f5f5f5' };
+    // EXACTLY six columns per row to avoid NaN widths
+    return {
+      layout: 'noBorders',
+      margin: [28, 0, 28, 8],
+      table: {
+        widths: ['auto','*','auto','*','auto','*'],
+        body: [[
+          { text: 'DC/Zone', ...lbl }, { text: meta.zone || '-' },
+          { text: 'Method',  ...lbl }, { text: meta.method || '-' },
+          { text: 'Status',  ...lbl }, { text: meta.status || '-' },
+        ], [
+          { text: 'Bench',   ...lbl }, { text: meta.bench || '-' },
+          { text: 'User',    ...lbl }, { text: meta.user || '-' },
+          { text: 'Date',    ...lbl }, { text: meta.date || '-' },
+        ]]
+      }
+    };
+  }
+
+  // ---------- sheet table ----------
   private gridLayout = {
     hLineWidth: () => 0.7,
     vLineWidth: () => 0.7,
@@ -158,14 +197,12 @@ export class SolarNetMeterCertificatePdfService {
     paddingTop: () => 3,
     paddingBottom: () => 3,
   };
-
   private rowLabel(t: string){ return { text: t, bold: true }; }
 
-  private certTable(r: SolarRow) {
+  private certTable(r: GenRow) {
     const W = [160, '*', 160, '*'] as any;
-
     const mrText = (() => {
-      const no = this.fmtTxt(r.mr_no);
+      const no = r.mr_no ?? '';
       const dt = this.fmtDateShort(r.mr_date);
       if (!no && !dt) return '';
       if (no && dt) return `${no} DT ${dt}`;
@@ -173,6 +210,7 @@ export class SolarNetMeterCertificatePdfService {
     })();
 
     return {
+      margin: [28, 0, 28, 0],
       layout: this.gridLayout,
       table: {
         widths: W,
@@ -205,6 +243,7 @@ export class SolarNetMeterCertificatePdfService {
 
   private signatureBlock() {
     return {
+      margin: [28, 4, 28, 0],
       columns: [
         {
           width: '*',
@@ -230,65 +269,65 @@ export class SolarNetMeterCertificatePdfService {
             { text: 'ASSISTANT ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
           ],
         },
-      ],
-      margin: [0, 12, 0, 0]
+      ]
     };
   }
 
-  private page(r: SolarRow, meta: any, images: Record<string,string>) {
+  private page(r: GenRow, meta: any, images: Record<string,string>) {
     const blocks: any[] = [];
-    // FIX: pass meta into titleBar
-    blocks.push(this.titleBar(meta, images));
-
-    if (r.certificate_no) {
-      blocks.push({ text: `Certificate No: ${r.certificate_no}`, alignment: 'right', margin: [28, 0, 28, 6], bold: true });
-    }
+    blocks.push(this.headerBar(meta, images));
     blocks.push(
-      { margin: [28, 4, 28, 0], stack: [ this.certTable(r) ] },
-      { margin: [28, 0, 28, 0], stack: [ this.signatureBlock() ] }
+      { canvas: [{ type: 'line', x1: 28, y1: 0, x2: 567-28, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
+      { text: 'SOLAR GENERATION METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0, 0, 0, 8] },
+      ...(r.certificate_no ? [{ text: `Certificate No: ${r.certificate_no}`, alignment: 'right', bold: true, margin: [28, 0, 28, 8] }] : [])
     );
+    blocks.push(this.metaRow(meta));
+    blocks.push(this.certTable(r));
+    blocks.push(this.signatureBlock());
     return blocks;
   }
 
-  private buildDoc(header: SolarHeader, rows: SolarRow[], images: Record<string, string>) {
+  private buildDoc(header: GenHeader, rows: GenRow[], images: Record<string, string>) {
     const meta = {
       zone: (header.location_code ? header.location_code + ' - ' : '') + (header.location_name || ''),
       method: header.testMethod || '-',
       status: header.testStatus || '-',
       bench: header.testing_bench || '-',
       user: header.testing_user || '-',
-      date: header.date || new Date().toISOString(),
-      lab_name: header.lab_name || '',
-      lab_address: header.lab_address || '',
-      lab_email: header.lab_email || '',
-      lab_phone: header.lab_phone ||'',
+      date: header.date || new Date().toLocaleDateString(),
+
+      lab_name: header.lab_name || null,
+      lab_address: header.lab_address || null,
+      lab_email: header.lab_email || null,
+      lab_phone: header.lab_phone || null
     };
 
-    const data = (rows || []).filter(r => (r.meter_sr_no || '').trim()) as SolarRow[];
+    const data = (rows || []).filter(r => (r.meter_sr_no || '').trim());
     const content: any[] = [];
 
-    // One certificate per page (no batch summary for this style)
-    data.forEach((r, i) => {
-      content.push(...this.page(r, meta, images));
-      if (i < data.length - 1) content.push({ text: '', pageBreak: 'after' });
-    });
-
     if (!data.length) {
-      content.push(...this.page({} as SolarRow, meta, images));
+      content.push(...this.page({} as GenRow, meta, images));
+    } else {
+      data.forEach((r, i) => {
+        content.push(...this.page(r, meta, images));
+        if (i < data.length - 1) content.push({ text: '', pageBreak: 'after' });
+      });
     }
 
     return {
       pageSize: 'A4',
-      pageMargins: [0, 0, 0, 30],
-      defaultStyle: { font: 'Roboto', fontSize: 10, color: '#111' },
+      // ZERO top margin so the header sits flush to the page top
+      pageMargins: [0, 0, 0, 34],
+      defaultStyle: { font: 'Roboto', fontSize: 10 },
       images,
-      footer: (currentPage: number, pageCount: number) => ({
+      footer: (current: number, total: number) => ({
         margin: [28, 0, 28, 8],
         columns: [
-          { text: `Page ${currentPage} of ${pageCount}`, alignment: 'left', fontSize: 9, color: '#666' },
-          { text: 'R.M.T.L. Indore', alignment: 'right', fontSize: 9, color: '#666' }
+          { text: `Page ${current} of ${total}`, alignment: 'left', fontSize: 9, color: '#666' },
+          { text: 'MPPKVVCL • RMTL Indore', alignment: 'right', fontSize: 9, color: '#666' }
         ]
       }),
+      info: { title: 'Solar_GenerationMeter_Certificates' },
       content
     } as any;
   }

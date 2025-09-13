@@ -462,7 +462,7 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
           lab_email: this.labInfo?.email,
           lab_phone: this.labInfo?.phone,
           leftLogoUrl: '/assets/icons/wzlogo.png',
-          // rightLogoUrl: '/assets/icons/wzlogo.png'
+          rightLogoUrl: '/assets/icons/wzlogo.png'
         };
 
         const rows: ContestedReportRow[] = (this.batch.rows || [])
