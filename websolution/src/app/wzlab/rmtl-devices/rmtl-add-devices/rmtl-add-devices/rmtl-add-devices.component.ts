@@ -584,49 +584,50 @@ handleCTCSVUpload(event: any): void {
       initiator: d.initiator
     }));
 
-    this.deviceService.addnewdevice(payload).subscribe({
-      next: () => {
-        this.showAlert('Success', 'Meters added!');
+this.deviceService.addnewdevice(payload).subscribe({
+  next: (created: any): void => {
+    const inwardNo = created?.[0]?.inward_number || '(generated)';
+    this.showAlert('Success', `Meters added! Inward No: ${inwardNo} • Count: ${created.length}`);
 
-        // ---- Build and download Inward Receipt PDF ----
-        const items: InwardReceiptItem[] = payload.map((p: any, idx: number) => ({
-          sl: idx + 1,
-          serial_number: p.serial_number,
-          make: p.make,
-          capacity: p.capacity ?? '',
-          phase: p.phase ?? '',
-          connection_type: p.connection_type ?? '',
-          meter_category: p.meter_category ?? '',
-          meter_type: p.meter_type ?? '',
-          voltage_rating: p.voltage_rating ?? '',
-          current_rating: p.current_rating ?? '',
-          purpose: p.device_testing_purpose,
-          remark: p.remark || ''
-        }));
+    const items: InwardReceiptItem[] = created.map((p: any, idx: number) => ({
+      sl: idx + 1,
+      serial_number: p.serial_number,
+      make: p.make,
+      capacity: p.capacity ?? '',
+      phase: p.phase ?? '',
+      connection_type: p.connection_type ?? '',
+      meter_category: p.meter_category ?? '',
+      meter_type: p.meter_type ?? '',
+      voltage_rating: p.voltage_rating ?? '',
+      current_rating: p.current_rating ?? '',
+      purpose: p.device_testing_purpose,
+      remark: p.remark || ''
+    }));
 
-        const receipt: InwardReceiptData = {
-          title: 'RMTL Inward Receipt',
-          orgName: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd',
-          lab_id: this.labId ?? undefined,
-          office_type: this.selectedSourceType,
-          location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
-          location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
-          date_of_entry: this.todayISO(),
-          device_type: 'METER',
-          total: items.length,
-          items,
-          serials_csv: items.map(i => i.serial_number).join(', ')
-        };
+    const receipt: InwardReceiptData = {
+      title: 'RMTL Inward Receipt',
+      orgName: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd',
+      lab_id: this.labId ?? undefined,
+      office_type: this.selectedSourceType,
+      location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
+      location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
+      inward_no: inwardNo,
+      date_of_entry: this.todayISO(),
+      device_type: 'METER',
+      total: items.length,
+      items,
+      serials_csv: items.map(i => i.serial_number).join(', ')
+    };
 
-        this.inwardPdf.download(receipt, { fileName: `Inward_Receipt_METER_${this.todayISO()}.pdf` });
-        this.devices = [];
-      },
-      error: (err) => {
-        console.error('Submit meters error:', err);
-        this.showAlert('Error', err.error?.detail);
-       
-      }
-    });
+    this.inwardPdf.download(receipt, { fileName: `Inward_Receipt_METER_${this.todayISO()}.pdf` });
+    this.devices = [];
+  },
+  error: (err) => {
+    const msg = err?.error?.detail || 'Error while submitting meters.';
+    this.showAlert('Error', msg);
+  }
+});
+
   }
 
   // ---------- Submit: CTs ----------
@@ -689,46 +690,48 @@ handleCTCSVUpload(event: any): void {
       date_of_entry: this.todayISO(),
       initiator: ct.initiator
     }));
+this.deviceService.addnewdevice(payload).subscribe({
+  next: (created: any): void => {
+    const inwardNo = created?.[0]?.inward_number || '(generated)';
+    this.showAlert('Success', `CTs added! Inward No: ${inwardNo} • Count: ${created.length}`);
 
-    this.deviceService.addnewdevice(payload).subscribe({
-      next: () => {
-        this.showAlert('Success', 'CTs added!');
+    const items: InwardReceiptItem[] = created.map((p: any, idx: number) => ({
+      sl: idx + 1,
+      serial_number: p.serial_number,
+      make: p.make,
+      connection_type: p.connection_type ?? '',
+      ct_class: p.ct_class ?? '',
+      ct_ratio: p.ct_ratio ?? '',
+      purpose: p.device_testing_purpose,
+      remark: p.remark || ''
+    }));
 
-        const items: InwardReceiptItem[] = payload.map((p: any, idx: number) => ({
-          sl: idx + 1,
-          serial_number: p.serial_number,
-          make: p.make,
-          connection_type: p.connection_type ?? '',
-          ct_class: p.ct_class ?? '',
-          ct_ratio: p.ct_ratio ?? '',
-          purpose: p.device_testing_purpose,
-          remark: p.remark || ''
-        }));
+    const receipt: InwardReceiptData = {
+      title: 'RMTL Inward Receipt',
+      orgName: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd',
+      lab_id: this.labId ?? undefined,
+      office_type: this.selectedSourceType,
+      location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
+      location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
+      inward_no: inwardNo,
+      date_of_entry: this.todayISO(),
+      device_type: 'CT',
+      total: items.length,
+      items,
+      serials_csv: items.map(i => i.serial_number).join(', ')
+    };
 
-        const receipt: InwardReceiptData = {
-          title: 'RMTL Inward Receipt',
-          orgName: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd',
-          lab_id: this.labId ?? undefined,
-          office_type: this.selectedSourceType,
-          location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
-          location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
-          // inward_no: this.inwardNo,
-          inward_no: 'INW-2051-36524-12541',
-          date_of_entry: this.todayISO(),
-          device_type: 'CT',
-          total: items.length,
-          items,
-          serials_csv: items.map(i => i.serial_number).join(', ')
-        };
+    this.inwardPdf.download(receipt, { fileName: `Inward_Receipt_CT_${this.todayISO()}.pdf` });
+    this.cts = [];
+  },
+  error: (err) => {
+    const msg = err?.error?.detail || 'Error while submitting CTs.';
+    this.showAlert('Error', msg);
+  }
+});
 
-        this.inwardPdf.download(receipt, { fileName: `Inward_Receipt_CT_${this.todayISO()}.pdf` });(receipt);
-        this.cts = [];
-      },
-      error: (err) => {
-        console.error('Submit CTs error:', err);
-        this.showAlert('Error', 'Error while submitting CTs.');
-      }
-    });
+
+  
   }
 
   // ---------- Duplicates ----------
@@ -802,7 +805,7 @@ private PhaseByConn: Record<string, string[]> = {
     'PT OPERATED'
   ],
   OTHER: [
-    'NA'
+    'OTHER'
   ]
 };
 

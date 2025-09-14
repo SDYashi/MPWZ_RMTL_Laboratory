@@ -5,6 +5,11 @@ import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environment/environment';
 import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass, TestReportPayload, TestingStatusAgg, DashboardCounts } from '../interface/models';
+
+export type DeviceType = 'METER' | 'CT';
+
+
+
 @Injectable({
   providedIn: 'root'
 })
@@ -87,6 +92,11 @@ updateUser(id: number, user: UserUpdate): Observable<UserPublic> {
   
 }
 
+changepassward(id: number, user: UserUpdate): Observable<UserPublic> {
+  return this.http.put<UserPublic>(`${this.baseUrl}//users/change-password/${id}`, user);
+  
+}
+
 deleteUser(id: number): Observable<any> {
   return this.http.delete(`${this.baseUrl}/users/${id}`);
 }
@@ -136,7 +146,8 @@ createDevice(device: Device): Observable<Device> {
 }
 
 addnewdevice(device: any[]): Observable<Device> {
-  return this.http.post<Device>(`${this.baseUrl}/devices/inward`, device);
+  return this.http.post<Device>(`${this.baseUrl}/devices/inward/bulk`, device);
+  
 }
 
 updateDevice(id: number, device: Device): Observable<Device> {
