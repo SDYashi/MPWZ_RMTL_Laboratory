@@ -353,7 +353,7 @@ private normalizeApiList(list: any[]): TestedDeviceRow[] {
    },
  });
   }
-
+  responsestatus:any
   submitApproval(): void {
     if (this.approving) return;
 
@@ -374,6 +374,7 @@ private normalizeApiList(list: any[]): TestedDeviceRow[] {
         if (this.isArrayPayload(res)) {
           this.approvedIds = res;
           this.failedList = [];
+           this.responsestatus="Devices approved successfully";
         } else if (this.isObjectPayload(res)) {
           this.approvedIds = Array.isArray(res?.approved_ids) ? res.approved_ids : [];
           this.failedList = Array.isArray(res?.failed) ? res.failed : [];

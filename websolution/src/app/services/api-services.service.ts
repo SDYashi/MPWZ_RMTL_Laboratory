@@ -187,8 +187,8 @@ getDevicesByInwardNo(inward_number: string) {
 postTestReports( payload: TestReportPayload[]): Observable<TestReportPayload[]> {
   return this.http.post<TestReportPayload[]>(`${this.baseUrl}/testing/bulk/`, payload);
 }
-getAssignedMeterList(assignment_status :String,user_id:number,lab_id:number): Observable<any> {
-  return this.http.get<any>(`${this.baseUrl}/assignments-by-status?assignment_status=${assignment_status}&user_id=${user_id}&lab_id=${lab_id}`);
+getAssignedMeterList(assignment_status :String,user_id:number,lab_id:number,device_testing_purpose:string,device_types:string): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/assignments-by-status?assignment_status=${assignment_status}&user_id=${user_id}&lab_id=${lab_id} &device_testing_purpose=${device_testing_purpose}&device_types=${device_types}`);
 }
 
 // --- Testing Bench Endpoints ---

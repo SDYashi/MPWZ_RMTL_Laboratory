@@ -140,6 +140,8 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
   // Optional: let UI choose between download/print
   private pdfMode: 'download' | 'print' = 'download';
+  device_testing_purpose: any;
+  device_type: any;
 
   constructor(
     private api: ApiServicesService,
@@ -159,6 +161,8 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         this.office_types  = d?.office_types || [];
         this.commentby_testers = d?.commentby_testers || [];
         this.test_results = d?.test_results || [];
+        this.device_testing_purpose = d?.test_report_types?.SOLAR_NET_MEER;
+        this.device_type = d.device_types?.METER;
       }
     });
 
@@ -242,7 +246,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
   reloadAssigned(replaceRows: boolean = true) {
     this.loading = true;
-    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
+    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId, this.device_type, this.device_testing_purpose).subscribe({
       next: (data: any) => {
         const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
         this.rebuildSerialIndex(asg);

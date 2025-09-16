@@ -1,0 +1,29 @@
+<div class="welcome-container">
+<header class="welcome-header">
+  <h1>⚡ WZ Meter Testing Laboratory</h1>
+  <p class="tagline">
+    Empowering accuracy, reliability, and trust in every test
+  </p>
+  <p class="description">
+    Manage <span class="highlight">devices</span>, streamline <span class="highlight">workflows</span>, 
+    and ensure <span class="highlight">quality approvals</span> — all from one place.
+  </p>
+</header>
+
+
+  <div class="cards-container mb-4 ">
+    <div class="card align-items-center" *ngFor="let card of devicesCards" (click)="open(card)" tabindex="0">
+      <div class="card-emoji">{{ card.emoji }}</div>
+      <h3 class="card-title">{{ card.title }}</h3>
+      <p class="card-desc">{{ card.description }}</p>
+    </div>
+  </div>
+<br>
+    <div class="cards-container">
+    <div class="card" *ngFor="let card of assigmentCards" (click)="open(card)" tabindex="0">
+      <div class="card-emoji">{{ card.emoji }}</div>
+      <h3 class="card-title">{{ card.title }}</h3>
+      <p class="card-desc">{{ card.description }}</p>
+    </div>
+  </div>
+</div>

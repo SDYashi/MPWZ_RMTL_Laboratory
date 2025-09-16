@@ -238,28 +238,13 @@
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h6 class="modal-title">Approval Result</h6>
+        <h6 class="modal-title">Approval Status</h6>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
 
       <div class="modal-body" *ngIf="approveResult as r">
-        <!-- Summary -->
-        <div class="row g-3 align-items-center">
-          <div class="col-6">
-            <div class="d-flex align-items-center justify-content-between border rounded p-2">
-              <div class="text-success fw-bold">Approved</div>
-              <div class="badge bg-success">{{ r.ok }}</div>
-            </div>
-          </div>
-          <div class="col-6">
-            <div class="d-flex align-items-center justify-content-between border rounded p-2">
-              <div class="text-danger fw-bold">Failed</div>
-              <div class="badge bg-danger">{{ r.failed }}</div>
-            </div>
-          </div>
-        </div>
-
         <div class="small text-muted mt-2">
+          {{ responsestatus  }}
           Done at: {{ approvePerformedAt | date:'short' }}
         </div>
 

@@ -132,6 +132,8 @@ labInfo: {
   pickerLoading = false;
   pickerAssignments: AssignmentItem[] = [];
   pickerSelected: Record<number, boolean> = {};
+  device_testing_purpose: any;
+  device_type: any;
 
   constructor(private api: ApiServicesService, private pdfSvc: P4onmReportPdfService) {}
 
@@ -152,8 +154,10 @@ labInfo: {
         this.makes = d?.makes || [];
         this.capacities = d?.capacities || [];
         this.office_types = d?.office_types || [];
-        this.report_type = d?.test_report_types?.P4_ONM || 'P4_ONM';
-        this.phases = d?.phases || [];
+        this.report_type = d?.test_report_types?.P4_ONM;
+        this.phases = d?.phases || [];    
+        this.device_testing_purpose = d?.test_report_types?.P4_ONM;
+        this.device_type = d.device_types?.METER;
       }
     });
 
@@ -221,7 +225,7 @@ this.api.getLabInfo(this.currentLabId).subscribe({
 
   doReloadAssignedWithoutAddingRows(): void {
     this.loading = true;
-    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
+    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId, this.device_testing_purpose, this.device_type).subscribe({
       next: (data: any) => {
         const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
         this.loadDataWithoutAddingRows(asg);
@@ -251,7 +255,7 @@ this.api.getLabInfo(this.currentLabId).subscribe({
     this.pickerSelected = {};
     this.pickerAssignments = [];
 
-    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
+    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId, this.device_testing_purpose, this.device_type).subscribe({
       next: (data: any) => {
         const list: AssignmentItem[] = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
         this.pickerAssignments = list;

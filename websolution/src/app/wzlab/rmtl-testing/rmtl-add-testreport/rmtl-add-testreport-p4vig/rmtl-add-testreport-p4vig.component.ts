@@ -131,6 +131,9 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     loading: false,
     selectAll: false,
   };
+  report_type: any;
+  device_testing_purpose: any;
+  device_type: any;
 
   constructor(private api: ApiServicesService, private pdfSvc: P4VigReportPdfService) {}
 
@@ -149,7 +152,10 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         this.meter_bodies   = d?.meter_bodies || [];
         this.office_types   = d?.office_types || [];
         this.testResults    = d?.test_results || [];
-        this.commentby_testers = d?.commentby_testers || [];
+        this.commentby_testers = d?.commentby_testers || [];        
+        this.report_type = d?.test_report_types?.P4_VIG;
+        this.device_testing_purpose = d?.test_report_types?.P4_VIG;
+        this.device_type = d.device_types?.METER;
       }
     });
 
@@ -242,7 +248,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
 
   private loadAssignedIndexOnly() {
     this.loading = true;
-    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
+    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId, this.device_testing_purpose, this.device_type).subscribe({
       next: (data:any) => {
         const asg:AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
         this.rebuildSerialIndex(asg);
@@ -266,7 +272,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     this.devicePicker.selected.clear();
     this.devicePicker.selectAll = false;
 
-    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
+    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId, this.device_testing_purpose, this.device_type).subscribe({
       next: (data:any) => {
         const asg:AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
         this.devicePicker.items = asg;

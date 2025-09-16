@@ -136,6 +136,8 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
   pickerLoading = false;
   pickerAssignments: AssignmentItem[] = [];
   pickerSelected: Record<number, boolean> = {}; // key: assignment_id
+  device_testing_purpose: any;
+  device_type: any;
 
   constructor(
     private api: ApiServicesService,
@@ -161,7 +163,9 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
         this.meter_bodies = data?.meter_bodies || [];
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
-        this.report_type = data?.test_report_types?.SMART_AGAINST_METER || 'SMART AGAINST METER';
+        this.report_type = data?.test_report_types?.SMART_AGAINST_METER ;
+        this.device_testing_purpose = data?.test_report_types?.SMART_AGAINST_METER;
+        this.device_type = data.device_types?.METER;
       },
       error: (err) => console.error('Enums error', err)
     });
@@ -254,7 +258,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
 
   doReloadAssignedWithoutAddingRows(): void {
     this.loading = true;
-    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
+    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId,this.device_testing_purpose , this.device_type).subscribe({
       next: (data: any) => {
         const assignments: AssignmentItem[] = Array.isArray(data)
           ? data
@@ -273,7 +277,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
     this.pickerAssignments = [];
     this.pickerSelected = {};
 
-    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
+    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId, this.device_testing_purpose, this.device_type).subscribe({
       next: (data: any) => {
         const list: AssignmentItem[] = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
         this.pickerAssignments = list;

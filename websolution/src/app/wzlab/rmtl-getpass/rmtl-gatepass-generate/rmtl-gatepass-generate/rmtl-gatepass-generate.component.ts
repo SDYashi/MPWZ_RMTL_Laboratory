@@ -1,12 +1,6 @@
-// rmtl-gatepass-generate.component.ts
 import { Component, OnInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-(pdfMake as any).vfs = pdfFonts.vfs;
-
-// Keep pdfmake type simple
-type TDocumentDefinition = any;
+import { GatepassPdfService, GatepassDeviceRow } from 'src/app/shared/gatepass-pdf.service';
 
 // If you use Bootstrap JS bundle on the page
 declare const bootstrap: any;
@@ -83,6 +77,7 @@ export class RmtlGatepassGenerateComponent implements OnInit {
   fromDate: string = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
   toDate: string = new Date().toISOString().slice(0, 10);
   assignmentStatus: string = 'APPROVED';
+
   // Report IDs
   reportIds: string[] = [];
   selectedReportId: string = '';
@@ -95,7 +90,7 @@ export class RmtlGatepassGenerateComponent implements OnInit {
   loadingList = false;
   loadingDevices = false;
   errorMsg = '';
-  selectedInwordNo:any;
+  selectedInwordNo: any;
 
   // Gatepass created summary
   gatepassInfo: any = null;
@@ -127,37 +122,50 @@ export class RmtlGatepassGenerateComponent implements OnInit {
   currentUser: any;
   currentLabId: any;
   inwordNos: any;
+  labInfo: any;
 
-  constructor(private api: ApiServicesService) {}
+  // cache selected device rows for the PDF
+  private selectedPdfRows: GatepassDeviceRow[] = [];
+
+  constructor(private api: ApiServicesService, private gatepassPdf: GatepassPdfService) {}
 
   ngOnInit(): void {
     this.loadinwordnos();
     this.loadReportIds();
+
     this.api.getEnums().subscribe({
-      next: (d) => {
-        this.office_types = d?.office_types || [];
-      }
+      next: (d) => { this.office_types = d?.office_types || []; }
     });
+
     const token = localStorage.getItem('access_token');
     if (token) {
       const decoded = JSON.parse(atob(token.split('.')[1]));
-      this.currentUser = decoded.username;
+      this.currentUser = decoded?.username ? { name: decoded.username } : decoded;
       this.currentLabId = decoded.lab_id;
     }
+
+    this.api.getLab(this.currentLabId).subscribe({
+      next: (info: any) => {
+        this.labInfo = {
+          lab_name: info?.lab_pdfheader_name,
+          address_line: info?.address || info?.address_line,
+          email: info?.email,
+          phone: info?.phone
+        };
+      },
+      error: (e) => { console.error('Lab info error', e); }
+    });
   }
+
   onReportselectedInwordNoChange() {
-   this.api.getDevicesByInwardNo(this.selectedInwordNo).subscribe({
-     next: (d) => {
-       this.devices = d || [];
-     }
-   })
+    this.api.getDevicesByInwardNo(this.selectedInwordNo).subscribe({
+      next: (d) => { this.devices = d || []; }
+    });
   }
 
   loadinwordnos() {
     this.api.getinwordnos(this.fromDate, this.toDate, this.assignmentStatus).subscribe({
-      next: (d) => {
-        this.inwordNos = d || [];
-      }
+      next: (d) => { this.inwordNos = d || []; }
     });
   }
 
@@ -176,7 +184,7 @@ export class RmtlGatepassGenerateComponent implements OnInit {
 
   loadReportIds(): void {
     this.loadingList = true;
-    this.errorMsg = '';
+       this.errorMsg = '';
     this.api.getReportIds(this.fromDate, this.toDate).subscribe({
       next: (res) => {
         this.reportIds = Array.isArray(res?.report_ids) ? res.report_ids : [];
@@ -203,14 +211,11 @@ export class RmtlGatepassGenerateComponent implements OnInit {
     this.api.getDevicesByReportId(this.selectedReportId).subscribe({
       next: (rows: any[]) => {
         const list = Array.isArray(rows) ? rows : [];
-
-        // Map nested API → flat DeviceRow for UI
         this.devices = list.map((row: any): DeviceRow => {
           const t = row?.testing || {};
           const dv = row?.device || {};
           const asn = row?.assignment || {};
 
-          // Optional related (if your API sends them)
           const userAssigned = row?.user_assigned?.name || '';
           const assignedByUser = row?.assigned_by_user?.name || '';
           const benchName = row?.testing_bench?.bench_name || '';
@@ -310,15 +315,18 @@ export class RmtlGatepassGenerateComponent implements OnInit {
   // ---------- Selection ----------
   toggleAllDevices(): void {
     this.devices.forEach(d => (d.selected = this.selectAll));
+    this.selectedPdfRows = this.mapSelectedToPdfRows(this.devices.filter(d => d.selected));
   }
 
   clearSelection(): void {
     this.devices.forEach(d => (d.selected = false));
     this.selectAll = false;
+    this.selectedPdfRows = [];
   }
 
   onRowCheckboxChange(): void {
     this.selectAll = this.devices.length > 0 && this.devices.every(d => !!d.selected);
+    this.selectedPdfRows = this.mapSelectedToPdfRows(this.devices.filter(d => d.selected));
   }
 
   // ---------- Details modal ----------
@@ -346,6 +354,9 @@ export class RmtlGatepassGenerateComponent implements OnInit {
     // Single report selection here; if multi-select later, join with comma
     this.gatepassForm.report_ids = this.selectedReportId;
 
+    // cache selected rows for PDF
+    this.selectedPdfRows = this.mapSelectedToPdfRows(selected);
+
     const el = document.getElementById('gatepassModal');
     if (el && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
       this.gatepassModalRef = new bootstrap.Modal(el, { backdrop: 'static' });
@@ -356,9 +367,7 @@ export class RmtlGatepassGenerateComponent implements OnInit {
   }
 
   closeGatepassModal(): void {
-    if (this.gatepassModalRef) {
-      this.gatepassModalRef.hide();
-    }
+    if (this.gatepassModalRef) this.gatepassModalRef.hide();
   }
 
   // ---------- Submit Gatepass ----------
@@ -391,8 +400,10 @@ export class RmtlGatepassGenerateComponent implements OnInit {
         // reset report list and table
         this.loadReportIds();
         this.devices = [];
-        // auto-download PDF
-        this.downloadGatepassPdf(this.gatepassInfo);
+
+        // auto-download PDF via service (device table included)
+        this.downloadGatepassPdf(this.gatepassInfo, this.selectedPdfRows);
+        this.selectedPdfRows = []; // clear cache
       },
       error: (err) => {
         console.error(err);
@@ -432,124 +443,41 @@ export class RmtlGatepassGenerateComponent implements OnInit {
     }
   }
 
-  printGatepass(): void {
-    if (this.gatepassInfo) this.downloadGatepassPdf(this.gatepassInfo);
-  }
+  private parseReportIds(str: string): string[] {
+    if (!str) return [];
+    return str.split(',').map(s => s.trim()).filter(Boolean);
+  }       
 
   private parseSerials(str: string): string[] {
     if (!str) return [];
     return str.split(',').map(s => s.trim()).filter(Boolean);
   }
 
-  // ---------- PDF builder ----------
-  private buildGatepassDoc(gp: any): TDocumentDefinition {
-    const createdAt = gp.created_at ? new Date(gp.created_at) : new Date();
-    const createdAtStr = createdAt.toLocaleString();
+  private mapSelectedToPdfRows(selected: DeviceRow[]): GatepassDeviceRow[] {
+    return selected.map(d => ({
+      serial_number: d.serial_number || '-',
+      make: d.make || '-',
+      test_result: (d.test_result || d.__raw_testing?.test_result || '-') as string,
+      test_status: (d.test_status || d.__raw_testing?.test_status || '-') as string,
+    }));
+  }
 
-    const serials = this.parseSerials(gp.serial_numbers);
-    const totalCount = serials.length;
-
-    return {
-      pageSize: 'A4',
-      pageMargins: [36, 48, 36, 48],
-      content: [
-        {
-          columns: [
-            {
-              stack: [
-                { text: 'RMTL Gatepass', style: 'h1' },
-                { text: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd', style: 'sub' }
-              ]
-            },
-            {
-              alignment: 'right',
-              stack: [
-                { text: `Dispatch No: ${gp.dispatch_number || gp.id}`, style: 'rightLbl' },
-                { text: `Created: ${createdAtStr}`, style: 'rightLbl' },
-                gp.dispatch_number ? { qr: gp.dispatch_number, fit: 60, margin: [0, 6, 0, 0] } : {}
-              ].filter(Boolean)
-            }
-          ]
-        },
-
-        { canvas: [ { type: 'line', x1:0, y1:0, x2:525, y2:0, lineWidth:1 } ], margin: [0,10,0,10] },
-
-        {
-          table: {
-            widths: ['*', '*', '*'],
-            body: [
-              [
-                { text: `Dispatch To: ${gp.dispatch_to || '-'}` },
-                { text: `Vehicle: ${gp.vehicle || '-'}` },
-                { text: `Report ID(s): ${gp.report_ids || '-'}` }
-              ],
-              [
-                { text: `Receiver: ${gp.receiver_name || '-'}` },
-                { text: `Designation: ${gp.receiver_designation || '-'}` },
-                { text: `Mobile: ${gp.receiver_mobile || '-'}` }
-              ]
-            ]
-          },
-          layout: 'lightHorizontalLines',
-          margin: [0, 0, 0, 10]
-        },
-
-        { text: `Serial Numbers (${totalCount})`, style: 'h2', margin: [0, 6, 0, 6] },
-
-        // Multi-column serials for compact output (change 3->4 for tighter columns)
-        this.buildSerialColumns(serials, 3),
-
-        { text: 'Notes:', style: 'h3', margin: [0, 12, 0, 4] },
-        { text: '— Carry out standard handling and verification on receipt.\n— Any discrepancy must be reported immediately.', margin: [0,0,0,10] },
-
-        {
-          columns: [
-            { text: '\n\n____________________________\nIssued By (Signature & Name)', alignment: 'left' },
-            { text: '\n\n____________________________\nReceived By (Signature & Name)', alignment: 'right' }
-          ],
-          margin: [0, 20, 0, 0]
-        },
-        {
-          columns: [
-            { text: `Laboratory User Generated By: ${this.currentUser?.name || '-'}`, alignment: 'left' },
-            { text: 'Support Email: rmtl@mpwz.co.in', alignment: 'left' }
-          ],
-          margin: [0, 12, 0, 4]
-        },
-      ],
-      styles: {
-        h1: { fontSize: 18, bold: true },
-        h2: { fontSize: 14, bold: true },
-        h3: { fontSize: 12, bold: true },
-        sub: { fontSize: 10, color: '#666' },
-        rightLbl: { fontSize: 10 },
-        th: { bold: true }
+  // ---------- PDF (delegates to service) ----------
+  private async downloadGatepassPdf(gp: any, devicesForPdf: GatepassDeviceRow[] = []): Promise<void> {
+    await this.gatepassPdf.download(gp, {
+      deviceTable: true,
+      devices: devicesForPdf,
+      generatedBy: this.currentUser?.name,
+      supportEmail: this.labInfo?.email || 'rmtl@mpwz.co.in',
+      header: {
+        orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
+        labLine: (this.labInfo?.lab_name || 'REGIONAL METERING TESTING LABORATORY INDORE').toUpperCase(),
+        addressLine: this.labInfo?.address_line || this.labInfo?.address || '',
+        email: this.labInfo?.email || '-',
+        phone: this.labInfo?.phone || '-',
+        leftLogoUrl: '/assets/icons/wzlogo.png',
+        rightLogoUrl: '/assets/icons/wzlogo.png',
       }
-    };
-  }
-
-  private buildSerialColumns(serials: string[], colCount = 3) {
-    if (!serials?.length) return { text: '-' };
-
-    const perCol = Math.ceil(serials.length / colCount);
-    const cols = Array.from({ length: colCount }, (_, i) =>
-      serials.slice(i * perCol, (i + 1) * perCol).join(', ')
-    );
-
-    return {
-      columns: cols.map(txt => ({
-        text: txt,
-        fontSize: 10,
-        lineHeight: 1.2,
-        margin: [0, 0, 0, 0]
-      })),
-      columnGap: 10
-    };
-  }
-
-  private downloadGatepassPdf(gp: any): void {
-    const doc = this.buildGatepassDoc(gp);
-    const fname = `Gatepass_${gp.dispatch_number || gp.id || 'RMTL'}.pdf`;
-    pdfMake.createPdf(doc).download(fname);
+    });
   }
 }

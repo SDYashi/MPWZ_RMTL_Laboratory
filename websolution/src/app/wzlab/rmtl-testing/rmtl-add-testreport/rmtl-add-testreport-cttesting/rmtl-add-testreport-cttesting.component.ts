@@ -102,6 +102,8 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     open: false,
     items: [] as Array<{ id: number; device_id: number; serial_number: string; make?: string; capacity?: string; selected: boolean }>
   };
+  device_testing_purpose: any;
+  device_type: any;
 
   constructor(private api: ApiServicesService, private ctPdf: CtReportPdfService) {}
 
@@ -118,7 +120,9 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
         this.commentby_testers = d?.commentby_testers || [];
         this.test_results = d?.test_results || [];
         this.makes = d?.device_makes || [];
-        this.ct_classes = d?.ct_classes || [];
+        this.ct_classes = d?.ct_classes || [];        
+        this.device_testing_purpose = d?.test_report_types?.CT_TESTING;
+        this.device_type = d.device_types?.CT;
       }
     });
 
@@ -191,7 +195,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   // Assigned devices picker
   openAssignPicker(){
     this.loading = true;
-    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId).subscribe({
+    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId, this.device_type, this.device_testing_purpose).subscribe({
       next: (data:any) => {
         const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
         this.serialIndex = {};

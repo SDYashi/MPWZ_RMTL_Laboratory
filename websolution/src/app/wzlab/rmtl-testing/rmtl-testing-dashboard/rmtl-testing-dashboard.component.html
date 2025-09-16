@@ -14,13 +14,7 @@
           <!-- Top: Total -->
           <div class="row g-3 mb-3">
             <div class="col-6 col-md-4 col-lg-3">
-              <div class="stat-card colorful p-3 h-100 bg-grad-primary">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="stat-label">Total Tests</div>
-                  <span class="card-glass small">All</span>
-                </div>
-                <div class="stat-value mt-1">{{ number(d.total) }}</div>
-              </div>
+
             </div>
           </div>
                     <!-- Test Methods -->
@@ -29,6 +23,15 @@
             <small class="text-muted">Recent distribution</small>
           </div>
           <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-lg-3">
+              <div class="stat-card colorful p-3 h-100 bg-grad-secondary">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="stat-label">Total Tests</div>
+                  <span class="card-glass small">All</span>
+                </div>
+                <div class="stat-value mt-1">{{ number(d.total) }}</div>
+              </div>
+            </div>
             <div class="col-6 col-md-4 col-lg-3" *ngFor="let m of d.test_method">
               <div class="stat-card colorful p-3 h-100" [ngClass]="gradClass(methodColor(m.test_method))">
                 <div class="d-flex justify-content-between align-items-center">

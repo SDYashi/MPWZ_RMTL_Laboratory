@@ -10,7 +10,8 @@ const routes: Routes = [
     component: WzlabhomeComponent, 
     canActivate: [authGuard],
     children: [
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: '', redirectTo: 'rmtl-welcome', pathMatch: 'full' },
+      { path: 'rmtl-welcome', loadChildren: () => import('./rmtl-welcome/rmtl-welcome.module').then(m => m.RmtlWelcomeModule) },
       { path: 'assignement',loadChildren: () => import('./rmtl-assignment/rmtl-assignment.module').then(m => m.RmtlAssignmentModule) },
       { path: 'dashboard', loadChildren: () => import('./rmtl-dashboard/rmtl-dashboard.module').then(m => m.RmtlDashboardModule) },
       { path: 'devices', loadChildren: () => import('./rmtl-devices/rmtl-devices.module').then(m => m.RmtlDevicesModule) },

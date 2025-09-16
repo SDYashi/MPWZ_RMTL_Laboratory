@@ -3,7 +3,7 @@
     <div class="card-header d-flex justify-content-between align-items-center text-white" style="background:#151433">
       <h5 class="mb-0">My Profile</h5>
       <div class="d-flex align-items-center gap-2">
-        <span *ngIf="user" class="badge" [ngClass]="statusBadgeClass">{{ user?.status || '—' }}</span>
+        <span *ngIf="user" class="badge" [ngClass]="statusBadgeClass">{{ user.status || '—' }}</span>
         <button class="btn btn-sm btn-outline-light" (click)="refresh()">Refresh</button>
         <button class="btn btn-sm btn-warning" (click)="openEditProfile()" [disabled]="!user">Edit Profile</button>
         <button class="btn btn-sm btn-danger" (click)="openChangePassword()" [disabled]="!user">Change Password</button>
@@ -33,13 +33,13 @@
           </div>
 
           <div class="col">
-            <h4 class="mb-1">{{ user?.name || user?.username }}</h4>
-            <div class="text-muted mb-2">{{ user?.designation || '—' }}</div>
+            <h4 class="mb-1">{{ user.name || user.username }}</h4>
+            <div class="text-muted mb-2">{{ user.designation || '—' }}</div>
             <div class="d-flex flex-wrap gap-3">
-              <div><i class="fa fa-user me-1"></i><strong>Username:</strong> {{ user?.username }}</div>
-              <div><i class="fa fa-envelope me-1"></i><strong>Email:</strong> {{ user?.email }}</div>
-              <div><i class="fa fa-phone me-1"></i><strong>Mobile:</strong> {{ user?.mobile || '—' }}</div>
-              <div><i class="fa fa-building me-1"></i><strong>Lab ID:</strong> {{ user?.lab_id ?? '—' }}</div>
+              <div><i class="fa fa-user me-1"></i><strong>Username:</strong> {{ user.username }}</div>
+              <div><i class="fa fa-envelope me-1"></i><strong>Email:</strong> {{ user.email }}</div>
+              <div><i class="fa fa-phone me-1"></i><strong>Mobile:</strong> {{ user.mobile || '—' }}</div>
+              <div><i class="fa fa-building me-1"></i><strong>Lab ID:</strong> {{ user.lab_id ?? '—' }}</div>
             </div>
           </div>
         </div>
@@ -49,22 +49,22 @@
         <div class="row g-3">
           <div class="col-md-4">
             <div class="small text-muted">Created</div>
-            <div>{{ user?.created_at | date:'medium' }}</div>
+            <div>{{ user.created_at | date:'medium' }}</div>
           </div>
           <div class="col-md-4">
             <div class="small text-muted">Updated</div>
-            <div>{{ user?.updated_at | date:'medium' }}</div>
+            <div>{{ user.updated_at | date:'medium' }}</div>
           </div>
           <div class="col-md-4">
             <div class="small text-muted">Last Login</div>
-            <div>{{ user?.last_login_at | date:'medium' }}</div>
+            <div>{{ user.last_login_at | date:'medium' }}</div>
           </div>
         </div>
 
         <div class="mt-4">
           <div class="small text-muted mb-2">Roles</div>
-          <div *ngIf="user?.roles?.length; else noRoles" class="d-flex flex-wrap gap-2">
-            <span *ngFor="let r of user?.roles" class="badge bg-primary-subtle border text-dark px-2 py-1">
+          <div *ngIf="user.roles?.length; else noRoles" class="d-flex flex-wrap gap-2">
+            <span *ngFor="let r of user.roles" class="badge bg-primary-subtle border text-dark px-2 py-1">
               {{ r }}
             </span>
           </div>

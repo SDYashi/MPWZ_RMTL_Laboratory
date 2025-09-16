@@ -246,7 +246,10 @@ export class RmtlGatepassListComponent implements OnInit {
       receiver_mobile: g.receiver_mobile,
       created_by: String(g.created_by),
       created_at: g.created_at,
-      serial_numbers: serialsFlat
+      serial_numbers: serialsFlat,
+      leftLogoUrl: '/assets/icons/wzlogo.png',
+      rightLogoUrl: '/assets/icons/wzlogo.png',
+
     };
 
     this.gpPdf.download(data, {

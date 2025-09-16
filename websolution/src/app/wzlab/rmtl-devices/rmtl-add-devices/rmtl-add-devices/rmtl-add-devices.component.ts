@@ -103,7 +103,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     initiator: ''
   };
 
-  // UI helpers (for compact dropdown strips; bind directly to values)
+  // UI helpers
   meterDefaultsUI: Array<{ key: string; label: string; options: string[] }> = [];
   ctDefaultsUI: Array<{ key: string; label: string; options: string[] }> = [];
 
@@ -115,10 +115,8 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   // Lab
   labId: number | null = null;
 
-  // Quick manual add (Meters)
+  // Quick manual add
   quick = { serial: '' };
-
-  // Quick manual add (CT)
   ctQuick = { serial: '' };
   impkwhs: any;
 
@@ -126,6 +124,19 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     private deviceService: ApiServicesService,
     private inwardPdf: InwardReceiptPdfService
   ) {}
+
+  // ---------- Reusable PDF header (matches your branding/screenshot) ----------
+  private readonly pdfHeader = {
+    orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
+    labLine: 'REGINAL METERING TESTING LABORATORY INDORE',
+    addressLine: 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003',
+    email: 'testinglabwzind@gmail.com',
+    phone: '0731-2997802',
+    leftLogoUrl: '/assets/icons/wzlogo.png',
+    rightLogoUrl: '/assets/icons/wzlogo.png',
+    logoWidth: 36,
+    logoHeight: 36
+  };
 
   // ---------- Lifecycle ----------
   ngOnInit(): void {
@@ -142,7 +153,6 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         this.ct_ratios = data?.ct_ratios || [];
         this.connection_types = data?.connection_types || [];
         this.voltage_ratings = data?.voltage_ratings || ['230V'];
-        // this.current_ratings = data?.current_ratings || ['5-30A', '20-40A', '20-100A'];
         this.current_ratings = data?.impkwh || [];
         this.device_testing_purpose = data?.device_testing_purposes || ['ROUTINE'];
         this.meter_subcategories = data?.meter_sub_categories || [];
@@ -152,9 +162,6 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         this.serialRange.connection_type = this.serialRange.connection_type || (this.connection_types[0] || 'LT');
         this.serialRange.phase = this.coercePhaseForConn(this.serialRange.connection_type, this.serialRange.phase);
 
-        // this.ctMeta.phase = this.coercePhaseForConn(this.ctMeta.connection_type, this.ctMeta.phase);
-
-        // Defaults for CT meta / CSV fallback
         Object.assign(this.ctMeta, {
           make: this.makes[0] || '',
           ct_class: this.ct_classes[0] || '',
@@ -165,7 +172,6 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           initiator: this.initiators[0] || 'CIS'
         });
 
-        // Defaults for meter range form
         Object.assign(this.serialRange, {
           connection_type: this.connection_types[0] || 'LT',
           phase: this.phases[0] || 'SINGLE PHASE',
@@ -180,7 +186,6 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           initiator: this.initiators[0] || 'CIS'
         });
 
-        // Build compact UI config arrays
         this.meterDefaultsUI = [
           { key: 'connection_type',        label: 'Conn. Type',  options: this.connection_types },
           { key: 'phase',                  label: 'Phase',       options: this.phases },
@@ -190,7 +195,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           { key: 'meter_category',         label: 'Category',    options: this.meter_categories },
           { key: 'meter_type',             label: 'Meter Type',  options: this.meterTypes },
           { key: 'voltage_rating',         label: 'Voltage',     options: this.voltage_ratings },
-          { key: 'current_rating',         label: 'ImpKWH',     options: this.current_ratings },
+          { key: 'current_rating',         label: 'ImpKWH',      options: this.current_ratings },
           { key: 'device_testing_purpose', label: 'Purpose',     options: this.device_testing_purpose },
           { key: 'initiator',              label: 'Initiator',   options: this.initiators }
         ];
@@ -203,7 +208,6 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           { key: 'initiator',              label: 'Initiator',   options: this.initiators }
         ];
 
-        // Lab ID from storage / token
         const labIdStr = localStorage.getItem('currentLabId') ?? localStorage.getItem('lab_id');
         if (labIdStr && !isNaN(Number(labIdStr))) {
           this.labId = Number(labIdStr);
@@ -221,17 +225,14 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       error: () => this.showAlert('Error', 'Failed to load dropdown data.')
     });
   }
-// When connection type changes on the defaults strip (top of Meters tab)
-onDefaultsConnectionTypeChange(): void {
-  const conn = this.serialRange.connection_type;
-  this.serialRange.phase = this.coercePhaseForConn(conn, this.serialRange.phase);
-}
 
-// When connection type changes for a specific meter row
-onRowConnectionTypeChange(device: DeviceRow): void {
-  device.phase = this.coercePhaseForConn(device.connection_type, device.phase);
-}
-
+  onDefaultsConnectionTypeChange(): void {
+    const conn = this.serialRange.connection_type;
+    this.serialRange.phase = this.coercePhaseForConn(conn, this.serialRange.phase);
+  }
+  onRowConnectionTypeChange(device: DeviceRow): void {
+    device.phase = this.coercePhaseForConn(device.connection_type, device.phase);
+  }
 
   ngAfterViewInit(): void {
     const modalEl = document.getElementById('alertModal');
@@ -315,61 +316,54 @@ onRowConnectionTypeChange(device: DeviceRow): void {
       remark: null
     });
   }
-
   removeDevice(index: number): void { this.devices.splice(index, 1); }
   clearMeters(): void { this.devices = []; }
 
-// ---------- CSV (Meters): only serial_number required ----------
-handleCSVUpload(event: any): void {
-  const file = event?.target?.files?.[0];
-  if (!file) return;
+  // ---------- CSV (Meters): only serial_number required ----------
+  handleCSVUpload(event: any): void {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = (e: any) => {
-    const text = (e.target.result as string) || '';
-    // Normalize line endings & strip BOM
-    const clean = text.replace(/^\uFEFF/, '').trim();
-    if (!clean) return;
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const text = (e.target.result as string) || '';
+      const clean = text.replace(/^\uFEFF/, '').trim();
+      if (!clean) return;
 
-    const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    if (!lines.length) return;
+      const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (!lines.length) return;
 
-    // Detect if header present by checking for the word serial in first line
-    const hasHeader = /^serial(_|\s|-)?number/i.test(lines[0]) || /^serial/i.test(lines[0]);
-    const dataLines = hasHeader ? lines.slice(1) : lines;
+      const hasHeader = /^serial(_|\s|-)?number/i.test(lines[0]) || /^serial/i.test(lines[0]);
+      const dataLines = hasHeader ? lines.slice(1) : lines;
 
-    for (const raw of dataLines) {
-      if (!raw) continue;
+      for (const raw of dataLines) {
+        if (!raw) continue;
+        const cols = raw.split(',').map(c => c.trim());
+        const serial_number = (cols[0] || '').trim();
+        if (!serial_number) continue;
+        if (this.devices.some(d => (d.serial_number || '').trim() === serial_number)) continue;
 
-      // Support both single-column and legacy multi-column CSVs
-      const cols = raw.split(',').map(c => c.trim());
-      const serial_number = (cols[0] || '').trim();
-
-      if (!serial_number) continue;
-      if (this.devices.some(d => (d.serial_number || '').trim() === serial_number)) continue;
-      // Push with dropdown/default values
-      this.devices.push({
-        serial_number,
-        make: this.serialRange.make,
-        capacity: this.serialRange.capacity,
-        phase: this.serialRange.phase,
-        connection_type: this.serialRange.connection_type,
-        meter_category: this.serialRange.meter_category,
-        meter_class: (this.serialRange.meter_class || '').trim() || null,
-        meter_type: this.serialRange.meter_type,
-        voltage_rating: this.serialRange.voltage_rating,
-        current_rating: this.serialRange.current_rating,
-        device_testing_purpose: this.serialRange.device_testing_purpose || this.meterDefaultPurpose,
-        initiator: this.serialRange.initiator || this.initiators[0] || 'CIS',
-        remark: null,
-        ct_class: (cols[12] || '').trim() || null,
-        ct_ratio: (cols[13] || '').trim() || null,
-      });
-    }
-  };
-  reader.readAsText(file);
-}
-
+        this.devices.push({
+          serial_number,
+          make: this.serialRange.make,
+          capacity: this.serialRange.capacity,
+          phase: this.serialRange.phase,
+          connection_type: this.serialRange.connection_type,
+          meter_category: this.serialRange.meter_category,
+          meter_class: (this.serialRange.meter_class || '').trim() || null,
+          meter_type: this.serialRange.meter_type,
+          voltage_rating: this.serialRange.voltage_rating,
+          current_rating: this.serialRange.current_rating,
+          device_testing_purpose: this.serialRange.device_testing_purpose || this.meterDefaultPurpose,
+          initiator: this.serialRange.initiator || this.initiators[0] || 'CIS',
+          remark: null,
+          ct_class: (cols[12] || '').trim() || null,
+          ct_ratio: (cols[13] || '').trim() || null,
+        });
+      }
+    };
+    reader.readAsText(file);
+  }
 
   addSerialRange(): void {
     const { start, end } = this.serialRange;
@@ -378,10 +372,10 @@ handleCSVUpload(event: any): void {
       return;
     }
     for (let i = Number(start); i <= Number(end); i++) {
-        const sn = i.toString();
-        if (this.devices.some(d => (d.serial_number || '').trim() === sn)) continue;
+      const sn = i.toString();
+      if (this.devices.some(d => (d.serial_number || '').trim() === sn)) continue;
       this.devices.push({
-        serial_number:sn,
+        serial_number: sn,
         make: this.serialRange.make,
         capacity: this.serialRange.capacity,
         phase: this.serialRange.phase,
@@ -413,7 +407,6 @@ handleCSVUpload(event: any): void {
       remark: ''
     });
   }
-
   removeCT(index: number): void { this.cts.splice(index, 1); }
   clearCTs(): void { this.cts = []; }
 
@@ -424,8 +417,8 @@ handleCSVUpload(event: any): void {
       return;
     }
     for (let i = Number(start); i <= Number(end); i++) {
-        const sn = i.toString();
-        if (this.cts.some(ct => (ct.serial_number || '').trim() === sn)) continue;
+      const sn = i.toString();
+      if (this.cts.some(ct => (ct.serial_number || '').trim() === sn)) continue;
       this.cts.push({
         serial_number: sn,
         ct_class: (ct_class || '').trim() || null,
@@ -440,46 +433,44 @@ handleCSVUpload(event: any): void {
     this.ctRange = this.defaultCtRange();
   }
 
-// ---------- CSV (CTs): only serial_number required ----------
-handleCTCSVUpload(event: any): void {
-  const file = event?.target?.files?.[0];
-  if (!file) return;
+  // ---------- CSV (CTs): only serial_number required ----------
+  handleCTCSVUpload(event: any): void {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = (e: any) => {
-    const text = (e.target.result as string) || '';
-    const clean = text.replace(/^\uFEFF/, '').trim();
-    if (!clean) return;
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const text = (e.target.result as string) || '';
+      const clean = text.replace(/^\uFEFF/, '').trim();
+      if (!clean) return;
 
-    const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    if (!lines.length) return;
+      const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (!lines.length) return;
 
-    // Detect header
-    const hasHeader = /^serial(_|\s|-)?number/i.test(lines[0]) || /^serial/i.test(lines[0]);
-    const dataLines = hasHeader ? lines.slice(1) : lines;
+      const hasHeader = /^serial(_|\s|-)?number/i.test(lines[0]) || /^serial/i.test(lines[0]);
+      const dataLines = hasHeader ? lines.slice(1) : lines;
 
-    for (const raw of dataLines) {
-      if (!raw) continue;
+      for (const raw of dataLines) {
+        if (!raw) continue;
+        const cols = raw.split(',').map(c => c.trim());
+        const serial_number = (cols[0] || '').trim();
+        if (!serial_number) continue;
+        if (this.cts.some(ct => (ct.serial_number || '').trim() === serial_number)) continue;
 
-      const cols = raw.split(',').map(c => c.trim());
-      const serial_number = (cols[0] || '').trim();
-      if (!serial_number) continue;
-      if (this.cts.some(ct => (ct.serial_number || '').trim() === serial_number)) continue;
-      this.cts.push({
-        serial_number,
-        ct_class: (this.ctMeta.ct_class || '').trim() || null,
-        ct_ratio: (this.ctMeta.ct_ratio || '').trim() || null,
-        make: this.ctMeta.make,
-        connection_type: this.ctMeta.connection_type,
-        device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
-        initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
-        remark: ''
-      });
-    }
-  };
-  reader.readAsText(file);
-}
-
+        this.cts.push({
+          serial_number,
+          ct_class: (this.ctMeta.ct_class || '').trim() || null,
+          ct_ratio: (this.ctMeta.ct_ratio || '').trim() || null,
+          make: this.ctMeta.make,
+          connection_type: this.ctMeta.connection_type,
+          device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
+          initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
+          remark: ''
+        });
+      }
+    };
+    reader.readAsText(file);
+  }
 
   // ---------- Validation helpers ----------
   private ensureSourceSelected(): boolean {
@@ -489,7 +480,6 @@ handleCTCSVUpload(event: any): void {
     }
     return true;
   }
-
   private ensureLabId(): boolean {
     if (this.labId === null || isNaN(Number(this.labId))) {
       this.showAlert('Missing Lab', 'lab_id not found. Please re-login so we can identify your lab.');
@@ -497,13 +487,10 @@ handleCTCSVUpload(event: any): void {
     }
     return true;
   }
-
   private todayISO(): string {
     const d = new Date();
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   }
-
-  // Small helper: treat blank as OK (will become null) and skip check if list empty
   private in(list: string[], v?: string | null) {
     return !v || !list.length || list.includes(v);
   }
@@ -515,8 +502,7 @@ handleCTCSVUpload(event: any): void {
       return;
     }
     if (!this.ensureSourceSelected() || !this.ensureLabId()) return;
-    
-    // Use values as-is (only trim serial & remark / convert blanks later)
+
     const cleaned = this.devices
       .map((d: DeviceRow, idx: number) => ({
         __row: idx + 1,
@@ -543,7 +529,6 @@ handleCTCSVUpload(event: any): void {
       return;
     }
 
-    // Optional pre-submit enum guard
     const bad = cleaned.filter(r =>
       !this.in(this.capacities, r.capacity) ||
       !this.in(this.phases, r.phase) ||
@@ -584,50 +569,54 @@ handleCTCSVUpload(event: any): void {
       initiator: d.initiator
     }));
 
-this.deviceService.addnewdevice(payload).subscribe({
-  next: (created: any): void => {
-    const inwardNo = created?.[0]?.inward_number || '(generated)';
-    this.showAlert('Success', `Meters added! Inward No: ${inwardNo} • Count: ${created.length}`);
+    this.deviceService.addnewdevice(payload).subscribe({
+      next: (created: any): void => {
+        const inwardNo = created?.[0]?.inward_number || '(generated)';
+        this.showAlert('Success', `Meters added! Inward No: ${inwardNo} • Count: ${created.length}`);
 
-    const items: InwardReceiptItem[] = created.map((p: any, idx: number) => ({
-      sl: idx + 1,
-      serial_number: p.serial_number,
-      make: p.make,
-      capacity: p.capacity ?? '',
-      phase: p.phase ?? '',
-      connection_type: p.connection_type ?? '',
-      meter_category: p.meter_category ?? '',
-      meter_type: p.meter_type ?? '',
-      voltage_rating: p.voltage_rating ?? '',
-      current_rating: p.current_rating ?? '',
-      purpose: p.device_testing_purpose,
-      remark: p.remark || ''
-    }));
+        const items: InwardReceiptItem[] = created.map((p: any, idx: number) => ({
+          sl: idx + 1,
+          serial_number: p.serial_number,
+          make: p.make,
+          capacity: p.capacity ?? '',
+          phase: p.phase ?? '',
+          connection_type: p.connection_type ?? '',
+          meter_category: p.meter_category ?? '',
+          meter_type: p.meter_type ?? '',
+          voltage_rating: p.voltage_rating ?? '',
+          current_rating: p.current_rating ?? '',
+          purpose: p.device_testing_purpose,
+          remark: p.remark || ''
+        }));
 
-    const receipt: InwardReceiptData = {
-      title: 'RMTL Inward Receipt',
-      orgName: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd',
-      lab_id: this.labId ?? undefined,
-      office_type: this.selectedSourceType,
-      location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
-      location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
-      inward_no: inwardNo,
-      date_of_entry: this.todayISO(),
-      device_type: 'METER',
-      total: items.length,
-      items,
-      serials_csv: items.map(i => i.serial_number).join(', ')
-    };
+        const receipt: InwardReceiptData = {
+          lab_id: this.labId ?? undefined,
+          office_type: this.selectedSourceType,
+          location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
+          location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
+          inward_no: inwardNo,
+          date_of_entry: this.todayISO(),
+          device_type: 'METER',
+          total: items.length,
+          items,
+          serials_csv: items.map(i => i.serial_number).join(', ')
+        };
 
-    this.inwardPdf.download(receipt, { fileName: `Inward_Receipt_METER_${this.todayISO()}.pdf` });
-    this.devices = [];
-  },
-  error: (err) => {
-    const msg = err?.error?.detail || 'Error while submitting meters.';
-    this.showAlert('Error', msg);
-  }
-});
-
+        this.inwardPdf.download(
+          receipt,
+          {
+            fileName: `Inward_Receipt_METER_${this.todayISO()}.pdf`,
+            header: this.pdfHeader,
+            showItemsTable: true
+          }
+        );
+        this.devices = [];
+      },
+      error: (err) => {
+        const msg = err?.error?.detail || 'Error while submitting meters.';
+        this.showAlert('Error', msg);
+      }
+    });
   }
 
   // ---------- Submit: CTs ----------
@@ -657,7 +646,6 @@ this.deviceService.addnewdevice(payload).subscribe({
       return;
     }
 
-    // Optional pre-submit enum guard
     const bad = cleaned.filter(r =>
       !this.in(this.connection_types, r.connection_type) ||
       !this.in(this.initiators, r.initiator)
@@ -690,48 +678,51 @@ this.deviceService.addnewdevice(payload).subscribe({
       date_of_entry: this.todayISO(),
       initiator: ct.initiator
     }));
-this.deviceService.addnewdevice(payload).subscribe({
-  next: (created: any): void => {
-    const inwardNo = created?.[0]?.inward_number || '(generated)';
-    this.showAlert('Success', `CTs added! Inward No: ${inwardNo} • Count: ${created.length}`);
 
-    const items: InwardReceiptItem[] = created.map((p: any, idx: number) => ({
-      sl: idx + 1,
-      serial_number: p.serial_number,
-      make: p.make,
-      connection_type: p.connection_type ?? '',
-      ct_class: p.ct_class ?? '',
-      ct_ratio: p.ct_ratio ?? '',
-      purpose: p.device_testing_purpose,
-      remark: p.remark || ''
-    }));
+    this.deviceService.addnewdevice(payload).subscribe({
+      next: (created: any): void => {
+        const inwardNo = created?.[0]?.inward_number || '(generated)';
+        this.showAlert('Success', `CTs added! Inward No: ${inwardNo} • Count: ${created.length}`);
 
-    const receipt: InwardReceiptData = {
-      title: 'RMTL Inward Receipt',
-      orgName: 'M.P. Paschim Kshetra Vidyut Vitran Co. Ltd',
-      lab_id: this.labId ?? undefined,
-      office_type: this.selectedSourceType,
-      location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
-      location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
-      inward_no: inwardNo,
-      date_of_entry: this.todayISO(),
-      device_type: 'CT',
-      total: items.length,
-      items,
-      serials_csv: items.map(i => i.serial_number).join(', ')
-    };
+        const items: InwardReceiptItem[] = created.map((p: any, idx: number) => ({
+          sl: idx + 1,
+          serial_number: p.serial_number,
+          make: p.make,
+          connection_type: p.connection_type ?? '',
+          ct_class: p.ct_class ?? '',
+          ct_ratio: p.ct_ratio ?? '',
+          purpose: p.device_testing_purpose,
+          remark: p.remark || ''
+        }));
 
-    this.inwardPdf.download(receipt, { fileName: `Inward_Receipt_CT_${this.todayISO()}.pdf` });
-    this.cts = [];
-  },
-  error: (err) => {
-    const msg = err?.error?.detail || 'Error while submitting CTs.';
-    this.showAlert('Error', msg);
-  }
-});
+        const receipt: InwardReceiptData = {
+          lab_id: this.labId ?? undefined,
+          office_type: this.selectedSourceType,
+          location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
+          location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
+          inward_no: inwardNo,
+          date_of_entry: this.todayISO(),
+          device_type: 'CT',
+          total: items.length,
+          items,
+          serials_csv: items.map(i => i.serial_number).join(', ')
+        };
 
-
-  
+        this.inwardPdf.download(
+          receipt,
+          {
+            fileName: `Inward_Receipt_CT_${this.todayISO()}.pdf`,
+            header: this.pdfHeader,
+            showItemsTable: true
+          }
+        );
+        this.cts = [];
+      },
+      error: (err) => {
+        const msg = err?.error?.detail || 'Error while submitting CTs.';
+        this.showAlert('Error', msg);
+      }
+    });
   }
 
   // ---------- Duplicates ----------
@@ -744,22 +735,20 @@ this.deviceService.addnewdevice(payload).subscribe({
   }
 
   // ---------- CSV Templates ----------
-downloadMeterCSVTemplate(): void {
-  const header = 'serial_number\n'; // only serial now
-  const blob = new Blob([header], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'meter_template.csv'; a.click();
-  URL.revokeObjectURL(url);
-}
-
-downloadCTCSVTemplate(): void {
-  const header = 'serial_number\n'; // only serial now
-  const blob = new Blob([header], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'ct_template.csv'; a.click();
-  URL.revokeObjectURL(url);
-}
-
+  downloadMeterCSVTemplate(): void {
+    const header = 'serial_number\n';
+    const blob = new Blob([header], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'meter_template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+  downloadCTCSVTemplate(): void {
+    const header = 'serial_number\n';
+    const blob = new Blob([header], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'ct_template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
 
   // ---------- Modal helper ----------
   showAlert(title: string, message: string): void {
@@ -791,35 +780,28 @@ downloadCTCSVTemplate(): void {
     };
   }
 
-  // ---------- Add below your enums/arrays ----------
+  // Map of allowed phases by connection type
+  private PhaseByConn: Record<string, string[]> = {
+    LT: [
+      'SINGLE PHASE',
+      'THREE PHASE WHOLE CURRENT',
+      'THREE PHASE CT OPERATED'
+    ],
+    HT: [
+      'CT OPERATED',
+      'PT OPERATED'
+    ],
+    OTHER: ['OTHER']
+  };
 
-// Map Connection → allowed Phase values (using your exact strings)
-private PhaseByConn: Record<string, string[]> = {
-  LT: [
-    'SINGLE PHASE',
-    'THREE PHASE WHOLE CURRENT',
-    'THREE PHASE CT OPERATED'
-  ],
-  HT: [
-    'CT OPERATED',
-    'PT OPERATED'
-  ],
-  OTHER: [
-    'OTHER'
-  ]
-};
+  getPhaseOptions(connType?: string): string[] {
+    const base = (connType && this.PhaseByConn[connType]) ? this.PhaseByConn[connType] : this.phases;
+    return base.filter(p => this.phases.includes(p));
+  }
 
-// Return phase options for a given connection type, or all phases
-getPhaseOptions(connType?: string): string[] {
-  const base = (connType && this.PhaseByConn[connType]) ? this.PhaseByConn[connType] : this.phases;
-  return base.filter(p => this.phases.includes(p));
-}
-
-// Ensure a (conn, phase) pair is valid. If not, fix it to the first allowed phase.
-private coercePhaseForConn(connType: string, currentPhase?: string | null): string {
-  const allowed = this.getPhaseOptions(connType);
-  if (!allowed.length) return currentPhase || '';
-  return currentPhase && allowed.includes(currentPhase) ? currentPhase : allowed[0];
-}
-
+  private coercePhaseForConn(connType: string, currentPhase?: string | null): string {
+    const allowed = this.getPhaseOptions(connType);
+    if (!allowed.length) return currentPhase || '';
+    return currentPhase && allowed.includes(currentPhase) ? currentPhase : allowed[0];
+  }
 }
