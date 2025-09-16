@@ -29,7 +29,7 @@ export interface StopDefMeta {
   testing_bench?: string;
   testing_user?: string;
   approving_user?: string;
-  lab?: StopDefLabInfo;
+  lab?: StopDefLabInfo;  
 }
 export interface PdfLogos {
   leftLogoUrl?: string;   // e.g. '/assets/icons/wzlogo.png'

@@ -256,3 +256,27 @@ export interface TestingStatusAgg {
   total: number;
   test_status: TestingStatusAgg;
 }
+
+
+export interface OfficeReport {
+  id: number;
+  code: string;
+  name: string;
+
+  org_code: string | null;
+  org_name: string | null;
+
+  region_code: string | null;
+  region_name: string | null;
+
+  circle_code: string | null;
+  circle_name: string | null;
+
+  division_code: string | null;
+  division_name: string | null;
+
+  created_at: string;
+  created_by: number;
+  updated_at: string;
+  updated_by: number;
+}

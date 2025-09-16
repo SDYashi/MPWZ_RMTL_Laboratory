@@ -32,22 +32,26 @@
       <!-- Filters -->
       <div class="border rounded-3 p-3 p-md-4 mb-3 bg-light-subtle">
         <div class="row g-3 align-items-end">
-          <div class="col-12 col-md-4">
+          <div class="col-12 col-md-3">
             <label class="form-label fw-semibold">From</label>
             <input type="date" class="form-control" [(ngModel)]="filters.from" (change)="onDateChanged()">
           </div>
 
-          <div class="col-12 col-md-4">
+          <div class="col-12 col-md-3">
             <label class="form-label fw-semibold">To</label>
             <input type="date" class="form-control" [(ngModel)]="filters.to" (change)="onDateChanged()">
           </div>
 
-          <div class="col-12 col-md-4">
+          <div class="col-12 col-md-3">
             <label class="form-label fw-semibold">Report Type</label>
             <select class="form-select" [(ngModel)]="filters.report_type" (change)="onReportTypeChanged()">
               <option value="">All</option>
               <option *ngFor="let rt of reportTypes" [value]="rt">{{ rt }}</option>
             </select>
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label fw-semibold">Search by Serial No.</label>
+            <input type="text" class="form-control" placeholder="Search by serial no" [(ngModel)]="search_serial" (keydown.enter)="onSearchChanged()">
           </div>
         </div>
 
@@ -100,12 +104,16 @@
             <tr *ngFor="let r of pageRows; let i=index" class="align-middle">
               <td class="text-muted">{{ (page-1)*pageSize + i + 1 }}</td>
                 <td>
-                  <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
-                          (click)="downloadTestreports_byreportidwithReportTypes(r.report_id || r.testing?.report_id, r.report_type)"
-                          title="Download PDF Report">
-                    <i class="fas fa-file-pdf"></i>
-                    <span>{{ r.report_id || r.testing?.report_id }}</span>
-                  </button>
+                    <button class="btn btn-outline-primary btn-sm d-flex align-items-center"
+                            (click)="downloadTestreports_byreportidwithReportTypes(
+                              (r.report_id || r.testing?.report_id)!,
+                              (r.report_type || r.testing?.report_type)!
+                            )"
+                            [disabled]="!(r.report_id || r.testing?.report_id) || !(r.report_type || r.testing?.report_type)"
+                            title="Download PDF Report">
+                      <i class="fas fa-file-pdf"></i>
+                      <span>{{ r.report_id || r.testing?.report_id }}</span>
+                    </button>
                 </td>
             
   

@@ -1,0 +1,35 @@
+/* Base cards */
+.card { border-radius: 1rem; transition: transform .2s ease, box-shadow .2s ease; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 .75rem 1.5rem rgba(0,0,0,.08); }
+
+/* Stat cards */
+.stat-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(0,0,0,.05);
+  background: #fff;
+}
+.stat-label { font-size: .8rem; letter-spacing: .02em; color: rgba(0,0,0,.6); }
+.stat-value { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+
+/* Colorful variant */
+.stat-card.colorful .stat-label { color: rgba(255,255,255,.9); }
+.stat-card.colorful .stat-value { color: #fff; }
+
+/* Glass tag */
+.card-glass {
+  background: rgba(255,255,255,0.15);
+  border-radius: .5rem;
+  padding: .15rem .5rem;
+  color: #fff;
+}
+
+/* Gradient palettes */
+.bg-grad-primary  { background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; }
+.bg-grad-success  { background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff; }
+.bg-grad-info     { background: linear-gradient(135deg, #0ea5e9, #38bdf8); color: #fff; }
+.bg-grad-warning  { background: linear-gradient(135deg, #eab308, #f59e0b); color: #1f2937; }
+.bg-grad-danger   { background: linear-gradient(135deg, #ef4444, #f87171); color: #fff; }
+.bg-grad-secondary{ background: linear-gradient(135deg, #64748b, #94a3b8); color: #fff; }
+
+/* Placeholders rounded */
+.placeholder { border-radius: .5rem; }

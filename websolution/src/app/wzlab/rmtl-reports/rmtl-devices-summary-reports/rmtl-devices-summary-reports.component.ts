@@ -1,4 +1,6 @@
 import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { ApiServicesService } from 'src/app/services/api-services.service';
 
 interface DeviceSummaryRow {
   device_type: 'METER' | 'CT';
@@ -16,6 +18,11 @@ interface DeviceSummaryRow {
   available_stock: number;
 }
 
+interface Lab {
+  id: number;
+  name: string;
+}
+
 @Component({
   selector: 'app-rmtl-devices-summary-reports',
   templateUrl: './rmtl-devices-summary-reports.component.html',
@@ -27,27 +34,61 @@ export class RmtlDevicesSummaryReportsComponent implements OnInit {
     from: '',
     to: '',
     device_type: '',
-    search: ''
+    search: '',
+    lab_id: ''   // new filter
   };
 
-  reportAll: DeviceSummaryRow[] = [
-    { device_type: 'METER', make: 'Genus', meter_category: 'Cat A', phase: '1P', meter_type: 'DLMS', total_received: 200, tested: 180, passed: 170, failed: 10, dispatched: 150, available_stock: 50 },
-    { device_type: 'METER', make: 'Secure', meter_category: 'Cat B', phase: '3P', meter_type: 'Modbus', total_received: 100, tested: 95, passed: 92, failed: 3, dispatched: 80, available_stock: 20 },
-    { device_type: 'CT', make: 'ABB', ct_class: '0.5', ct_ratio: '200/5', total_received: 60, tested: 55, passed: 54, failed: 1, dispatched: 50, available_stock: 10 },
-    { device_type: 'CT', make: 'Siemens', ct_class: '1.0', ct_ratio: '400/5', total_received: 40, tested: 38, passed: 36, failed: 2, dispatched: 35, available_stock: 5 }
-  ];
+  labs: any; // lab dropdown options
 
+  reportAll: DeviceSummaryRow[] = [];
   reportFiltered: DeviceSummaryRow[] = [];
   totals = { total_received: 0, tested: 0, passed: 0, failed: 0, dispatched: 0, available_stock: 0 };
-
   summaryCards: { label: string; value: number }[] = [];
 
+  constructor(private api: ApiServicesService, private http: HttpClient) {}
+
   ngOnInit(): void {
-    this.applyFilters();
+    this.loadLabs();
+    this.loadReport();
+  }
+
+  loadLabs(): void {
+    this.api.getLabs().subscribe({
+      next: (response) => { this.labs = response || []; },
+      error: (error)    => { console.error(error); }
+    });
+  }
+
+  loadReport(): void {
+    const params: any = {};
+    if (this.filters.lab_id) params.lab_id = this.filters.lab_id;
+
+    this.http.get<any[]>('/api/reports/all/device-summary-report/', { params }).subscribe({
+      next: res => {
+        this.reportAll = res.map(r => ({
+          device_type: r.device_type,
+          make: r.make,
+          meter_category: r.meter_category,
+          phase: r.phase,
+          meter_type: r.meter_type,
+          ct_class: r.ct_class,
+          ct_ratio: r.ct_ratio,
+          total_received: r.count,   // map count → total_received
+          tested: 0,
+          passed: 0,
+          failed: 0,
+          dispatched: 0,
+          available_stock: r.count   // assume all in stock initially
+        }));
+        this.applyFilters();
+      },
+      error: err => console.error('Error loading report', err)
+    });
   }
 
   applyFilters(): void {
     const term = (this.filters.search || '').trim().toLowerCase();
+
     this.reportFiltered = this.reportAll.filter(r => {
       const typeOk = this.filters.device_type ? r.device_type === this.filters.device_type : true;
       const searchOk = term ? [
@@ -65,8 +106,8 @@ export class RmtlDevicesSummaryReportsComponent implements OnInit {
   }
 
   resetFilters(): void {
-    this.filters = { from: '', to: '', device_type: '', search: '' };
-    this.applyFilters();
+    this.filters = { from: '', to: '', device_type: '', search: '', lab_id: '' };
+    this.loadReport();
   }
 
   computeTotals(): void {

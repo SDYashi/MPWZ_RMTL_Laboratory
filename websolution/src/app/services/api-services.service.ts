@@ -509,8 +509,8 @@ getAssignmentStatus(query: string = ''): Observable<any> {
 }
 
 // reports api list
-getLabReportUsageStock(lab_id: number) {
-  return this.http.get<any>(`${this.baseUrl}/reports/lab-report-usage-stock/${lab_id}`);
+getLabReportUsageStock(query: string) {
+  return this.http.get<any>(`${this.baseUrl}/reports/lab-report-usage-stock/?${query}`);
 }
 getdailytestingreport(start_date: string, end_date: string) {
   return this.http.get<any>(`${this.baseUrl}/reports/daily-testing-report/?start_date=${start_date}&end_date=${end_date}`);
@@ -518,5 +518,17 @@ getdailytestingreport(start_date: string, end_date: string) {
 getdevicesummaryreports(){
   return this.http.get<any>(`${this.baseUrl}/reports/all/device-summary-report/`);
 }
+
+changePassword(current_password: string, new_password: string) {
+  return this.http.put<any>(`${this.baseUrl}/users/change-password/`, { current_password, new_password });
+}
+getofficelist() {
+  return this.http.get<any>(`${this.baseUrl}/reports/offices/`);  
+}
+
+gettestingstatusdashboard() {
+  return this.http.get<any>(`${this.baseUrl}/dashboard/testing-status/`);  
+}
+
 
 }

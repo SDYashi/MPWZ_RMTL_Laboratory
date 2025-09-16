@@ -20,20 +20,7 @@ interface DashboardCounts {
   pending_approvals: number;
 }
 
-interface AssignmentHistory {
-  id: number;
-  user_id: number;
-  device_id: number;
-  assigned_by: number;
-  assigned_datetime: string; // ISO
-  assignment_status: 'ASSIGNED' | 'TESTED' | 'APPROVED' | string;
-}
 
-interface AssignmentsSummary {
-  total_assignments: number;
-  userwise_count: { user_id: number; count: number }[];
-  recent_assignment_history: AssignmentHistory[];
-}
 
 interface DeviceLite {
   id: number;
@@ -95,7 +82,7 @@ export class RmtlDashboardComponent implements OnInit {
   // API data
   counts: DashboardCounts | null = null;
   testingAgg: TestingAggRow[] = [];
-  assignments: AssignmentsSummary | null = null;
+
   stock: StockStatus | null = null;
   recent: RecentHistoryResponse | null = null;
 
@@ -142,12 +129,7 @@ export class RmtlDashboardComponent implements OnInit {
       complete: () => this.loading.testing = false
     });
 
-    // assignments summary
-    this.api.getAssignmentStatusDashboard().subscribe({
-      next: (res) => { this.assignments = res as AssignmentsSummary; },
-      error: () => { this.assignments = { total_assignments: 0, userwise_count: [], recent_assignment_history: [] }; },
-      complete: () => this.loading.assignments = false
-    });
+
 
     // stock status
     this.api.getStockStatusDashboard().subscribe({
@@ -214,14 +196,7 @@ export class RmtlDashboardComponent implements OnInit {
     return Math.round((this.testingCompleted / denom) * 100);
   }
 
-  /** Assignment metrics */
-  get assignmentStatusCounts(): Record<string, number> {
-    const map: Record<string, number> = {};
-    (this.assignments?.recent_assignment_history || []).forEach(h => {
-      map[h.assignment_status] = (map[h.assignment_status] || 0) + 1;
-    });
-    return map;
-  }
+
 
   /** Recent history helpers */
   get deviceStatuses(): StatusRow[] {

@@ -155,3 +155,13 @@
 .bg-soft-secondary { background: rgba(108,117,125,.12) !important; color: #6c757d !important; }
 .bg-soft-info      { background: rgba(13,202,240,.1) !important; color: #0dcaf0 !important; }
 .bg-soft-dark      { background: rgba(33,37,41,.12) !important; color: #212529 !important; }  
+
+
+.card {
+  border-radius: 1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+}

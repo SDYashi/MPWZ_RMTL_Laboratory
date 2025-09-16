@@ -6,13 +6,15 @@ import { RmtlUsageStockReportsComponent } from './rmtl-usage-stock-reports/rmtl-
 import { RmtlDailyTestingReportsComponent } from './rmtl-daily-testing-reports/rmtl-daily-testing-reports.component';
 import { RmtlDevicesSummaryReportsComponent } from './rmtl-devices-summary-reports/rmtl-devices-summary-reports.component';
 import { FormsModule } from '@angular/forms';
+import { RmtlListOfOfficeReportsComponent } from './rmtl-list-of-office-reports/rmtl-list-of-office-reports.component';
 
 
 @NgModule({
   declarations: [
     RmtlUsageStockReportsComponent,
     RmtlDailyTestingReportsComponent,
-    RmtlDevicesSummaryReportsComponent
+    RmtlDevicesSummaryReportsComponent,
+    RmtlListOfOfficeReportsComponent
   ],
   imports: [
     CommonModule,

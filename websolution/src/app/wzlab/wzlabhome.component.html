@@ -177,6 +177,8 @@
              id="userAssignments">
           <div class="submenu d-flex flex-column">
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])"
+               routerLink="/wzlab/assignement/view-assignment-dashboard" routerLinkActive="active">Assignment Dashboard</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])"
                routerLink="/wzlab/assignement/assign-to-user" routerLinkActive="active">Meters Assignment</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])"
                routerLink="/wzlab/assignement/edit-assignment" routerLinkActive="active">Edit Meter Assignments</a>
@@ -195,7 +197,7 @@
                 (keydown.space)="toggleSection('receivedDispatch')"
                 [attr.aria-expanded]="sections['receivedDispatch'] || isRouteActive(['/wzlab/devices', '/wzlab/getpass'])"
                 [attr.aria-controls]="'receivedDispatch'">
-          <span><i class="fas fa-box-open me-2"></i><span class="menu-text">Received/Dispatch Items</span></span>
+          <span><i class="fas fa-box-open me-2"></i><span class="menu-text">Inward/Dispatch Devices</span></span>
           <i class="fas fa-chevron-down chevron"></i>
         </button>
         <div class="collapse"
@@ -223,13 +225,15 @@
                 (keydown.space)="toggleSection('testingActivities')"
                 [attr.aria-expanded]="sections['testingActivities'] || isRouteActive(['/wzlab/testing'])"
                 [attr.aria-controls]="'testingActivities'">
-          <span><i class="fas fa-cogs me-2"></i><span class="menu-text">Generate Meter/CT Testing</span></span>
+          <span><i class="fas fa-cogs me-2"></i><span class="menu-text">Generate Devices TestReports</span></span>
           <i class="fas fa-chevron-down chevron"></i>
         </button>
         <div class="collapse"
              [class.show]="sections['testingActivities'] || isRouteActive(['/wzlab/testing'])"
              id="testingActivities">
           <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
+               routerLink="/wzlab/testing/view-testing-dashboard" routerLinkActive="active">Testing Dashboard</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
                routerLink="/wzlab/testing/add-testreports/stop-defective-testing" routerLinkActive="active">StopDefective Reports</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','TESTING_ASSISTANT'])"
@@ -304,7 +308,16 @@
           <div class="submenu d-flex flex-column">
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
-               routerLink="/wzlab/reports/view-usage-stock-reports">Usage & Stock Reports</a>
+               routerLink="/wzlab/reports/view-usage-stock-reports">Usage & Stock Summary Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
+               routerLink="/wzlab/reports/view-daily-testing-reports">Daily Testing Summary Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
+               routerLink="/wzlab/reports/view-devices-summary-reports">Device Summary Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
+               routerLink="/wzlab/reports/view-list-of-office-reports">List of All Offfices Reports</a>
           </div>
         </div>
       </li>
@@ -323,7 +336,7 @@
       </div>
 
       <!-- Profile Dropdown -->
-      <div class="dropdown">
+      <!-- <div class="dropdown">
         <button class="btn user-btn dropdown-toggle d-flex align-items-center text-white"
                 type="button"
                 id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -339,7 +352,34 @@
             <i class="fas fa-sign-out-alt me-2"></i>Logout</a>
           </li>
         </ul>
-      </div>
+      </div> -->
+    <div class="dropdown" [class.show]="isDropdownOpen">
+  <button class="btn user-btn dropdown-toggle d-flex align-items-center text-white"
+          type="button"
+          id="profileDropdown"
+          (click)="toggleDropdown()">
+    <i class="fas fa-user-circle me-2" aria-hidden="true"></i>
+    <span class="d-none d-md-block fw-bold m-1">
+      {{ (currentUserName || 'User') | titlecase }}
+    </span>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end mt-1" 
+      [class.show]="isDropdownOpen" 
+      aria-labelledby="profileDropdown">
+    <li>
+      <a class="dropdown-item" routerLink="/wzlab/user/user-profile">
+        <i class="fas fa-user me-2"></i>Profile
+      </a>
+    </li>
+    <li><hr class="dropdown-divider"></li>
+    <li>
+      <a class="dropdown-item" (click)="logout()">
+        <i class="fas fa-sign-out-alt me-2"></i>Logout
+      </a>
+    </li>
+  </ul>
+</div>
+
     </nav>
 
     <!-- Mobile overlay to close sidebar -->

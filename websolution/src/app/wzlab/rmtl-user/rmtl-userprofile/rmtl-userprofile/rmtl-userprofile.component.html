@@ -3,21 +3,22 @@
     <div class="card-header d-flex justify-content-between align-items-center text-white" style="background:#151433">
       <h5 class="mb-0">My Profile</h5>
       <div class="d-flex align-items-center gap-2">
-        <span *ngIf="user" class="badge" [ngClass]="statusBadgeClass">{{ user .status || '—' }}</span>
+        <span *ngIf="user" class="badge" [ngClass]="statusBadgeClass">{{ user?.status || '—' }}</span>
         <button class="btn btn-sm btn-outline-light" (click)="refresh()">Refresh</button>
+        <button class="btn btn-sm btn-warning" (click)="openEditProfile()" [disabled]="!user">Edit Profile</button>
+        <button class="btn btn-sm btn-danger" (click)="openChangePassword()" [disabled]="!user">Change Password</button>
       </div>
     </div>
 
     <div class="card-body">
-
       <div *ngIf="loading" class="text-center py-4">
         <div class="spinner-border" role="status" aria-hidden="true"></div>
         <div class="mt-2">Loading profile…</div>
       </div>
 
-      <div *ngIf="!loading && errorMsg" class="alert alert-danger">
-        {{ errorMsg }}
-      </div>
+      <div *ngIf="!loading && errorMsg" class="alert alert-danger">{{ errorMsg }}</div>
+      <div *ngIf="!loading && successMsg" class="alert alert-success">{{ successMsg }}</div>
+      <div *ngIf="!loading && warnMsg" class="alert alert-warning">{{ warnMsg }}</div>
 
       <ng-container *ngIf="!loading && !errorMsg && user">
         <div class="row g-4 align-items-center">
@@ -32,13 +33,13 @@
           </div>
 
           <div class="col">
-            <h4 class="mb-1">{{ user.name || user.username }}</h4>
-            <div class="text-muted mb-2">{{ user.designation || '—' }}</div>
+            <h4 class="mb-1">{{ user?.name || user?.username }}</h4>
+            <div class="text-muted mb-2">{{ user?.designation || '—' }}</div>
             <div class="d-flex flex-wrap gap-3">
-              <div><i class="fa fa-user me-1"></i><strong>Username:</strong> {{ user.username }}</div>
-              <div><i class="fa fa-envelope me-1"></i><strong>Email:</strong> {{ user.email }}</div>
-              <div><i class="fa fa-phone me-1"></i><strong>Mobile:</strong> {{ user.mobile || '—' }}</div>
-              <div><i class="fa fa-building me-1"></i><strong>Lab ID:</strong> {{ user.lab_id ?? '—' }}</div>
+              <div><i class="fa fa-user me-1"></i><strong>Username:</strong> {{ user?.username }}</div>
+              <div><i class="fa fa-envelope me-1"></i><strong>Email:</strong> {{ user?.email }}</div>
+              <div><i class="fa fa-phone me-1"></i><strong>Mobile:</strong> {{ user?.mobile || '—' }}</div>
+              <div><i class="fa fa-building me-1"></i><strong>Lab ID:</strong> {{ user?.lab_id ?? '—' }}</div>
             </div>
           </div>
         </div>
@@ -48,22 +49,22 @@
         <div class="row g-3">
           <div class="col-md-4">
             <div class="small text-muted">Created</div>
-            <div>{{ user.created_at | date:'medium' }}</div>
+            <div>{{ user?.created_at | date:'medium' }}</div>
           </div>
           <div class="col-md-4">
             <div class="small text-muted">Updated</div>
-            <div>{{ user.updated_at | date:'medium' }}</div>
+            <div>{{ user?.updated_at | date:'medium' }}</div>
           </div>
           <div class="col-md-4">
             <div class="small text-muted">Last Login</div>
-            <div>{{ user.last_login_at | date:'medium' }}</div>
+            <div>{{ user?.last_login_at | date:'medium' }}</div>
           </div>
         </div>
 
         <div class="mt-4">
           <div class="small text-muted mb-2">Roles</div>
-          <div *ngIf="user.roles.length; else noRoles" class="d-flex flex-wrap gap-2">
-            <span *ngFor="let r of user.roles" class="badge bg-primary-subtle border text-dark px-2 py-1">
+          <div *ngIf="user?.roles?.length; else noRoles" class="d-flex flex-wrap gap-2">
+            <span *ngFor="let r of user?.roles" class="badge bg-primary-subtle border text-dark px-2 py-1">
               {{ r }}
             </span>
           </div>
@@ -72,7 +73,166 @@
           </ng-template>
         </div>
       </ng-container>
+    </div>
+  </div>
+</div>
 
+<!-- Edit Profile Modal (template-driven form) -->
+<div #editProfileModalRef class="modal fade" tabindex="-1" aria-labelledby="editProfileLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0">
+      <div class="modal-header" style="background:#151433; color:#fff;">
+        <h5 class="modal-title" id="editProfileLabel">Edit Profile</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <form #profileForm="ngForm" (ngSubmit)="submitProfile(profileForm)" novalidate>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Name</label>
+              <input type="text"
+                     class="form-control"
+                     name="name"
+                     [(ngModel)]="profileModel.name"
+                     required
+                     maxlength="100"
+                     #name="ngModel">
+              <div class="text-danger small" *ngIf="name.invalid && name.touched">Name is required.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email"
+                     class="form-control"
+                     name="email"
+                     [(ngModel)]="profileModel.email"
+                     required
+                     email
+                     #email="ngModel">
+              <div class="text-danger small" *ngIf="email.invalid && email.touched">Valid email is required.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Designation</label>
+              <input type="text"
+                     class="form-control"
+                     name="designation"
+                     [(ngModel)]="profileModel.designation"
+                     maxlength="100">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Status</label>
+              <select class="form-select"
+                      name="status"
+                      [(ngModel)]="profileModel.status"
+                      required
+                      #status="ngModel">
+                <option *ngFor="let s of statuses" [ngValue]="s">{{ s }}</option>
+              </select>
+              <div class="text-danger small" *ngIf="status.invalid && status.touched">Status is required.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Mobile</label>
+              <input type="text"
+                     class="form-control"
+                     placeholder="10–15 digits"
+                     name="mobile"
+                     [(ngModel)]="profileModel.mobile"
+                     pattern="^\d{10,15}$"
+                     #mobile="ngModel">
+              <div class="text-danger small" *ngIf="mobile.invalid && mobile.touched">
+                Digits only (10–15).
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Lab ID</label>
+              <input type="number"
+                     class="form-control"
+                     name="lab_id"
+                     [(ngModel)]="profileModel.lab_id">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" type="submit" [disabled]="submittingProfile || profileForm.invalid">
+            <span class="spinner-border spinner-border-sm me-2" *ngIf="submittingProfile"></span>
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal (template-driven form) -->
+<div #changePwdModalRef class="modal fade" tabindex="-1" aria-labelledby="changePwdLabel" aria-hidden="true">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content border-0">
+      <div class="modal-header" style="background:#151433; color:#fff;">
+        <h5 class="modal-title" id="changePwdLabel">Change Password</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <form #pwdForm="ngForm" (ngSubmit)="submitPassword(pwdForm)" novalidate>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Current Password</label>
+            <input type="password"
+                   class="form-control"
+                   name="current_password"
+                   [(ngModel)]="pwdModel.current_password"
+                   required
+                   #cp="ngModel">
+            <div class="text-danger small" *ngIf="cp.invalid && cp.touched">Required.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">New Password</label>
+            <input type="password"
+                   class="form-control"
+                   name="new_password"
+                   [(ngModel)]="pwdModel.new_password"
+                   required
+                   minlength="6"
+                   #np="ngModel">
+            <div class="text-danger small" *ngIf="np.errors?.['minlength'] && np.touched">
+              Minimum 6 characters.
+            </div>
+            <div class="text-danger small" *ngIf="np.errors?.['required'] && np.touched">
+              Required.
+            </div>
+          </div>
+
+          <div class="mb-0">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password"
+                   class="form-control"
+                   name="confirm_password"
+                   [(ngModel)]="pwdModel.confirm_password"
+                   required
+                   #cnp="ngModel">
+            <div class="text-danger small" *ngIf="cnp.invalid && cnp.touched">Required.</div>
+            <div class="text-danger small" *ngIf="pwdModel.new_password && pwdModel.confirm_password && (pwdModel.new_password !== pwdModel.confirm_password)">
+              Passwords do not match.
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-danger" type="submit"
+                  [disabled]="submittingPwd || pwdForm.invalid || (pwdModel.new_password !== pwdModel.confirm_password)">
+            <span class="spinner-border spinner-border-sm me-2" *ngIf="submittingPwd"></span>
+            Change Password
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

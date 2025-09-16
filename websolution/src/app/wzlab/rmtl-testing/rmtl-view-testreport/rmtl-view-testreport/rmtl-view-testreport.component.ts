@@ -7,9 +7,11 @@ import { P4onmReportPdfService, P4ONMReportHeader, P4ONMReportRow } from 'src/ap
 import { P4VigReportPdfService, VigHeader, VigRow } from 'src/app/shared/p4vig-report-pdf.service';
 import { SolarGenMeterCertificatePdfService, GenHeader, GenRow } from 'src/app/shared/solargenmeter-certificate-pdf.service';
 import { SolarNetMeterCertificatePdfService, SolarHeader, SolarRow } from 'src/app/shared/solarnetmeter-certificate-pdf.service';
+import { StopDefectiveReportPdfService, StopDefMeta, StopDefRow } from 'src/app/shared/stopdefective-report-pdf.service';
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+// import { DomSanitizer } from '@angular/platform-browser';
 (pdfMake as any).vfs = pdfFonts.vfs;
 type TDocumentDefinition = /*unresolved*/ any;
 type DeviceType = any;   
@@ -23,8 +25,18 @@ type TestReport = any;
 })
 export class RmtlViewTestreportComponent implements OnInit {
   Math = Math;
+  search_serial = '';
 
-  constructor(private router: Router, private api: ApiServicesService) {}
+  constructor(private router: Router, 
+    private api: ApiServicesService,
+    private contestedPdf: ContestedReportPdfService,
+    private ctPdf: CtReportPdfService,
+    private p4onmPdf: P4onmReportPdfService,
+    private p4vigPdf: P4VigReportPdfService,
+    private solarGenPdf: SolarGenMeterCertificatePdfService,
+    private solarNetPdf: SolarNetMeterCertificatePdfService,
+    private stopDefPdf: StopDefectiveReportPdfService
+  ) {}
 
   // Filters & data
   reportTypes: ReportType[] = [];
@@ -106,6 +118,9 @@ export class RmtlViewTestreportComponent implements OnInit {
     }
     return { from: from!, to: to! };
   }
+  onSearchChanged(): void {
+    this.fetchFromServer(true);
+  }
 
   /** Fetch from API using server-side date range (no full dump) */
   private fetchFromServer(resetPage = false): void {
@@ -117,7 +132,7 @@ export class RmtlViewTestreportComponent implements OnInit {
     const { from, to } = this.resolveDateRange();
 
     this.api.getTestingRecords(
-      null, // serial_number
+      this.search_serial, // serial_number
       null, // user_id
       null, // test_result
       null, // test_method
@@ -128,6 +143,7 @@ export class RmtlViewTestreportComponent implements OnInit {
       this.filters.report_type, // report_type
       from, // start_date (FIX: use resolved 'from')
       to    // end_date
+      
     ).subscribe({
       next: (data) => {
         this.all = Array.isArray(data) ? data : [];
@@ -150,60 +166,18 @@ export class RmtlViewTestreportComponent implements OnInit {
     });
   }
 
-  downloadTestreports_byreportidwithReportTypes(report_id: string, report_type: string) {
-  if (!report_id || !report_type) {
-    console.warn("Invalid report type or report id");
+downloadTestreports_byreportidwithReportTypes(report_id?: string | null, report_type?: string | null) {
+  const id = (report_id ?? '').toString().trim();
+  const type = (report_type ?? '').toString().trim();
+
+  if (!id || !type) {
+    console.warn("Invalid report type or report id", { id, type });
     return;
   }
 
-  // Call backend to fetch report data by report_id
-  this.api.getDevicesByReportId(report_id).subscribe({
+  this.api.getDevicesByReportId(id).subscribe({
     next: (data) => {
-      let docDefinition: TDocumentDefinitions;
-
-      // switch (report_type) {
-      //   case 'CONTESTED':
-      //     ContestedReportPdfService.downloadFromBatch(data as ContestedReportHeader, data as ContestedReportRow[]);
-      //     break;
-
-      //   case 'CT TESTING':
-      //     docDefinition = CtReportPdfService.generatePdf(data as CtPdfRow, data as CtHeader);
-      //     break;
-
-      //   case 'P4ONM':
-      //     docDefinition = P4onmReportPdfService.generatePdf(data as P4ONMReportRow, data as P4ONMReportHeader);
-      //     break;
-
-      //   case 'P4VIG':
-      //     docDefinition = P4VigReportPdfService.generatePdf(data as VigRow, data as VigHeader);
-      //     break;
-
-      //   case 'SOLARGENERATORMETER':
-      //     docDefinition = SolarGenMeterCertificatePdfService.generatePdf(data as GenRow, data as GenHeader);
-      //     break;
-
-      //   case 'SOLARNETMETER':
-      //     docDefinition = SolarNetMeterCertificatePdfService.generatePdf(data as SolarRow, data as SolarHeader);
-      //     break;
-
-      //   default:
-      //     // fallback generic pdf
-      //     docDefinition = {
-      //       content: [
-      //         { text: 'Test Report', style: 'header' },
-      //         { text: `Report ID: ${report_id}`, margin: [0, 10, 0, 5] },
-      //         { text: `Report Type: ${report_type}` },
-      //         { text: 'This report format is not yet implemented.', margin: [0, 20, 0, 0] }
-      //       ],
-      //       styles: {
-      //         header: { fontSize: 18, bold: true }
-      //       }
-      //     };
-      // }
-
-      // if (docDefinition) {
-      //   pdfMake.createPdf(docDefinition).open(); // opens in new tab
-      // }
+      alert(`Generating PDF for report id ${id} and report type ${type}`);
     },
     error: (err) => {
       console.error("Failed to fetch report data:", err);

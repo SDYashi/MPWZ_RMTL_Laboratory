@@ -13,6 +13,10 @@
   --card-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 */
+.dropdown-menu {
+  transition: all 0.2s ease-in-out;
+}
+
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;

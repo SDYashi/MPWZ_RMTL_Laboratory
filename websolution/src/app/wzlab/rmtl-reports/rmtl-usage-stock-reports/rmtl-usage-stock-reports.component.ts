@@ -6,7 +6,7 @@ import { Subject, takeUntil, debounceTime } from 'rxjs';
 type UsageAction = 'TESTED' | 'RECEIVED' | 'ISSUED' | 'FAILED' | 'DISPATCHED';
 
 interface UsageRow {
-  date: string;          // ISO date string
+  date: string;
   inward_no: string;
   device_type: 'METER' | 'CT';
   make: string;
@@ -28,8 +28,8 @@ interface StockRow {
   ct_class?: string;
   ct_ratio?: string;
   available: number;
-  reserved: number;
-  faulty: number;
+  reserved: number; // mapped from INWARDED (as per sample)
+  faulty: number;   // mapped from DISPATCHED (as per sample)
 }
 
 interface ApiUsageRow {
@@ -54,12 +54,22 @@ interface ApiStockRow {
   ct_class?: string | null;
   ct_ratio?: string | null;
   available?: number | null;
-  reserved?: number | null;
-  faulty?: number | null;
+  // your API returns INWARDED, DISPATCHED etc. We'll pick them safely:
+  INWARDED?: number | null;
+  DISPATCHED?: number | null;
+  ASSIGNED?: number | null;
+  TESTED?: number | null;
+  APPROVED?: number | null;
 }
+
 interface LabReport {
   usageAll: ApiUsageRow[];
   stockAll: ApiStockRow[];
+}
+
+interface Lab {
+  id: number;
+  name: string;
 }
 
 @Component({
@@ -73,9 +83,13 @@ export class RmtlUsageStockReportsComponent implements OnInit, OnDestroy {
   filters = {
     from: '',
     to: '',
+    lab_id: '' as string,                // NEW
     device_type: '' as '' | 'METER' | 'CT',
     search: ''
   };
+
+  labs:any;                      // NEW: dropdown options from DB
+  deviceTypes: Array<'METER' | 'CT'> = []; // NEW: options derived from API data
 
   private search$ = new Subject<string>();
   private destroy$ = new Subject<void>();
@@ -151,22 +165,25 @@ export class RmtlUsageStockReportsComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.search$.pipe(debounceTime(250), takeUntil(this.destroy$)).subscribe(() => this.applyFilters());
-    this.loadLabReport();
+    this.loadLabs();
+    this.loadLabReport(); // initial load (uses lab_id if present)
   }
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
-  // ---------- Normalization helpers ----------
+  // ---------- Helpers ----------
   private asDeviceType(v?: string | null): 'METER' | 'CT' | null {
     if (!v) return null;
     const up = v.toUpperCase().trim();
-    return (up === 'METER' || up === 'CT') ? up : null;
+    // supports "DeviceType.METER" / "DeviceType.CT" and plain "METER"/"CT"
+    if (up.endsWith('.METER') || up === 'METER') return 'METER';
+    if (up.endsWith('.CT') || up === 'CT') return 'CT';
+    return null;
   }
   private asPhase(v?: string | null): '1P' | '3P' | undefined {
     if (!v) return undefined;
-    const up = v.toUpperCase().trim();
-    if (['1P','SINGLE','SINGLE_PHASE','SINGLE-PHASE','1-P'].includes(up)) return '1P';
-    if (['3P','THREE','THREE_PHASE','THREE-PHASE','3-P'].includes(up)) return '3P';
-    if (up === '1P' || up === '3P') return up as '1P'|'3P';
+    const up = v.toUpperCase().replace(/[\s_-]/g, '');
+    if (['1P','SINGLE','SINGLEPHASE','1P'].includes(up)) return '1P';
+    if (['3P','THREE','THREEPHASE','3P'].includes(up)) return '3P';
     return undefined;
   }
   private asAction(v?: string | null): UsageAction {
@@ -179,12 +196,41 @@ export class RmtlUsageStockReportsComponent implements OnInit, OnDestroy {
     return v || undefined;
   }
 
-  // ---------- API loader ----------
+  private buildDeviceTypeOptions(): void {
+    const set = new Set<'METER' | 'CT'>();
+    this.usageAll.forEach(r => set.add(r.device_type));
+    this.stockAll.forEach(s => set.add(s.device_type));
+    this.deviceTypes = Array.from(set);
+    if (this.deviceTypes.length === 0) this.deviceTypes = ['METER','CT']; // fallback
+  }
+
+  // ---------- API loaders ----------
+  private loadLabs(): void {
+    this.api.getLabs()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res:any) => {
+          this.labs = res;
+          this.buildDeviceTypeOptions();
+        },
+        error: err => this.error = err
+      });
+  }
+
   private loadLabReport(): void {
-    if (!this.lab_id) { this.error = 'No lab selected.'; return; }
     this.loading = true; this.error = null;
 
-    this.api.getLabReportUsageStock(this.lab_id)
+    const params: any = {};
+    // lab_id: if dropdown has value, use that; else if user has fixed lab_id use that; else omit (all labs)
+    const effectiveLabId = this.filters.lab_id ? Number(this.filters.lab_id) : (this.lab_id || undefined);
+    if (effectiveLabId) params.lab_id = String(effectiveLabId);
+
+    if (this.filters.from) params.from_date = this.filters.from; // YYYY-MM-DD
+    if (this.filters.to)   params.to_date   = this.filters.to;   // YYYY-MM-DD
+
+    // Adjust this call to match your ApiServicesService
+    // Option A (recommended): implement getLabReportUsageStock(params)
+    this.api.getLabReportUsageStock(params)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (res: LabReport) => {
@@ -206,9 +252,11 @@ export class RmtlUsageStockReportsComponent implements OnInit, OnDestroy {
             };
           });
 
-          // Stock
+          // Stock (map INWARDED -> reserved, DISPATCHED -> faulty to match your table headers)
           this.stockAll = (res?.stockAll ?? []).map((s: ApiStockRow) => {
             const deviceType = this.asDeviceType(s.device_type) || 'METER';
+            const inwared = (s as any).INWARDED ?? (s as any).INWARD ?? 0; 
+            const dispatched = (s as any).DISPATCHED ?? 0;
             return {
               device_type: deviceType,
               make: s.make || '',
@@ -218,11 +266,12 @@ export class RmtlUsageStockReportsComponent implements OnInit, OnDestroy {
               ct_class: deviceType === 'CT' ? this.nonEmpty(s.ct_class) : undefined,
               ct_ratio: deviceType === 'CT' ? this.nonEmpty(s.ct_ratio) : undefined,
               available: Number(s.available || 0),
-              reserved: Number(s.reserved || 0),
-              faulty: Number(s.faulty || 0)
+              reserved: Number(inwared || 0),
+              faulty: Number(dispatched || 0)
             };
           });
 
+          this.buildDeviceTypeOptions(); // NEW
           this.applyFilters();
           this.loading = false;
         },
@@ -236,6 +285,18 @@ export class RmtlUsageStockReportsComponent implements OnInit, OnDestroy {
   onSearchChange(val: string): void {
     this.filters.search = val;
     this.search$.next(val);
+  }
+
+  onLabChange(): void {
+    this.loadLabReport();   // server should return all labs if lab_id omitted
+  }
+
+  onDateChange(): void {
+    this.loadLabReport();   // refetch with new server-side date window
+  }
+
+  onDeviceTypeChange(): void {
+    this.applyFilters();    // client-side filter
   }
 
   // ---------- Filtering ----------
@@ -272,14 +333,14 @@ export class RmtlUsageStockReportsComponent implements OnInit, OnDestroy {
     this.computeTotals();
     this.buildSummaryCards();
 
-    // Reset both paginations after filter changes
+    // Reset paginations after filter changes
     this.usagePage = 1;
     this.stockPage = 1;
   }
 
   resetFilters(): void {
-    this.filters = { from: '', to: '', device_type: '', search: '' };
-    this.applyFilters();
+    this.filters = { from: '', to: '', lab_id: '', device_type: '', search: '' };
+    this.loadLabReport(); // refresh from server without lab/date filters
   }
 
   private computeTotals(): void {
@@ -294,16 +355,15 @@ export class RmtlUsageStockReportsComponent implements OnInit, OnDestroy {
     this.summaryCards = [
       { label: 'Total Usage Count', value: this.totals.usage },
       { label: 'Stock Available',   value: this.totals.available },
-      { label: 'Stock Reserved',    value: this.totals.reserved },
-      { label: 'Stock Faulty',      value: this.totals.faulty },
+      { label: 'Stock INWARD', value: this.totals.reserved },
+      { label: 'Stock Dispatched',  value: this.totals.faulty },
       { label: 'Stock Total',       value: this.totals.stock },
     ];
   }
 
   // ---------- Exports ----------
   exportUsageCSV(): void {
-    // Export ALL filtered rows. To export only current page, replace usageFiltered with pagedUsage()
-    const headers = ['date','inward_no','device_type','make','category_or_class','phase_or_ratio','meter_type','action','count'];
+    const headers = ['date','inward_no','device_type','make','category_or_class','phase_or_ratio','meter_type','status','count'];
     const rows: (string | number | undefined)[][] = this.usageFiltered.map(r => [
       r.date, r.inward_no, r.device_type, r.make,
       r.meter_category || r.ct_class,
@@ -315,8 +375,7 @@ export class RmtlUsageStockReportsComponent implements OnInit, OnDestroy {
   }
 
   exportStockCSV(): void {
-    // Export ALL filtered rows. To export only current page, replace stockFiltered with pagedStock()
-    const headers = ['device_type','make','category_or_class','phase_or_ratio','meter_type','available','reserved','faulty','total'];
+    const headers = ['device_type','make','category_or_class','phase_or_ratio','meter_type','available','INWARDED','DISPATCHED','total'];
     const rows = this.stockFiltered.map(s => [
       s.device_type, s.make,
       s.meter_category || s.ct_class || '',

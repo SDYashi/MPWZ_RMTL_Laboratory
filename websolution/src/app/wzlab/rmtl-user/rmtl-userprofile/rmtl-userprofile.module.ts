@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { RmtlUserprofileRoutingModule } from './rmtl-userprofile-routing.module';
 import { RmtlUserprofileComponent } from './rmtl-userprofile/rmtl-userprofile.component';
+import { FormsModule } from '@angular/forms';
 
 
 @NgModule({
@@ -11,7 +12,8 @@ import { RmtlUserprofileComponent } from './rmtl-userprofile/rmtl-userprofile.co
   ],
   imports: [
     CommonModule,
-    RmtlUserprofileRoutingModule
+    RmtlUserprofileRoutingModule,
+    FormsModule
   ]
 })
 export class RmtlUserprofileModule { }

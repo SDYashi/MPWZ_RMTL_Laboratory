@@ -1,0 +1,79 @@
+<div class="container-fluid py-3">
+
+  <!-- Filters -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-3">
+          <label class="form-label">Region (Zone)</label>
+          <select class="form-select" [(ngModel)]="selectedRegion" (change)="onFilterChange()">
+            <option *ngFor="let r of regions" [ngValue]="r">{{ r === 'ALL' ? 'All Regions' : r }}</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label">Circle</label>
+          <select class="form-select" [(ngModel)]="selectedCircle" (change)="onFilterChange()">
+            <option *ngFor="let c of circles" [ngValue]="c">{{ c === 'ALL' ? 'All Circles' : c }}</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label">Division</label>
+          <select class="form-select" [(ngModel)]="selectedDivision" (change)="onFilterChange()">
+            <option *ngFor="let d of divisions" [ngValue]="d">{{ d === 'ALL' ? 'All Divisions' : d }}</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label">Search</label>
+          <input type="text" class="form-control" placeholder="Code, Name, Region, Circle, Division"
+                 [(ngModel)]="searchText" (input)="onSearchChange()">
+        </div>
+      </div>
+
+      <div class="mt-3 d-flex gap-2">
+        <button class="btn btn-outline-secondary" (click)="resetFilters()">
+          Load Report & Reset
+        </button>
+        <button class="btn btn-success ms-auto" (click)="exportToExcel()">
+          Export to Excel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card shadow-sm">
+    <div class="card-body" style="max-height: 70vh; overflow: auto;">
+      <div class="table-responsive" >
+        <table class="table table-sm table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="min-width:110px;">Code</th>
+              <th style="min-width:240px;">Name</th>
+              <th style="min-width:180px;">Organization</th>
+              <th style="min-width:180px;">Region</th>
+              <th style="min-width:160px;">Circle</th>
+              <th style="min-width:160px;">Division</th>
+              <th style="min-width:160px;">Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of rows; trackBy: trackById">
+              <td>{{ r.code }}</td>
+              <td>{{ r.name }}</td>
+              <td>{{ display(r.org_name) }}</td>
+              <td>{{ display(r.region_name) }}</td>
+              <td>{{ display(r.circle_name) }}</td>
+              <td>{{ display(r.division_name) }}</td>
+              <td>{{ r.created_at | date:'yyyy-MM-dd HH:mm' }}</td>
+            </tr>
+            <tr *ngIf="rows.length === 0">
+              <td colspan="7" class="text-center text-muted py-4">No data found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="small text-muted">Showing {{ rows.length }} of {{ all.length }} records</div>
+    </div>
+  </div>
+
+</div>

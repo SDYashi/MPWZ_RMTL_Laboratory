@@ -484,10 +484,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   }
   
 
-  // private downloadStopDefectivePdfFromBatch(): void {
-  //   const snap = this.buildPrintableSnapshot();
-  //   this.stopDefPdf.download(snap.rows, snap.meta);
-  // }
+
 
   private async downloadStopDefectivePdfFromBatch(): Promise<void> {
   const snap = this.buildPrintableSnapshot();

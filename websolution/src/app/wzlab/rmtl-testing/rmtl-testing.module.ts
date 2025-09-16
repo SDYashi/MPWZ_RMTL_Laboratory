@@ -11,7 +11,8 @@ import { RmtlTestingDashboardComponent } from './rmtl-testing-dashboard/rmtl-tes
   ],
   imports: [
     CommonModule,
-    RmtlTestingRoutingModule
+    RmtlTestingRoutingModule,
+    CommonModule
   ]
 })
 export class RmtlTestingModule { }

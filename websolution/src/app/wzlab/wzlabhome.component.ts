@@ -24,7 +24,7 @@ type SectionKey =
 })
 export class WzlabhomeComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
-
+  isDropdownOpen = false;
   currentUrl = '';
   currentUserName: string | null = null;
 
@@ -146,4 +146,19 @@ export class WzlabhomeComponent implements OnInit, OnDestroy {
   logout() {
     this.authService.logout(); // uses service to clear + navigate
   }
+
+
+toggleDropdown() {
+  this.isDropdownOpen = !this.isDropdownOpen;
+}
+
+// Optional: close dropdown when clicking outside
+@HostListener('document:click', ['$event'])
+onClickOutside(event: Event) {
+  const target = event.target as HTMLElement;
+  if (!target.closest('.dropdown')) {
+    this.isDropdownOpen = false;
+  }
+}
+
 }
