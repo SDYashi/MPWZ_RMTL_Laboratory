@@ -1,6 +1,16 @@
+// src/app/wzlab/rmtl-testing/rmtl-add-testreport/rmtl-add-testreport-stopdefective/rmtl-add-testreport-stopdefective.component.ts
 import { Component, OnInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
+// PDF service + types
+import {
+  StopDefectiveReportPdfService,
+  StopDefRow,
+  StopDefMeta,
+  PdfLogos
+} from 'src/app/shared/stopdefective-report-pdf.service';
+
+// ====== Types (exposed to template) ======
 type Id = number;
 
 interface AssignmentDevice {
@@ -16,6 +26,11 @@ interface AssignmentItem {
   id: Id;              // assignment_id
   device_id: Id;
   device?: AssignmentDevice | null;
+
+  // The API provides these — we access them safely
+  testing_bench?: { bench_name?: string } | null;
+  user_assigned?: { name?: string; username?: string } | null;
+  assigned_by_user?: { name?: string; username?: string } | null;
 }
 
 interface Row {
@@ -118,7 +133,14 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   approverId: number | null = null;
 
   // header/date + ui
-  header: Header = { location_code: '', location_name: '', phase: '', testing_bench: '', testing_user: '', approving_user: '' };
+  header: Header = {
+    location_code: '',
+    location_name: '',
+    phase: '',
+    testing_bench: '',
+    testing_user: '',
+    approving_user: ''
+  };
   batchDate = this.toYMD(new Date()); // replaces batch.header.date
   filterText = '';
   loading = false;
@@ -158,7 +180,13 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   // alerts
   alert: AlertState = { open: false, type: 'info', title: '', message: '' };
 
-  constructor(private api: ApiServicesService) {}
+  // outgoing payload (debug/inspection)
+  payload: any[] = [];
+
+  constructor(
+    private api: ApiServicesService,
+    private stopDefPdf: StopDefectiveReportPdfService
+  ) {}
 
   // ===== lifecycle
   ngOnInit(): void {
@@ -197,6 +225,9 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
 
         this.enumsReady = true;
         this.tryInitialLoad();
+
+        // activity alert
+        // this.raise('success', 'Configuration Ready', 'Enums loaded successfully.');
       },
       error: () => this.raise('error', 'Enums Load Failed', 'Unable to load configuration (enums). Please reload.')
     });
@@ -229,16 +260,17 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
           this.asgPicker.list = list;
           this.rebuildSerialIndex(list);
 
-          // fill header from first device
+          // Fill header from first device + bench/users
           const first = list.find(a => a.device);
-          if (first?.device) {
-            this.header.location_code = first.device.location_code ?? '';
-            this.header.location_name = first.device.location_name ?? '';
-            if (!this.header.phase && first.device.phase) this.header.phase = (first.device.phase || '').toUpperCase();
-          }
+          this.fillHeaderFromAssignment(first);
+
           this.loading = false;
+          // this.raise('success', 'Assigned Devices Loaded', `${list.length} item(s) available for selection.`);
         },
-        error: () => { this.loading = false; }
+        error: () => {
+          this.loading = false;
+          this.raise('error', 'Load Failed', 'Could not load assigned devices.');
+        }
       });
   }
 
@@ -270,7 +302,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     };
   }
   addRow() { this.rows.push(this.emptyRow()); }
-  addBatchRow() { this.addRow(); }                  // alias for template compatibility
+  addBatchRow() { this.addRow(); } // alias for template compatibility
   removeRow(i: number) {
     this.rows.splice(i, 1);
     if (!this.rows.length) this.addRow();
@@ -427,22 +459,29 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
 
     this.submitting = true;
     this.api.postTestReports(this.payload).subscribe({
-      next: () => {
+      next: async () => {
         this.submitting = false;
         this.alertSuccess = 'Batch Report submitted successfully!';
+
+        // Immediate PDF
+        await this.generatePdfAndNotify();
+
+        // reset rows
         this.rows = [this.emptyRow()];
         this.batch.rows = this.rows;
         this.closeModal();
+
+        this.raise('success', 'Submitted', 'Batch Report submitted successfully.');
       },
       error: (e) => {
         this.submitting = false;
         this.alertSuccess = null;
         this.alertError = 'Error submitting report. Please verify rows and try again.';
         console.error(e);
+        this.raise('error', 'Submit Failed', 'Could not submit the batch report.');
       }
     });
   }
-  payload: any[] = [];
 
   // ===== picker
   openAssignedPicker() {
@@ -459,11 +498,9 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
           this.rebuildSerialIndex(list);
 
           const first = list.find(a => a.device);
-          if (first?.device) {
-            this.header.location_code = first.device.location_code ?? '';
-            this.header.location_name = first.device.location_name ?? '';
-            if (!this.header.phase && first.device.phase) this.header.phase = (first.device.phase || '').toUpperCase();
-          }
+          this.fillHeaderFromAssignment(first);
+
+          // this.raise('info', 'Picker Ready', `${list.length} item(s) loaded. Use search or Select All.`);
         },
         error: () => { this.raise('error', 'Load Failed', 'Could not load assigned devices.'); }
       });
@@ -498,7 +535,9 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     });
   }
 
-  toggleSelectAllVisible(state: boolean) { for (const a of this.filteredAssigned) this.asgPicker.selected[a.id] = state; }
+  toggleSelectAllVisible(state: boolean) {
+    for (const a of this.filteredAssigned) this.asgPicker.selected[a.id] = state;
+  }
 
   confirmAssignedSelection() {
     const chosen = this.asgPicker.list.filter(a => this.asgPicker.selected[a.id] && a.device?.serial_number);
@@ -529,6 +568,8 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
       this.rows.push(...newRows);
     }
     this.asgPicker.open = false;
+
+    this.raise('success', 'Selection Added', `${newRows.length} row(s) added to the batch.`);
   }
 
   // ===== misc
@@ -544,9 +585,77 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   }
   closeAlert() { this.alert.open = false; }
 
-  // ===== utils
+  // ===== PDF helpers (NEW)
+  private buildPdfInputs(): { rows: StopDefRow[]; meta: StopDefMeta; logos?: PdfLogos } {
+    const rows: StopDefRow[] = this.rows
+      .filter(r => (r.meter_sr_no || '').trim())
+      .map(r => ({
+        serial: r.meter_sr_no,
+        make: r.meter_make || '-',
+        capacity: r.meter_capacity || '-',
+        remark: r.remark || '-',
+        test_result: r.test_result || '-' // service merges with remark
+      }));
+
+    const meta: StopDefMeta = {
+      zone: `${this.header.location_code || ''} ${this.header.location_name || ''}`.trim() || '-',
+      phase: this.header.phase || '-',
+      date: this.batchDate,
+      testMethod: this.testMethod || undefined,
+      testStatus: this.testStatus || undefined,
+      testing_bench: this.header.testing_bench || undefined,
+      testing_user: this.header.testing_user || undefined,
+      approving_user: this.header.approving_user || undefined,
+      lab: {
+        lab_name: 'REMOTE METERING TESTING LABORATORY INDORE',
+        address_line: 'MPPKVVCL, Polo Ground, Indore (MP) 452003',
+        email: 'testinglabwzind@gmail.com',
+        phone: '0731-2997802'
+      }
+    };
+
+    const logos: PdfLogos | undefined = {
+      leftLogoUrl: '/assets/icons/wzlogo.png',
+      rightLogoUrl: '/assets/icons/mpkvvcl.png'
+    };
+
+    return { rows, meta, logos };
+  }
+
+  private async generatePdfAndNotify() {
+    try {
+      const { rows, meta, logos } = this.buildPdfInputs();
+      await this.stopDefPdf.download(rows, meta, logos);
+      this.raise('success', 'PDF Generated', `Stop-Defective report downloaded for ${meta.date}.`);
+    } catch (e) {
+      console.error(e);
+      this.raise('error', 'PDF Failed', 'Could not generate the PDF. Please try again.');
+    }
+  }
+
+  // ===== util
   private toYMD(d: Date): string {
     const dt = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
     return dt.toISOString().slice(0, 10);
+  }
+
+  // ===== header population from API item (NEW)
+  private fillHeaderFromAssignment(first?: AssignmentItem) {
+    if (!first?.device) return;
+    const d = first.device;
+
+    this.header.location_code = d.location_code ?? '';
+    this.header.location_name = d.location_name ?? '';
+    if (!this.header.phase && d.phase) this.header.phase = (d.phase || '').toUpperCase();
+
+    // bench / users from API payload
+    const benchName = first?.testing_bench?.bench_name || '';
+    this.header.testing_bench = benchName;
+
+    const testerName = first?.user_assigned?.name || first?.user_assigned?.username || '';
+    this.header.testing_user = testerName;
+
+    const approverName = first?.assigned_by_user?.name || first?.assigned_by_user?.username || '';
+    this.header.approving_user = approverName;
   }
 }

@@ -1,3 +1,4 @@
+<!-- src/app/.../rmtl-add-testreport-smartagainstmtr.component.html -->
 <div class="container-fluid mt-4">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
@@ -10,9 +11,14 @@
     </div>
 
     <div class="card-body">
+      <!-- Alerts -->
+      <div *ngIf="alertSuccess" class="alert alert-success d-print-none">{{ alertSuccess }}</div>
+      <div *ngIf="alertError" class="alert alert-danger d-print-none">{{ alertError }}</div>
+
       <!-- Top toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
-        <button type="button" class="btn btn-outline-danger" (click)="openPicker()">⟳ Reload Assigned</button>
+        <button type="button" class="btn btn-outline-danger" (click)="openPicker()">Select Assigned</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="doReloadAssignedWithoutAddingRows()">⟳ Reload Assigned Cache</button>
         <div class="ms-auto d-flex gap-2">
           <input class="form-control" style="min-width:240px" [(ngModel)]="filterText" name="filterText" placeholder="Filter: serial / make / capacity / remark">
         </div>
@@ -29,12 +35,14 @@
             <div class="col-md-4">
               <label class="form-label fw-bold">Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="b_test_method">
+                <option value="" disabled selected>Select method</option>
                 <option *ngFor="let method of test_methods" [value]="method">{{ method }}</option>
               </select>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="b_test_status">
+                <option value="" disabled selected>Select status</option>
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
             </div>
@@ -45,15 +53,15 @@
               <label class="form-label fw-bold">Zone / DC</label>
               <input type="text" class="form-control" [value]="(batch.header.location_code ? batch.header.location_code + ' - ' : '') + (batch.header.location_name || '')" readonly disabled>
             </div>
-           <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Phase</label>
               <input type="text" class="form-control" [(ngModel)]="batch.header.phase" name="b_phase" readonly disabled>
             </div>
-              <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Testing Bench</label>
               <input type="text" class="form-control" [(ngModel)]="batch.header.testing_bench" name="b_testing_bench" readonly disabled>
             </div>
-              <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Testing User</label>
               <input type="text" class="form-control" [(ngModel)]="batch.header.testing_user" name="b_testing_user" readonly disabled>
             </div>
@@ -80,7 +88,6 @@
 
           <tbody>
             <ng-container *ngFor="let r of displayRows(); let i = index; trackBy: trackRow">
-              <!-- Main row -->
               <tr [ngClass]="{'table-danger': r.notFound}">
                 <td class="text-center"><span class="badge bg-secondary">{{ i + 1 }}</span></td>
 
@@ -201,7 +208,7 @@
                     </div>
                     <div class="col-md-2">
                       <label class="form-label small fw-bold">% Error</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.error_percentage" [name]="'b_err_'+i" step="0.01"  (keydown.enter)="errorpercentage_calculate(i)">
+                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.error_percentage" [name]="'b_err_'+i" step="0.01" (keydown.enter)="errorpercentage_calculate(i)">
                     </div>
                   </div>
                 </td>
@@ -216,8 +223,11 @@
         <button type="button" class="btn btn-outline-primary" (click)="addBatchRow()">➕ Add Row</button>
         <button type="button" class="btn btn-outline-secondary" (click)="openConfirm('clear')">Clear</button>
         <div class="ms-auto"></div>
-        <button type="button" class="btn btn-primary" [disabled]="submitting || !batch.rows.length"
-                (click)="openConfirm('submit')">
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="submitting || !batch.rows.length || !testMethod || !testStatus"
+          (click)="openConfirm('submit')">
           {{ submitting ? 'Submitting…' : 'Submit Batch Report' }}
         </button>
       </div>
@@ -233,9 +243,7 @@
     </div>
   </div>
 
-  <!-- Submit Preview & Success/Error Modal -->
-
-  <!-- Submit Preview & Success/Error Modal -->
+  <!-- Submit Modal -->
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modal.open}" *ngIf="modal.open">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
@@ -249,7 +257,7 @@
             <div class="row">
               <div class="col-md-3"><strong>Date:</strong> {{ batch.header.date }}</div>
               <div class="col-md-3"><strong>Phase:</strong> {{ batch.header.phase || '-' }}</div>
-              <div class="col-md-3"><strong>Approver ID:</strong> {{ approverId || '-' }}</div>
+              <div class="col-md-3"><strong>Approving User:</strong> {{ batch.header.approving_user || '-' }}</div>
               <div class="col-md-3"><strong>Testing Bench:</strong> {{ batch.header.testing_bench || '-' }}</div>
             </div>
             <hr>
@@ -257,7 +265,7 @@
               <table class="table table-sm table-bordered">
                 <thead>
                   <tr>
-                    <th>#</th><th>Serial</th><th>Make</th><th>Capacity</th><th>Remark</th><th>Other</th><th>Result</th>
+                    <th>#</th><th>Serial</th><th>Make</th><th>Capacity</th><th>Remark</th><th>Result</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -266,8 +274,7 @@
                     <td>{{ r.serial }}</td>
                     <td>{{ r.make }}</td>
                     <td>{{ r.capacity }}</td>
-                    <td>{{ r.remark }}</td>
-                    <td>{{ r.other }}</td>
+                    <td>{{ r.remark || r.other }}</td>
                     <td>{{ r.test_result }}</td>
                   </tr>
                 </tbody>
@@ -303,16 +310,22 @@
           </div>
 
           <div *ngIf="!pickerLoading">
+            <!-- Search & Select All -->
+            <div class="d-flex gap-2 mb-2">
+              <input class="form-control" style="max-width: 320px;"
+                     [(ngModel)]="pickerFilter" name="pickerFilter"
+                     placeholder="Search serial / make / capacity">
+              <div class="ms-auto d-flex align-items-center">
+                <label class="me-2 small text-muted">Select All</label>
+                <input type="checkbox" [checked]="allPicked" (change)="togglePickAll($any($event.target).checked)">
+              </div>
+            </div>
+
             <div class="table-responsive" style="max-height:60vh; overflow:auto">
               <table class="table table-sm table-bordered align-middle">
                 <thead class="table-light">
                   <tr>
-                    <th style="width:40px;">
-                      <input
-                        type="checkbox"
-                        [checked]="allPicked"
-                        (change)="togglePickAll($any($event.target).checked)">
-                    </th>
+                    <th style="width:40px;"></th>
                     <th>#</th>
                     <th>Serial</th>
                     <th>Make</th>
@@ -322,7 +335,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let a of pickerAssignments; let i=index; trackBy: trackAssignment">
+                  <tr *ngFor="let a of pickerFiltered; let i=index; trackBy: trackAssignment">
                     <td class="text-center">
                       <input
                         type="checkbox"
@@ -340,7 +353,7 @@
                 </tbody>
               </table>
             </div>
-            <small class="text-muted">Tip: Only selected devices will be added to the testing grid.</small>
+            <small class="text-muted">Tip: Use the search box to filter by serial/make/capacity. Sorted by make.</small>
           </div>
         </div>
 

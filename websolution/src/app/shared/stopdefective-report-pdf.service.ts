@@ -76,8 +76,8 @@ export class StopDefectiveReportPdfService {
 
     const labName  = meta.lab?.lab_name || 'REMOTE METERING TESTING LABORATORY INDORE';
     const address1 = meta.lab?.address_line || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003';
-    const email    = meta.lab?.email || 'testinglabwzind@gmail.com';
-    const phone    = meta.lab?.phone || '0731-2997802';
+    const email    = meta.lab?.email  ;
+    const phone    = meta.lab?.phone ;
 
     // Data table
     const tableBody: TableCell[][] = [[
@@ -97,22 +97,53 @@ export class StopDefectiveReportPdfService {
       ]);
     });
 
-    // Header with optional logos
-    const headerRow: Content = {
-      columns: [
-        imagesDict['leftLogo'] ? { image: 'leftLogo', width: 30 } : { text: '' },
+// Build the “Email • Phone” line only from available parts
+const contactBits = [
+  email ? `Email: ${email}` : '',
+  phone ? `Phone: ${phone}` : '',
+].filter(Boolean);
+const contactLine = contactBits.join(' • ');
+
+// HEADER (logos + 3 stacked centered lines)
+const headerRow: Content = {
+  columns: [
+    imagesDict['leftLogo']
+      ? { image: 'leftLogo', width: 36, alignment: 'left', margin: [0, 0, 8, 0] }
+      : { text: '', width: 36 },
+
+    {
+      width: '*',
+      stack: [
         {
-          width: '*',
-          stack: [
-            { text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED', alignment: 'center', bold: true, fontSize: 13 },
-            { text: labName, alignment: 'center', color: '#666', margin: [0, 2, 0, 0], fontSize: 12 },
-            { text: `${address1}\nEmail: ${email} • Phone: ${phone}`, alignment: 'center', color: '#666', margin: [0, 2, 0, 0], fontSize: 10 }
-          ]
+          text: "MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED",
+          alignment: 'center',
+          bold: true,
+          fontSize: 13,
+          margin: [0, 0, 0, 2],
         },
-        imagesDict['rightLogo'] ? { image: 'rightLogo', width: 30, alignment: 'right' } : { text: '' }
+        {
+          text: labName,
+          alignment: 'center',
+          fontSize: 12,
+          bold: true,
+          margin: [0, 0, 0, 2],
+        },
+        {
+          text: `${address1}\n${contactLine}`,
+          alignment: 'center',
+          fontSize: 10,
+          color: '#444',
+        },
       ],
-      margin: [0,0,0,2]
-    };
+    },
+
+    imagesDict['rightLogo']
+      ? { image: 'rightLogo', width: 36, alignment: 'right', margin: [8, 0, 0, 0] }
+      : { text: '', width: 36 },
+  ],
+  margin: [0, 0, 0, 6],
+};
+
 
 // 2-pair (2 columns) header info table (labels shaded)
 const infoTable: Content = {
@@ -182,16 +213,16 @@ const infoTable: Content = {
             {
               width: '*',
               stack: [
-                { text: 'Tested by', alignment: 'center', bold: true },
+                { text: '\n\nTested by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                { text: (meta.testing_user || meta.testerName || ''), alignment: 'center', color: '#444' },
+                // { text: (meta.testing_user || meta.testerName || ''), alignment: 'center', color: '#444' },
                 { text: 'TESTING ASSISTANT (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
             {
               width: '*',
               stack: [
-                { text: 'Verified by', alignment: 'center', bold: true },
+                { text: '\n\nVerified by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
                 // { text: (meta.testerName || ''), alignment: 'center', color: '#444' },
                 { text: 'JUNIOR ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
@@ -200,7 +231,7 @@ const infoTable: Content = {
             {
               width: '*',
               stack: [
-                { text: 'Approved by', alignment: 'center', bold: true },
+                { text: '\n\nApproved by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
                 // { text: (meta.approving_user || ''), alignment: 'center', color: '#444' },
                 { text: 'ASSISTANT ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },

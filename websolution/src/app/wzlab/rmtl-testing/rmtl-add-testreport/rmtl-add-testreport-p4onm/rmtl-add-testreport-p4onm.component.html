@@ -10,9 +10,14 @@
     </div>
 
     <div class="card-body">
+      <!-- Alerts -->
+      <div *ngIf="alertSuccess" class="alert alert-success d-print-none">{{ alertSuccess }}</div>
+      <div *ngIf="alertError" class="alert alert-danger d-print-none">{{ alertError }}</div>
+
       <!-- Toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
-        <button type="button" class="btn btn-outline-danger" (click)="openConfirm('pick')">⟳ Reload / Select Assigned</button>
+        <button type="button" class="btn btn-outline-danger" (click)="openConfirm('pick')">Select Assigned</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="doReloadAssignedWithoutAddingRows()">⟳ Reload Assigned Cache</button>
         <div class="ms-auto d-flex gap-2">
           <input class="form-control" style="min-width:240px" [(ngModel)]="filterText" name="filterText" placeholder="Filter: serial / make / capacity / remark">
         </div>
@@ -69,11 +74,11 @@
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Zone/DC</label>
-              <input class="form-control" [(ngModel)]="batch.header.location_name" name="b_loc_name" placeholder="Zone / DC name">
+              <input class="form-control" [(ngModel)]="batch.header.location_name" name="b_loc_name" placeholder="Zone / DC name" readonly disabled>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Zone/DC Code</label>
-              <input class="form-control" [(ngModel)]="batch.header.location_code" name="b_loc_code" placeholder="e.g., 3420100">
+              <input class="form-control" [(ngModel)]="batch.header.location_code" name="b_loc_code" placeholder="e.g., 3420100" readonly disabled>
             </div>
           </div>
 
@@ -81,23 +86,25 @@
             <div class="col-md-3">
               <label class="form-label fw-bold">Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="b_test_method">
+                <option value="" disabled selected>Select method</option>
                 <option *ngFor="let method of test_methods" [value]="method">{{ method }}</option>
               </select>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="b_test_status">
+                <option value="" disabled selected>Select status</option>
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
             </div>
 
             <div class="col-md-3">
               <label class="form-label fw-bold">Testing Bench</label>
-              <input class="form-control" [(ngModel)]="batch.header.testing_bench" name="b_testing_bench" placeholder="Auto from assignment" readonly>
+              <input class="form-control" [(ngModel)]="batch.header.testing_bench" name="b_testing_bench" placeholder="Auto from assignment" readonly disabled>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Testing User</label>
-              <input class="form-control" [(ngModel)]="batch.header.testing_user" name="b_testing_user" placeholder="Auto from assignment" readonly>
+              <input class="form-control" [(ngModel)]="batch.header.testing_user" name="b_testing_user" placeholder="Auto from assignment" readonly disabled>
             </div>
           </div>
         </div>
@@ -335,8 +342,11 @@
         <button type="button" class="btn btn-outline-primary" (click)="addBatchRow()">➕ Add Row</button>
         <button type="button" class="btn btn-outline-secondary" (click)="openConfirm('clear')">Clear</button>
         <div class="ms-auto"></div>
-        <button type="button" class="btn btn-primary" [disabled]="submitting || !batch.rows.length"
-                (click)="openConfirm('submit')">
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="submitting || !batch.rows.length || !testMethod || !testStatus || !batch.header.phase"
+          (click)="openConfirm('submit')">
           {{ submitting ? 'Submitting…' : 'Submit Batch Report' }}
         </button>
       </div>
@@ -396,17 +406,25 @@
           <div *ngIf="modal.action==='pick'">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <div class="fw-semibold">Assigned Devices</div>
-              <div>
-                <button type="button" class="btn btn-sm btn-outline-secondary me-2" (click)="togglePickAll(true)">Select All</button>
+              <div class="d-flex align-items-center gap-2">
+                <input class="form-control form-control-sm" style="min-width: 260px;"
+                       [(ngModel)]="pickerFilter" name="pickerFilter"
+                       placeholder="Search serial / make / capacity">
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="togglePickAll(true)">Select All</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" (click)="togglePickAll(false)">Clear</button>
               </div>
             </div>
-            <div *ngIf="pickerLoading" class="d-flex align-items-center"><div class="spinner-border spinner-border-sm me-2"></div> Loading…</div>
-            <div *ngIf="!pickerLoading" class="table-responsive" style="max-height: 55vh; overflow:auto;">
+
+            <div *ngIf="pickerLoading" class="d-flex align-items-center">
+              <div class="spinner-border spinner-border-sm me-2"></div> Loading…
+            </div>
+
+            <div *ngIf="!pickerLoading" class="table-responsive" style="max-height:55vh; overflow:auto;">
               <table class="table table-sm table-hover align-middle">
                 <thead class="table-light">
                   <tr>
                     <th></th>
+                    <th>#</th>
                     <th>Serial</th>
                     <th>Make</th>
                     <th>Capacity</th>
@@ -416,17 +434,19 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let a of pickerAssignments">
+                  <tr *ngFor="let a of pickerFiltered; let i = index">
                     <td><input type="checkbox" [(ngModel)]="pickerSelected[a.id]" [name]="'pick_'+a.id"></td>
+                    <td>{{ i + 1 }}</td>
                     <td>{{ a.device?.serial_number }}</td>
                     <td>{{ a.device?.make }}</td>
                     <td>{{ a.device?.capacity }}</td>
                     <td>{{ a.device?.phase }}</td>
                     <td>{{ a.testing_bench?.bench_name || '-' }}</td>
-                    <td>{{ a.user_assigned?.name || '-' }}</td>
+                    <td>{{ a.user_assigned?.name || a.user_assigned?.username || '-' }}</td>
                   </tr>
                 </tbody>
               </table>
+              <small class="text-muted">Tip: Filter by serial/make/capacity. List is sorted by make, then serial.</small>
             </div>
           </div>
 

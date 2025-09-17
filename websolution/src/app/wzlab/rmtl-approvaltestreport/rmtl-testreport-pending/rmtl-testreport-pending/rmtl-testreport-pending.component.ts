@@ -42,7 +42,7 @@ export interface TestedDeviceRow {
   selected?: boolean;
   testing_id?: number;
 }
-
+// ... imports unchanged ...
 @Component({
   selector: 'app-rmtl-testreport-pending',
   standalone: true,
@@ -55,7 +55,7 @@ export class RmtlTestreportPendingComponent implements OnInit {
 
   // user / lab
   labId: any = null;
-  user_id :any= null;
+  user_id: any = null;
 
   // Date filters only
   fromDate = '';
@@ -78,16 +78,22 @@ export class RmtlTestreportPendingComponent implements OnInit {
   // details/offcanvas
   selectedRow: TestedDeviceRow | null = null;
 
-  // approve modals
+  // approve/reject flow state
   confirmApproveNote = '';
   approving = false;
-  approveResult: { ok: number; failed: number; details?: any } | null = null;
-  approvePerformedAt: Date | null = null;
+  rejecting = false;
 
-  // result modal data
+  // Unified result modal state (for BOTH approve & reject)
+  resultAction: 'APPROVED' | 'REJECTED' | null = null;       // what action was performed
+  resultStatus: 'success' | 'warning' | 'error' | null = null; // overall status for styling
+  resultMessage = '';                                         // human message from API or fallback
+  resultOkCount = 0;                                          // approved/rejected count (ok)
+  resultFailedCount = 0;                                      // failed count
+  failedList: Array<{ id: any; reason?: string }> = [];       // failed reasons
+  approvePerformedAt: Date | null = null;                     // timestamp
+
+  // kept for typing compatibility; no longer used to display chips
   approvedIds: Array<number | string> = [];
-  failedList: Array<{ id: any; reason?: string }> = [];
-  rejecting: any;
 
   constructor(
     private api: ApiServicesService,
@@ -97,22 +103,19 @@ export class RmtlTestreportPendingComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // pull user & lab from token (fallback to localStorage)
     try {
       const user: any = this.auth?.getuserfromtoken?.();
       this.user_id = user?.id ?? '';
       this.labId = user?.lab_id ?? user?.currentLabId ?? null;
       this.user_id = user?.id ?? '';
-    } catch {
-      /* ignore */
-    }
+    } catch {}
     if (this.labId == null) {
       const ls = localStorage.getItem('currentLabId');
       this.labId = ls ? Number(ls) : null;
     }
     if (this.user_id == null) {
       const ls = localStorage.getItem('currentUserId');
-      this.user_id = ls ? Number(ls) : null;  
+      this.user_id = ls ? Number(ls) : null;
     }
 
     const now = new Date();
@@ -146,86 +149,152 @@ export class RmtlTestreportPendingComponent implements OnInit {
     return { from: fromDate, to: toDate };
   }
 
-  /** Normalize API → TestedDeviceRow */
-/** Normalize API → TestedDeviceRow (supports nested assignment/device/testing) */
-private normalizeApiList(list: any[]): TestedDeviceRow[] {
-  return (list || []).map((d: any) => {
-    const a = d?.assignment ?? {};
-    const dev = a?.device ?? d?.device ?? {};
-    const tst = a?.testing ?? d?.testing ?? {};
+  /** Normalize API → TestedDeviceRow (supports nested assignment/device/testing) */
+  private normalizeApiList(list: any[]): TestedDeviceRow[] {
+    return (list || []).map((d: any) => {
+      const a = d?.assignment ?? {};
+      const dev = a?.device ?? d?.device ?? {};
+      const tst = a?.testing ?? d?.testing ?? {};
 
-    const test_status = tst?.test_status ?? d?.test_status ?? null;
-    const device_status = dev?.device_status ?? d?.device_status ?? null;
+      const test_status = tst?.test_status ?? d?.test_status ?? null;
+      const device_status = dev?.device_status ?? d?.device_status ?? null;
 
-    const statusUpper = String(test_status || device_status || '').toUpperCase();
-    const canApprove =
-      statusUpper === 'TESTED' ||
-      statusUpper === 'COMPLETED' ||
-      statusUpper === 'APPROVED' ||
-      statusUpper === 'INWARDED';
+      const statusUpper = String(test_status || device_status || '').toUpperCase();
+      const canApprove =
+        statusUpper === 'TESTED' ||
+        statusUpper === 'COMPLETED' ||
+        statusUpper === 'APPROVED' ||
+        statusUpper === 'INWARDED';
 
-    return {
-      // IDs
-      id: d?.id ?? dev?.id,
-      device_id: d?.device_id ?? dev?.id ?? d?.id,
+      return {
+        id: d?.id ?? dev?.id,
+        device_id: d?.device_id ?? dev?.id ?? d?.id,
+        report_id: tst?.report_id ?? d?.report_id,
+        serial_number: d?.serial_number ?? dev?.serial_number,
+        make: d?.make ?? dev?.make,
+        meter_category: dev?.meter_category,
+        meter_type: dev?.meter_type,
+        phase: dev?.phase,
+        capacity: dev?.capacity,
+        meter_class: dev?.meter_class,
+        voltage_rating: dev?.voltage_rating,
+        tested_date: tst?.created_at ?? d?.tested_date ?? dev?.inward_date ?? d?.created_at,
+        inward_date: dev?.inward_date,
+        test_result: tst?.test_result ?? d?.test_result,
+        test_status: test_status ?? undefined,
+        device_status: device_status ?? undefined,
+        test_method: tst?.test_method ?? d?.test_method,
+        start_datetime: tst?.start_datetime,
+        end_datetime: tst?.end_datetime,
+        physical_condition_of_device: tst?.physical_condition_of_device,
+        seal_status: tst?.seal_status,
+        meter_body: tst?.meter_body,
+        meter_glass_cover: tst?.meter_glass_cover,
+        terminal_block: tst?.terminal_block,
+        other: tst?.other,
+        details: tst?.details,
+        ref_start_reading: tst?.ref_start_reading,
+        ref_end_reading: tst?.ref_end_reading,
+        reading_before_test: tst?.reading_before_test,
+        reading_after_test: tst?.reading_after_test,
+        error_percentage: tst?.error_percentage,
+        approver_id: tst?.approver_id ?? null,
+        approver_remark: tst?.approver_remark ?? null,
+        office_type: dev?.office_type,
+        location_code: dev?.location_code,
+        location_name: dev?.location_name,
+        device_type: dev?.device_type ?? d?.device_type,
+        device_testing_purpose: dev?.device_testing_purpose ?? d?.device_testing_purpose,
+        initiator: dev?.initiator ?? d?.initiator,
+        testing_id: tst?.id ?? tst?.testing_id ?? d?.testing_id ?? d?.id,
+        canApprove,
+        selected: false,
+      } as TestedDeviceRow;
+    });
+  }
 
-      // Identifiers
-      report_id: tst?.report_id ?? d?.report_id,
-      serial_number: d?.serial_number ?? dev?.serial_number,
-      make: d?.make ?? dev?.make,
+  // Parse any API payload into a friendly summary for the result modal
+  private parseApiOutcome(
+    payload: any,
+    fallbackAction: 'APPROVED' | 'REJECTED'
+  ): {
+    message: string;
+    ok: number;
+    failed: number;
+    failedList: Array<{ id: any; reason?: string }>;
+    status: 'success' | 'warning' | 'error';
+  } {
+    // default skeleton
+    let message = '';
+    let ok = 0;
+    let failed = 0;
+    let failedList: Array<{ id: any; reason?: string }> = [];
+    let status: 'success' | 'warning' | 'error' = 'success';
 
-      // Meter descriptors
-      meter_category: dev?.meter_category,
-      meter_type: dev?.meter_type,
-      phase: dev?.phase,
-      capacity: dev?.capacity,
-      meter_class: dev?.meter_class,
-      voltage_rating: dev?.voltage_rating,
+    // strings -> treat as message
+    if (typeof payload === 'string') {
+      message = payload;
+    }
+    // arrays -> assume approved IDs
+    else if (Array.isArray(payload)) {
+      ok = payload.length;
+      message = fallbackAction === 'APPROVED'
+        ? `Approved ${ok} item(s).`
+        : `Rejected ${ok} item(s).`;
+    }
+    // objects -> try common shapes
+    else if (payload && typeof payload === 'object') {
+      const p = payload;
+      // direct message/status
+      if (p.message) message = String(p.message);
+      if (!message && p.status && typeof p.status === 'string') message = String(p.status);
 
-      // Dates
-      tested_date: tst?.created_at ?? d?.tested_date ?? dev?.inward_date ?? d?.created_at,
-      inward_date: dev?.inward_date,
+      // counts
+      if (typeof p.ok === 'number') ok = p.ok;
+      if (typeof p.success === 'number') ok = p.success;
+      if (typeof p.approved_count === 'number') ok = p.approved_count;
+      if (typeof p.rejected_count === 'number') ok = p.rejected_count;
+      if (typeof p.failed === 'number') failed = p.failed;
+      if (typeof p.failed_count === 'number') failed = p.failed_count;
 
-      // Status/result
-      test_result: tst?.test_result ?? d?.test_result,
-      test_status: test_status ?? undefined,
-      device_status: device_status ?? undefined,
-      test_method: tst?.test_method ?? d?.test_method,
+      // arrays
+      if (Array.isArray(p.approved_ids)) ok = p.approved_ids.length;
+      if (Array.isArray(p.failed)) failedList = p.failed;
+      if (Array.isArray(p.errors)) {
+        // normalize {errors: [{id,reason}|string]} into failedList
+        failedList = p.errors.map((e: any) =>
+          typeof e === 'string' ? ({ id: '-', reason: e }) : e
+        );
+      }
 
-      // Test details
-      start_datetime: tst?.start_datetime,
-      end_datetime: tst?.end_datetime,
-      physical_condition_of_device: tst?.physical_condition_of_device,
-      seal_status: tst?.seal_status,
-      meter_body: tst?.meter_body,
-      meter_glass_cover: tst?.meter_glass_cover,
-      terminal_block: tst?.terminal_block,
-      other: tst?.other,
-      details: tst?.details,
-      ref_start_reading: tst?.ref_start_reading,
-      ref_end_reading: tst?.ref_end_reading,
-      reading_before_test: tst?.reading_before_test,
-      reading_after_test: tst?.reading_after_test,
-      error_percentage: tst?.error_percentage,
-      approver_id: tst?.approver_id ?? null,
-      approver_remark: tst?.approver_remark ?? null,
+      // if counts not present, infer from arrays
+      if (!p.ok && ok === 0 && Array.isArray(p.approved_ids)) ok = p.approved_ids.length;
+      if (!p.failed && failed === 0 && failedList.length) failed = failedList.length;
 
-      // Location / misc
-      office_type: dev?.office_type,
-      location_code: dev?.location_code,
-      location_name: dev?.location_name,
-      device_type: dev?.device_type ?? d?.device_type,
-      device_testing_purpose: dev?.device_testing_purpose ?? d?.device_testing_purpose,
-      initiator: dev?.initiator ?? d?.initiator,
-      testing_id: tst?.id ?? tst?.testing_id ?? d?.testing_id ?? d?.id,
+      // status field for severity
+      const s = String(p.status || '').toLowerCase();
+      if (s.includes('fail') || s.includes('error')) status = 'error';
+      else if (s.includes('partial') || s.includes('warn')) status = 'warning';
+    }
 
-      // UI flags
-      canApprove,
-      selected: false,
-    } as TestedDeviceRow;
-  });
-}
+    // still empty message? synthesize one
+    if (!message) {
+      if (failed > 0 && ok > 0) message = `Partial ${fallbackAction.toLowerCase()}: ${ok} ok, ${failed} failed.`;
+      else if (ok > 0) message = `${fallbackAction} ${ok} item(s).`;
+      else if (failed > 0) {
+        message = `No items ${fallbackAction.toLowerCase()}. ${failed} failed.`;
+        status = 'error';
+      } else {
+        message = `${fallbackAction} performed.`;
+      }
+    }
 
+    // severity heuristic if none set
+    if (!failedList.length && failed > 0) status = 'warning';
+    if (failed > 0 && ok === 0) status = 'error';
+
+    return { message, ok, failed, failedList, status };
+  }
 
   // ---- Fetch
   onDatesChange(): void {
@@ -243,7 +312,6 @@ private normalizeApiList(list: any[]): TestedDeviceRow[] {
 
     const { from, to } = this.resolveDateRange();
 
-    // pass labId to the API (service signature updated accordingly)
     this.api.getTestedDevices(from, to, this.device_status, this.labId ?? undefined).subscribe({
       next: (list: any[]) => {
         this.rows = this.normalizeApiList(Array.isArray(list) ? list : []);
@@ -312,6 +380,30 @@ private normalizeApiList(list: any[]): TestedDeviceRow[] {
     }
   }
 
+  // ---- Approve / Reject common UI helpers
+  private showResultModal(
+    action: 'APPROVED' | 'REJECTED',
+    outcome: { message: string; ok: number; failed: number; failedList: any[]; status: 'success' | 'warning' | 'error' }
+  ) {
+    this.resultAction = action;
+    this.resultMessage = outcome.message;
+    this.resultOkCount = outcome.ok;
+    this.resultFailedCount = outcome.failed;
+    this.failedList = outcome.failedList || [];
+    this.resultStatus = outcome.status;
+    this.approvePerformedAt = new Date();
+
+    // close confirm modal if open
+    const confirmEl = document.getElementById('approveModal');
+    (confirmEl && (window as any)['bootstrap']?.Modal.getInstance(confirmEl))?.hide();
+
+    this.cdr.detectChanges();
+    this.zone.run(() => {
+      const resultEl = document.getElementById('resultModal');
+      resultEl && new (window as any)['bootstrap'].Modal(resultEl).show();
+    });
+  }
+
   // ---- Approve flow
   openApproveModal(single?: TestedDeviceRow | null): void {
     this.confirmApproveNote = '';
@@ -328,32 +420,9 @@ private normalizeApiList(list: any[]): TestedDeviceRow[] {
     }
   }
 
-  /** Type guard helpers for payload shapes */
-  private isArrayPayload(x: any): x is any[] {
-    return Array.isArray(x);
-  }
-  private isObjectPayload(x: any): x is { approved_ids?: any[]; failed?: Array<{ id: any; reason?: string }> } {
-    return x && typeof x === 'object' && !Array.isArray(x);
-  }
-  submitRejection(): void {
-    if (this.rejecting) return;
- const id = this.rows.find((r) => r.selected && r.canApprove)?.testing_id ?? null;
+  private isArrayPayload(x: any): x is any[] { return Array.isArray(x); }
+  private isObjectPayload(x: any): x is { [k: string]: any } { return x && typeof x === 'object' && !Array.isArray(x); }
 
- if (!id) return;
-
- this.rejecting = true;
- this.api.rejectDevices(id).subscribe({
-   next: () => {
-     this.rejecting = false;
-     this.fetchTestedDevices();
-   },
-   error: (err) => {
-     console.error(err);
-     this.rejecting = false;
-   },
- });
-  }
-  responsestatus:any
   submitApproval(): void {
     if (this.approving) return;
 
@@ -371,68 +440,65 @@ private normalizeApiList(list: any[]): TestedDeviceRow[] {
 
     this.api.approveDevices(ids, note).subscribe({
       next: (res: any) => {
-        if (this.isArrayPayload(res)) {
-          this.approvedIds = res;
-          this.failedList = [];
-           this.responsestatus="Devices approved successfully";
-        } else if (this.isObjectPayload(res)) {
-          this.approvedIds = Array.isArray(res?.approved_ids) ? res.approved_ids : [];
-          this.failedList = Array.isArray(res?.failed) ? res.failed : [];
-        } else {
-          this.approvedIds = [];
-          this.failedList = [];
-        }
-
-        const approved = this.approvedIds.length;
-        const failed = this.failedList.length;
-        this.approveResult = { ok: approved, failed };
-        this.approvePerformedAt = new Date();
+        // Normalize result to a friendly outcome
+        const outcome = this.parseApiOutcome(res, 'APPROVED');
         this.approving = false;
 
-        const confirmEl = document.getElementById('approveModal');
-        (confirmEl && (window as any)['bootstrap']?.Modal.getInstance(confirmEl))?.hide();
-
-        this.cdr.detectChanges();
-
-        this.zone.run(() => {
-          const resultEl = document.getElementById('resultModal');
-          resultEl && new (window as any)['bootstrap'].Modal(resultEl).show();
-        });
-
+        // Refresh list and UI
         this.clearSelection();
         this.fetchTestedDevices();
+
+        // Show unified modal (no ID chips)
+        this.showResultModal('APPROVED', outcome);
       },
       error: (err) => {
         console.error(err);
         const reason = err?.error?.detail || err?.message || 'Unknown error';
-        this.approvedIds = [];
-        this.failedList = ids.map((id) => ({ id, reason }));
-
-        this.approveResult = { ok: 0, failed: this.failedList.length, details: err?.error || err };
-        this.approvePerformedAt = new Date();
+        const outcome = this.parseApiOutcome({ message: reason, failed_count: ids.length, errors: ids.map((id) => ({ id, reason })) }, 'APPROVED');
         this.approving = false;
 
-        const confirmEl = document.getElementById('approveModal');
-        (confirmEl && (window as any)['bootstrap']?.Modal.getInstance(confirmEl))?.hide();
-
-        this.cdr.detectChanges();
-
-        const resultEl = document.getElementById('resultModal');
-        resultEl && new (window as any)['bootstrap'].Modal(resultEl).show();
+        this.showResultModal('APPROVED', outcome);
       },
     });
   }
 
+  // ---- Reject flow (now shows the result modal as well)
+  submitRejection(): void {
+    if (this.rejecting) return;
+
+    const picked = this.rows.filter((r) => r.selected && r.canApprove);
+    const id = picked[0]?.testing_id ?? null; // keeping your single-reject behavior
+    if (!id) return;
+
+    this.rejecting = true;
+    this.api.rejectDevices(id).subscribe({
+      next: (res: any) => {
+        const outcome = this.parseApiOutcome(res, 'REJECTED');
+        this.rejecting = false;
+
+        this.clearSelection();
+        this.fetchTestedDevices();
+
+        this.showResultModal('REJECTED', outcome);
+      },
+      error: (err) => {
+        console.error(err);
+        const reason = err?.error?.detail || err?.message || 'Unknown error';
+        const outcome = this.parseApiOutcome({ message: reason, failed_count: 1, errors: [{ id, reason }] }, 'REJECTED');
+        this.rejecting = false;
+
+        this.showResultModal('REJECTED', outcome);
+      },
+    });
+  }
+
+  // ---- Badges
   resultClass(r?: string) {
     switch ((r || '').toUpperCase()) {
-      case 'PASS':
-        return 'bg-success';
-      case 'FAIL':
-        return 'bg-danger';
-      case 'PENDING':
-        return 'bg-warning text-dark';
-      default:
-        return 'bg-secondary';
+      case 'PASS': return 'bg-success';
+      case 'FAIL': return 'bg-danger';
+      case 'PENDING': return 'bg-warning text-dark';
+      default: return 'bg-secondary';
     }
   }
 

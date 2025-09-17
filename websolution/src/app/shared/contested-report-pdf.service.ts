@@ -314,24 +314,24 @@ private singlePageForRow(
       {
         width: '*',
         stack: [
-          { text: 'Tested by', alignment: 'center', bold: true },
-          { text: '____________________________', alignment: 'center' },
+          { text: '\n\nTested by', alignment: 'center', bold: true },
+          { text: '\n\n____________________________', alignment: 'center' },
           { text: 'TESTING ASSISTANT (RMTL)', alignment: 'center', style: 'small' }
         ]
       },
       {
         width: '*',
         stack: [
-          { text: 'Verified by', alignment: 'center', bold: true },
-          { text: '____________________________', alignment: 'center' },
+          { text: '\n\nVerified by', alignment: 'center', bold: true },
+          { text: '\n\n____________________________', alignment: 'center' },
           { text: 'JUNIOR ENGINEER (RMTL)', alignment: 'center', style: 'small' }
         ]
       },
       {
         width: '*',
         stack: [
-          { text: 'Approved by', alignment: 'center', bold: true },
-          { text: '____________________________', alignment: 'center' },
+          { text: '\n\nApproved by', alignment: 'center', bold: true },
+          { text: '\n\n____________________________', alignment: 'center' },
           { text: 'ASSISTANT ENGINEER (RMTL)', alignment: 'center', style: 'small' }
         ]
       }

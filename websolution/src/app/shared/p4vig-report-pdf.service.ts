@@ -10,6 +10,9 @@ export interface VigHeader {
   location_name?: string;
   testMethod?: string | null;
   testStatus?: string | null;
+  approving_user?: string | null;
+  phase?: string | null;
+  
 
   // added for meta + header
   date?: string;                    // optional print date

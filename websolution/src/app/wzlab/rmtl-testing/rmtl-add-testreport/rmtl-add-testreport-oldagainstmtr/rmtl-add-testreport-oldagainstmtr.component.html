@@ -1,3 +1,4 @@
+<!-- src/app/.../rmtl-add-testreport-oldagainstmtr.component.html -->
 <div class="container-fluid mt-4">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
@@ -10,9 +11,14 @@
     </div>
 
     <div class="card-body">
+      <!-- Alerts -->
+      <div *ngIf="alertSuccess" class="alert alert-success d-print-none">{{ alertSuccess }}</div>
+      <div *ngIf="alertError" class="alert alert-danger d-print-none">{{ alertError }}</div>
+
       <!-- Top toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
-        <button type="button" class="btn btn-outline-danger" (click)="openPicker()">⟳ Reload Assigned</button>
+        <button type="button" class="btn btn-outline-danger" (click)="openPicker()">Select Assigned</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="doReloadAssignedWithoutAddingRows()">⟳ Reload Assigned Cache</button>
         <div class="ms-auto d-flex gap-2">
           <input class="form-control" style="min-width:240px" [(ngModel)]="filterText" name="filterText" placeholder="Filter: serial / make / capacity / remark">
         </div>
@@ -30,6 +36,7 @@
             <div class="col-md-4">
               <label class="form-label fw-bold">Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="b_test_method">
+                <option value="" disabled selected>Select method</option>
                 <option *ngFor="let method of test_methods" [value]="method">{{ method }}</option>
               </select>
             </div>
@@ -37,6 +44,7 @@
             <div class="col-md-4">
               <label class="form-label fw-bold">Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="b_test_status">
+                <option value="" disabled selected>Select status</option>
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
             </div>
@@ -226,8 +234,11 @@
         <button type="button" class="btn btn-outline-primary" (click)="addBatchRow()">➕ Add Row</button>
         <button type="button" class="btn btn-outline-secondary" (click)="openConfirm('clear')">Clear</button>
         <div class="ms-auto"></div>
-        <button type="button" class="btn btn-primary" [disabled]="submitting || !batch.rows.length"
-                (click)="openConfirm('submit')">
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="submitting || !batch.rows.length || !testMethod || !testStatus"
+          (click)="openConfirm('submit')">
           {{ submitting ? 'Submitting…' : 'Submit Batch Report' }}
         </button>
       </div>
@@ -309,16 +320,22 @@
           </div>
 
           <div *ngIf="!pickerLoading">
+            <!-- Search + Select All -->
+            <div class="d-flex gap-2 mb-2">
+              <input class="form-control" style="max-width: 320px;"
+                     [(ngModel)]="pickerFilter" name="pickerFilter"
+                     placeholder="Search serial / make / capacity">
+              <div class="ms-auto d-flex align-items-center">
+                <label class="me-2 small text-muted">Select All</label>
+                <input type="checkbox" [checked]="allPicked" (change)="togglePickAll($any($event.target).checked)">
+              </div>
+            </div>
+
             <div class="table-responsive" style="max-height:60vh; overflow:auto">
               <table class="table table-sm table-bordered align-middle">
                 <thead class="table-light">
                   <tr>
-                    <th style="width:40px;">
-                      <input
-                        type="checkbox"
-                        [checked]="allPicked"
-                        (change)="togglePickAll($any($event.target).checked)">
-                    </th>
+                    <th style="width:40px;"></th>
                     <th>#</th>
                     <th>Serial</th>
                     <th>Make</th>
@@ -328,7 +345,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let a of pickerAssignments; let i=index; trackBy: trackAssignment">
+                  <tr *ngFor="let a of pickerFiltered; let i=index; trackBy: trackAssignment">
                     <td class="text-center">
                       <input
                         type="checkbox"
@@ -346,7 +363,7 @@
                 </tbody>
               </table>
             </div>
-            <small class="text-muted">Tip: Only selected devices will be added to the testing grid.</small>
+            <small class="text-muted">Tip: Filter by serial/make/capacity. List sorted by make, then serial.</small>
           </div>
         </div>
 

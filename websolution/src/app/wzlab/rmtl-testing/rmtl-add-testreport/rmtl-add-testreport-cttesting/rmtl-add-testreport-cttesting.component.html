@@ -13,14 +13,14 @@
       <!-- Toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
         <button class="btn btn-danger" (click)="openAssignPicker()">⟳ Load Assigned (Pick)</button>
-         <div class="ms-auto d-flex gap-2">
+        <div class="ms-auto d-flex gap-2">
           <input class="form-control" style="min-width:260px" [(ngModel)]="filterText" name="filterText" placeholder="Filter by CT No / Make / Remark">
         </div>
       </div>
 
       <!-- SOURCE -->
       <form #sourceForm="ngForm" class="mb-4">
-        <div class=" p-3 p-md-4 bg-light-subtle">
+        <div class="p-3 p-md-4 bg-light-subtle">
           <div class="row g-3 align-items-end">
             <div class="col-md-4">
               <div class="form-floating">
@@ -41,26 +41,28 @@
             </div>
             <div class="col-md-3 d-grid">
               <button type="button" class="btn btn-success py-3" (click)="fetchButtonData()">
-                <i class="bi bi-search"></i> Search 
+                <i class="bi bi-search"></i> Search
               </button>
             </div>
           </div>
         </div>
       </form>
 
-      <!-- Batch header (Zone/DC + Method/Status + Bench/User/Date) -->
+      <!-- Batch header -->
       <div class="card shadow-sm mb-3">
         <div class="card-body">
           <div class="row g-3">
-          <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method">
+                <option [ngValue]="null" disabled>Method</option>
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
               </select>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status">
+                <option [ngValue]="null" disabled>Status</option>
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
             </div>
@@ -68,22 +70,22 @@
               <label class="form-label fw-bold">Zone/DC Code</label>
               <input class="form-control" [(ngModel)]="header.location_code" name="loc_code" readonly disabled>
             </div>
-           <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Zone/DC Name</label>
-              <input class="form-control" [(ngModel)]="header.location_name" name="loc_name"  readonly disabled>
+              <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" readonly disabled>
             </div>
 
             <div class="col-md-4">
               <label class="form-label fw-bold">Testing Bench</label>
-              <input class="form-control" [(ngModel)]="testing_bench" name="testing_bench"  readonly disabled>
+              <input class="form-control" [(ngModel)]="testing_bench" name="testing_bench" readonly disabled >
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">Testing User</label>
-              <input class="form-control" [(ngModel)]="testing_user" name="testing_user"  readonly disabled>
+              <input class="form-control" [(ngModel)]="testing_user" name="testing_user" readonly disabled >
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-bold">Approver Name</label>
-              <input class="form-control" [(ngModel)]="header.location_name" name="loc_name"  readonly disabled>
+              <label class="form-label fw-bold">Approver User</label>
+              <input class="form-control" [(ngModel)]="approving_user" name="approving_user" readonly disabled>
             </div>
           </div>
         </div>
@@ -102,49 +104,49 @@
               <input class="form-control" [(ngModel)]="header.address" name="address">
             </div>
 
-           <div class="col-md-4">
+            <div class="col-md-4">
               <label class="form-label fw-bold">No. of C.T</label>
               <input class="form-control" [(ngModel)]="header.no_of_ct" name="no_of_ct" readonly>
             </div>
-           <div class="col-md-4">
-              <label class="form-label fw-bold"> Select City Class</label>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Select City Class</label>
               <select class="form-select" [(ngModel)]="header.city_class" name="city_class">
                 <option *ngFor="let c of ct_classes" [value]="c">{{ c }}</option>
               </select>
             </div>
-           <div class="col-md-4">
+            <div class="col-md-4">
               <label class="form-label fw-bold">Reference remarks</label>
-              <input class="form-control" [(ngModel)]="header.ref_no" name="ref_no" >
+              <input class="form-control" [(ngModel)]="header.ref_no" name="ref_no">
             </div>
-          <div class="col-md-4">
+            <div class="col-md-4">
               <label class="form-label fw-bold">C.T Make</label>
               <input class="form-control" [(ngModel)]="header.ct_make" name="ct_make" readonly>
             </div>
 
-          <div class="col-md-4">
+            <div class="col-md-4">
               <label class="form-label fw-bold">M.R. No / Online Tran. ID & Date</label>
               <div class="d-flex gap-2">
                 <input class="form-control" [(ngModel)]="header.mr_no" name="mr_no">
                 <input type="date" class="form-control" [(ngModel)]="header.mr_date" name="mr_date">
               </div>
             </div>
-          <div class="col-md-4">
+            <div class="col-md-4">
               <label class="form-label fw-bold">Amount Deposited (₹)</label>
               <input type="number" class="form-control" [(ngModel)]="header.amount_deposited" name="amount_deposited" step="0.01">
             </div>
-           <div class="col-md-4">
+            <div class="col-md-4">
               <label class="form-label fw-bold">Date of Testing</label>
               <input type="date" class="form-control" [(ngModel)]="header.date_of_testing" name="date_of_testing">
             </div>
-            
-         <div class="col-md-4">
-          <label class="form-label fw-bold">Primary Current (Amp)</label>
-          <input class="form-control" [(ngModel)]="header.primary_current" name="primary_current" >
-        </div>
-         <div class="col-md-4">
-          <label class="form-label fw-bold">Secondary Current (Amp)</label>
-          <input class="form-control" [(ngModel)]="header.secondary_current" name="secondary_current" >
-        </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Primary Current (Amp)</label>
+              <input class="form-control" [(ngModel)]="header.primary_current" name="primary_current">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Secondary Current (Amp)</label>
+              <input class="form-control" [(ngModel)]="header.secondary_current" name="secondary_current">
+            </div>
           </div>
         </div>
       </div>
@@ -184,14 +186,13 @@
         </table>
       </div>
 
-
       <!-- Bottom actions -->
       <div class="d-flex gap-2 mt-3 d-print-none">
         <button class="btn btn-outline-primary" (click)="addCtRow()">➕ Add CT Row</button>
         <button class="btn btn-outline-secondary" (click)="openConfirm('clear')">Clear CT Rows</button>
         <div class="ms-auto"></div>
-        <button class="btn btn-primary" [disabled]="!ctRows.length" (click)="openConfirm('submit')">
-          {{ submitting ? 'Submitting…' : 'Submit ' }}
+        <button class="btn btn-primary" [disabled]="submitting || !ctRows.length" (click)="openConfirm('submit')">
+          {{ submitting ? 'Submitting…' : 'Validate & Submit' }}
         </button>
       </div>
     </div>
@@ -205,27 +206,35 @@
     </div>
   </div>
 
-  <!-- Assigned picker modal -->
+  <!-- Assigned picker modal (with search + sorted list) -->
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': assignedPicker.open}" *ngIf="assignedPicker.open">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header bg-dark text-white">
           <h5 class="modal-title">Select Assigned Devices for Testing</h5>
-          <button type="button" class="btn-close" (click)="assignedPicker.open=false"></button>
+          <button type="button" class="btn-close btn-close-white" (click)="assignedPicker.open=false"></button>
         </div>
         <div class="modal-body">
-          <div class="table-responsive overflow-auto" style="max-height: calc(100vh - 200px);" *ngIf="assignedPicker.items.length; else emptyAssigned">
+          <div class="d-flex gap-2 mb-2">
+            <input class="form-control" [(ngModel)]="assignedPicker.query" placeholder="Search by serial / make / capacity">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="selAll" (change)="toggleSelectAll($event)">
+              <label class="form-check-label" for="selAll">Select All (visible)</label>
+            </div>
+          </div>
+
+          <div class="table-responsive overflow-auto" style="max-height: calc(100vh - 240px);" *ngIf="assignedPicker.items.length; else emptyAssigned">
             <table class="table table-sm table-bordered align-middle">
               <thead class="table-light">
                 <tr>
-                  <th style="width:40px" class="text-center"><input type="checkbox" (change)="toggleSelectAll($event)"></th>
+                  <th style="width:40px" class="text-center"></th>
                   <th>CT No.</th>
                   <th>Make</th>
                   <th>Capacity</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let it of assignedPicker.items">
+                <tr *ngFor="let it of filteredAssigned">
                   <td class="text-center"><input type="checkbox" [(ngModel)]="it.selected" [name]="'pick_'+it.id"></td>
                   <td>{{ it.serial_number }}</td>
                   <td>{{ it.make }}</td>
@@ -246,7 +255,7 @@
     </div>
   </div>
 
-  <!-- Preview Modal -->
+  <!-- Submit Preview Modal -->
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modal.open}" *ngIf="modal.open">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
@@ -296,7 +305,7 @@
     </div>
   </div>
 
-  <!-- Small Alert Modal -->
+  <!-- Alert Modal -->
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': alert.open}" *ngIf="alert.open">
     <div class="modal-dialog modal-sm modal-dialog-centered">
       <div class="modal-content">

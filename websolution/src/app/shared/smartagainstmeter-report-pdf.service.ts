@@ -186,7 +186,7 @@ export class SmartAgainstMeterReportPdfService {
               stack: [
                 { text: 'Verified by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                { text: (meta.testing_user || ''), alignment: 'center', color: '#444' },
+                // { text: (meta.testing_user || ''), alignment: 'center', color: '#444' },
                 { text: 'JUNIOR ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },

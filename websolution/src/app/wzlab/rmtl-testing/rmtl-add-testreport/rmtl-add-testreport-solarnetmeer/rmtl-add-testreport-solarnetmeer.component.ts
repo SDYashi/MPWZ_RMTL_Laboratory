@@ -13,9 +13,9 @@ interface MeterDevice {
 }
 interface AssignmentItem {
   id: number;           // assignment_id
-  device_id: number;  
+  device_id: number;
   device?: MeterDevice | null;
-  testing_bench?:TestingBench | null;
+  testing_bench?: TestingBench | null;
   user_assigned?: UserPublic | null;
   assigned_by_user?: UserPublic | null;
 }
@@ -71,15 +71,15 @@ interface ModalState {
 export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
   // ===== batch header =====
-  header = { location_code: '', location_name: '', testing_bench: '', testing_user: '', approving_user: '' };
+  header = { location_code: '', location_name: '', testing_bench: '-', testing_user: '-', approving_user: '-' };
   test_methods: any[] = [];
   test_statuses: any[] = [];
   testMethod: string | null = null;
   testStatus: string | null = null;
 
-  // Testing bench/user + logos
-  testing_bench: string = '';
-  testing_user: string = '';
+  // Testing bench/user + logos (kept for PDF)
+  testing_bench: string = '-';
+  testing_user: string = '-';
   leftLogoUrl: string = '';
   rightLogoUrl: string = '';
 
@@ -118,7 +118,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     replaceExisting: true
   };
 
-  // ✅ lab info captured from server (updated keys to match your “correct api call”)
+  // lab info
   labInfo: {
     lab_name?: string | null;
     address?: string | null;
@@ -138,8 +138,10 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     _t: 0 as any
   };
 
-  // Optional: let UI choose between download/print
+  // download/print toggle
   private pdfMode: 'download' | 'print' = 'download';
+
+  // critical context
   device_testing_purpose: any;
   device_type: any;
 
@@ -149,10 +151,15 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.device_type = 'METER';
+    this.device_testing_purpose = 'SOLAR_NETMETER';
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
     this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
     const userNameFromLS = localStorage.getItem('currentUserName') || '';
-    if (userNameFromLS) this.testing_user = userNameFromLS;
+    if (userNameFromLS) {
+      this.testing_user = userNameFromLS;
+      this.header.testing_user = userNameFromLS;
+    }
 
     this.api.getEnums().subscribe({
       next: (d) => {
@@ -161,31 +168,73 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         this.office_types  = d?.office_types || [];
         this.commentby_testers = d?.commentby_testers || [];
         this.test_results = d?.test_results || [];
-        this.device_testing_purpose = d?.test_report_types?.SOLAR_NET_MEER;
-        this.device_type = d.device_types?.METER;
+
+        // Robust mapping: accept any of these keys from backend
+        this.device_testing_purpose =
+          d?.test_report_types?.SOLAR_NETMETER ??
+          d?.test_report_types?.SOLAR_NET_METER ??
+          d?.test_report_types?.SOLAR_NET_MEER ?? // legacy/typo
+          'SOLAR_NETMETER';
+
+        this.device_type = d?.device_types?.METER ?? 'METER';
       }
     });
 
-    // ✅ Fetch LAB info for PDF header/bench list
-    this.api.getLabInfo(this.currentLabId).subscribe({
-      next: (info: any) => {
-        this.labInfo = {
-          lab_name: info?.lab_pdfheader_name || info?.lab_name || null,
-          address:  info?.address || info?.address_line || null,
-          email:    info?.email || null,
-          phone:    info?.phone || null,
-          left_logo_url:  info?.left_logo_url || null,
-          right_logo_url: info?.right_logo_url || null
-        };
-        // Prefer API returns; fall back to pre-set local URLs
-        if (this.labInfo.left_logo_url)  this.leftLogoUrl  = this.labInfo.left_logo_url!;
-        if (this.labInfo.right_logo_url) this.rightLogoUrl = this.labInfo.right_logo_url!;
-      },
-      error: () => { /* non-fatal */ }
-    });
+    if (this.currentLabId) {
+      this.api.getLabInfo(this.currentLabId).subscribe({
+        next: (info: any) => {
+          this.labInfo = {
+            lab_name: info?.lab_pdfheader_name || info?.lab_name || null,
+            address:  info?.address || info?.address_line || null,
+            email:    info?.email || null,
+            phone:    info?.phone || null,
+            left_logo_url:  info?.left_logo_url || null,
+            right_logo_url: info?.right_logo_url || null
+          };
+          if (this.labInfo.left_logo_url)  this.leftLogoUrl  = this.labInfo.left_logo_url!;
+          if (this.labInfo.right_logo_url) this.rightLogoUrl = this.labInfo.right_logo_url!;
+        },
+        error: () => {}
+      });
+    }
 
     // Warm serial index without replacing rows
     this.reloadAssigned(false);
+  }
+
+  // ---------- validation ----------
+  private validateContext(): { ok: boolean; msg?: string } {
+    if (!this.currentUserId) return { ok:false, msg:'Missing user_id — please sign in again.' };
+    if (!this.currentLabId)  return { ok:false, msg:'Missing lab_id — select a lab.' };
+    if (!this.device_type)   return { ok:false, msg:'Missing device_type — refresh enums.' };
+    if (!this.device_testing_purpose) return { ok:false, msg:'Missing device_testing_purpose — refresh enums.' };
+    return { ok:true };
+  }
+
+  private validate(): { ok: boolean; msg?: string } {
+    const ctx = this.validateContext();
+    if (!ctx.ok) return ctx;
+
+    if (!this.testMethod || !this.testStatus) {
+      return { ok:false, msg:'Select Test Method and Test Status.' };
+    }
+
+    const rows = (this.rows || []).filter(r => (r.meter_sr_no || '').trim());
+    if (!rows.length) return { ok:false, msg:'Add at least one device row with serial number.' };
+
+    const badDateIdx = rows.findIndex(r => !r.date_of_testing);
+    if (badDateIdx !== -1) {
+      return { ok:false, msg:`Row #${badDateIdx+1}: Date of Testing is required.` };
+    }
+
+    // ensure not-null display fields
+    this.header.testing_bench = (this.header.testing_bench || this.testing_bench || '').trim() || '-';
+    this.header.testing_user  = (this.header.testing_user  || this.testing_user  || '').trim() || '-';
+    this.header.approving_user = (this.header.approving_user || '').trim() || '-';
+    this.testing_bench = this.header.testing_bench;
+    this.testing_user  = this.header.testing_user;
+
+    return { ok:true };
   }
 
   // ---------- Source fetch ----------
@@ -199,7 +248,6 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         this.filteredSources = data;
         this.header.location_name = this.filteredSources?.name ?? '';
         this.header.location_code = this.filteredSources?.code ?? '';
-        // No auto-add of assigned rows here; user decides via "Load Assigned (Select)"
         this.openAlert('success', 'Source loaded', 'Office/Store/Vendor fetched.', 1200);
       },
       error: () => this.openAlert('error', 'Lookup failed', 'Check the code and try again.')
@@ -244,39 +292,60 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     }
   }
 
+  // ---------- assigned loading ----------
   reloadAssigned(replaceRows: boolean = true) {
+    const v = this.validateContext();
+    if (!v.ok) { this.openAlert('warning','Context error', v.msg!); return; }
+
     this.loading = true;
-    this.api.getAssignedMeterList(this.device_status, this.currentUserId, this.currentLabId, this.device_type, this.device_testing_purpose).subscribe({
+
+    // FIXED ARG ORDER: (status, userId, labId, device_testing_purpose, device_type)
+    this.api.getAssignedMeterList(
+      this.device_status,
+      this.currentUserId,
+      this.currentLabId,
+      this.device_testing_purpose,
+      this.device_type
+    ).subscribe({
       next: (data: any) => {
-        const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+        let asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+
+        // sort by make -> serial
+        asg = asg.sort((a,b)=>{
+          const ma=(a.device?.make||'').toLowerCase(), mb=(b.device?.make||'').toLowerCase();
+          if (ma!==mb) return ma.localeCompare(mb);
+          return (a.device?.serial_number||'').localeCompare(b.device?.serial_number||'');
+        });
+
         this.rebuildSerialIndex(asg);
 
-        // set header from first device if not already filled
+        // patch header defaults from first device if empty
         const first = asg.find(a => a.device);
         if (first?.device){
           this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
           this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
-          this.header.testing_bench = this.header.testing_bench || (first.testing_bench?.bench_name ?? '');
-          this.header.testing_user  = this.header.testing_user  || (first.user_assigned?.name ?? '');
-          this.header.approving_user = this.header.approving_user || (first.assigned_by_user?.name ?? '');
-          // also reflect onto the read-only fields
-          if (!this.testing_bench) this.testing_bench = this.header.testing_bench;
-          if (!this.testing_user)  this.testing_user  = this.header.testing_user;
+          this.header.testing_bench = (this.header.testing_bench && this.header.testing_bench !== '-') ? this.header.testing_bench : (first.testing_bench?.bench_name ?? '-');
+          this.header.testing_user  = (this.header.testing_user  !== '-' ? this.header.testing_user  : (first.user_assigned?.name ?? this.header.testing_user)) || '-';
+          this.header.approving_user = (this.header.approving_user || (first.assigned_by_user?.username ?? '-'));
+
+          // reflect to local fields used in PDF header
+          this.testing_bench = this.header.testing_bench;
+          this.testing_user  = this.header.testing_user;
         }
 
         if (replaceRows) {
-          // In this app we DO NOT auto-push all assigned; keep rows as-is.
-          // (Method retained for parity; not used when picker is opened)
+          // keep existing rows as the UI relies on picker; no auto-fill
         }
 
-        // cache list for picker
         this.asgPicker.list = asg;
         this.loading = false;
+        // this.openAlert('info','Assignments loaded', `${asg.length} device(s) fetched.`, 1400);
       },
       error: () => { this.loading = false; this.openAlert('error', 'Reload failed', 'Could not fetch assigned meters.'); }
     });
   }
 
+  // ---------- rows ----------
   onSerialChanged(i: number, serial: string) {
     const key = (serial || '').toUpperCase().trim();
     const row = this.rows[i];
@@ -298,13 +367,10 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   }
 
   addRow() { this.rows.push(this.emptyRow()); }
-
-  // instant remove; NO alert popup / NO toast
   removeRow(i: number) {
     if (i>=0 && i<this.rows.length){
       this.rows.splice(i,1);
       if (!this.rows.length) this.rows.push(this.emptyRow());
-      // no alerts here by request
     }
   }
 
@@ -334,7 +400,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString();
   }
 
-  /** Fully map to Testing model columns (where available on this screen). */
+  /** API payload */
   private buildPayload(): any[] {
     const requester = this.header.location_name || this.filteredSources?.name || null;
 
@@ -406,13 +472,19 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       }));
   }
 
-  // ---------- Confirm (only for submit preview) ----------
+  // ---------- Confirm flow ----------
   openConfirm(action: ModalAction){
     this.alertSuccess = null;
     this.alertError = null;
     this.modal.action = action;
 
     if (action === 'submit') {
+      // Run validation up-front for user feedback
+      const v = this.validate();
+      if (!v.ok) {
+        this.openAlert('warning', 'Validation error', v.msg!);
+        return;
+      }
       this.modal.title = 'Submit Batch — Preview';
       this.modal.message = '';
       this.modal.open = true;
@@ -422,8 +494,11 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
   // ---------- Assigned picker ----------
   openAssignedPicker() {
-    // Always reload fresh list and open the modal picker
-    this.reloadAssigned(false);
+    // ensure context + fresh list
+    const v = this.validateContext();
+    if (!v.ok) { this.openAlert('warning','Context error', v.msg!); return; }
+
+    if (!this.asgPicker.list.length) this.reloadAssigned(false);
     this.asgPicker.selected = {};
     this.asgPicker.filter = '';
     this.asgPicker.replaceExisting = true;
@@ -472,11 +547,16 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     if (this.asgPicker.replaceExisting) {
       this.rows = newRows.length ? newRows : [this.emptyRow()];
     } else {
-      this.rows.push(...newRows);
+      // avoid duplicates by serial
+      const seen = new Set(this.rows.map(r => (r.meter_sr_no||'').toUpperCase()));
+      newRows.forEach(r => {
+        const key = (r.meter_sr_no||'').toUpperCase();
+        if (!seen.has(key)) { this.rows.push(r); seen.add(key); }
+      });
     }
 
     this.closeAssignedPicker();
-    this.openAlert('info', 'Devices added', `${newRows.length} device(s) added to the table.`, 1500);
+    this.openAlert('success', 'Devices added', `${newRows.length} device(s) added to the table.`, 1500);
   }
 
   // ---------- Submit ----------
@@ -485,19 +565,10 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   }
 
   private async doSubmit(){
-    const payload = this.buildPayload();
-    if (!payload.length){
-      this.alertError = 'No valid rows to submit.';
-      this.openAlert('warning', 'Nothing to submit', 'Please add at least one valid row.');
-      return;
-    }
-    const missingDt = payload.findIndex(p => !p.start_datetime || !p.end_datetime);
-    if (missingDt !== -1){
-      this.alertError = `Row #${missingDt+1} is missing Date of Testing.`;
-      this.openAlert('warning', 'Validation error', this.alertError);
-      return;
-    }
+    const v = this.validate();
+    if (!v.ok) { this.openAlert('warning','Validation error', v.msg!); return; }
 
+    const payload = this.buildPayload();
     this.submitting = true;
     this.alertSuccess = null;
     this.alertError = null;
@@ -506,18 +577,16 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       next: async (_resp: any) => {
         this.submitting = false;
 
-        // Prefer LAB info provided by POST response; else fallback to previously fetched
         const labFromResp = _resp?.lab_info || _resp?.lab || null;
         const effLab = labFromResp || this.labInfo || {};
 
-        // ✅ Build PDF params with freshest lab details
         const hdr: SolarHeader = {
           location_code: this.header.location_code,
           location_name: this.header.location_name,
           testMethod: this.testMethod,
           testStatus: this.testStatus,
-          testing_bench: this.testing_bench || this.header.testing_bench || null,
-          testing_user: this.testing_user || this.header.testing_user || null,
+          testing_bench: this.header.testing_bench || this.testing_bench || '-',
+          testing_user: this.header.testing_user || this.testing_user || '-',
           date: new Date().toISOString(),
 
           lab_name:    effLab?.lab_pdfheader_name || effLab?.lab_name || this.labInfo?.lab_name || '-',
@@ -562,8 +631,12 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
           } else {
             await this.pdfSvc.download(hdr, rows, 'SOLAR_NETMETER_CERTIFICATES.pdf');
           }
-          this.openAlert('success', this.pdfMode === 'print' ? 'Sent to printer' : 'PDF downloaded',
-            this.pdfMode === 'print' ? 'Certificates sent to print dialog.' : 'Certificates have been generated and downloaded.', 1500);
+          this.openAlert(
+            'success',
+            this.pdfMode === 'print' ? 'Sent to printer' : 'PDF downloaded',
+            this.pdfMode === 'print' ? 'Certificates sent to print dialog.' : 'Certificates have been generated and downloaded.',
+            1500
+          );
         } catch {
           this.openAlert('warning', 'PDF error', 'Saved, but PDF could not be generated.');
         }
@@ -594,6 +667,5 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     this.alert.open = false;
   }
 
-  // Optional: hook to switch between download/print from UI (button/toggle)
   setPdfMode(mode: 'download'|'print'){ this.pdfMode = mode; }
 }
