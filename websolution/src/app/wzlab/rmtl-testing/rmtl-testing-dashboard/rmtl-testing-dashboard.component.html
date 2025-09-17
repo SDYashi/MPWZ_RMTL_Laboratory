@@ -68,31 +68,31 @@
 
           <!-- Recent tests -->
           <div class="table-responsive">
-            <table class="table table-sm align-middle">
+            <table class="table table-sm table-bordered align-middle">
               <thead class="table-light">
                 <tr>
-                  <th>ID</th>
-                  <th>Device</th>
-                  <th>Status</th>
-                  <th>Result</th>
-                  <th>Method</th>
-                  <th>Report Type</th>
-                  <th>Start</th>
-                  <th>End</th>
-                  <th>Approver</th>
+                  <th scope="col">ID</th>
+                  <th scope="col">Device</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Result</th>
+                  <th scope="col">Method</th>
+                  <th scope="col">Report Type</th>
+                  <th scope="col">Start</th>
+                  <th scope="col">End</th>
+                  <th scope="col">Approver</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let r of recent12; trackBy: trackByRec">
-                  <td>{{ r.id }}</td>
+                  <th scope="row">{{ recent12.indexOf(r) + 1 }}</th>
                   <td>#{{ r.device_id }}</td>
-                  <td><span class="badge" [ngClass]="statusBadgeClass(r.test_status)">{{ r.test_status || '—' }}</span></td>
+                  <td><span class="badge rounded-pill" [ngClass]="statusBadgeClass(r.test_status)">{{ r.test_status || '—' }}</span></td>
                   <td>
-                    <span class="badge" [ngClass]="'bg-' + (r.test_result?.toUpperCase() === 'OK' ? 'success' : (r.test_result?.toUpperCase() === 'NOT OK' ? 'danger' : 'secondary'))">
+                    <span class="badge rounded-pill" [ngClass]="'bg-' + (r.test_result?.toUpperCase() === 'OK' ? 'success' : (r.test_result?.toUpperCase() === 'NOT OK' ? 'danger' : 'secondary'))">
                       {{ r.test_result || '—' }}
                     </span>
                   </td>
-                  <td><span class="badge" [ngClass]="'bg-' + methodColor(r.test_method)">{{ r.test_method || '—' }}</span></td>
+                  <td><span class="badge rounded-pill" [ngClass]="'bg-' + methodColor(r.test_method)">{{ r.test_method || '—' }}</span></td>
                   <td>{{ r.report_type || '—' }}</td>
                   <td><small class="text-muted">{{ r.start_datetime | date:'medium' }}</small></td>
                   <td><small class="text-muted">{{ r.end_datetime   | date:'medium' }}</small></td>

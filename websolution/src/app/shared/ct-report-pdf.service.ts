@@ -98,7 +98,7 @@ export class CtReportPdfService {
 
   private headerBar(meta: any, images: Record<string, string>) {
     return {
-      margin: [28, 0, 28, 6],
+      margin: [28, 28, 28, 6],
       columns: [
         images['leftLogo'] ? { image: 'leftLogo', width: 32, margin: [0, 0, 8, 0] } : { width: 32, text: '' },
         {
@@ -204,7 +204,7 @@ export class CtReportPdfService {
           {
             width: '*', alignment: 'center',
             stack: [
-              { text: 'Tested by', style: 'footRole' },
+              { text: '\n\nTested by', style: 'footRole' },
               { text: '\n____________________________', alignment: 'center' },
               { text: 'TESTING ASSISTANT (RMTL)', style: 'footTiny' },
             ],
@@ -212,7 +212,7 @@ export class CtReportPdfService {
           {
             width: '*', alignment: 'center',
             stack: [
-              { text: 'Verified by', style: 'footRole' },
+              { text: '\n\nVerified by', style: 'footRole' },
               { text: '\n____________________________', alignment: 'center' },
               { text: 'JUNIOR ENGINEER (RMTL)', style: 'footTiny' },
             ],
@@ -220,7 +220,7 @@ export class CtReportPdfService {
           {
             width: '*', alignment: 'center',
             stack: [
-              { text: 'Approved by', style: 'footRole' },
+              { text: '\n\nApproved by', style: 'footRole' },
               { text: '\n____________________________', alignment: 'center' },
               { text: 'ASSISTANT ENGINEER (RMTL)', style: 'footTiny' },
             ],

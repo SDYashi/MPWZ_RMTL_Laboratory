@@ -2,6 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import { CtReportPdfService, CtHeader, CtPdfRow } from 'src/app/shared/ct-report-pdf.service';
 
+type Working = 'OK' | 'FAST' | 'SLOW' | 'NOT WORKING';
+type CTRatio = '100/5' | '200/5' | '300/5' | '400/5' | '600/5';
+
 interface DeviceLite {
   id: number;
   serial_number: string;
@@ -9,6 +12,10 @@ interface DeviceLite {
   capacity?: string;
   location_code?: string | null;
   location_name?: string | null;
+  // Optional hints (if your API provides)
+  testing_bench?: string | null;
+  testing_user?: string | null;
+  approving_user?: string | null;
 }
 interface AssignmentItem { id: number; device_id: number; device?: DeviceLite | null; }
 
@@ -16,9 +23,10 @@ interface CtRow {
   ct_no: string;
   make: string;
   cap: string;
-  ratio: string;
+  ratio: CTRatio | string;
   polarity: string;
   remark: string;
+  working?: Working;                 // NEW: Working enum selection
   assignment_id?: number;
   device_id?: number;
   notFound?: boolean;
@@ -48,14 +56,14 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     mr_no: '', mr_date: '',
     amount_deposited: '',
     date_of_testing: '',
-    primary_current: '', 
+    primary_current: '',
     secondary_current: '',
     testing_user: '',
     approving_user: '',
     testing_bench: ''
   };
 
-  // Non-null bench/user/approver (kept separate, but enforced non-null in validate)
+  // Non-null bench/user/approver (enforced non-null in validate / picker fill)
   testing_bench: string = '';
   testing_user: string = '';
   approving_user: string = '';
@@ -79,6 +87,10 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   commentby_testers: any;
   makes: any;
   ct_classes: any;
+
+  // NEW: row dropdown options
+  workingOptions: Working[] = ['OK', 'FAST', 'SLOW', 'NOT WORKING'];
+  ratioOptions: CTRatio[] = ['100/5', '200/5', '300/5', '400/5', '600/5'];
 
   // assignment / lab context
   device_status: 'ASSIGNED' = 'ASSIGNED';
@@ -114,19 +126,36 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   // Assigned picker w/ search + sorting
   assignedPicker = {
     open: false,
-    items: [] as Array<{ id: number; device_id: number; serial_number: string; make?: string; capacity?: string; selected: boolean }>,
+    items: [] as Array<{
+      id: number;
+      device_id: number;
+      serial_number: string;
+      make?: string;
+      capacity?: string;
+      selected: boolean;
+      // optional bench/user/approver hints if API provides
+      testing_bench?: string | null;
+      testing_user?: string | null;
+      approving_user?: string | null;
+    }>,
     query: '' // 🔍 search
   };
 
   constructor(private api: ApiServicesService, private ctPdf: CtReportPdfService) {}
 
   ngOnInit(): void {
+    // Robust defaults to avoid null / 0 issues
     this.device_type = 'CT';
     this.device_testing_purpose = 'CT_TESTING';
+
     this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
     this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+
     const userName = localStorage.getItem('currentUserName') || '';
-    if (userName) this.testing_user = userName;
+    if (userName) {
+      this.testing_user = userName;
+      this.header.testing_user = userName;
+    }
 
     this.api.getEnums().subscribe({
       next: (d) => {
@@ -138,7 +167,8 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
         this.test_results = d?.test_results || [];
         this.makes = d?.device_makes || [];
         this.ct_classes = d?.ct_classes || [];
-        // purpose/type with robust fallback (avoid null → breaks assignment load)
+
+        // purpose/type with robust fallback
         this.device_testing_purpose = d?.test_report_types?.CT_TESTING ?? 'CT_TESTING';
         this.device_type = d?.device_types?.CT ?? 'CT';
       }
@@ -149,10 +179,12 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
 
   // ===== Validation guards =====
   private validateContext(): { ok: boolean; reason?: string } {
-    if (!this.currentUserId) return { ok:false, reason:'Missing user_id — sign in again.' };
-    if (!this.currentLabId)  return { ok:false, reason:'Missing lab_id — select a lab.' };
     if (!this.device_type)   return { ok:false, reason:'Missing device_type — refresh enums.' };
     if (!this.device_testing_purpose) return { ok:false, reason:'Missing device_testing_purpose — refresh enums.' };
+
+    // User & lab must be present for assignment filtering
+    if (!this.currentUserId || this.currentUserId <= 0) return { ok:false, reason:'Missing user_id — sign in again.' };
+    if (!this.currentLabId  || this.currentLabId <= 0)  return { ok:false, reason:'Missing lab_id — select a lab.' };
     return { ok:true };
   }
 
@@ -171,12 +203,15 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       return { ok:false, reason:'Add at least one CT row.' };
     }
 
-    // enforce non-null UI fields
+    // Enforce non-null bench/user/approver (UI + header mirror)
     this.testing_bench   = (this.testing_bench   || '').trim() || '-';
     this.testing_user    = (this.testing_user    || '').trim() || '-';
     this.approving_user  = (this.approving_user  || '').trim() || '-';
+    this.header.testing_bench = this.testing_bench;
+    this.header.testing_user  = this.testing_user;
+    this.header.approving_user = this.approving_user;
 
-    // small header conveniences
+    // Small conveniences
     this.header.no_of_ct = validRows.length.toString();
     if (!this.header.ct_make && validRows[0]) this.header.ct_make = validRows[0].make || '';
 
@@ -198,6 +233,10 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   }
 
   // ===== Source lookups =====
+  selectedSourceType: any;
+  selectedSourceName: string = '';
+  filteredSources: any;
+
   fetchButtonData(): void {
     if (!this.selectedSourceType || !this.selectedSourceName) {
       this.openAlert('warning', 'Missing Input', 'Select a source type and enter code.');
@@ -220,7 +259,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   get unknownCount(){ return (this.ctRows ?? []).filter(r => !!r.notFound).length; }
 
   emptyCtRow(seed?: Partial<CtRow>): CtRow {
-    return { ct_no: '', make: '', cap: '', ratio: '', polarity: '', remark: '', ...seed };
+    return { ct_no: '', make: '', cap: '', ratio: '', polarity: '', remark: '', working: undefined, ...seed };
   }
   addCtRow(){ this.ctRows.push(this.emptyCtRow()); }
   removeCtRow(i: number){
@@ -281,7 +320,10 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
               serial_number: d.serial_number || '',
               make: d.make || '',
               capacity: d.capacity || '',
-              selected: false
+              selected: false,
+              testing_bench: d.testing_bench ?? null,
+              testing_user: d.testing_user ?? null,
+              approving_user: d.approving_user ?? null
             };
           })
           // sort by make → serial
@@ -295,7 +337,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
         this.assignedPicker.query = '';
         this.assignedPicker.open = true;
         this.loading = false;
-        this.openAlert('info','Assignments loaded', `${items.length} device(s) ready to pick.`, 1200);
+        // this.openAlert('info','Assignments loaded', `${items.length} device(s) ready to pick.`, 1200);
       },
       error: () => { this.loading = false; this.openAlert('error', 'Load failed', 'Could not fetch assigned devices.'); }
     });
@@ -341,11 +383,20 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     }
     if (!this.ctRows.length) this.ctRows.push(this.emptyCtRow());
 
+    // Auto-fill bench/user/approver from FIRST selected device if empty
+    const first = chosen[0];
+    if (!this.testing_bench)   this.testing_bench   = (first.testing_bench || '') || '-';
+    if (!this.testing_user)    this.testing_user    = (first.testing_user || this.testing_user || '') || '-';
+    if (!this.approving_user)  this.approving_user  = (first.approving_user || '') || '-';
+    this.header.testing_bench = this.testing_bench;
+    this.header.testing_user  = this.testing_user;
+    this.header.approving_user = this.approving_user;
+
     this.header.no_of_ct = this.ctRows.filter(r => (r.ct_no||'').trim()).length.toString();
     this.header.ct_make = this.ctRows[0]?.make || '';
 
     this.assignedPicker.open = false;
-    this.openAlert('success', 'Devices added', `${added} device(s) added to rows.`, 1200);
+    // this.openAlert('success', 'Devices added', `${added} device(s) added to rows.`, 1200);
   }
 
   // ===== Field helpers =====
@@ -372,11 +423,14 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString();
   }
 
-  private inferResult(remark: string): 'PASS'|'FAIL'|undefined {
+  // Map remark → Working when user didn’t select explicitly
+  private inferWorkingFromRemark(remark: string): Working | undefined {
     const t = (remark || '').toLowerCase();
     if (!t) return undefined;
-    if (/\bok\b|\bpass\b/.test(t)) return 'PASS';
-    if (/\bfail\b|\bdef\b|\bdefective\b/.test(t)) return 'FAIL';
+    if (/\bok\b/.test(t)) return 'OK';
+    if (/\bfast\b/.test(t)) return 'FAST';
+    if (/\bslow\b/.test(t)) return 'SLOW';
+    if (/\bnot\s*working\b|\bfail\b|\bdef\b|\bdefective\b/.test(t)) return 'NOT WORKING';
     return undefined;
   }
 
@@ -405,8 +459,11 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           cap: r.cap || '',
           ratio: r.ratio || '',
           polarity: r.polarity || '',
-          remark: r.remark || '',
+          remark: r.remark || ''
         };
+
+        // IMPORTANT: send Working enum, not PASS/FAIL
+        const working: Working = r.working || this.inferWorkingFromRemark(r.remark) || 'OK';
 
         return {
           device_id: r.device_id ?? 0,
@@ -429,7 +486,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           error_percentage: 0,
 
           details: JSON.stringify(detailsObj),
-          test_result: this.inferResult(r.remark),
+          test_result: working,                // <-- FIX: Working enum string
           test_method: this.testMethod,
           test_status: this.testStatus,
 
@@ -560,9 +617,4 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     if (this.alert._t){ clearTimeout(this.alert._t); }
     this.alert.open = false;
   }
-
-  // SOURCE fields (kept from your original)
-  selectedSourceType: any;
-  selectedSourceName: string = '';
-  filteredSources: any;
 }

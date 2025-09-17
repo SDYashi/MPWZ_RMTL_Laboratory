@@ -9,28 +9,25 @@ interface MeterDevice {
   capacity?: string;
   location_code?: string | null;
   location_name?: string | null;
-  phase?: any;
 }
-interface AssignmentItem { id: number; device_id: number; device?: MeterDevice | null; }
+interface AssignmentItem { id: number; device_id: number; device?: MeterDevice | null; testing_bench?: { bench_name?: string } | null; bench_name?: string; user_assigned?: { username?: string } | null; assigned_by_user?: { username?: string } | null; username?: string; }
 
 interface Row {
   serial: string;
   make: string;
   capacity: string;
-
   removal_reading?: number;
   test_result?: string;
+
   consumer_name?: string;
   address?: string;
   account_number?: string;
   division_zone?: string;
-
   panchanama_no?: string;
   panchanama_date?: string;
   condition_at_removal?: string;
 
   testing_date?: string;
-
   is_burned: boolean;
   seal_status: string;
   meter_glass_cover: string;
@@ -45,12 +42,24 @@ interface Row {
   error_percentage?: number;
   starting_current_test?: string;
   creep_test?: string;
+
   remark?: string;
 
   assignment_id?: number;
   device_id?: number;
   notFound?: boolean;
+
   _open?: boolean;
+}
+
+type ModalAction = 'submit' | null;
+
+interface ModalState {
+  open: boolean;
+  title: string;
+  message?: string;
+  action: ModalAction;
+  payload?: any;
 }
 
 @Component({
@@ -60,212 +69,223 @@ interface Row {
 })
 export class RmtlAddTestreportP4vigComponent implements OnInit {
 
-  // ===== batch header (like P4_ONM) =====
-  header = {
-    location_code: '',
-    location_name: '',
-    testing_bench: '-',
-    testing_user: '-',
-    approving_user: '-',
-    phase: ''
-  };
+  // ===== batch header (added phase, approving_user to match template) =====
+  header: {
+    location_code: string;
+    location_name: string;
+    testing_bench: string;
+    testing_user: string;
+    phase?: string;
+    approving_user?: string;
+  } = { location_code: '', location_name: '', testing_bench: '', testing_user: '', phase: '', approving_user: '' };
 
-  // enums
   test_methods: any[] = [];
   test_statuses: any[] = [];
   testMethod: string | null = null;
   testStatus: string | null = null;
 
+  // ===== enums =====
   seal_statuses: any[] = [];
   glass_covers: any[] = [];
   terminal_blocks: any[] = [];
   meter_bodies: any[] = [];
-  office_types: any;
-  testResults: any;
-  commentby_testers: any;
 
-  // assignment context
+  // ===== assignment / lab =====
   device_status: 'ASSIGNED' = 'ASSIGNED';
   currentUserId = 0;
   currentLabId  = 0;
-
-  report_type: any;
-  device_testing_purpose: any;
-  device_type: any;
-
-  private serialIndex: Record<string, {
-    phase: string; make?: string; capacity?: string; device_id: number; assignment_id: number;
-  }> = {};
-
+  private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; }> = {};
   loading = false;
 
-  // lab info (used for PDF header)
-  labInfo: any = null;
+  // lab info for PDF header
+  labInfo: {
+    lab_name?: string; address?: string; email?: string; phone?: string;
+    logo_left_url?: string; logo_right_url?: string;
+  } | null = null;
 
-  // table
+  // ===== table =====
   filterText = '';
   rows: Row[] = [ this.emptyRow() ];
 
-  // device picker (sorted + searchable)
+  // ===== source lookup =====
+  office_types: any;
+  selectedSourceType: any;
+  selectedSourceName: string = '';
+  filteredSources: any;
+
+  // ===== submit + modal state =====
+  submitting = false;
+  modal: ModalState = { open: false, title: '', action: null };
+  alertSuccess: string | null = null;
+  alertError: string | null = null;
+  testResults: any;
+  commentby_testers: any;
+
+  // ===== alert modal =====
+  alert = {
+    open: false,
+    type: 'info' as 'success' | 'error' | 'warning' | 'info',
+    title: '',
+    message: '',
+    autoCloseMs: 0 as number | 0,
+    _t: 0 as any
+  };
+
+  // ===== device picker modal =====
   devicePicker = {
     open: false,
     items: [] as AssignmentItem[],
     selected: new Set<number>(),
     loading: false,
     selectAll: false,
-    query: ''   // 🔍 search by serial/make/capacity
+    search: '' as string, // search by serial
   };
 
-  // alert modal
-  alert = {
-    open: false,
-    type: 'info' as 'success'|'error'|'warning'|'info',
-    title: '',
-    message: ''
-  };
+  report_type: any;
+  device_testing_purpose: any;
+  device_type: any;
 
-  // keep payload for debugging if needed
-  payload: any;
+  constructor(private api: ApiServicesService, private pdfSvc: P4VigReportPdfService) {}
 
-  constructor(
-    private api: ApiServicesService,
-    private pdfSvc: P4VigReportPdfService
-  ) {}
+  private safeNumber(val: any): number {
+    const n = Number(val);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
 
   ngOnInit(): void {
-    this.device_type = 'METER';
-    this.device_testing_purpose = 'VIGILENCE_CHECKING';
-    this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+    this.currentUserId = this.safeNumber(localStorage.getItem('currentUserId'));
+    this.currentLabId  = this.safeNumber(localStorage.getItem('currentLabId'));
+    this.header.testing_user = (localStorage.getItem('currentUserName') || '').trim();
 
-    const currentUserName = localStorage.getItem('currentUserName') || '';
-    if (currentUserName) this.header.testing_user = currentUserName;
-
-    // enums
     this.api.getEnums().subscribe({
       next: (d) => {
-        this.test_methods     = d?.test_methods || [];
-        this.test_statuses    = d?.test_statuses || [];
-        this.seal_statuses    = d?.seal_statuses || [];
-        this.glass_covers     = d?.glass_covers || [];
-        this.terminal_blocks  = d?.terminal_blocks || [];
-        this.meter_bodies     = d?.meter_bodies || [];
-        this.office_types     = d?.office_types || [];
-        this.testResults      = d?.test_results || [];
-        this.commentby_testers= d?.commentby_testers || [];
+        this.test_methods   = d?.test_methods || [];
+        this.test_statuses  = d?.test_statuses || [];
+        this.seal_statuses  = d?.seal_statuses || [];
+        this.glass_covers   = d?.glass_covers || [];
+        this.terminal_blocks= d?.terminal_blocks || [];
+        this.meter_bodies   = d?.meter_bodies || [];
+        this.office_types   = d?.office_types || [];
+        this.testResults    = d?.test_results || [];
+        this.commentby_testers = d?.commentby_testers || [];
 
-        // purpose/type with robust fallbacks (prevents nulls)
-        this.report_type = d?.test_report_types?.VIGILENCE_CHECKING
-                        ?? d?.test_report_types?.VIGILANCE_CHECKING
-                        ?? 'VIGILENCE_CHECKING';
+        // Ensure these are NEVER falsy so filtering works
+        this.report_type = d?.test_report_types?.VIGILENCE_CHECKING || 'VIGILENCE_CHECKING';
+        this.device_testing_purpose = d?.test_report_types?.VIGILENCE_CHECKING || 'VIGILENCE_CHECKING';
+        this.device_type = d?.device_types?.METER || 'METER';
 
-        this.device_testing_purpose = this.report_type;
-        this.device_type = d?.device_types?.METER ?? 'METER';
+        // build serial index w/o pushing rows
+        this.loadAssignedIndexOnly();
       }
     });
 
-    // lab
-    if (this.currentLabId) {
-      this.api.getLabInfo(this.currentLabId).subscribe({ next: (info: any) => this.labInfo = info });
-    }
-
-    // warm index
-    this.loadAssignedIndexOnly();
-  }
-
-  // ===== validation guards =====
-  private validateContext(): { ok: boolean; reason?: string } {
-    if (!this.currentUserId)                return { ok:false, reason:'Missing user_id — sign in again.' };
-    if (!this.currentLabId)                 return { ok:false, reason:'Missing lab_id — select a lab.' };
-    if (!this.device_type)                  return { ok:false, reason:'Missing device_type — refresh enums.' };
-    if (!this.device_testing_purpose)       return { ok:false, reason:'Missing device_testing_purpose — refresh enums.' };
-    return { ok:true };
-  }
-
-  private validate(): { ok: boolean; reason?: string } {
-    const ctx = this.validateContext();
-    if (!ctx.ok) return ctx;
-
-    if (!this.testMethod || !this.testStatus) {
-      return { ok:false, reason:'Select Test Method and Test Status.' };
-    }
-
-    const validRows = (this.rows || []).filter(r => (r.serial || '').trim());
-    if (!validRows.length) {
-      return { ok:false, reason:'Add at least one row with meter serial.' };
-    }
-
-    // keep header display fields not-null (like P4_ONM)
-    this.header.testing_bench  = (this.header.testing_bench  || '').trim() || '-';
-    this.header.testing_user   = (this.header.testing_user   || '').trim() || '-';
-    this.header.approving_user = (this.header.approving_user || '').trim() || '-';
-
-    return { ok:true };
-  }
-
-  // ===== serial lookup =====
-  onSerialChanged(i: number, serial: string){
-    const key = (serial || '').toUpperCase().trim();
-    const row = this.rows[i];
-    const hit = this.serialIndex[key];
-
-    if (hit){
-      row.make = hit.make || '';
-      row.capacity = hit.capacity || '';
-      row.device_id = hit.device_id || 0;
-      row.assignment_id = hit.assignment_id || 0;
-      row.notFound = false;
-
-      if (!this.header.phase && hit?.phase){
-        this.header.phase = (hit.phase || '').toString().toUpperCase();
+    // lab info for header
+    this.api.getLabInfo(this.currentLabId || 0).subscribe({
+      next: (info: any) => {
+        this.labInfo = {
+          lab_name: info?.lab_pdfheader_name || info?.lab_name,
+          address: info?.address || info?.address_line,
+          email: info?.email,
+          phone: info?.phone,
+          logo_left_url: info?.logo_left_url,
+          logo_right_url: info?.logo_right_url
+        };
       }
-    } else {
-      row.make = '';
-      row.capacity = '';
-      row.device_id = 0;
-      row.assignment_id = 0;
-      row.notFound = key.length > 0;
-    }
+    });
   }
+
+  // ---------- Source fetch ----------
+  fetchButtonData(): void {
+    if (!this.selectedSourceType || !this.selectedSourceName) {
+      this.openAlert('warning', 'Missing input', 'Select a source type and enter code.');
+      return;
+    }
+    this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
+      next: (data) => {
+        this.filteredSources = data;
+        this.header.location_name = this.filteredSources?.name ?? '';
+        this.header.location_code = this.filteredSources?.code ?? '';
+        // this.openAlert('success', 'Source loaded', 'Office/Store/Vendor fetched.', 1200);
+      },
+      error: () => this.openAlert('error', 'Lookup failed', 'Check the code and try again.')
+    });
+  }
+
+  onSourceTypeChange(): void {
+    this.selectedSourceName = '';
+    this.filteredSources = [];
+  }
+
+  // ===== derived counters =====
+  get matchedCount(){ return (this.rows ?? []).filter(r => !!r.serial && !r.notFound).length; }
+  get unknownCount(){ return (this.rows ?? []).filter(r => !!r.notFound).length; }
 
   // ===== helpers =====
   private emptyRow(seed?: Partial<Row>): Row {
     return {
-      serial: '',
-      make: '',
-      capacity: '',
-      is_burned: false,
-      seal_status: '',
-      meter_glass_cover: '',
-      terminal_block: '',
-      meter_body: '',
-      other: '',
-      _open: false,
-      ...seed
+      serial: '', make: '', capacity: '',
+      is_burned: false, seal_status: '', meter_glass_cover: '', terminal_block: '', meter_body: '',
+      other: '', _open: false, ...seed
     };
   }
+  addRow(){ this.rows.push(this.emptyRow({ _open: true })); }
+  removeRow(i:number){
+    if (i < 0 || i >= this.rows.length) return;
+    this.rows.splice(i,1); // no confirm
+    if (!this.rows.length) this.addRow();
+  }
 
-  get matchedCount(){ return (this.rows || []).filter(r => !!r.serial && !r.notFound).length; }
-  get unknownCount(){ return (this.rows || []).filter(r => !!r.notFound).length; }
+  trackByRow(i:number, r:Row){ return `${r.assignment_id || 0}_${r.device_id || 0}_${r.serial || ''}_${i}`; }
 
   displayRows(): Row[] {
-    const q = (this.filterText || '').toLowerCase().trim();
+    const q = this.filterText.trim().toLowerCase();
     if (!q) return this.rows;
     return this.rows.filter(r =>
-      (r.serial||'').toLowerCase().includes(q) ||
-      (r.make||'').toLowerCase().includes(q)   ||
-      (r.capacity||'').toLowerCase().includes(q)
-    );
+      (r.serial || '').toLowerCase().includes(q) ||
+      (r.make || '').toLowerCase().includes(q) ||
+      (r.capacity || '').toLowerCase().includes(q) ||
+      (r.consumer_name || '').toLowerCase().includes(q));
   }
 
   // ===== assignment index only =====
+  private rebuildSerialIndex(asg: AssignmentItem[]) {
+    this.serialIndex = {};
+    for (const a of asg) {
+      const d = a?.device ?? null;
+      const s = (d?.serial_number || '').toUpperCase().trim();
+      if (!s) continue;
+      this.serialIndex[s] = {
+        make: d?.make || '',
+        capacity: d?.capacity || '',
+        device_id: d?.id ?? a.device_id ?? 0,
+        assignment_id: a?.id ?? 0,
+      };
+    }
+  }
+
+  private ensureParamsReady(): boolean {
+    // guard against null/0 that block API filtering
+    if (!this.device_type) this.device_type = 'METER';
+    if (!this.device_testing_purpose) this.device_testing_purpose = 'VIGILENCE_CHECKING';
+    if (!this.currentUserId || this.currentUserId <= 0) {
+      this.openAlert('warning', 'Missing User', 'Current user is not set. Please re-login or set currentUserId.');
+      return false;
+    }
+    if (!this.currentLabId || this.currentLabId <= 0) {
+      this.openAlert('warning', 'Missing Lab', 'Current lab is not set. Please select a lab (currentLabId).');
+      return false;
+    }
+    // Make sure header fields are not null
+    if (!this.header.testing_user) this.header.testing_user ;
+    if (!this.header.testing_bench) this.header.testing_bench ;
+    if (!this.header.approving_user) this.header.approving_user;
+    if (!this.header.phase) this.header.phase = '';
+    return true;
+  }
+
   private loadAssignedIndexOnly() {
-    const v = this.validateContext();
-    if (!v.ok){ this.openAlert('warning','Context Error',v.reason!); return; }
-
+    if (!this.ensureParamsReady()) return;
     this.loading = true;
-
-    // ARG ORDER FIXED: (status, userId, labId, testing_purpose, device_type)
     this.api.getAssignedMeterList(
       this.device_status,
       this.currentUserId,
@@ -273,34 +293,34 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       this.device_testing_purpose,
       this.device_type
     ).subscribe({
-      next:(d:any)=>{
-        const asg:AssignmentItem[] = Array.isArray(d) ? d : (Array.isArray(d?.results) ? d.results : []);
-        this.serialIndex = {};
-        asg.forEach(a=>{
-          const s=(a.device?.serial_number||'').toUpperCase().trim();
-          if(!s) return;
-          this.serialIndex[s] = {
-            make:a.device?.make||'',
-            capacity:a.device?.capacity||'',
-            device_id:a.device?.id||a.device_id,
-            assignment_id:a.id,
-            phase:a.device?.phase||''
-          };
-        });
+      next: (data:any) => {
+        const asg:AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+        // Sort index source by make asc (for consistency)
+        asg.sort((a, b) => (a.device?.make || '').localeCompare(b.device?.make || ''));
+        this.rebuildSerialIndex(asg);
 
-        this.loading=false;
-        this.openAlert('info','Assignments loaded', `${asg.length} device(s) indexed.`);
+        const first = asg.find(a=>a.device);
+        if (first?.device){
+          // prefill zone/dc if empty
+          this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
+          this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
+        }
+        this.loading = false;
+        // this.openAlert('info', 'Assignments Loaded', `Loaded ${asg.length} assigned devices.`, 1000);
       },
-      error:()=>{ this.loading=false; this.openAlert('error','Load Failed','Could not load assignments.'); }
+      error: ()=>{ this.loading=false; this.openAlert('error','Load Failed','Could not load assigned devices.'); }
     });
   }
 
-  // ===== device picker =====
+  // ===== open device picker (with search + sort) =====
   openDevicePicker(){
-    const v = this.validateContext();
-    if (!v.ok){ this.openAlert('warning','Context Error',v.reason!); return; }
+    if (!this.ensureParamsReady()) return;
+    this.devicePicker.loading = true;
+    this.devicePicker.items = [];
+    this.devicePicker.selected.clear();
+    this.devicePicker.selectAll = false;
+    this.devicePicker.search = '';
 
-    this.devicePicker.loading=true;
     this.api.getAssignedMeterList(
       this.device_status,
       this.currentUserId,
@@ -308,188 +328,341 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       this.device_testing_purpose,
       this.device_type
     ).subscribe({
-      next:(d:any)=>{
-        let asg:AssignmentItem[] = Array.isArray(d)? d : (Array.isArray(d?.results) ? d.results : []);
-        // sort by make → serial
-        asg = asg.sort((a,b)=>{
-          const ma=(a.device?.make||'').toLowerCase(), mb=(b.device?.make||'').toLowerCase();
-          if (ma!==mb) return ma.localeCompare(mb);
-          return (a.device?.serial_number||'').localeCompare(b.device?.serial_number||'');
-        });
-
+      next: (data:any) => {
+        const asg:AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+        // Sort by make ASC
+        asg.sort((a, b) => (a.device?.make || '').localeCompare(b.device?.make || ''));
         this.devicePicker.items = asg;
-        this.devicePicker.open  = true;
-        this.devicePicker.loading=false;
-        this.devicePicker.query = '';
-        this.devicePicker.selected.clear();
-        this.devicePicker.selectAll = false;
+
+        // prefill header code/name from the first one (if empty)
+        const first = asg.find(a=>a.device);
+        if (first?.device){
+          if (!this.header.location_code) this.header.location_code = first.device.location_code ?? '';
+          if (!this.header.location_name) this.header.location_name = first.device.location_name ?? '';
+          if (!this.header.testing_bench) this.header.testing_bench = first.testing_bench?.bench_name ?? '';
+          if (!this.header.testing_user) this.header.testing_user = first.user_assigned?.username ?? '';
+          if (!this.header.approving_user) this.header.approving_user = first.assigned_by_user?.username ?? '';
+        }
+        this.devicePicker.open = true;
+        this.devicePicker.loading = false;
+        // this.openAlert('info', 'Picker Ready', `You can search by serial & sort by make.`, 1200);
       },
-      error:()=>{ this.devicePicker.loading=false; this.openAlert('error','Load Failed','Could not open device picker.'); }
+      error: ()=> {
+        this.devicePicker.loading = false;
+        this.openAlert('error', 'Reload failed', 'Could not fetch assigned meters.');
+      }
     });
   }
 
-  get pickerFiltered(): AssignmentItem[]{
-    const q=(this.devicePicker.query||'').toLowerCase().trim();
-    if(!q) return this.devicePicker.items;
-    return this.devicePicker.items.filter(a=>{
-      const d = a.device;
-      return (d?.serial_number||'').toLowerCase().includes(q)
-          || (d?.make||'').toLowerCase().includes(q)
-          || (d?.capacity||'').toLowerCase().includes(q);
-    });
-  }
-
-  toggleSelectOne(id:number){
-    this.devicePicker.selected.has(id)
-      ? this.devicePicker.selected.delete(id)
-      : this.devicePicker.selected.add(id);
+  // Items to display in picker (search + sorted by make already)
+  devicePickerDisplayItems(): AssignmentItem[] {
+    const q = (this.devicePicker.search || '').trim().toLowerCase();
+    const filtered = !q ? this.devicePicker.items :
+      this.devicePicker.items.filter(a =>
+        (a.device?.serial_number || '').toLowerCase().includes(q)
+      );
+    return filtered;
   }
 
   toggleSelectAll(){
     this.devicePicker.selectAll = !this.devicePicker.selectAll;
     this.devicePicker.selected.clear();
     if (this.devicePicker.selectAll){
-      this.pickerFiltered.forEach(a => this.devicePicker.selected.add(a.id));
+      for (const a of this.devicePicker.items) this.devicePicker.selected.add(a.id);
     }
   }
+  toggleSelectOne(id:number){
+    if (this.devicePicker.selected.has(id)) this.devicePicker.selected.delete(id);
+    else this.devicePicker.selected.add(id);
+  }
+  closeDevicePicker(){ this.devicePicker.open = false; }
 
   addSelectedDevices(){
-    if (!this.devicePicker.selected.size){
-      this.openAlert('warning','No selection','Select at least one device.');
-      return;
+    const chosen = new Set(this.devicePicker.selected);
+    if (!chosen.size){ this.closeDevicePicker(); return; }
+
+    const existingSerials = new Set(this.rows.map(r => (r.serial||'').toUpperCase().trim()));
+    for (const a of this.devicePicker.items){
+      if (!chosen.has(a.id)) continue;
+      const d = a.device || ({} as MeterDevice);
+      const serial = (d.serial_number || '').toUpperCase().trim();
+      if (!serial || existingSerials.has(serial)) continue;
+
+      this.rows.push(this.emptyRow({
+        serial: d.serial_number || '',
+        make: d.make || '',
+        capacity: d.capacity || '',
+        assignment_id: a.id ?? 0,
+        device_id: d.id ?? a.device_id ?? 0,
+        _open: true, notFound:false
+      }));
+      existingSerials.add(serial);
     }
+    if (!this.rows.length) this.addRow();
 
-    const added: Row[] = [];
-    this.devicePicker.selected.forEach(id=>{
-      const a=this.devicePicker.items.find(x=>x.id===id);
-      if(!a || !a.device) return;
-
-      const already = this.rows.some(r => (r.serial||'').toUpperCase() === (a.device!.serial_number||'').toUpperCase());
-      if (already) return;
-
-      added.push(
-        this.emptyRow({
-          serial: a.device.serial_number,
-          make: a.device.make || '',
-          capacity: a.device.capacity || '',
-          assignment_id: a.id,
-          device_id: a.device.id,
-          _open: true
-        })
-      );
-    });
-
-    if (added.length) {
-      this.rows.push(...added);
-      this.openAlert('success','Devices added', `${added.length} device(s) added to table.`);
-    } else {
-      this.openAlert('info','Nothing added','Selected devices were already in the table.');
-    }
-
-    this.devicePicker.open=false;
+    this.closeDevicePicker();
+    // this.openAlert('success', 'Added', 'Selected devices added to the table.', 1400);
   }
 
-  // ===== submit =====
+  onSerialChanged(i:number, serial:string){
+    const key = (serial || '').toUpperCase().trim();
+    const row = this.rows[i];
+    const hit = this.serialIndex[key];
+    if (hit){
+      row.make = hit.make || '';
+      row.capacity = hit.capacity || '';
+      row.device_id = hit.device_id || 0;
+      row.assignment_id = hit.assignment_id || 0;
+      row.notFound = false;
+    } else {
+      row.make = ''; row.capacity = ''; row.device_id = 0; row.assignment_id = 0; row.notFound = key.length>0;
+    }
+  }
+
+  // ===== numbers / dates =====
+  private isoOn(dateStr?: string){
+    const d = dateStr? new Date(dateStr+'T10:00:00') : new Date();
+    return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString();
+  }
+  private numOrNull(v:any){ const n = Number(v); return isFinite(n) ? n : null; }
+
+  // ===== validation =====
+  private validate(): boolean {
+    if (!this.ensureParamsReady()) return false;
+
+    if (!this.header.location_code || !this.header.location_name) {
+      this.openAlert('warning', 'Missing Zone/DC', 'Please fill Zone/DC code and name.');
+      return false;
+    }
+    if (!this.header.approving_user) {
+      this.openAlert('warning', 'Approver Required', 'Please enter Approving User.');
+      return false;
+    }
+    if (!this.header.testing_user) {
+      this.openAlert('warning', 'Testing User Required', 'Please enter Testing User.');
+      return false;
+    }
+    if (!this.header.testing_bench) {
+      this.openAlert('warning', 'Testing Bench Required', 'Please enter Testing Bench.');
+      return false;
+    }
+
+    if (!this.rows.length || !this.rows.some(r => (r.serial || '').trim())) {
+      this.openAlert('warning', 'No Rows', 'Please add at least one meter row.');
+      return false;
+    }
+
+    const missingResultIdx = this.rows.findIndex(r => (r.serial||'').trim() && (!r.test_result));
+    if (missingResultIdx !== -1){
+      this.openAlert('warning', 'Validation error', `Row #${missingResultIdx+1} is missing Test Result (OK/DEF/PASS/FAIL).`);
+      return false;
+    }
+
+    return true;
+  }
+
+  private buildPayload(): any[] {
+    // ensure non-null names for header fields used in UI/PDF
+    if (!this.header.testing_user) this.header.testing_user = 'TestingUser';
+    if (!this.header.testing_bench) this.header.testing_bench = 'DefaultBench';
+    if (!this.header.approving_user) this.header.approving_user = 'Approver';
+
+    const approverId = this.currentUserId || 0; // fallback if no dedicated approver selector yet
+    const createdById = this.currentUserId || 0;
+
+    return (this.rows||[])
+      .filter(r => (r.serial||'').trim())
+      .map(r => {
+        const start = this.numOrNull(r.reading_before_test);
+        const end   = this.numOrNull(r.reading_after_test);
+        const diff  = (start != null && end != null) ? (end - start) : null;
+
+        return {
+          device_id: r.device_id ?? 0,
+          assignment_id: r.assignment_id ?? 0,
+          start_datetime: this.isoOn(r.testing_date),
+          end_datetime: this.isoOn(r.testing_date),
+
+          physical_condition_of_device: null,
+          seal_status: r.seal_status || null,
+          meter_glass_cover: r.meter_glass_cover || null,
+          terminal_block: r.terminal_block || null,
+          meter_body: r.meter_body || null,
+          other: r.other || null,
+          is_burned: !!r.is_burned,
+
+          reading_before_test: this.numOrNull(r.reading_before_test),
+          reading_after_test: this.numOrNull(r.reading_after_test),
+          ref_start_reading: null,
+          ref_end_reading: null,
+          error_percentage: this.numOrNull(r.error_percentage),
+
+          details: r.remark || null,
+          test_result: r.test_result || null,
+          test_method: this.testMethod || null,
+          test_status: this.testStatus || null,
+
+          consumer_name: r.consumer_name || null,
+          consumer_address: r.address || null,
+          certificate_number: null,
+          testing_fees: null,
+          fees_mr_no: null,
+          fees_mr_date: null,
+          ref_no: r.account_number || null,
+
+          start_reading: this.numOrNull(r.reading_before_test),
+          final_reading: this.numOrNull(r.reading_after_test),
+          final_reading_export: null,
+          difference: diff,
+
+          test_requester_name: r.division_zone || null,
+          meter_removaltime_reading: this.numOrNull(r.removal_reading),
+          meter_removaltime_metercondition: null,
+          any_other_remarkny_zone: r.condition_at_removal || null,
+
+          dail_test_kwh_rsm: this.numOrNull(r.rsm_kwh),
+          recorderedbymeter_kwh: this.numOrNull(r.meter_kwh),
+          starting_current_test: null,
+          creep_test: null,
+          dail_test: null,
+          final_remarks: r.remark || null,
+
+          p4_division: r.division_zone || null,
+          p4_no: r.panchanama_no || null,
+          p4_date: r.panchanama_date || null,
+          p4_metercodition: r.condition_at_removal || null,
+          approver_id: approverId || null,
+          created_by_id: createdById || null, 
+          report_id: null,
+          report_type: 'VIGILENCE_CHECKING',
+        };
+      });
+  }
+
+  // report_type: 'VIGILENCE_CHECKING',
+
+  // ===== submit modal (only for preview/submit) =====
+  openConfirmSubmit(){
+    this.alertSuccess = null;
+    this.alertError = null;
+    if (!this.validate()) return;
+    this.modal.action = 'submit';
+    this.modal.title = 'Submit Batch — Preview';
+    this.modal.open = true;
+  }
+  closeModal(){
+    this.modal.open = false;
+    this.modal.action = null;
+    this.modal.payload = undefined;
+  }
+  confirmModal(){
+    if (this.modal.action === 'submit'){
+      this.doSubmit();
+    }
+  }
+
+  // public: template calls this directly as well (if you have a direct button)
   async doSubmit(){
-    const v = this.validate();
-    if (!v.ok){ this.openAlert('warning','Validation Error', v.reason!); return; }
-
-    // Build minimal payload required by your API (keep parity with “P4_ONM like”)
-    this.payload = (this.rows || [])
-      .filter(r => (r.serial || '').trim())
-      .map(r => ({
-        device_id: r.device_id || 0,
-        assignment_id: r.assignment_id || 0,
-
-        // dates: if testing_date present pass-through, else omit/null (server may set default)
-        testing_date: r.testing_date || null,
-
-        // basic physical/inspection fields
-        is_burned: !!r.is_burned,
-        seal_status: r.seal_status || null,
-        meter_glass_cover: r.meter_glass_cover || null,
-        terminal_block: r.terminal_block || null,
-        meter_body: r.meter_body || null,
-        other: r.other || null,
-
-        // readings & tests (optional on this screen)
-        reading_before_test: r.reading_before_test ?? null,
-        reading_after_test:  r.reading_after_test ?? null,
-        rsm_kwh: r.rsm_kwh ?? null,
-        meter_kwh: r.meter_kwh ?? null,
-        error_percentage: r.error_percentage ?? null,
-        starting_current_test: r.starting_current_test || null,
-        creep_test: r.creep_test || null,
-
-        // result & comments
-        test_result: r.test_result || null,
-        remark: r.remark || null,
-
-        // meta
-        test_method: this.testMethod,
-        test_status: this.testStatus,
-        report_type: this.report_type,
-        created_by: String(this.currentUserId || '')
-      }));
-
-    if (!this.payload.length){
-      this.openAlert('warning','No Data','Add at least one valid row.');
+    const payload = this.buildPayload();
+    if (!payload.length){
+      this.alertError = 'No valid rows to submit.';
+      this.openAlert('warning', 'Nothing to submit', 'Please add at least one valid row.');
       return;
     }
 
-    this.loading = true;
+    this.submitting = true;
+    this.alertSuccess = null;
+    this.alertError = null;
+    this.openAlert('info', 'Submitting…', 'Saving data to server.');
 
-    this.api.postTestReports(this.payload).subscribe({
+    this.api.postTestReports(payload).subscribe({
       next: async () => {
-        this.loading = false;
+        this.submitting = false;
 
-        // Build PDF header aligned with P4_ONM styling
+        // Ensure non-null header bits for PDF (lab info + logos will be applied below)
         const header: VigHeader = {
           location_code: this.header.location_code || '',
           location_name: this.header.location_name || '',
-          testMethod: this.testMethod || '-',
-          testStatus: this.testStatus || '-',
+          testMethod: this.testMethod || '',
+          testStatus: this.testStatus || '',
           date: new Date().toISOString().slice(0,10),
-          testing_bench: this.header.testing_bench || '-',
-          testing_user: this.header.testing_user || '-',
-          approving_user: this.header.approving_user || '-',
-          phase: (this.header.phase || '').toString().toUpperCase() || '-',
-          lab_name: this.labInfo?.lab_pdfheader_name || this.labInfo?.lab_name || null,
-          lab_address: this.labInfo?.address || this.labInfo?.address_line || null,
+          testing_bench: this.header.testing_bench || 'DefaultBench',
+          testing_user: this.header.testing_user || 'TestingUser',
+
+          lab_name: this.labInfo?.lab_name || null,
+          lab_address: this.labInfo?.address || null,
           lab_email: this.labInfo?.email || null,
-          lab_phone: this.labInfo?.phone || null
+          lab_phone: this.labInfo?.phone || null,
+          leftLogoUrl: this.labInfo?.logo_left_url || '/assets/icons/wzlogo.png',
+          rightLogoUrl: this.labInfo?.logo_right_url || '/assets/icons/wzlogo.png'
         };
 
-        const rows: any[] = (this.rows || []).filter(r => (r.serial||'').trim()).map(r => ({
+        const rows: VigRow[] = (this.rows || []).filter(r => (r.serial||'').trim()).map(r => ({
           serial: r.serial,
           make: r.make,
           capacity: r.capacity,
-          test_result: r.test_result || null,
-          remark: r.remark || null
+          removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
+          test_result: r.test_result,
+
+          consumer_name: r.consumer_name,
+          address: r.address,
+          account_number: r.account_number,
+          division_zone: r.division_zone,
+          panchanama_no: r.panchanama_no,
+          panchanama_date: r.panchanama_date,
+          condition_at_removal: r.condition_at_removal,
+
+          testing_date: r.testing_date,
+          is_burned: r.is_burned,
+          seal_status: r.seal_status,
+          meter_glass_cover: r.meter_glass_cover,
+          terminal_block: r.terminal_block,
+          meter_body: r.meter_body,
+          other: r.other,
+
+          reading_before_test: this.numOrNull(r.reading_before_test) ?? undefined,
+          reading_after_test: this.numOrNull(r.reading_after_test) ?? undefined,
+          rsm_kwh: this.numOrNull(r.rsm_kwh) ?? undefined,
+          meter_kwh: this.numOrNull(r.meter_kwh) ?? undefined,
+          error_percentage: this.numOrNull(r.error_percentage) ?? undefined,
+          starting_current_test: r.starting_current_test,
+          creep_test: r.creep_test,
+
+          remark: r.remark
         }));
 
-        this.openAlert('success','Submitted','Batch saved successfully.');
+        // Alert before PDF generation
+        this.openAlert('success', 'Saved', 'Data saved. Generating PDF…', 1200);
 
-        try {
-          await this.pdfSvc.download(header, rows, `P4_VIG_${header.date}.pdf`);
-          this.openAlert('success','PDF downloaded','Vigilance report PDF has been downloaded.');
-        } catch {
-          this.openAlert('warning','PDF error','Saved, but PDF could not be generated.');
-        }
+        // Download PDF via service (await to ensure completion)
+        await this.pdfSvc.download(header, rows);
 
-        // reset form
+        // Alert after PDF download
+        this.alertSuccess = 'Batch submitted and PDF downloaded successfully!';
+        this.openAlert('success', 'Completed', 'PDF downloaded to your device.', 1600);
+
         this.rows = [ this.emptyRow() ];
+        setTimeout(()=> this.closeModal(), 1000);
       },
-      error: () => {
-        this.loading = false;
-        this.openAlert('error','Submit Failed','Could not submit test reports.');
+      error: (e) => {
+        console.error(e);
+        this.submitting = false;
+        this.alertError = 'Error submitting batch.';
+        this.openAlert('error', 'Submission failed', 'Something went wrong while submitting the batch.');
       }
     });
   }
 
   // ===== alert helpers =====
-  openAlert(type:'success'|'error'|'warning'|'info', title:string, message:string){
-    this.alert = { open:true, type, title, message };
+  openAlert(type: 'success'|'error'|'warning'|'info', title: string, message: string, autoCloseMs: number = 0){
+    if (this.alert._t){ clearTimeout(this.alert._t as any); }
+    this.alert = { open: true, type, title, message, autoCloseMs, _t: 0 };
+    if (autoCloseMs > 0){
+      this.alert._t = setTimeout(()=> this.closeAlert(), autoCloseMs);
+    }
   }
-  closeAlert(){ this.alert.open=false; }
+  closeAlert(){
+    if (this.alert._t){ clearTimeout(this.alert._t as any); }
+    this.alert.open = false;
+  }
 }

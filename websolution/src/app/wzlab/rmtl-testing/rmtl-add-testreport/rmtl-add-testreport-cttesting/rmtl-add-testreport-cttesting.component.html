@@ -159,9 +159,10 @@
               <th style="width:60px">#</th>
               <th style="min-width:180px">C.T No.</th>
               <th style="min-width:140px">Make</th>
-              <th style="min-width:120px">Cap.</th>
-              <th style="min-width:120px">Ratio</th>
+              <!-- <th style="min-width:120px">Cap.</th> -->
+              <th style="min-width:140px">CT Ratio</th>       <!-- UPDATED: dropdown -->
               <th style="min-width:120px">Polarity</th>
+              <th style="min-width:160px">Working</th>       <!-- NEW: dropdown -->
               <th style="min-width:200px">Remark</th>
               <th class="d-print-none" style="width:70px">Action</th>
             </tr>
@@ -174,9 +175,26 @@
                 <div *ngIf="r.notFound" class="small text-danger">Not in assigned list</div>
               </td>
               <td><input class="form-control form-control-sm" [(ngModel)]="r.make" [name]="'make_'+i"></td>
-              <td><input class="form-control form-control-sm" [(ngModel)]="r.cap" [name]="'cap_'+i" placeholder="e.g., 300/5"></td>
-              <td><input class="form-control form-control-sm" [(ngModel)]="r.ratio" [name]="'ratio_'+i" placeholder="OK / value"></td>
+              <!-- <td><input class="form-control form-control-sm" [(ngModel)]="r.cap" [name]="'cap_'+i" placeholder="e.g., 300/5"></td> -->
+
+              <!-- Ratio dropdown -->
+              <td>
+                <select class="form-select form-select-sm" [(ngModel)]="r.ratio" [name]="'ratio_'+i">
+                  <option [ngValue]="''" disabled>Select</option>
+                  <option *ngFor="let opt of ratioOptions" [ngValue]="opt">{{ opt }}</option>
+                </select>
+              </td>
+
               <td><input class="form-control form-control-sm" [(ngModel)]="r.polarity" [name]="'pol_'+i" placeholder="OK / value"></td>
+
+              <!-- Working dropdown -->
+              <td>
+                <select class="form-select form-select-sm" [(ngModel)]="r.working" [name]="'working_'+i">
+                  <option [ngValue]="undefined" disabled>Select</option>
+                  <option *ngFor="let w of workingOptions" [ngValue]="w">{{ w }}</option>
+                </select>
+              </td>
+
               <td><input class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'rem_'+i" placeholder="OK / DEF …"></td>
               <td class="text-center d-print-none">
                 <button class="btn btn-sm btn-outline-danger" (click)="removeCtRow(i)">✕</button>
@@ -278,7 +296,7 @@
               <table class="table table-sm table-bordered align-middle">
                 <thead>
                   <tr>
-                    <th>#</th><th>C.T No.</th><th>Make</th><th>Cap.</th><th>Ratio</th><th>Polarity</th><th>Remark</th>
+                    <th>#</th><th>C.T No.</th><th>Make</th><th>Cap.</th><th>Ratio</th><th>Polarity</th><th>Working</th><th>Remark</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -289,6 +307,7 @@
                     <td>{{ r.cap }}</td>
                     <td>{{ r.ratio }}</td>
                     <td>{{ r.polarity }}</td>
+                    <td>{{ r.working || '-' }}</td>
                     <td>{{ r.remark }}</td>
                   </tr>
                 </tbody>

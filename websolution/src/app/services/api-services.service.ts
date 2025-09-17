@@ -517,7 +517,42 @@ getdailytestingreport(start_date: string, end_date: string) {
 }
 getdevicesummaryreports(){
   return this.http.get<any>(`${this.baseUrl}/reports/all/device-summary-report/`);
+  
 }
+// api-services.service.ts
+getDevicesSummaryGrid(filters?: { lab_id?: string; from_date?: string; to_date?: string }) {
+  let params = new HttpParams();
+  if (filters?.lab_id)   params = params.set('lab_id', filters.lab_id);
+  if (filters?.from_date)params = params.set('from_date', filters.from_date);
+  if (filters?.to_date)  params = params.set('to_date', filters.to_date);
+
+  return this.http.get<{
+    rows: {
+      device_type: 'METER'|'CT';
+      make: string;
+      meter_category: string|null;
+      phase: string|null;
+      ct_class: string|null;
+      ct_ratio: string|null;
+      meter_type: string|null;
+      total_inwarded: number;
+      tested: number;
+      passed: number;
+      failed: number;
+      dispatched: number;
+      available_stock: number;
+    }[];
+    totals: {
+      total_inwarded: number;
+      tested: number;
+      passed: number;
+      failed: number;
+      dispatched: number;
+      available_stock: number;
+    };
+  }>(`${this.baseUrl}/reports/all/device-summary-report2/summary-grid`, { params });
+}
+
 
 changePassword(current_password: string, new_password: string) {
   return this.http.put<any>(`${this.baseUrl}/users/change-password/`, { current_password, new_password });
