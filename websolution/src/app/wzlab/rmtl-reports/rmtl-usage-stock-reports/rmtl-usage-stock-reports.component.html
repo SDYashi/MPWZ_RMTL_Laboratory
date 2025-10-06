@@ -175,7 +175,7 @@
                   <td>{{ s.available }}</td>
                   <td>{{ s.reserved }}</td>
                   <td>{{ s.faulty }}</td>
-                  <td class="fw-bold">{{ s.available + s.reserved + s.faulty }}</td>
+                  <td class="fw-bold">{{ s.reserved + s.faulty }}</td>
                 </tr>
 
                 <tr *ngIf="!stockFiltered.length">

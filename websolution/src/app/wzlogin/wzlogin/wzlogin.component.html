@@ -71,6 +71,10 @@
           <span *ngIf="!isLoading">Sign In</span>
           <span *ngIf="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
         </button>
+        <br>
+        <div *ngIf="loginerror" class="alert alert-danger text-center" role="alert">
+          {{ loginerror }}
+        </div>
       </form>
 
       <div class="login-footer text-center mt-4">

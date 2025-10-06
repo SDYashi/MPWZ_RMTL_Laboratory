@@ -1,5 +1,6 @@
 // src/app/wzlab/rmtl-testing/rmtl-add-testreport/rmtl-add-testreport-stopdefective/rmtl-add-testreport-stopdefective.component.ts
 import { Component, OnInit } from '@angular/core';
+import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
 // PDF service + types
@@ -128,9 +129,12 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   report_type = '';
 
   // ids
-  currentUserId: Id = 0;
-  currentLabId: Id = 0;
-  approverId: number | null = null;
+  currentUserId: any;
+  currentLabId: any;
+  // currentUserId = 0;
+  // currentLabId  = 0;
+  //
+  approverId:  any;
 
   // header/date + ui
   header: Header = {
@@ -185,14 +189,17 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
 
   constructor(
     private api: ApiServicesService,
-    private stopDefPdf: StopDefectiveReportPdfService
+    private stopDefPdf: StopDefectiveReportPdfService,
+    private authService: AuthService
   ) {}
 
   // ===== lifecycle
   ngOnInit(): void {
     // IDs first (sync)
-    this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    this.currentLabId  = Number(localStorage.getItem('currentLabId')  || 0);
+    // this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
+    // this.currentLabId  = Number(localStorage.getItem('currentLabId')  || 0);
+    this.currentUserId = this.authService.getuseridfromtoken();
+    this.currentLabId = this.authService.getlabidfromtoken();
     this.idsReady = !!this.currentUserId && !!this.currentLabId;
 
     // enums

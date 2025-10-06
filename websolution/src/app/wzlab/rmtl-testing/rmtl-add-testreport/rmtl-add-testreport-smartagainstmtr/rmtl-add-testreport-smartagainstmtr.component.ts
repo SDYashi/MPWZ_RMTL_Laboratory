@@ -1,5 +1,6 @@
 // src/app/.../rmtl-add-testreport-smartagainstmtr.component.ts
 import { Component, OnInit } from '@angular/core';
+import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import {
   SmartAgainstMeterReportPdfService,
@@ -101,8 +102,8 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
   };
 
   // IDs / context
-  currentUserId = 0;
-  currentLabId = 0;
+  currentUserId:any
+  currentLabId :any;
   device_testing_purpose: any | null = null;
   device_type: any | null = null;
 
@@ -141,7 +142,8 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
 
   constructor(
     private api: ApiServicesService,
-    private smartPdf: SmartAgainstMeterReportPdfService
+    private smartPdf: SmartAgainstMeterReportPdfService,
+    private authService: AuthService
   ) {}
 
   // ===================== Lifecycle =====================
@@ -149,8 +151,10 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
     this.batch.header.date = this.toYMD(new Date());
 
     // Load ids
-    this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+    // this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
+    // this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+    this.currentUserId = this.authService.getuseridfromtoken();
+    this.currentLabId = this.authService.getlabidfromtoken();
 
     // Load enums/options
     this.api.getEnums().subscribe({

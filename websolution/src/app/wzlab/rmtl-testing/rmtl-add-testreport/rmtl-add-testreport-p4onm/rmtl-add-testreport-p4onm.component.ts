@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import { P4onmReportPdfService, P4ONMReportHeader, P4ONMReportRow } from 'src/app/shared/p4onm-report-pdf.service';
 
@@ -117,7 +118,8 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   filteredSources: any;
 
   // ids / context
-  currentUserId = 0; currentLabId = 0;
+  currentUserId:any;
+  currentLabId :any;
   device_testing_purpose: any | null = null;
   device_type: any | null = null;
 
@@ -139,16 +141,20 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   pickerSelected: Record<number, boolean> = {};
   pickerFilter = '';
 
-  constructor(private api: ApiServicesService, private pdfSvc: P4onmReportPdfService) {}
+  constructor(private api: ApiServicesService, 
+    private pdfSvc: P4onmReportPdfService,
+    private authService: AuthService
+  ) {}
 
   // -------------------- lifecycle --------------------
   ngOnInit(): void {
     this.batch.header.date = this.toYMD(new Date());
 
     // ids from storage
-    this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
-
+    // this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
+    // this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+    this.currentUserId = this.authService.getuseridfromtoken();
+    this.currentLabId = this.authService.getlabidfromtoken();
     // enums/config
     this.api.getEnums().subscribe({
       next: (d) => {

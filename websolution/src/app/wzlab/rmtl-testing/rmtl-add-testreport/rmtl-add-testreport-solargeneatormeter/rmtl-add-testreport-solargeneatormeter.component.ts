@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import { SolarGenMeterCertificatePdfService, GenHeader, GenRow } from 'src/app/shared/solargenmeter-certificate-pdf.service';
 
@@ -87,8 +88,8 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
 
   // ===== assignment context =====
   device_status: 'ASSIGNED' = 'ASSIGNED';
-  currentUserId = 0;
-  currentLabId  = 0;
+  currentUserId:any;
+  currentLabId :any;
   loading = false;
 
   // enums
@@ -137,16 +138,18 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
 
   constructor(
     private api: ApiServicesService,
-    private pdfSvc: SolarGenMeterCertificatePdfService
+    private pdfSvc: SolarGenMeterCertificatePdfService,
+    private authService: AuthService
   ) {}
 
   // ---------- lifecycle ----------
   ngOnInit(): void {
     this.device_type= 'METER';
     this.device_testing_purpose = 'SOLAR_GENERATION_METER';
-    this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
-    const userNameFromLS = localStorage.getItem('currentUserName') || '';
+    this.currentUserId = this.authService.getuseridfromtoken();
+    this.currentLabId = this.authService.getlabidfromtoken();
+    const userNameFromLS =this.authService.getUserNameFromToken() || '';
+
     if (userNameFromLS) {
       this.testing_user = userNameFromLS;
       this.approver_user = userNameFromLS; // fallback approver to current user unless edited

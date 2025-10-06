@@ -139,6 +139,10 @@ export class AuthService {
     const user = this.getUserFromToken();
     return user?.id ?? null;
   }
+  getlabidfromtoken(): number | null {
+    const user = this.getUserFromToken();
+    return user?.lab_id ?? null;
+  }
 
   // ---------------- Internal ----------------
 
@@ -198,4 +202,5 @@ export class AuthService {
       lab_id: decoded.lab_id ?? undefined
     };
   }
+
 }

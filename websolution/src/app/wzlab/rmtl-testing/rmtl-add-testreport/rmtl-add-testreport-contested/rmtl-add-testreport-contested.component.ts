@@ -1,5 +1,7 @@
 // src/app/wzlab/rmtl-testing/rmtl-add-testreport/rmtl-add-testreport-contested/rmtl-add-testreport-contested.component.ts
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import {
   ContestedReportPdfService,
@@ -119,8 +121,8 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
   };
 
   // ids/context
-  currentUserId = 0;
-  currentLabId = 0;
+  currentUserId:any;
+  currentLabId:any;
   device_testing_purpose: any | null = null;
   device_type: any | null = null;
   report_type = 'CONTESTED';
@@ -150,15 +152,20 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
   pickerSelected: Record<number, boolean> = {};
   pickerFilter = '';
 
-  constructor(private api: ApiServicesService, private reportPdf: ContestedReportPdfService) {}
+  constructor(private api: ApiServicesService, 
+    private reportPdf: ContestedReportPdfService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     // date
     this.batch.header.date = this.toYMD(new Date());
 
     // ids
-    this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+    // this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
+    // this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+    this.currentUserId = this.authService.getuseridfromtoken();
+    this.currentLabId = this.authService.getlabidfromtoken();
 
     // enums/config
     this.api.getEnums().subscribe({

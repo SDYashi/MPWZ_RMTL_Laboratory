@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import { CtReportPdfService, CtHeader, CtPdfRow } from 'src/app/shared/ct-report-pdf.service';
 
@@ -94,8 +95,8 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
 
   // assignment / lab context
   device_status: 'ASSIGNED' = 'ASSIGNED';
-  currentUserId = 0;
-  currentLabId  = 0;
+  currentUserId:any;
+  currentLabId:any;
   report_type = 'CT_TESTING';
   device_testing_purpose: any;
   device_type: any;
@@ -141,16 +142,19 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     query: '' // 🔍 search
   };
 
-  constructor(private api: ApiServicesService, private ctPdf: CtReportPdfService) {}
+  constructor(private api: ApiServicesService, 
+    private ctPdf: CtReportPdfService,
+    private authService: AuthService) {}
 
   ngOnInit(): void {
     // Robust defaults to avoid null / 0 issues
     this.device_type = 'CT';
     this.device_testing_purpose = 'CT_TESTING';
 
-    this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
-
+    // this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
+    // this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+    this.currentUserId = this.authService.getuseridfromtoken();
+    this.currentLabId = this.authService.getlabidfromtoken();
     const userName = localStorage.getItem('currentUserName') || '';
     if (userName) {
       this.testing_user = userName;

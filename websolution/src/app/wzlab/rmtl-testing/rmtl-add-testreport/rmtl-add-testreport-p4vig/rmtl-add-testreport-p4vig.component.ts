@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import { P4VigReportPdfService, VigHeader, VigRow } from 'src/app/shared/p4vig-report-pdf.service';
 
@@ -92,8 +93,8 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
 
   // ===== assignment / lab =====
   device_status: 'ASSIGNED' = 'ASSIGNED';
-  currentUserId = 0;
-  currentLabId  = 0;
+  currentUserId:any;
+  currentLabId :any;
   private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; }> = {};
   loading = false;
 
@@ -145,7 +146,9 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   device_testing_purpose: any;
   device_type: any;
 
-  constructor(private api: ApiServicesService, private pdfSvc: P4VigReportPdfService) {}
+  constructor(private api: ApiServicesService,
+     private pdfSvc: P4VigReportPdfService,
+     private authService: AuthService) {}
 
   private safeNumber(val: any): number {
     const n = Number(val);
@@ -153,9 +156,11 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.currentUserId = this.safeNumber(localStorage.getItem('currentUserId'));
-    this.currentLabId  = this.safeNumber(localStorage.getItem('currentLabId'));
-    this.header.testing_user = (localStorage.getItem('currentUserName') || '').trim();
+    // this.currentUserId = this.safeNumber(localStorage.getItem('currentUserId'));
+    // this.currentLabId  = this.safeNumber(localStorage.getItem('currentLabId'));
+    this.currentUserId = this.authService.getuseridfromtoken();
+    this.currentLabId = this.authService.getlabidfromtoken();
+    this.header.testing_user = this.authService.getUserNameFromToken() || '';
 
     this.api.getEnums().subscribe({
       next: (d) => {

@@ -17,6 +17,7 @@ export class WzloginComponent {
   };
   showPassword = false;
   isLoading = false;
+  loginerror = '';
   // authService: any;
 
   constructor(private apiservice: ApiServicesService, private authService: AuthService, private router: Router) {}
@@ -34,7 +35,9 @@ export class WzloginComponent {
         this.router.navigate(['/wzlab/dashboard']);
       },
       error: (error) => {
-        console.error('Login failed:', error);
+        this.loginerror = error.error.detail || 'An error occurred during login.';
+        // alert('Login failed: ' + error.error.detail);
+        console.error('Login failed:', error.error.detail || error.message);
         this.isLoading = false;
       }
     });

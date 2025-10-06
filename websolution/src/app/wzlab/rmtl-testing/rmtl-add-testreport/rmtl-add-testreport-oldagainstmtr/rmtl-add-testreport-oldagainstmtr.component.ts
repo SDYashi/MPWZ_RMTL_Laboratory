@@ -1,5 +1,6 @@
 // src/app/.../rmtl-add-testreport-oldagainstmtr.component.ts
 import { Component, OnInit } from '@angular/core';
+import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import {
   OldAgainstMeterReportPdfService,
@@ -97,8 +98,8 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
   };
 
   // IDs / context
-  currentUserId = 0;
-  currentLabId = 0;
+  currentUserId:any;
+  currentLabId:any;
   device_testing_purpose: any | null = null;
   device_type: any | null = null;
 
@@ -137,7 +138,8 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
 
   constructor(
     private api: ApiServicesService,
-    private pdfSvc: OldAgainstMeterReportPdfService
+    private pdfSvc: OldAgainstMeterReportPdfService,
+    private authService: AuthService
   ) {}
 
   // ===================== Lifecycle =====================
@@ -145,8 +147,10 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
     this.batch.header.date = this.toYMD(new Date());
 
     // IDs from storage
-    this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+    // this.currentUserId = Number(localStorage.getItem('currentUserId'));
+    // this.currentLabId  = Number(localStorage.getItem('currentLabId'));
+    this.currentUserId = this.authService.getuseridfromtoken();
+    this.currentLabId = this.authService.getlabidfromtoken();
 
     // Enums
     this.api.getEnums().subscribe({
