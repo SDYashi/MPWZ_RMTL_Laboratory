@@ -25,6 +25,7 @@ export interface GatepassData {
   lab_phone?: string | null;
   leftLogoUrl?: string | null;
   rightLogoUrl?: string | null;
+  logoDataUrl?: string;
 
 }
 
@@ -82,36 +83,69 @@ export class GatepassPdfService {
   }
 
   // ---------- Build with logo loading ----------
-  private async buildDocWithLogos(gp: GatepassData, opts: GatepassPdfOptions): Promise<TDocumentDefinition> {
-    const images: Record<string, string> = {};
-    const h = opts.header || {};
-    const isData = (u?: string) => !!u && /^data:image\/[a-zA-Z]+;base64,/.test(u);
-    const toDataURL = async (url: string) => {
-      const abs = new URL(url, document.baseURI).toString();
-      const res = await fetch(abs, { cache: 'no-cache' });
-      if (!res.ok) throw new Error(`logo fetch failed ${abs}`);
-      const blob = await res.blob();
-      return await new Promise<string>((resolve, reject) => {
-        const fr = new FileReader();
-        fr.onload = () => resolve(fr.result as string);
-        fr.onerror = reject;
-        fr.readAsDataURL(blob);
-      });
-    };
-    const safeLoad = async (key: 'leftLogo' | 'rightLogo', url?: string) => {
-      if (!url) return;
-      try { images[key] = isData(url) ? url : await toDataURL(url); } catch { /* ignore */ }
-    };
+  // private async buildDocWithLogos(gp: GatepassData, opts: GatepassPdfOptions): Promise<TDocumentDefinition> {
+  //   const images: Record<string, string> = {};
+  //   const h = opts.header || {};
+  //   const isData = (u?: string) => !!u && /^data:image\/[a-zA-Z]+;base64,/.test(u);
+  //   const toDataURL = async (url: string) => {
+  //     const abs = new URL(url, document.baseURI).toString();
+  //     const res = await fetch(abs, { cache: 'no-cache' });
+  //     if (!res.ok) throw new Error(`logo fetch failed ${abs}`);
+  //     const blob = await res.blob();
+  //     return await new Promise<string>((resolve, reject) => {
+  //       const fr = new FileReader();
+  //       fr.onload = () => resolve(fr.result as string);
+  //       fr.onerror = reject;
+  //       fr.readAsDataURL(blob);
+  //     });
+  //   };
+  //   const safeLoad = async (key: 'leftLogo' | 'rightLogo', url?: string) => {
+  //     if (!url) return;
+  //     try { images[key] = isData(url) ? url : await toDataURL(url); } catch { /* ignore */ }
+  //   };
 
-    await Promise.all([
-      safeLoad('leftLogo', h.leftLogoUrl),
-      safeLoad('rightLogo', h.rightLogoUrl),
-    ]);
-    if (!images['leftLogo'] && images['rightLogo']) images['leftLogo'] = images['rightLogo'];
-    if (!images['rightLogo'] && images['leftLogo']) images['rightLogo'] = images['leftLogo'];
+  //   await Promise.all([
+  //     safeLoad('leftLogo', h.leftLogoUrl),
+  //     safeLoad('rightLogo', h.rightLogoUrl),
+  //   ]);
+  //   if (!images['leftLogo'] && images['rightLogo']) images['leftLogo'] = images['rightLogo'];
+  //   if (!images['rightLogo'] && images['leftLogo']) images['rightLogo'] = images['leftLogo'];
 
-    return this.buildDoc(gp, opts, images);
-  }
+  //   return this.buildDoc(gp, opts, images);
+  // }
+
+    // ---------- Build with logo loading ----------
+  private async buildDocWithLogos(d: GatepassData, opts: GatepassPdfOptions): Promise<TDocumentDefinition> {
+      const images: Record<string, string> = {};
+      const h = opts.header || {};
+  
+      const isData = (u?: string) => !!u && /^data:image\/[a-zA-Z]+;base64,/.test(u);
+      const toDataURL = async (url: string) => {
+        const abs = new URL(url, document.baseURI).toString();
+        const res = await fetch(abs, { cache: 'no-cache' });
+        if (!res.ok) throw new Error(`logo fetch failed ${abs}`);
+        const blob = await res.blob();
+        return await new Promise<string>((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result as string);
+          fr.onerror = reject;
+          fr.readAsDataURL(blob);
+        });
+      };
+      const safeLoad = async (key: 'leftLogo' | 'rightLogo', url?: string) => {
+        if (!url) return;
+        try { images[key] = isData(url) ? url : await toDataURL(url); } catch { /* ignore */ }
+      };
+  
+      await Promise.all([
+        safeLoad('leftLogo', h.leftLogoUrl || d.logoDataUrl),
+        safeLoad('rightLogo', h.rightLogoUrl || d.logoDataUrl),
+      ]);
+      if (!images['leftLogo'] && images['rightLogo']) images['leftLogo'] = images['rightLogo'];
+      if (!images['rightLogo'] && images['leftLogo']) images['rightLogo'] = images['leftLogo'];
+  
+      return this.buildDoc(d, opts, images);
+    }
 
   // ---------- Core doc ----------
   private buildDoc(gp: GatepassData, opts: GatepassPdfOptions, images: Record<string, string>): TDocumentDefinition {
@@ -146,7 +180,7 @@ export class GatepassPdfService {
     const content: any[] = [
       this.headerBar(metaForHeader, images),
       { canvas: [{ type: 'line', x1: 28, y1: 0, x2: 567 - 28, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
-      { text: 'GATEPASS', alignment: 'center', fontSize: 12, bold: true, margin: [0, 0, 0, 6] },
+      { text: 'DISPATCH RECEIPT', alignment: 'center', fontSize: 12, bold: true, margin: [0, 0, 0, 6] },
       this.metaBand({
         dispatch_number: gp.dispatch_number || gp.id || '-',
         created_at: createdAtStr,
@@ -223,22 +257,65 @@ export class GatepassPdfService {
     };
   }
 
+  // private metaBand(g: any) {
+  //   const lbl = { bold: true, fillColor: '#f5f5f5' };
+  //   return {
+  //     layout: 'noBorders',
+  //     margin: [28, 0, 28, 8],
+  //     table: {
+  //       widths: ['auto','*','auto','*'],
+  //       body: [
+  //         [{ text: 'Dispatch No', ...lbl }, { text: g.dispatch_number }, { text: 'Created', ...lbl }, { text: g.created_at }],
+  //         [{ text: 'Vehicle', ...lbl }, { text: g.vehicle }, { text: 'Report ID(s)', ...lbl }, { text: g.report_ids }],
+  //         [{ text: 'Receiver', ...lbl }, { text: g.receiver_name }, { text: 'Designation', ...lbl }, { text: g.receiver_designation }],
+  //         [{ text: 'Mobile', ...lbl }, { text: g.receiver_mobile }, { text: 'Dispatch To', ...lbl }, { text: g.dispatch_to }]
+  //       ]
+  //     }
+  //   };
+  // }
+
   private metaBand(g: any) {
-    const lbl = { bold: true, fillColor: '#f5f5f5' };
-    return {
-      layout: 'noBorders',
-      margin: [28, 0, 28, 8],
-      table: {
-        widths: ['auto','*','auto','*'],
-        body: [
-          [{ text: 'Dispatch No', ...lbl }, { text: g.dispatch_number }, { text: 'Created', ...lbl }, { text: g.created_at }],
-          [{ text: 'Vehicle', ...lbl }, { text: g.vehicle }, { text: 'Report ID(s)', ...lbl }, { text: g.report_ids }],
-          [{ text: 'Receiver', ...lbl }, { text: g.receiver_name }, { text: 'Designation', ...lbl }, { text: g.receiver_designation }],
-          [{ text: 'Mobile', ...lbl }, { text: g.receiver_mobile }, { text: 'Dispatch To', ...lbl }, { text: g.dispatch_to }]
-        ]
-      }
-    };
-  }
+  return {
+    margin: [28, 4, 28, 10],
+    style: 'tableTight',
+    layout: {
+      fillColor: (rowIndex: number) => (rowIndex === 0 ? '#e0e0e0' : null),
+      hLineColor: () => '#bfbfbf',
+      vLineColor: () => '#bfbfbf',
+      hLineWidth: () => 0.5,
+      vLineWidth: () => 0.5,
+    },
+    table: {
+      headerRows: 1,
+      widths: ['25%', '25%', '25%', '25%'],
+      body: [
+        [
+          { text: '', style: 'th', alignment: 'center' },
+          { text: '', style: 'th', alignment: 'center' },
+          { text: '', style: 'th', alignment: 'center' },
+          { text: '', style: 'th', alignment: 'center' },
+        ],
+        [
+          { text: 'Dispatch No', bold: true }, { text: g.dispatch_number || '-' },
+          { text: 'Created', bold: true }, { text: g.created_at || '-' },
+        ],
+        [
+          { text: 'Vehicle', bold: true }, { text: g.vehicle || '-' },
+          { text: 'Report ID(s)', bold: true }, { text: g.report_ids || '-' },
+        ],
+        [
+          { text: 'Receiver', bold: true }, { text: g.receiver_name || '-' },
+          { text: 'Designation', bold: true }, { text: g.receiver_designation || '-' },
+        ],
+        [
+          { text: 'Mobile', bold: true }, { text: g.receiver_mobile || '-' },
+          { text: 'Dispatch To', bold: true }, { text: g.dispatch_to || '-' },
+        ],
+      ],
+    },
+  };
+}
+
 
   private serialColumns(serials: string[], colCount: number) {
     if (!serials?.length) return { text: '-', margin: [28, 0, 28, 0] };
@@ -292,9 +369,9 @@ export class GatepassPdfService {
     return (str || '').split(',').map(s => s.trim()).filter(Boolean);
   }
   private pickSerialColumns(count: number): number {
-    if (count >= 120) return 4;
-    if (count >= 50) return 3;
-    return 2;
+    // if (count >= 120) return 4;
+    // if (count >= 50) return 3;
+    return 1;
   }
   private fileName(gp: GatepassData, opts: GatepassPdfOptions): string {
     if (opts.fileName) return opts.fileName.endsWith('.pdf') ? opts.fileName : `${opts.fileName}.pdf`;

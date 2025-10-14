@@ -72,7 +72,7 @@
               <thead class="table-light">
                 <tr>
                   <th scope="col">ID</th>
-                  <th scope="col">Device</th>
+                  <!-- <th scope="col">Device</th> -->
                   <th scope="col">Status</th>
                   <th scope="col">Result</th>
                   <th scope="col">Method</th>
@@ -85,7 +85,7 @@
               <tbody>
                 <tr *ngFor="let r of recent12; trackBy: trackByRec">
                   <th scope="row">{{ recent12.indexOf(r) + 1 }}</th>
-                  <td>#{{ r.device_id }}</td>
+                  <!-- <td>#{{ r.device_id }}</td> -->
                   <td><span class="badge rounded-pill" [ngClass]="statusBadgeClass(r.test_status)">{{ r.test_status || '—' }}</span></td>
                   <td>
                     <span class="badge rounded-pill" [ngClass]="'bg-' + (r.test_result?.toUpperCase() === 'OK' ? 'success' : (r.test_result?.toUpperCase() === 'NOT OK' ? 'danger' : 'secondary'))">

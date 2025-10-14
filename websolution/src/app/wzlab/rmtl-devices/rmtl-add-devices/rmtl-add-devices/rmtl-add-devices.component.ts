@@ -788,8 +788,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       'THREE PHASE CT OPERATED'
     ],
     HT: [
-      'CT OPERATED',
-      'PT OPERATED'
+      'CT & PT OPERATED'
     ],
     OTHER: ['OTHER']
   };

@@ -227,23 +227,72 @@ export class InwardReceiptPdfService {
     };
   }
 
+  // private metaBand(g: any) {
+  //   const lbl = { bold: true, fillColor: '#f5f5f5' };
+  //   return {
+  //     layout: 'noBorders',
+  //     margin: [28, 0, 28, 8],
+  //     table: {
+  //       widths: ['auto','*','auto','*'],
+  //       body: [
+  //         [{ text: 'Lab ID', ...lbl }, { text: g.lab_id }, { text: 'Office Type', ...lbl }, { text: g.office_type }],
+  //         [{ text: 'Date of Entry', ...lbl }, { text: g.date_of_entry }, { text: 'Device Type', ...lbl }, { text: g.device_type }],
+  //         [{ text: 'Location Code', ...lbl }, { text: g.location_code }, { text: 'Location Name', ...lbl }, { text: g.location_name }],
+  //         [{ text: 'Total Items', ...lbl }, { text: g.total.toString() }, { text: 'Inward No', ...lbl }, { text: g.inward_no }],
+  //         [{ text: 'Generated At', ...lbl }, { text: g.created_at }, { text: '', ...lbl }, { text: '' }],
+  //       ]
+  //     }
+  //   };
+  // }
+
   private metaBand(g: any) {
-    const lbl = { bold: true, fillColor: '#f5f5f5' };
-    return {
-      layout: 'noBorders',
-      margin: [28, 0, 28, 8],
-      table: {
-        widths: ['auto','*','auto','*'],
-        body: [
-          [{ text: 'Lab ID', ...lbl }, { text: g.lab_id }, { text: 'Office Type', ...lbl }, { text: g.office_type }],
-          [{ text: 'Date of Entry', ...lbl }, { text: g.date_of_entry }, { text: 'Device Type', ...lbl }, { text: g.device_type }],
-          [{ text: 'Location Code', ...lbl }, { text: g.location_code }, { text: 'Location Name', ...lbl }, { text: g.location_name }],
-          [{ text: 'Total Items', ...lbl }, { text: g.total.toString() }, { text: 'Inward No', ...lbl }, { text: g.inward_no }],
-          [{ text: 'Generated At', ...lbl }, { text: g.created_at }, { text: '', ...lbl }, { text: '' }],
-        ]
-      }
-    };
-  }
+  return {
+    margin: [28, 4, 28, 10],
+    style: 'tableTight',
+    layout: {
+      fillColor: (rowIndex: number, node: any, columnIndex: number) => {
+        return rowIndex === 0 ? '#e0e0e0' : null; // light gray header row
+      },
+      hLineColor: () => '#bfbfbf',
+      vLineColor: () => '#bfbfbf',
+      hLineWidth: () => 0.5,
+      vLineWidth: () => 0.5,
+    },
+    table: {
+      headerRows: 1,
+      widths: ['25%', '25%', '25%', '25%'],
+      body: [
+        [
+          { text: '', style: 'th', alignment: 'center' },
+          { text: '', style: 'th', alignment: 'center' },
+          { text: '', style: 'th', alignment: 'center' },
+          { text: '', style: 'th', alignment: 'center' },
+        ],
+        [
+          { text: 'Lab ID', bold: true }, { text: g.lab_id },
+          { text: 'Office Type', bold: true }, { text: g.office_type },
+        ],
+        [
+          { text: 'Date of Entry', bold: true }, { text: g.date_of_entry },
+          { text: 'Device Type', bold: true }, { text: g.device_type },
+        ],
+        [
+          { text: 'Location Code', bold: true }, { text: g.location_code },
+          { text: 'Location Name', bold: true }, { text: g.location_name },
+        ],
+        [
+          { text: 'Total Items', bold: true }, { text: g.total.toString() },
+          { text: 'Inward No', bold: true }, { text: g.inward_no },
+        ],
+        [
+          { text: 'Generated At', bold: true }, { text: g.created_at },
+          { text: '', bold: true }, { text: '', bold: true },
+        ],
+      ],
+    },
+  };
+}
+
 
   private serialColumns(serials: string[], colCount: number) {
     if (!serials?.length) return { text: '-', margin: [28, 0, 28, 0] };
@@ -344,9 +393,9 @@ export class InwardReceiptPdfService {
   }
 
   private pickSerialColumns(count: number): number {
-    if (count >= 120) return 4;
-    if (count >= 50) return 3;
-    return 2;
+    // if (count >= 120) return 4;
+    // if (count >= 50) return 3;
+    return 1;
   }
 
   private fileName(d: InwardReceiptData, opts: InwardReceiptPdfOptions): string {

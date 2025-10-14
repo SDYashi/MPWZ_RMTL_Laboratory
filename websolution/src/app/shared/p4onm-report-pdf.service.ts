@@ -233,8 +233,8 @@ export class P4onmReportPdfService {
       margin: [0, 0, 0, 4],
       stack: [
         { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 540, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
-        { text: 'OFFICE OF AE/JE MPPKVVCo.Ltd Zone', alignment: 'center', bold: true },
-        { text: meta.zone || '-', alignment: 'center', italics: true, fontSize: 9 }
+        // { text: 'OFFICE OF AE/JE MPPKVVCo.Ltd Zone', alignment: 'center', bold: true },
+        // { text: meta.zone || '-', alignment: 'center', italics: true, fontSize: 9 }
       ]
     };
 
@@ -292,11 +292,17 @@ export class P4onmReportPdfService {
       }
     };
 
-    const signAej = { text: 'JE/AE   MPPKVVCo.ltd', alignment: 'right', italics: true, fontSize: 9, margin: [0, 0, 0, 8] };
+    const signAej = { 
+      stack: [
+        { text: 'As Recieved from', alignment: 'right', bold: true, margin: [0, 0, 0, 4] },
+        { text: meta.zone || '-', alignment: 'right', italics: true, fontSize: 9 },
+        { text: 'MPPKVVCL Indore', alignment: 'right', italics: true, fontSize: 9, margin: [0, 0, 0, 8] }
+      ]
+    }
 
     const labBlockHead = {
       stack: [
-        { text: 'To be filled by Testing Section Laboratory', alignment: 'center', bold: true, margin: [0, 0, 0, 4] },
+        { text: 'To be filled by Testing Section Laboratory', alignment: 'center', bolder: true, margin: [0, 0, 0, 6] },
         // { text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN CO. LTD.', alignment: 'center', fontSize: 9, margin: [0, 1, 0, 0] },
         // { text: ' (RMTL)', alignment: 'center', margin: [0, 2, 0, 6] }
       ]
