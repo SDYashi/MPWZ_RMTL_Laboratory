@@ -1,6 +1,6 @@
 <div class="container-fluid mt-2">
   <div class="card shadow">
-    <div class="card-header text-white" style="background-color:#151433; font-weight:bold;">
+    <div class="card-header text-white" style="background:#151433; color:#fff;">
       <h5 class="mb-0">Edit Testing Bench Information</h5>
     </div>
 
@@ -210,7 +210,7 @@
 <div class="modal fade" #previewModal tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header border-0" style="background-color: #eae9f1; color: #161515;">
+      <div class="modal-header border-0" style="background:#151433; color:#fff;">
         <h5 class="modal-title fw-bold" id="previewModalLabel">
           <i class="fas fa-search me-2"></i>Confirm Bench Updates
         </h5>
@@ -251,7 +251,7 @@
 <div class="modal fade" #alertModal tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" [ngClass]="{ 'border-success': response_success, 'border-danger': !response_success }">
-       <div class="modal-header border-0" style="background-color: #eae9f1; color: #161515;">
+       <div class="modal-header border-0" style="background:#151433; color:#fff;">
         <h5 class="modal-title fw-bold" id="previewModalLabel">
           <span class="ms-2">{{ response_success ? 'Done' : 'Error' }}</span>   
         </h5>

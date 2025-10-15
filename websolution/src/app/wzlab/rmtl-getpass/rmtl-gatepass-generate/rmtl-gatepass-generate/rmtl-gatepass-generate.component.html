@@ -30,16 +30,6 @@
             </select>
           </div>
         </div>
-          <!-- <div class="col-sm-6 col-md-3">
-            <label class="form-label fw-semibold">Select Inword No</label>
-            <div class="input-group">
-              <span class="input-group-text"><i class="fas fa-file-alt"></i></span>
-              <select class="form-select" [(ngModel)]="selectedInwordNo" name="selectedInwordNo" (change)="onReportselectedInwordNoChange()">
-                <option value="" disabled selected>Choose...</option>
-                <option *ngFor="let inwordNo of inwordNos" [value]="inwordNo">{{ inwordNo }}</option>
-              </select>
-            </div>
-          </div> -->
       </div>
 
       <!-- Loading / Errors -->
@@ -138,54 +128,6 @@
           No devices found for the selected report.
         </div>
       </div>
-
-      <!-- Gatepass summary -->
-      <!-- <div class="mt-4" *ngIf="gatepassInfo">
-        <hr>
-        <div class="table-responsive">
-          <table class="table table-bordered table-sm">
-            <thead class="table-light">
-              <tr>
-                <th colspan="4" class="text-primary">Gatepass Summary</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <th>Gatepass ID / Report IDs:</th>
-                <td>{{ gatepassInfo.id }} / {{ gatepassInfo.report_ids }}</td>
-                <th>Receiver Name:</th>
-                <td>{{ gatepassInfo.receiver_name }}</td>
-              </tr>
-              <tr>
-                <th>Receiver Mobile:</th>
-                <td>{{ gatepassInfo.receiver_mobile }}</td>
-                <th>Dispatch Number:</th>
-                <td>{{ gatepassInfo.dispatch_number }}</td>
-              </tr>
-              <tr>
-                <th>Dispatch To:</th>
-                <td>{{ gatepassInfo.dispatch_to }}</td>
-                <th>Vehicle:</th>
-                <td>{{ gatepassInfo.vehicle }}</td>
-              </tr>
-              <tr>
-                <th>Created By:</th>
-                <td>{{ gatepassInfo.created_by }}</td>
-                <th>Created At:</th>
-                <td>{{ gatepassInfo.created_at }}</td>
-              </tr>
-              <tr>
-                <th>List of Dispatch Serial Numbers:</th>
-                <td colspan="3">{{ gatepassInfo.serial_numbers }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="mt-3">
-            <button class="btn btn-outline-primary" (click)="printGatepass()">Download/Print Gatepass</button>
-          </div>
-        </div>
-      </div> -->
-
     </div>
   </div>
 </div>
@@ -193,8 +135,8 @@
 <!-- Gatepass Create Modal -->
 <div class="modal fade" id="gatepassModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
+    <div class="modal-content" >
+      <div class="modal-header" style="background:#151433; color:#fff;">
         <h5 class="modal-title">Create Gatepass</h5>
         <button type="button" class="btn-close" (click)="closeGatepassModal()"></button>
       </div>
@@ -284,7 +226,7 @@
 <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content border-0 shadow">
-      <div class="modal-header text-white" style="background:#151433;">
+      <div class="modal-header text-white" style="background:#151433; color:#fff;">
         <h5 class="modal-title">Device Details — {{ selectedDetail?.serial_number }}</h5>
         <button type="button" class="btn-close btn-close-white" (click)="closeDetailModal()"></button>
       </div>

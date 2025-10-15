@@ -264,7 +264,7 @@
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modal.open}" *ngIf="modal.open">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
+        <div class="modal-header " style="background:#151433; color:#fff;">
           <h5 class="modal-title">{{ modal.title }}</h5>
           <button type="button" class="btn-close" (click)="closeModal()"></button>
         </div>
@@ -320,7 +320,7 @@
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': asgPicker.open}" *ngIf="asgPicker.open">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header bg-dark text-white">
+        <div class="modal-header" style="background:#151433; color:#fff;">
           <h5 class="modal-title">Select Assigned Devices</h5>
           <button type="button" class="btn-close btn-close-white" (click)="closeAssignedPicker()"></button>
         </div>
@@ -375,7 +375,7 @@
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': alert.open}" *ngIf="alert.open">
     <div class="modal-dialog modal-sm modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header"
+        <div class="modal-header" style="background:#151433; color:#fff;"
              [ngClass]="{
                 'bg-success text-white': alert.type==='success',
                 'bg-danger text-white': alert.type==='error',

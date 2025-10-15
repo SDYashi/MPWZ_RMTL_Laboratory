@@ -204,7 +204,7 @@
 <div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-md modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header" style="background:#151433; color:#fff;">
         <h5 class="modal-title">Confirm Approval</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" [disabled]="approving"></button>
       </div>
@@ -238,7 +238,7 @@
 <div class="modal fade" id="resultModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header" style="background:#151433; color:#fff;">
         <h6 class="modal-title">
           <span *ngIf="resultAction==='APPROVED'">Approval Result</span>
           <span *ngIf="resultAction==='REJECTED'">Rejection Result</span>
@@ -271,10 +271,10 @@
         </div>
 
         <!-- Counts -->
-        <div class="mt-2">
+        <!-- <div class="mt-2">
           <span class="badge bg-secondary me-2">OK: {{ resultOkCount }}</span>
           <span class="badge" [ngClass]="resultFailedCount ? 'bg-danger' : 'bg-secondary'">Failed: {{ resultFailedCount }}</span>
-        </div>
+        </div> -->
 
         <!-- Failed list (if any) -->
         <div *ngIf="failedList?.length" class="mt-3">
