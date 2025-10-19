@@ -3,7 +3,6 @@ import { Component, OnInit } from '@angular/core';
 import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
-// PDF service + types
 import {
   StopDefectiveReportPdfService,
   StopDefRow,
@@ -11,7 +10,6 @@ import {
   PdfLogos
 } from 'src/app/shared/stopdefective-report-pdf.service';
 
-// ====== Types (exposed to template) ======
 type Id = number;
 
 interface AssignmentDevice {
@@ -186,6 +184,9 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
 
   // outgoing payload (debug/inspection)
   payload: any[] = [];
+  ternal_testing_types: any;
+  fees_mtr_cts: any;
+  test_dail_current_cheaps: any;
 
   constructor(
     private api: ApiServicesService,
@@ -218,6 +219,9 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
         this.meter_bodies = data?.meter_bodies || [];
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
+        this.ternal_testing_types = data?.device_testing_purpose || [];
+        this.fees_mtr_cts= data?.fees_mtr_cts || [];
+        this.test_dail_current_cheaps = data?.test_dail_current_cheaps || [];
 
         // normalize STOP_DEFECTIVE vs STOPDEFECTIVE
         const stopDef =

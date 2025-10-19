@@ -13,8 +13,7 @@
       <!-- Top toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
         <button type="button" class="btn btn-outline-danger" (click)="openAssignedPicker()">⟳ Load Assigned (Select)</button>
-        <button type="button" class="btn btn-outline-primary" (click)="addRow()">➕ Add Row</button>
-        <div class="ms-auto d-flex gap-2">
+          <div class="ms-auto d-flex gap-2">
           <input class="form-control" style="min-width:260px"
                  [(ngModel)]="filterText" name="filterText" placeholder="Filter by Sr. No / Make / Consumer">
         </div>
@@ -104,7 +103,7 @@
               <th>Meter Sr. No.</th>
               <th>Make</th>
               <th>Capacity</th>
-              <th>Test Report Remark</th>
+              <th>TestReport Remark</th>
               <th>Test Result</th>
               <th>Consumer</th>
               <th class="d-print-none">Details</th>
@@ -179,7 +178,9 @@
 
                     <div class="col-md-3">
                       <label class="form-label small fw-bold mb-0">Testing Fees (₹)</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.testing_fees" [name]="'fees_'+i" step="0.01">
+                      <select class="form-select form-select-sm" [(ngModel)]="r.testing_fees" [name]="'fees_'+i">
+                        <option *ngFor="let fee of fees_mtr_cts" [value]="fee">{{ fee }}</option>
+                      </select>
                     </div>
                     <div class="col-md-5">
                       <label class="form-label small fw-bold mb-0">M.R. No & Date</label>
@@ -194,39 +195,47 @@
                     </div>
 
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Starting Reading</label>
+                      <label class="form-label small fw-bold mb-0">Starting Reading (Import)</label>
                       <input type="number" class="form-control form-control-sm" [(ngModel)]="r.starting_reading"
                              (ngModelChange)="recompute(i)" [name]="'sr_read_'+i" step="0.0001">
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Final Reading (R)</label>
+                      <label class="form-label small fw-bold mb-0">Final Reading (Import)</label>
                       <input type="number" class="form-control form-control-sm" [(ngModel)]="r.final_reading_r"
                              (ngModelChange)="recompute(i)" [name]="'fr_r_'+i" step="0.0001">
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Final Reading (E)</label>
+                      <label class="form-label small fw-bold mb-0">Final Reading (Export)</label>
                       <input type="number" class="form-control form-control-sm" [(ngModel)]="r.final_reading_e"
                              [name]="'fr_e_'+i" step="0.0001">
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Difference (R − Start)</label>
+                      <label class="form-label small fw-bold mb-0">Difference (Final − Start)</label>
                       <input type="number" class="form-control form-control-sm" [(ngModel)]="r.difference"
                              [name]="'diff_'+i" step="0.0001" readonly>
                     </div>
 
                     <div class="col-md-3">
                       <label class="form-label small fw-bold mb-0">Starting Current Test</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.starting_current_test" [name]="'sct_'+i" placeholder="OK / FAIL / NA">
+                      <select class="form-select form-select-sm" [(ngModel)]="r.starting_current_test" [name]="'sct_'+i">
+                        <option value="">--</option>
+                        <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                      </select>
                     </div>
                     <div class="col-md-3">
                       <label class="form-label small fw-bold mb-0">Creep Test</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.creep_test" [name]="'creep_'+i" placeholder="OK / FAIL / NA">
+                      <select class="form-select form-select-sm" [(ngModel)]="r.creep_test" [name]="'creep_'+i">
+                        <option value="">--</option>
+                        <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                      </select>
                     </div>
                     <div class="col-md-3">
                       <label class="form-label small fw-bold mb-0">Dial Test</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.dial_test" [name]="'dial_'+i" placeholder="OK / FAIL / NA">
-                    </div>
-
+                      <select class="form-select form-select-sm" [(ngModel)]="r.dial_test" [name]="'dial_'+i">
+                        <option value="">--</option>
+                        <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                      </select>
+                          </div>
                     <div class="col-12">
                       <label class="form-label small fw-bold mb-0">Remark</label>
                       <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'remark_'+i"></textarea>
@@ -241,11 +250,11 @@
 
       <!-- Actions -->
       <div class="d-flex gap-2 mt-3 d-print-none">
-        <div class="ms-auto"></div>
-        <button type="button" class="btn btn-primary"
+          <button type="button" class="btn btn-outline-primary" (click)="addRow()">➕ Add Row</button>
+        <button type="button" class="btn btn-primary right ms-auto"
                 [disabled]="submitting || !rows.length"
                 (click)="openConfirm('submit')">
-          {{ submitting ? 'Submitting…' : 'Submit Batch Certificate' }}
+          {{ submitting ? 'Submitting…' : 'Submit Batch' }}
         </button>
       </div>
     </div>

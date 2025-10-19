@@ -120,7 +120,7 @@
               <th>Make</th>
               <th>Capacity</th>
               <th>Test Report Remark</th>
-              <th>Test Result</th>
+              <th>Working</th>
               <th>Remark</th>
               <th class="d-print-none">Details</th>
               <th class="d-print-none">Action</th>
@@ -284,6 +284,13 @@
                           <label class="form-label small fw-bold mb-0">Any Other</label>
                           <input class="form-control form-control-sm" [(ngModel)]="r.other" [name]="'b_other_'+i">
                         </div>
+                        <div class="col-md-3">
+                          <label class="form-label small fw-bold mb-0">Meter Testing Mechnism</label>
+                          <select class="form-select form-select-sm" [(ngModel)]="r.dial_testby" [name]="'b_dtest_'+i">
+                            <option value="">Select mechanism</option>
+                            <option *ngFor="let t of ternal_testing_types" [value]="t">{{ t }}</option>
+                          </select>
+                        </div>
 
                         <div class="col-md-3">
                           <label class="form-label small fw-bold mb-0">Before Test</label>
@@ -300,11 +307,6 @@
                         <div class="col-md-3">
                           <label class="form-label small fw-bold mb-0">Ref End</label>
                           <input type="number" class="form-control form-control-sm" [(ngModel)]="r.ref_end_reading" [name]="'b_re_'+i" step="0.001">
-                        </div>
-
-                        <div class="col-12">
-                          <label class="form-label small fw-bold mb-0">Remark</label>
-                          <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'b_r_remark_'+i"></textarea>
                         </div>
 
                         <div class="col-md-3">
@@ -326,6 +328,11 @@
                         <div class="col-md-2">
                           <label class="form-label small fw-bold mb-0">Creep Test</label>
                           <input class="form-control form-control-sm" [(ngModel)]="r.creep_test" [name]="'b_creep_'+i" placeholder="OK/FAIL/NA">
+                        </div>
+                        <hr>
+                        <div class="col-12">
+                          <label class="form-label small fw-bold mb-0">Remark</label>
+                          <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'b_r_remark_'+i"></textarea>
                         </div>
                       </div>
                     </div>

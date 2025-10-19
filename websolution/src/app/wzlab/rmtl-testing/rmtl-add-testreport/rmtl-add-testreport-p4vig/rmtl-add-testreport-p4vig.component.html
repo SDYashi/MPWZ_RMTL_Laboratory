@@ -10,6 +10,18 @@
     </div>
 
     <div class="card-body">
+      <!-- Page-level message (non-modal) -->
+        <div *ngIf="pageMessage">
+          <div class="alert" [ngClass]="{
+            'alert-success': pageMessage.type === 'success',
+            'alert-danger': pageMessage.type === 'error',
+            'alert-warning': pageMessage.type === 'warning',
+            'alert-info': pageMessage.type === 'info'
+          }" role="alert">
+            {{ pageMessage.text }}
+             </div>
+        </div>
+
       <!-- Toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
         <button type="button" class="btn btn-outline-danger" (click)="openDevicePicker()">⟳ Reload Assigned</button>
@@ -111,9 +123,9 @@
               <th>Meter No.</th>
               <th>Make</th>
               <th>Capacity</th>
-              <th>Reading (Removal)</th>
+              <th>Reading (Removal Time)</th>
               <th>Test Report Remark</th>
-              <th>Test Result</th>
+              <th>Working</th>
               <th class="d-print-none">Details</th>
               <th class="d-print-none">Action</th>
             </tr>
@@ -213,7 +225,7 @@
                           <input class="form-control form-control-sm" [(ngModel)]="r.capacity" [name]="'b_c_dup_'+i">
                         </div>
                         <div class="col-md-3">
-                          <label class="form-label small fw-bold mb-0">Reading</label>
+                          <label class="form-label small fw-bold mb-0">Reading at the time of removal</label>
                           <input type="number" class="form-control form-control-sm" [(ngModel)]="r.removal_reading" [name]="'b_rr_dup_'+i" step="0.001">
                         </div>
                       </div>
@@ -270,7 +282,14 @@
                       <label class="form-label small fw-bold mb-0">Any Other</label>
                       <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.other" [name]="'b_other_'+i"></textarea>
                     </div>
-
+                    <hr>
+                    <div class="col-md-3">
+                          <label class="form-label small fw-bold mb-0">Meter Testing Mechnism</label>
+                          <select class="form-select form-select-sm" [(ngModel)]="r.dial_testby" [name]="'b_dtest_'+i">
+                            <option value="">--</option>
+                            <option *ngFor="let t of ternal_testing_types" [value]="t">{{ t }}</option>
+                          </select>
+                        </div>
                     <!-- Readings -->
                     <div class="col-md-3">
                       <label class="form-label small fw-bold mb-0">Reading (Before Test)</label>

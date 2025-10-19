@@ -1,148 +1,201 @@
-<!-- Show skeleton while loading or when no data yet -->
+<!-- Updated HTML only — improved responsiveness and cleaner structure -->
 <ng-container *ngIf="!loading && dash as d; else skeleton">
-  <div class="row g-3 mt-3">
-    <div class="col-12">
-      <div class="card shadow-sm border-0">
-        <div class="card-header d-flex flex-wrap justify-content-between align-items-center" style="background:#151433; color:#fff;">
-          <h5 class="mb-0 ">Testing Dashboard</h5>
-          <span class="small text-muted">Total:
-            <strong class="text-dark">{{ number(d.total) }}</strong>
-          </span>
-        </div>
-
-        <div class="card-body">
-          <!-- Top: Total -->
-          <div class="row g-3 mb-3">
-            <div class="col-6 col-md-4 col-lg-3">
-
+  <div class="container-fluid mt-3">
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center"
+               style="background-color: #151433; color: white;">
+            <div class="d-flex flex-column">
+              <h5 class="mb-1">Testing Dashboard</h5>
+              <small class="text-light opacity-75">Overview &amp; recent activity</small>
+            </div>
+            <div class="mt-2 mt-md-0">
+              <span class="small text-muted">Total:
+                <strong class="text-white ms-1">{{ number(d.total) }}</strong>
+              </span>
             </div>
           </div>
-                    <!-- Test Methods -->
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="mb-0">By Method</h6>
-            <small class="text-muted">Recent distribution</small>
-          </div>
-          <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4 col-lg-3">
-              <div class="stat-card colorful p-3 h-100 bg-grad-secondary">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="stat-label">Total Tests</div>
-                  <span class="card-glass small">All</span>
+
+          <div class="card-body">
+            <!-- Top quick stats row (responsive) -->
+            <div class="row g-3 mb-3 align-items-stretch">
+              <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="stat-card colorful p-3 h-100 bg-grad-secondary d-flex flex-column justify-content-between">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="stat-label">Total Tests</div>
+                    <span class="card-glass small">All</span>
+                  </div>
+                  <div class="stat-value mt-2 display-6 fw-bold">{{ number(d.total) }}</div>
                 </div>
-                <div class="stat-value mt-1">{{ number(d.total) }}</div>
+              </div>
+
+              <!-- Methods (wraps responsively) -->
+              <ng-container *ngFor="let m of d.test_method">
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                  <div class="stat-card colorful p-3 h-100 d-flex flex-column justify-content-between"
+                       [ngClass]="gradClass(methodColor(m.test_method))">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div class="stat-label text-uppercase small">{{ m.test_method }}</div>
+                      <span class="card-glass small">Method</span>
+                    </div>
+                    <div class="stat-value mt-2 fw-semibold fs-5 text-truncate">{{ number(m.total) }}</div>
+                  </div>
+                </div>
+              </ng-container>
+
+              <div class="col-12" *ngIf="!(d.test_method?.length)">
+                <div class="text-muted">No method data.</div>
               </div>
             </div>
-            <div class="col-6 col-md-4 col-lg-3" *ngFor="let m of d.test_method">
-              <div class="stat-card colorful p-3 h-100" [ngClass]="gradClass(methodColor(m.test_method))">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="stat-label text-uppercase">{{ m.test_method }}</div>
-                  <span class="card-glass small">Method</span>
+
+            <!-- Report Types -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="mb-0">Report Types</h6>
+              <small class="text-muted">Top by total</small>
+            </div>
+            <div class="row g-3 mb-4">
+              <ng-container *ngFor="let t of d.report_type; let i = index">
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                  <div class="stat-card colorful p-3 h-100 d-flex flex-column justify-content-between"
+                       [ngClass]="'bg-grad-' + reportTypeToken(i)">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div class="stat-label small text-truncate">{{ t.report_type }}</div>
+                      <span class="card-glass small">Type</span>
+                    </div>
+                    <div class="stat-value mt-2 fw-semibold fs-5">{{ number(t.total) }}</div>
+                  </div>
                 </div>
-                <div class="stat-value mt-1">{{ number(m.total) }}</div>
+              </ng-container>
+
+              <div class="col-12" *ngIf="!(d.report_type?.length)">
+                <div class="text-muted">No report type data.</div>
               </div>
             </div>
-            <div class="col-12" *ngIf="!(d.test_method?.length)">
-              <div class="text-muted">No method data.</div>
-            </div>
-          </div>
 
-          <!-- Report Types -->
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="mb-0">Report Types</h6>
-            <small class="text-muted">Top by total</small>
-          </div>
-          <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4 col-lg-3" *ngFor="let t of d.report_type; let i = index">
-              <div class="stat-card colorful p-3 h-100" [ngClass]="'bg-grad-' + reportTypeToken(i)">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="stat-label">{{ t.report_type }}</div>
-                  <span class="card-glass small">Type</span>
+            <!-- Recent tests table - responsive card with collapse on very small screens -->
+            <div class="card border-0">
+              <div class="card-header bg-transparent d-flex justify-content-between align-items-center p-0 mb-2">
+                <div>
+                  <h6 class="mb-0">Recent tests</h6>
+                  <small class="text-muted">Showing latest {{ recent12.length }} tests</small>
                 </div>
-                <div class="stat-value mt-1">{{ number(t.total) }}</div>
+                <div>
+                  <!-- optional action area - kept empty for future controls -->
+                </div>
               </div>
-            </div>
-            <div class="col-12" *ngIf="!(d.report_type?.length)">
-              <div class="text-muted">No report type data.</div>
+
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle mb-0">
+                  <thead class="table-light small">
+                    <tr>
+                      <th scope="col" class="w-1">#</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Result</th>
+                      <th scope="col">Method</th>
+                      <th scope="col">Report Type</th>
+                      <th scope="col">Start</th>
+                      <th scope="col">End</th>
+                      <th scope="col">Approver</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let r of recent12; trackBy: trackByRec">
+                      <th scope="row" class="align-middle">{{ recent12.indexOf(r) + 1 }}</th>
+                      <td class="align-middle">
+                        <span class="badge rounded-pill" [ngClass]="statusBadgeClass(r.test_status)">{{ r.test_status || '—' }}</span>
+                      </td>
+                      <td class="align-middle">
+                        <span class="badge rounded-pill"
+                              [ngClass]="'bg-' + (r.test_result?.toUpperCase() === 'OK' ? 'success' : (r.test_result?.toUpperCase() === 'NOT OK' ? 'danger' : 'secondary'))">
+                          {{ r.test_result || '—' }}
+                        </span>
+                      </td>
+                      <td class="align-middle">
+                        <span class="badge rounded-pill" [ngClass]="'bg-' + methodColor(r.test_method)">{{ r.test_method || '—' }}</span>
+                      </td>
+                      <td class="align-middle small text-truncate" style="max-width:140px;">{{ r.report_type || '—' }}</td>
+                      <td class="align-middle"><small class="text-muted d-block text-truncate" style="max-width:150px;">{{ r.start_datetime | date:'medium' }}</small></td>
+                      <td class="align-middle"><small class="text-muted d-block text-truncate" style="max-width:150px;">{{ r.end_datetime | date:'medium' }}</small></td>
+                      <td class="align-middle"><small class="text-muted">{{ r.approver_id ?? '—' }}</small></td>
+                    </tr>
+                    <tr *ngIf="!recent12.length">
+                      <td colspan="8" class="text-center text-muted py-4">No recent tests.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Mobile friendly stacked view for extremely narrow screens -->
+              <div class="d-block d-sm-none mt-3">
+                <ng-container *ngFor="let r of recent12; let idx = index">
+                  <div class="card mb-2">
+                    <div class="card-body p-2">
+                      <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                          <div class="small text-muted">#{{ idx + 1 }} — {{ r.report_type || '—' }}</div>
+                          <div class="fw-semibold">{{ r.test_method || '—' }}</div>
+                        </div>
+                        <div class="text-end">
+                          <div><span class="badge rounded-pill" [ngClass]="statusBadgeClass(r.test_status)">{{ r.test_status || '—' }}</span></div>
+                          <div class="mt-1"><span class="badge rounded-pill" [ngClass]="'bg-' + (r.test_result?.toUpperCase() === 'OK' ? 'success' : (r.test_result?.toUpperCase() === 'NOT OK' ? 'danger' : 'secondary'))">{{ r.test_result || '—' }}</span></div>
+                        </div>
+                      </div>
+                      <div class="mt-2 small text-muted">
+                        <div>Start: {{ r.start_datetime | date:'short' }}</div>
+                        <div>End: &nbsp; {{ r.end_datetime | date:'short' }}</div>
+                        <div>Approver: {{ r.approver_id ?? '—' }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </ng-container>
+              </div>
+
             </div>
           </div>
-
-          <!-- Recent tests -->
-          <div class="table-responsive">
-            <table class="table table-sm table-bordered align-middle">
-              <thead class="table-light">
-                <tr>
-                  <th scope="col">ID</th>
-                  <!-- <th scope="col">Device</th> -->
-                  <th scope="col">Status</th>
-                  <th scope="col">Result</th>
-                  <th scope="col">Method</th>
-                  <th scope="col">Report Type</th>
-                  <th scope="col">Start</th>
-                  <th scope="col">End</th>
-                  <th scope="col">Approver</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let r of recent12; trackBy: trackByRec">
-                  <th scope="row">{{ recent12.indexOf(r) + 1 }}</th>
-                  <!-- <td>#{{ r.device_id }}</td> -->
-                  <td><span class="badge rounded-pill" [ngClass]="statusBadgeClass(r.test_status)">{{ r.test_status || '—' }}</span></td>
-                  <td>
-                    <span class="badge rounded-pill" [ngClass]="'bg-' + (r.test_result?.toUpperCase() === 'OK' ? 'success' : (r.test_result?.toUpperCase() === 'NOT OK' ? 'danger' : 'secondary'))">
-                      {{ r.test_result || '—' }}
-                    </span>
-                  </td>
-                  <td><span class="badge rounded-pill" [ngClass]="'bg-' + methodColor(r.test_method)">{{ r.test_method || '—' }}</span></td>
-                  <td>{{ r.report_type || '—' }}</td>
-                  <td><small class="text-muted">{{ r.start_datetime | date:'medium' }}</small></td>
-                  <td><small class="text-muted">{{ r.end_datetime   | date:'medium' }}</small></td>
-                  <td><small class="text-muted">{{ r.approver_id ?? '—' }}</small></td>
-                </tr>
-                <tr *ngIf="!recent12.length">
-                  <td colspan="9" class="text-center text-muted">No recent tests.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
         </div>
       </div>
     </div>
   </div>
+
 </ng-container>
 
-<!-- Loading skeleton -->
+<!-- Loading skeleton (responsive) -->
 <ng-template #skeleton>
-  <div class="row g-3 mt-3">
-    <div class="col-12">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-white">
-          <h5 class="mb-0 placeholder-glow"><span class="placeholder col-4"></span></h5>
-        </div>
-        <div class="card-body">
-          <div class="row g-3 mb-3">
-            <div class="col-6 col-md-4 col-lg-3" *ngFor="let i of [1,2,3,4]">
-              <div class="stat-card p-3 h-100">
-                <div class="placeholder-glow">
-                  <span class="placeholder col-6"></span>
-                  <div class="mt-2"><span class="placeholder col-4"></span></div>
+  <div class="container-fluid mt-3">
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white">
+            <h5 class="mb-0 placeholder-glow"><span class="placeholder col-4"></span></h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3 mb-3">
+              <div class="col-6 col-sm-4 col-md-3 col-lg-2" *ngFor="let i of [1,2,3,4,5,6]">
+                <div class="stat-card p-3 h-100">
+                  <div class="placeholder-glow">
+                    <span class="placeholder col-8"></span>
+                    <div class="mt-2"><span class="placeholder col-6"></span></div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="table-responsive">
-            <table class="table table-sm">
-              <thead><tr><th class="placeholder col-2"></th><th class="placeholder col-2"></th><th class="placeholder col-2"></th><th class="placeholder col-2"></th><th class="placeholder col-2"></th></tr></thead>
-              <tbody>
-                <tr *ngFor="let i of [1,2,3,4,5,6,7,8]">
-                  <td class="placeholder col-2"></td>
-                  <td class="placeholder col-2"></td>
-                  <td class="placeholder col-2"></td>
-                  <td class="placeholder col-2"></td>
-                  <td class="placeholder col-2"></td>
-                </tr>
-              </tbody>
-            </table>
+
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead><tr><th class="placeholder col-1"></th><th class="placeholder col-2"></th><th class="placeholder col-2"></th><th class="placeholder col-2"></th><th class="placeholder col-2"></th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let i of [1,2,3,4,5]">
+                    <td class="placeholder col-1"></td>
+                    <td class="placeholder col-2"></td>
+                    <td class="placeholder col-2"></td>
+                    <td class="placeholder col-2"></td>
+                    <td class="placeholder col-2"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
           </div>
         </div>
       </div>

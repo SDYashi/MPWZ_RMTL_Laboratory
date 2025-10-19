@@ -65,6 +65,7 @@ interface DeviceRow {
   meter_kwh?: number;
   starting_current_test?: string;
   creep_test?: string;
+  dial_testby?: string;
 
   _open?: boolean;
 }
@@ -140,6 +141,9 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   pickerAssignments: AssignmentItem[] = [];
   pickerSelected: Record<number, boolean> = {};
   pickerFilter = '';
+  ternal_testing_types: any;
+  fees_mtr_cts: any;
+  test_dail_current_cheaps: any;
 
   constructor(private api: ApiServicesService, 
     private pdfSvc: P4onmReportPdfService,
@@ -177,6 +181,10 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
         // ✅ critical context defaults
         this.device_testing_purpose = d?.test_report_types?.ONM_CHECKING ?? 'ONM_CHECKING';
         this.device_type = d?.device_types?.METER ?? 'METER';
+        this.ternal_testing_types = d?.ternal_testing_types || [];
+        this.fees_mtr_cts= d?.fees_mtr_cts || [];
+        this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
+
 
         this.doReloadAssignedWithoutAddingRows();
       },

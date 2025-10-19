@@ -135,6 +135,10 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
     left_logo_url?: string | null;
     right_logo_url?: string | null;
   } | null = null;
+  ternal_testing_types: any;
+  fees_mtr_cts: any;
+  test_dail_current_cheapse: any;
+  test_dail_current_cheaps: any;
 
   constructor(
     private api: ApiServicesService,
@@ -162,6 +166,10 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         this.office_types  = d?.office_types || [];
         this.commentby_testers = d?.commentby_testers || [];
         this.test_results = d?.test_results || [];
+        this.ternal_testing_types = d?.device_testing_purpose || [];
+        this.fees_mtr_cts= d?.fees_mtr_cts || [];
+        this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
+
 
         // Ensure context never null
         this.device_testing_purpose = d?.test_report_types?.SOLAR_GENERATION_METER || 'SOLAR_GENERATION_METER';

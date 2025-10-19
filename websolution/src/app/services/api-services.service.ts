@@ -565,5 +565,9 @@ gettestingstatusdashboard() {
   return this.http.get<any>(`${this.baseUrl}/dashboard/testing-status/`);  
 }
 
+downloadTestreports_byreportidwithReportTypes(report_id: string, report_type: string[]) {
+  return this.http.get(`${this.baseUrl}/testing/reportfor_pdf/${report_id}/${report_type}`);
+} 
+
 
 }

@@ -144,60 +144,6 @@ export class P4VigReportPdfService {
     return this.buildDoc(header, rows, images);
   }
 
-  // Return type Content to satisfy pdfmake header typing
-  // private headerBar(meta: any, images: Record<string, string>): Content {
-  //   const logoBox = [42, 42] as [number, number];
-
-  //   return {
-  //     margin: [18, 10, 18, 8],
-  //     columns: [
-  //       images['leftLogo']
-  //         ? { image: 'leftLogo', fit: logoBox, alignment: 'left', margin: [0, 0, 10, 0] }
-  //         : { width: logoBox[0], text: '' },
-
-  //       {
-  //         width: '*',
-  //         stack: [
-  //           {
-  //             text:
-  //               'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED',
-  //             alignment: 'center',
-  //             bold: true,
-  //             fontSize: 13,
-  //           },
-  //           {
-  //             text: (meta.lab_name || '').toUpperCase(),
-  //             alignment: 'center',
-  //             color: '#666',
-  //             margin: [0, 2, 0, 0],
-  //             fontSize: 12,
-  //           },
-  //           {
-  //             text: meta.lab_address || '',
-  //             alignment: 'center',
-  //             color: '#666',
-  //             margin: [0, 2, 0, 0],
-  //             fontSize: 10,
-  //           },
-  //           {
-  //             text: `Email: ${meta.lab_email || '-'} • Phone: ${meta.lab_phone || '-'}`,
-  //             alignment: 'center',
-  //             color: '#666',
-  //             margin: [0, 2, 0, 0],
-  //             fontSize: 10,
-  //           },
-  //         ],
-  //       },
-
-  //       images['rightLogo']
-  //         ? { image: 'rightLogo', fit: logoBox, alignment: 'right', margin: [10, 0, 0, 0] }
-  //         : { width: logoBox[0], text: '' },
-  //     ],
-  //   };
-  // }
-
-
-
   private headerBar(meta: any, images: Record<string, string>): Content {
     const logoBox = [42, 42] as [number, number];
 

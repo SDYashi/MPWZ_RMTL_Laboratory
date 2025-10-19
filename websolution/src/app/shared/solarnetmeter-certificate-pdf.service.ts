@@ -3,6 +3,8 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 (pdfMake as any).vfs = pdfFonts.vfs;
 
+type TDocument = any;
+
 export type SolarHeader = {
   location_code?: string | null;
   location_name?: string | null;
@@ -46,16 +48,14 @@ export type SolarRow = {
   creep_test?: string | null;
   dial_test?: string | null;
 
-  test_result?: string | null; // kept (not printed on face in sample)
+  test_result?: string | null;
   remark?: string | null;
 };
-
-type TDocument = any;
 
 @Injectable({ providedIn: 'root' })
 export class SolarNetMeterCertificatePdfService {
 
-  async download(header: SolarHeader, rows: SolarRow[], fileName = 'SOLAR_NETMETER_CERTIFICATES.pdf') {
+  async download(header: SolarHeader, rows: SolarRow[], fileName = 'SOLAR_NETMETER_TESTREPORT.pdf') {
     const doc = await this.buildDocWithLogos(header, rows);
     await new Promise<void>(res => pdfMake.createPdf(doc).download(fileName, () => res()));
   }
@@ -66,6 +66,82 @@ export class SolarNetMeterCertificatePdfService {
   async print(header: SolarHeader, rows: SolarRow[]) {
     const doc = await this.buildDocWithLogos(header, rows);
     pdfMake.createPdf(doc).print();
+  }
+
+  // ---------- bulk helpers added (generate separate or merged PDFs) ----------
+  /**
+   * Generate and download multiple PDFs (one file per report).
+   * Input: array of { header, rows, fileName? }
+   */
+  async generateAllSeparate(reports: { header: SolarHeader; rows: SolarRow[]; fileName?: string }[]) {
+    for (const r of reports) {
+      try {
+        const doc = await this.buildDocWithLogos(r.header, r.rows);
+        await new Promise<void>((res, rej) => {
+          try {
+            pdfMake.createPdf(doc).download(r.fileName || 'report.pdf', () => res());
+          } catch (e) {
+            try { pdfMake.createPdf(doc).open(); res(); } catch (err) { rej(err); }
+          }
+        });
+      } catch (err) {
+        console.error('Failed to generate report', err);
+      }
+    }
+  }
+
+  /**
+   * Merge pages of multiple reports into a single PDF and download it.
+   * This builds each report (to resolve logos) then concatenates their `content` arrays.
+   */
+  async mergeAndDownloadAll(
+    reports: { header: SolarHeader; rows: SolarRow[] }[],
+    fileName = 'ALL_SOLAR_NETMETER_CERTIFICATES.pdf'
+  ) {
+    const builtDocs: any[] = [];
+    for (const r of reports) {
+      try {
+        const doc = await this.buildDocWithLogos(r.header, r.rows);
+        builtDocs.push(doc);
+      } catch (err) {
+        console.error('Failed to build doc for header', r.header, err);
+      }
+    }
+
+    if (!builtDocs.length) {
+      throw new Error('No documents could be built');
+    }
+
+    const mergedImages: Record<string,string> = {};
+    const mergedContent: any[] = [];
+
+    builtDocs.forEach((d, idx) => {
+      // merge images; later docs overwrite earlier keys on collisions (practical and simple)
+      Object.assign(mergedImages, d.images || {});
+
+      if (Array.isArray(d.content)) {
+        d.content.forEach((block: any) => mergedContent.push(block));
+        if (idx < builtDocs.length - 1) mergedContent.push({ text: '', pageBreak: 'after' });
+      }
+    });
+
+    const mergedDoc: any = {
+      pageSize: builtDocs[0].pageSize || 'A4',
+      pageMargins: builtDocs[0].pageMargins || [0, 0, 0, 30],
+      defaultStyle: builtDocs[0].defaultStyle || { font: 'Roboto', fontSize: 10, color: '#111' },
+      images: mergedImages,
+      footer: builtDocs[0].footer,
+      info: { title: fileName },
+      content: mergedContent
+    };
+
+    return await new Promise<void>((res, rej) => {
+      try {
+        pdfMake.createPdf(mergedDoc).download(fileName, () => res());
+      } catch (e) {
+        try { pdfMake.createPdf(mergedDoc).open(); res(); } catch (err) { rej(err); }
+      }
+    });
   }
 
   // ---------- helpers ----------
@@ -87,7 +163,7 @@ export class SolarNetMeterCertificatePdfService {
   private fmtDateShort(s?: string | null) {
     if (!s) return '';
     const d = new Date(s);
-    if (Number.isNaN(d.getTime())) return s;
+    if (Number.isNaN(d.getTime())) return s as string;
     const dd = d.getDate();
     const mm = d.getMonth() + 1;
     const yy = String(d.getFullYear()).slice(-2);
@@ -113,7 +189,7 @@ export class SolarNetMeterCertificatePdfService {
 
     const safe = async (key: 'leftLogo'|'rightLogo', url?: string|null) => {
       if (!url) return;
-      try { images[key] = isData(url) ? url : await toDataURL(url); } catch {}
+      try { images[key] = isData(url) ? url : await toDataURL(url); } catch (err) { console.warn('Logo fetch failed for', url, err); }
     };
     await Promise.all([safe('leftLogo', header.leftLogoUrl), safe('rightLogo', header.rightLogoUrl)]);
     if (!images['leftLogo'] && images['rightLogo']) images['leftLogo'] = images['rightLogo'];
@@ -125,10 +201,10 @@ export class SolarNetMeterCertificatePdfService {
   // ---------- header block (fixed: now uses meta + images) ----------
   private titleBar(meta: any, images: Record<string,string>) {
     const logoSize = 30;
-    const labName = (meta.lab_name || 'REGINAL METERING TESTING LABORATORY INDORE').toUpperCase();
-    const address = meta.lab_address || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003';
-    const email = meta.lab_email || 'testinglabwzind@gmail.com';
-    const phone = meta.lab_phone || '0731-2997802';
+    const labName = (meta.lab_name || '').toUpperCase();
+    const address = (meta.lab_address || '').toUpperCase();
+    const email = (meta.lab_email || '').toUpperCase();
+    const phone = (meta.lab_phone || '').toUpperCase();
 
     return {
       margin: [28, 10, 28, 8],
@@ -211,7 +287,7 @@ export class SolarNetMeterCertificatePdfService {
           stack: [
             { text: '\n\n Tested by', alignment: 'center', bold: true },
             { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'TESTING ASSISTANT (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+            { text: 'TESTING ASSISTANT', alignment: 'center', color: '#444', fontSize: 9 },
           ],
         },
         {
@@ -219,7 +295,7 @@ export class SolarNetMeterCertificatePdfService {
           stack: [
             { text: '\n\n Verified by', alignment: 'center', bold: true },
             { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'JUNIOR ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+            { text: 'JUNIOR ENGINEER', alignment: 'center', color: '#444', fontSize: 9 },
           ],
         },
         {
@@ -227,26 +303,52 @@ export class SolarNetMeterCertificatePdfService {
           stack: [
             { text: '\n\n Approved by', alignment: 'center', bold: true },
             { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'ASSISTANT ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+            { text: 'ASSISTANT ENGINEER', alignment: 'center', color: '#444', fontSize: 9 },
           ],
         },
       ],
       margin: [0, 12, 0, 0]
     };
   }
+  private metaRow(meta: any) {
+    const lbl = { bold: true, fillColor: '#f5f5f5' };
+    return {
+       layout: this.gridLayout,
+      margin: [28, 0, 28, 8],
+      table: {
+        widths: ['auto','*','auto','*','auto','*'],
+        body: [[
+          { text: 'DC/Zone', ...lbl }, { text: meta.zone || '-' },
+          { text: 'Method',  ...lbl }, { text: meta.method || '-' },
+          { text: 'Status',  ...lbl }, { text: meta.status || '-' },
+        ], [
+          { text: 'Bench',   ...lbl }, { text: meta.bench || '-' },
+          { text: 'User',    ...lbl }, { text: meta.user || '-' },
+          { text: 'Date',    ...lbl }, { text: meta.date || '-' },
+        ]]
+      }
+    };
+  }
 
   private page(r: SolarRow, meta: any, images: Record<string,string>) {
     const blocks: any[] = [];
-    // FIX: pass meta into titleBar
     blocks.push(this.titleBar(meta, images));
 
     if (r.certificate_no) {
-      blocks.push({ text: `Certificate No: ${r.certificate_no}`, alignment: 'right', margin: [28, 0, 28, 6], bold: true });
+      blocks.push(
+        { text: 'SOLAR NET METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0, 0, 0, 6] },
+        { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', bold: true, fontSize: 11, margin: [0, 0, 0, 6] },
+        { text: `Certificate No: ${r.certificate_no}`, alignment: 'right', margin: [28, 0, 28, 6], bold: true });
     }
-    blocks.push(
-      { margin: [28, 4, 28, 0], stack: [ this.certTable(r) ] },
+    blocks.push(   
+        { text: 'SOLAR NET METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0, 0, 0, 6] },
+        { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', bold: true, fontSize: 11, margin: [0, 0, 0, 6] },
+        { text: `Certificate No: ${r.certificate_no}`, alignment: 'right', margin: [28, 0, 28, 6], bold: true },
+        this.metaRow(meta),
+        { margin: [28, 4, 28, 0], stack: [ this.certTable(r) ] },
       { margin: [28, 0, 28, 0], stack: [ this.signatureBlock() ] }
     );
+    
     return blocks;
   }
 
@@ -261,13 +363,12 @@ export class SolarNetMeterCertificatePdfService {
       lab_name: header.lab_name || '',
       lab_address: header.lab_address || '',
       lab_email: header.lab_email || '',
-      lab_phone: header.lab_phone ||'',
+      lab_phone: header.lab_phone || '',
     };
 
-    const data = (rows || []).filter(r => (r.meter_sr_no || '').trim()) as SolarRow[];
+    const data = (rows || []).filter(r => !!(r?.meter_sr_no && String(r.meter_sr_no).trim())) as SolarRow[];
     const content: any[] = [];
 
-    // One certificate per page (no batch summary for this style)
     data.forEach((r, i) => {
       content.push(...this.page(r, meta, images));
       if (i < data.length - 1) content.push({ text: '', pageBreak: 'after' });

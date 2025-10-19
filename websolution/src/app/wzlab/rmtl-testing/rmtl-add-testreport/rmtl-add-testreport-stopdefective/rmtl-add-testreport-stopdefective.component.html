@@ -1,7 +1,7 @@
 <div class="container-fluid mt-4">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
-      <h5 class="mb-0">RMTL — Stop/Defective Test Report</h5>
+      <h5 class="mb-0">RMTL — Stop/Defective Test Report Generation Form</h5>
       <div class="d-flex gap-2">
         <span class="badge bg-secondary">Total {{ totalCount }}</span>
         <span class="badge bg-success">Known {{ matchedCount }}</span>
@@ -12,7 +12,7 @@
     <div class="card-body">
       <!-- Top toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
-        <button type="button" class="btn btn-outline-danger" (click)="openAssignedPicker()">⟳ Load Assigned (Select)</button>
+        <button type="button" class="btn btn-outline-danger" (click)="openAssignedPicker()">⟳ Select Assigned Devices from List</button>
         <div class="ms-auto d-flex gap-2">
           <input class="form-control" style="min-width:280px" [(ngModel)]="filterText" name="filterText"
                  placeholder="Filter: serial / make / consumer">
@@ -23,44 +23,44 @@
       <div class="card shadow-sm mb-3">
         <div class="card-body">
           <div class="row g-3 align-items-end">
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Date</label>
-              <input type="date" class="form-control" [(ngModel)]="batchDate" name="batch_date" required>
-            </div>
-
-            <div class="col-md-6">
-              <label class="form-label fw-bold">Zone/DC</label>
+           <div class="col-md-3">
+              <label class="form-label fw-bold">Name of Zone/DC</label>
               <input type="text" class="form-control"
                      [value]="(header.location_code ? header.location_code + ' - ' : '') + (header.location_name || '')"
                      readonly disabled>
             </div>
 
             <div class="col-md-3">
-              <label class="form-label fw-bold">Phase</label>
+              <label class="form-label fw-bold">Selected Phase</label>
               <input type="text" class="form-control" [(ngModel)]="header.phase" name="b_phase" readonly disabled>
             </div>
 
             <div class="col-md-3">
-              <label class="form-label fw-bold mt-2">Testing Bench</label>
+              <label class="form-label fw-bold mt-2">Assigned Testing Bench</label>
               <input class="form-control" [(ngModel)]="header.testing_bench" name="b_testing_bench" placeholder="e.g., zera_one" readonly disabled>
             </div>
             <div class="col-md-3">
-              <label class="form-label fw-bold mt-2">Testing User</label>
+              <label class="form-label fw-bold mt-2">Assigned Testing User</label>
               <input class="form-control" [(ngModel)]="header.testing_user" name="b_testing_user" placeholder="e.g., Admin" readonly disabled>
             </div>
             <div class="col-md-3">
-              <label class="form-label fw-bold mt-2">Approving User</label>
+              <label class="form-label fw-bold mt-2">Assigned Approving User</label>
               <input class="form-control" [(ngModel)]="header.approving_user" name="b_approving_user" placeholder="e.g., Admin" readonly disabled>
+            </div>
+            
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Select Date of Testing</label>
+              <input type="date" class="form-control" [(ngModel)]="batchDate" name="batch_date" required>
             </div>
 
             <div class="col-md-3">
-              <label class="form-label fw-bold mt-2">Test Method</label>
+              <label class="form-label fw-bold mt-2">Select Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method">
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
               </select>
             </div>
             <div class="col-md-3">
-              <label class="form-label fw-bold mt-2">Test Status</label>
+              <label class="form-label fw-bold mt-2">Select Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status">
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
@@ -78,10 +78,10 @@
               <th>Meter Sr. No.</th>
               <th>Make</th>
               <th>Capacity</th>
-              <th>Test Report Remark</th>
-              <th>Test Result</th>
-              <th>Consumer</th>
-              <th class="d-print-none">Details</th>
+              <th>Select Testing  Remark</th>
+              <th>Select Test Result</th>
+              <th>Enter Consumer Name</th>
+              <th class="d-print-none">View Details</th>
               <th class="d-print-none">Action</th>
             </tr>
           </thead>
@@ -137,7 +137,7 @@
 
               <!-- expanded editor -->
               <tr *ngIf="r._open">
-                <td colspan="9" style="background:#f6f7fb;">
+                <td class="table-secondary" colspan="9" style="background:#87a395;">
                   <div class="row g-3">
                     <div class="col-md-3">
                       <label class="form-label small fw-bold mb-0">Certificate No (optional)</label>
@@ -148,13 +148,15 @@
                       <input type="date" class="form-control form-control-sm" [(ngModel)]="r.date_of_testing" [name]="'dot_'+i">
                     </div>
                     <div class="col-md-6">
-                      <label class="form-label small fw-bold mb-0">Address</label>
+                      <label class="form-label small fw-bold mb-0">Full Address</label>
                       <input class="form-control form-control-sm" [(ngModel)]="r.address" [name]="'addr_'+i">
                     </div>
 
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Testing Fees (₹)</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.testing_fees" [name]="'fees_'+i" step="0.01">
+                      <label class="form-label small fw-bold mb-0">Select Testing Fees (₹)</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="r.testing_fees" [name]="'fees_'+i">
+                        <option *ngFor="let fee of fees_mtr_cts" [value]="fee">{{ fee }}</option>
+                      </select>
                     </div>
                     <div class="col-md-5">
                       <label class="form-label small fw-bold mb-0">M.R. No & Date</label>
@@ -164,24 +166,24 @@
                       </div>
                     </div>
                     <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Ref.</label>
+                      <label class="form-label small fw-bold mb-0">Additional Reference Info</label>
                       <input class="form-control form-control-sm" [(ngModel)]="r.ref_no" [name]="'ref_'+i">
                     </div>
 
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Reading Before Test</label>
+                      <label class="form-label small fw-bold mb-0">Intial Reading Before Test</label>
                       <input type="number" class="form-control form-control-sm" [(ngModel)]="r.reading_before_test" [name]="'b_rb_'+i" step="0.01">
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Reading After Test</label>
+                      <label class="form-label small fw-bold mb-0">Final Reading After Test</label>
                       <input type="number" class="form-control form-control-sm" [(ngModel)]="r.reading_after_test" [name]="'b_ra_'+i" step="0.01">
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Ref Start Reading</label>
+                      <label class="form-label small fw-bold mb-0">Reference Start Reading</label>
                       <input type="number" class="form-control form-control-sm" [(ngModel)]="r.ref_start_reading" [name]="'b_rs_'+i" step="0.01">
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Ref End Reading</label>
+                      <label class="form-label small fw-bold mb-0">Reference End Reading</label>
                       <input type="number" class="form-control form-control-sm" [(ngModel)]="r.ref_end_reading" [name]="'b_re_'+i" step="0.01">
                     </div>
 
@@ -232,20 +234,29 @@
                     </div>
 
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Starting Current Test</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.starting_current_test" [name]="'sct_'+i" placeholder="OK / FAIL / NA">
+                      <label class="form-label small fw-bold mb-0">Select Current Test Result</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="r.starting_current_test" [name]="'sct_'+i">
+                        <option value="">--</option>
+                        <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                      </select>
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Creep Test</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.creep_test" [name]="'creep_'+i" placeholder="OK / FAIL / NA">
+                      <label class="form-label small fw-bold mb-0">Select Creep Test Result</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="r.creep_test" [name]="'creep_'+i">
+                        <option value="">--</option>
+                        <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                      </select>
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Dial Test</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.dial_test" [name]="'dial_'+i" placeholder="OK / FAIL / NA">
+                      <label class="form-label small fw-bold mb-0">Select Dial Test Result</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="r.dial_test" [name]="'dial_'+i">
+                        <option value="">--</option>
+                        <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                      </select>
                     </div>
 
                     <div class="col-12">
-                      <label class="form-label small fw-bold mb-0">Remark</label>
+                      <label class="form-label small fw-bold mb-0">Comment Any Remark</label>
                       <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'remark_'+i"></textarea>
                     </div>
                   </div>
@@ -258,9 +269,9 @@
 
       <!-- Actions -->
       <div class="d-flex gap-2 mt-3 d-print-none">
-        <button type="button" class="btn btn-outline-primary" (click)="addBatchRow()">➕ Add Row</button>
-        <button type="button" class="btn btn-outline-secondary" (click)="openConfirm('clear')">Clear</button>
-        <button type="button" class="btn btn-primary" [disabled]="submitting || !rows.length" (click)="openConfirm('submit')">
+        <button type="button" class="btn btn-success" (click)="addBatchRow()">➕ Add Row</button>
+        <button type="button" class="btn btn-danger" (click)="openConfirm('clear')">Clear</button>
+        <button type="button" class="btn btn-primary ms-auto" [disabled]="submitting || !rows.length" (click)="openConfirm('submit')">
           {{ submitting ? 'Submitting…' : 'Validate & Preview' }}
         </button>
       </div>

@@ -215,8 +215,8 @@ const infoTable: Content = {
               stack: [
                 { text: '\n\nTested by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                // { text: (meta.testing_user || meta.testerName || ''), alignment: 'center', color: '#444' },
-                { text: 'TESTING ASSISTANT (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+                { text: (meta.testing_user || meta.testerName || ''), alignment: 'center', color: '#444' },
+                { text: 'TESTING ASSISTANT ', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
             {
@@ -225,7 +225,7 @@ const infoTable: Content = {
                 { text: '\n\nVerified by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
                 // { text: (meta.testerName || ''), alignment: 'center', color: '#444' },
-                { text: 'JUNIOR ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+                { text: 'JUNIOR ENGINEER ', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
             {
@@ -233,8 +233,8 @@ const infoTable: Content = {
               stack: [
                 { text: '\n\nApproved by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                // { text: (meta.approving_user || ''), alignment: 'center', color: '#444' },
-                { text: 'ASSISTANT ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+                { text: (meta.approving_user || ''), alignment: 'center', color: '#444' },
+                { text: 'ASSISTANT ENGINEER ', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
           ],

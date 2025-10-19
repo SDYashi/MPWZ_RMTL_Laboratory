@@ -90,6 +90,61 @@ export class SolarGenMeterCertificatePdfService {
     pdfMake.createPdf(doc).print();
   }
 
+  // ---------- bulk helpers (added) ----------
+  async generateAllSeparate(reports: { header: GenHeader; rows: GenRow[]; fileName?: string }[]) {
+    for (const r of reports) {
+      try {
+        const doc = await this.buildDocWithLogos(r.header, r.rows);
+        await new Promise<void>((res, rej) => {
+          try { pdfMake.createPdf(doc).download(r.fileName || 'report.pdf', () => res()); }
+          catch (e) { try { pdfMake.createPdf(doc).open(); res(); } catch (err) { rej(err); } }
+        });
+      } catch (err) {
+        console.error('Failed to generate report', err);
+      }
+    }
+  }
+
+  async mergeAndDownloadAll(reports: { header: GenHeader; rows: GenRow[] }[], fileName = 'ALL_SOLAR_GENERATION_CERTIFICATES.pdf') {
+    const builtDocs: any[] = [];
+    for (const r of reports) {
+      try {
+        const doc = await this.buildDocWithLogos(r.header, r.rows);
+        builtDocs.push(doc);
+      } catch (err) {
+        console.error('Failed to build doc for header', r.header, err);
+      }
+    }
+
+    if (!builtDocs.length) throw new Error('No documents could be built');
+
+    const mergedImages: Record<string,string> = {};
+    const mergedContent: any[] = [];
+
+    builtDocs.forEach((d, idx) => {
+      Object.assign(mergedImages, d.images || {});
+      if (Array.isArray(d.content)) {
+        d.content.forEach((block: any) => mergedContent.push(block));
+        if (idx < builtDocs.length - 1) mergedContent.push({ text: '', pageBreak: 'after' });
+      }
+    });
+
+    const mergedDoc: any = {
+      pageSize: builtDocs[0].pageSize || 'A4',
+      pageMargins: builtDocs[0].pageMargins || [0, 0, 0, 34],
+      defaultStyle: builtDocs[0].defaultStyle || { font: 'Roboto', fontSize: 10 },
+      images: mergedImages,
+      footer: builtDocs[0].footer,
+      info: { title: fileName },
+      content: mergedContent
+    };
+
+    return await new Promise<void>((res, rej) => {
+      try { pdfMake.createPdf(mergedDoc).download(fileName, () => res()); }
+      catch (e) { try { pdfMake.createPdf(mergedDoc).open(); res(); } catch (err) { rej(err); } }
+    });
+  }
+
   // ---------- helpers ----------
   private theme = { grid: '#9aa3ad', subtle: '#6b7280' };
 
@@ -135,7 +190,7 @@ export class SolarGenMeterCertificatePdfService {
 
     const safe = async (key: 'leftLogo'|'rightLogo', url?: string|null) => {
       if (!url) return;
-      try { images[key] = isData(url) ? url : await toDataURL(url); } catch {}
+      try { images[key] = isData(url) ? url : await toDataURL(url); } catch (err) { console.warn('Logo fetch failed for', url, err); }
     };
     await Promise.all([safe('leftLogo', header.leftLogoUrl), safe('rightLogo', header.rightLogoUrl)]);
     if (!images['leftLogo'] && images['rightLogo']) images['leftLogo'] = images['rightLogo'];
@@ -146,7 +201,6 @@ export class SolarGenMeterCertificatePdfService {
 
   // ---------- header + meta band ----------
   private headerBar(meta: any, images: Record<string,string>) {
-    // ZERO top margin overall; add left/right padding here so header aligns with body
     return {
       margin: [28, 28, 28, 6],
       columns: [
@@ -155,8 +209,8 @@ export class SolarGenMeterCertificatePdfService {
           width: '*',
           stack: [
             { text: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED', alignment: 'center', bold: true, fontSize: 13 },
-            { text: (meta.lab_name || 'REGIONAL METERING TESTING LABORATORY INDORE'), alignment: 'center', bold: true, fontSize: 11, margin: [0, 2, 0, 0] },
-            { text: (meta.lab_address || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003'), alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] },
+            { text: (meta.lab_name || ''), alignment: 'center', bold: true, fontSize: 11, margin: [0, 2, 0, 0] },
+            { text: (meta.lab_address || ''), alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] },
             { text: `Email: ${meta.lab_email || '-'} • Phone: ${meta.lab_phone || '-'}`, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] }
           ]
         },
@@ -167,9 +221,8 @@ export class SolarGenMeterCertificatePdfService {
 
   private metaRow(meta: any) {
     const lbl = { bold: true, fillColor: '#f5f5f5' };
-    // EXACTLY six columns per row to avoid NaN widths
     return {
-      layout: 'noBorders',
+       layout: this.gridLayout,
       margin: [28, 0, 28, 8],
       table: {
         widths: ['auto','*','auto','*','auto','*'],
@@ -186,7 +239,6 @@ export class SolarGenMeterCertificatePdfService {
     };
   }
 
-  // ---------- sheet table ----------
   private gridLayout = {
     hLineWidth: () => 0.7,
     vLineWidth: () => 0.7,
@@ -250,7 +302,7 @@ export class SolarGenMeterCertificatePdfService {
           stack: [
             { text: '\n\n Tested by', alignment: 'center', bold: true },
             { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'TESTING ASSISTANT (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+            { text: 'TESTING ASSISTANT ', alignment: 'center', color: '#444', fontSize: 9 },
           ],
         },
         {
@@ -258,7 +310,7 @@ export class SolarGenMeterCertificatePdfService {
           stack: [
             { text: '\n\n Verified by', alignment: 'center', bold: true },
             { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'JUNIOR ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+            { text: 'JUNIOR ENGINEER ', alignment: 'center', color: '#444', fontSize: 9 },
           ],
         },
         {
@@ -266,7 +318,7 @@ export class SolarGenMeterCertificatePdfService {
           stack: [
             { text: '\n\n Approved by', alignment: 'center', bold: true },
             { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'ASSISTANT ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+            { text: 'ASSISTANT ENGINEER ', alignment: 'center', color: '#444', fontSize: 9 },
           ],
         },
       ]
@@ -278,8 +330,9 @@ export class SolarGenMeterCertificatePdfService {
     blocks.push(this.headerBar(meta, images));
     blocks.push(
       { canvas: [{ type: 'line', x1: 28, y1: 0, x2: 567-28, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
-      { text: 'SOLAR GENERATION METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0, 0, 0, 8] },
-      ...(r.certificate_no ? [{ text: `Certificate No: ${r.certificate_no}`, alignment: 'right', bold: true, margin: [28, 0, 28, 8] }] : [])
+        { text: 'SOLAR GENERATION METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0, 0, 0, 6] },
+        { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', bold: true, fontSize: 11, margin: [0, 0, 0, 6] },
+        ...(r.certificate_no ? [{ text: `Certificate No: ${r.certificate_no}`, alignment: 'right', bold: true, margin: [28, 0, 28, 8] }] : [])
     );
     blocks.push(this.metaRow(meta));
     blocks.push(this.certTable(r));
@@ -302,7 +355,7 @@ export class SolarGenMeterCertificatePdfService {
       lab_phone: header.lab_phone || null
     };
 
-    const data = (rows || []).filter(r => (r.meter_sr_no || '').trim());
+    const data = (rows || []).filter(r => !!(r?.meter_sr_no && String(r.meter_sr_no).trim()));
     const content: any[] = [];
 
     if (!data.length) {

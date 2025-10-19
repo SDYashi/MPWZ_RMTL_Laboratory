@@ -7,10 +7,12 @@ import { P4onmReportPdfService, P4ONMReportHeader, P4ONMReportRow } from 'src/ap
 import { P4VigReportPdfService, VigHeader, VigRow } from 'src/app/shared/p4vig-report-pdf.service';
 import { SolarGenMeterCertificatePdfService, GenHeader, GenRow } from 'src/app/shared/solargenmeter-certificate-pdf.service';
 import { SolarNetMeterCertificatePdfService, SolarHeader, SolarRow } from 'src/app/shared/solarnetmeter-certificate-pdf.service';
-import { StopDefectiveReportPdfService, StopDefMeta, StopDefRow } from 'src/app/shared/stopdefective-report-pdf.service';
+import { PdfLogos, StopDefectiveReportPdfService, StopDefMeta, StopDefRow } from 'src/app/shared/stopdefective-report-pdf.service';
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { OldAgainstMeta, OldAgainstMeterReportPdfService, OldAgainstRow } from 'src/app/shared/oldagainstmeter-report-pdf.service';
+import { SmartAgainstMeterReportPdfService, SmartMeta, SmartRow } from 'src/app/shared/smartagainstmeter-report-pdf.service';
 // import { DomSanitizer } from '@angular/platform-browser';
 (pdfMake as any).vfs = pdfFonts.vfs;
 type TDocumentDefinition = /*unresolved*/ any;
@@ -33,6 +35,8 @@ export class RmtlViewTestreportComponent implements OnInit {
     private ctPdf: CtReportPdfService,
     private p4onmPdf: P4onmReportPdfService,
     private p4vigPdf: P4VigReportPdfService,
+    private oldmeterPdf: OldAgainstMeterReportPdfService,
+    private smartmeterPdf: SmartAgainstMeterReportPdfService,
     private solarGenPdf: SolarGenMeterCertificatePdfService,
     private solarNetPdf: SolarNetMeterCertificatePdfService,
     private stopDefPdf: StopDefectiveReportPdfService
@@ -166,25 +170,312 @@ export class RmtlViewTestreportComponent implements OnInit {
     });
   }
 
-downloadTestreports_byreportidwithReportTypes(report_id?: string | null, report_type?: string | null) {
-  const id = (report_id ?? '').toString().trim();
-  const type = (report_type ?? '').toString().trim();
+    async downloadTestreports_byreportidwithReportTypes(report_id?: string | null, report_type?: string | null) {
+      const id = (report_id ?? '').toString().trim();
+      const type = (report_type ?? '').toString().trim();
 
-  if (!id || !type) {
-    console.warn("Invalid report type or report id", { id, type });
-    return;
-  }
+      if (!id || !type) {
+        console.warn('Invalid report type or report id', { id, type });
+        return;
+      }
 
-  this.api.getDevicesByReportId(id).subscribe({
-    next: (data) => {
-      alert(`Generating PDF for report id ${id} and report type ${type}`);
-    },
-    error: (err) => {
-      console.error("Failed to fetch report data:", err);
-      alert("Could not generate PDF. Try again later.");
+      this.loading = true;
+      try {
+        const data: any = await new Promise((resolve, reject) =>
+          this.api.getDevicesByReportId(id).subscribe({ next: resolve, error: reject })
+        );
+
+        if (!data) {
+          alert('Empty response from server while fetching testreport info by report id.');
+          this.loading = false;
+          return;
+        }
+
+        // ---------- Helpers ----------
+        const s = (v: any) => (v === null || v === undefined) ? '' : String(v);
+        const n = (v: any) => (v === null || v === undefined || v === '') ? undefined : Number(v);
+        const yesNo = (v: any) => !!v;
+
+        // Detect a devices array in common shapes
+        let devices: any[] = [];
+        if (Array.isArray(data.devices)) devices = data.devices;
+        else if (Array.isArray(data.rows)) devices = data.rows;
+        else if (Array.isArray(data.items)) devices = data.items;
+        else if (Array.isArray(data)) devices = data;
+        else {
+          // pick any first Array-valued property
+          const arrField = Object.values(data).find(v => Array.isArray(v)) as any[] | undefined;
+          if (arrField) devices = arrField;
+        }
+
+        // Generic header guesser (best-effort)
+        const hdrSource = data.header ?? data.meta ?? data.info ?? data;
+        const guessedDate =
+          hdrSource?.date ??
+          hdrSource?.tested_date ??
+          (devices[0]?.testing_date) ??
+          new Date().toISOString().slice(0, 10);
+
+        const baseHeader = {
+          date: s(guessedDate).slice(0, 10),
+          phase: s(hdrSource?.phase ?? hdrSource?.meter_category ?? ''),
+          zone: s(hdrSource?.zone ?? hdrSource?.location_zone ?? hdrSource?.zone_name ?? ''),
+          location_code: s(hdrSource?.location_code ?? hdrSource?.loc_code ?? ''),
+          location_name: s(hdrSource?.location_name ?? hdrSource?.loc_name ?? ''),
+          testing_bench: s(hdrSource?.testing_bench ?? hdrSource?.bench ?? ''),
+          testing_user: s(hdrSource?.testing_user ?? hdrSource?.tested_by ?? hdrSource?.testing_by ?? ''),
+          approving_user: s(hdrSource?.approving_user ?? hdrSource?.approved_by ?? ''),
+          lab_name: s(hdrSource?.lab_name ?? hdrSource?.lab_name ?? undefined),
+          lab_address: s(hdrSource?.lab_address ?? hdrSource?.lab_address ?? undefined),
+          lab_email: s(hdrSource?.lab_email ?? hdrSource?.lab_email ?? undefined),
+          lab_phone: s(hdrSource?.lab_phone ?? hdrSource?.lab_phone ?? undefined),
+          leftLogoUrl: hdrSource?.leftLogoUrl ?? hdrSource?.left_logo_url ?? hdrSource?.left_logo ?? undefined,
+          rightLogoUrl: hdrSource?.rightLogoUrl ?? hdrSource?.right_logo_url ?? hdrSource?.right_logo ?? undefined,
+          testerName: s(hdrSource?.testerName ?? hdrSource?.tester_name ?? ''),
+          report_id: s(hdrSource?.report_id ?? hdrSource?.reportId ?? hdrSource?.id ?? `RPT-${hdrSource?.date ?? ''}`)
+        } as P4ONMReportHeader; 
+
+        // ---------- Specific mappers ----------
+        const mapP4ONMRow = (d: any, idx = 0): P4ONMReportRow => ({
+          serial: s(d.serial || d.serial_number || d.meter_no || d.sn || `S${idx+1}`),
+          make: s(d.make || d.manufacturer || d.brand),
+          capacity: s(d.capacity || d.kva || d.rating),
+          removal_reading: n(d.removal_reading ?? d.removalReading ?? d.reading_at_removal ?? d.removal_read),
+          consumer_name: s(d.consumer_name || d.customer_name || d.name),
+          account_no_ivrs: s(d.account_no_ivrs || d.account_number || d.ivrs),
+          address: s(d.address || d.consumer_address || d.addr),
+          p4onm_by: s(d.p4onm_by || d.p4_by || d.collected_by),
+          payment_particulars: s(d.payment_particulars || d.payment_desc || d.payment_details),
+          receipt_no: s(d.receipt_no || d.receipt_number),
+          receipt_date: s(d.receipt_date || d.receipt_on || d.payment_date),
+          condition_at_removal: s(d.condition_at_removal || d.removal_condition),
+          testing_date: s(d.testing_date || d.tested_date || baseHeader.date),
+          physical_condition_of_device: s(d.physical_condition_of_device || d.physical_condition),
+          is_burned: yesNo(d.is_burned || d.burnt || d.found_burnt),
+          seal_status: s(d.seal_status || d.body_seal),
+          meter_glass_cover: s(d.meter_glass_cover || d.glass_cover),
+          terminal_block: s(d.terminal_block || d.terminal),
+          meter_body: s(d.meter_body || d.body),
+          other: s(d.other || d.notes),
+          reading_before_test: n(d.reading_before_test ?? d.before_test ?? d.reading_before),
+          reading_after_test: n(d.reading_after_test ?? d.after_test ?? d.reading_after),
+          rsm_kwh: n(d.rsm_kwh ?? d.rsm),
+          meter_kwh: n(d.meter_kwh ?? d.meter_kwh_reading ?? d.meter_kwh_value),
+          error_percentage: n(d.error_percentage ?? d.ratio_error_pct ?? d.error_pct),
+          starting_current_test: s(d.starting_current_test ?? d.starting_current ?? d.start_current_status),
+          creep_test: s(d.creep_test ?? d.creep_status),
+          remark: s(d.remark || d.remarks || d.observation)
+        });
+
+        // Vig / P4VIG mapper 
+        const mapVigRow = (d: any, idx = 0): VigRow => {
+          return {
+            serial: s(d.serial || d.serial_number || d.meter_no || d.sn || `S${idx+1}`),
+            make: s(d.make || d.manufacturer),
+            capacity: s(d.capacity || d.kva),
+            reading_before_test: n(d.reading_before_test ?? d.before_test ?? d.reading_before),
+            reading_after_test: n(d.reading_after_test ?? d.after_test ?? d.reading_after),
+            error_percentage: n(d.error_percentage ?? d.ratio_error_pct ?? d.error_pct),
+            remark: s(d.remark || d.remarks || d.observation),
+            ...(d as any)
+          } as any;
+        };
+        const mapAgainstOldRow = ( d:any, idx=0): VigRow => {
+            return {
+            serial: s(d.serial || d.serial_number || d.meter_no || d.sn || `S${idx+1}`),
+            make: s(d.make || d.manufacturer),
+            capacity: s(d.capacity || d.kva),
+            reading_before_test: n(d.reading_before_test ?? d.before_test ?? d.reading_before),
+            reading_after_test: n(d.reading_after_test ?? d.after_test ?? d.reading_after),
+            error_percentage: n(d.error_percentage ?? d.ratio_error_pct ?? d.error_pct),
+            remark: s(d.remark || d.remarks || d.observation),
+            ...(d as any)
+          } as any;
+        }
+        const mapSmartAgainstRow = (d:any, idx=0):VigRow =>{
+            return {
+            serial: s(d.serial || d.serial_number || d.meter_no || d.sn || `S${idx+1}`),
+            make: s(d.make || d.manufacturer),
+            capacity: s(d.capacity || d.kva),
+            reading_before_test: n(d.reading_before_test ?? d.before_test ?? d.reading_before),
+            reading_after_test: n(d.reading_after_test ?? d.after_test ?? d.reading_after),
+            error_percentage: n(d.error_percentage ?? d.ratio_error_pct ?? d.error_pct),
+            remark: s(d.remark || d.remarks || d.observation),
+            ...(d as any)
+          } as any;
+        }
+
+        // CT testing mapper
+        const mapCtRow = (d: any, idx = 0): CtPdfRow => ({
+          serial: s(d.serial || d.ct_sn || d.device_sn || `CT${idx+1}`),
+          make: s(d.make || d.manufacturer),
+          ct_ratio: s(d.ct_ratio || d.ratio || d.ctRatio),
+          ct_class: s(d.ct_class || d.class),
+          burden_va: s(d.burden_va ?? d.burden),
+          remark: s(d.remark || d.remarks),
+          // additional CT-specific fields you might need
+          ...(d as any)
+        } as any);
+
+        // Contested report mapper
+        const mapContestedRow = (d: any, idx = 0): ContestedReportRow => ({
+          serial: s(d.serial || d.serial_number || d.meter_no || `S${idx+1}`),
+          make: s(d.make || d.manufacturer),
+          capacity: s(d.capacity || d.kva),
+          testing_date: s(d.testing_date || d.tested_date || baseHeader.date),
+          remark: s(d.remark || d.remarks || d.observation),
+          // include fields your contested report expects; fallback to raw object
+          ...(d as any)
+        } as any);
+
+        // Solar generation / netmeter mappers (very generic — adapt to your service interfaces)
+        const mapSolarGenRow = (d: any, idx = 0): GenRow => ({
+          serial: s(d.serial || d.serial_number || `S${idx+1}`),
+          make: s(d.make || d.inverter_make || d.manufacturer),
+          meter_kwh: n(d.meter_kwh || d.generation_kwh),
+          error_percentage: n(d.error_percentage),
+          remark: s(d.remark || d.notes || d.remarks),
+          ...(d as any)
+        } as any);
+
+        const mapSolarNetRow = (d: any, idx = 0): SolarRow => ({
+          serial: s(d.serial || d.serial_number || `S${idx+1}`),
+          make: s(d.make || d.manufacturer),
+          meter_kwh: n(d.meter_kwh || d.net_kwh),
+          remark: s(d.remark || d.notes),
+          ...(d as any)
+        } as any);
+
+        // Stop defective mapper
+        const mapStopDefRow = (d: any, idx = 0): StopDefRow => ({
+          serial: s(d.serial || d.serial_number || `S${idx+1}`),
+          make: s(d.make || d.manufacturer),
+          condition: s(d.condition || d.status || d.defect_description),
+          remark: s(d.remark || d.remarks),
+          ...(d as any)
+        } as any);
+
+        // ---------- Choose mapper & service by report type ----------
+        type ServiceCall = { serviceName: string; call: (header: any, rows: any[]) => Promise<void> };
+        const svcCalls: Record<string, ServiceCall> = {
+          'ONM_CHECKING': {
+            serviceName: 'P4onmReportPdfService',
+            call: async (header: P4ONMReportHeader, rows: P4ONMReportRow[]) =>
+              this.p4onmPdf.downloadFromBatch(header, rows, { fileName: `P4_ONM_${header.date}_${id}.pdf` })
+          },
+          'VIGILENCE_CHECKING': {
+            serviceName: 'P4VigReportPdfService',
+            call: async (header: VigHeader, rows: VigRow[]) =>
+              this.p4vigPdf.download(header, rows)
+          },
+          'AGAINST_OLD_METER': {
+            serviceName: 'OldAgainstMeterReportPdfService',
+                call: async (header: OldAgainstMeta, rows: OldAgainstRow[], logos?: PdfLogos) => {
+                  this.oldmeterPdf.download( rows, header, logos)
+                },
+          },
+          'SMART_AGAINST_METER': {
+            serviceName: 'SmartAgainstMeterReportPdfService',
+            call: async (header: SmartMeta, rows: SmartRow[], logos?: PdfLogos) =>
+               this.smartmeterPdf.download( rows, header, logos)
+          },
+          'SOLAR_GENERATION_METER': {
+            serviceName: 'SolarGenMeterCertificatePdfService',
+            call: async (header: GenHeader, rows: GenRow[]) =>
+              this.solarGenPdf.download(header, rows)
+          },
+          'SOLAR_NETMETER': {
+            serviceName: 'SolarNetMeterCertificatePdfService',
+            call: async (header: SolarHeader, rows: SolarRow[]) =>
+              this.solarNetPdf.download(header, rows)
+          },
+          'CT_TESTING': {
+            serviceName: 'CtReportPdfService',
+            call: async (header: CtHeader, rows: CtPdfRow[]) =>
+              this.ctPdf.download(header, rows)
+          },
+          'CONTESTED': {
+            serviceName: 'ContestedReportPdfService',
+            call: async (header: ContestedReportHeader, rows: ContestedReportRow[]) =>
+              this.contestedPdf.downloadFromBatch(header, rows, { fileName: `Contested_${header.date}_${id}.pdf` })
+          },
+          'STOP_DEFECTIVE': {
+            serviceName: 'StopDefectiveReportPdfService',
+            call: async (header: StopDefMeta, rows: StopDefRow[]) =>
+              this.stopDefPdf.download(rows, header)
+          },
+        };
+
+        const handler = svcCalls[type];
+        if (!handler) {
+          alert(`Unsupported report type: ${type}`);
+          console.error('Unsupported report type:', type);
+          this.loading = false;
+          return;
+        }
+
+        // Build rows depending on type
+        let headerObj: any = { ...baseHeader };
+        let rowsObj: any[] = [];
+
+        switch (type) {
+          case 'ONM_CHECKING':
+            rowsObj = devices.map(mapP4ONMRow);
+            break;
+          case 'VIGILENCE_CHECKING':
+            rowsObj = devices.map(mapVigRow);
+            break;          
+          case 'AGAINST_OLD_METER':
+            rowsObj = devices.map(mapAgainstOldRow);
+            break;
+          case 'SMART_AGAINST_METER':  
+            rowsObj = devices.map(mapSmartAgainstRow);
+            break;
+          case 'CT_TESTING':
+            rowsObj = devices.map(mapCtRow);
+            break;
+          case 'CONTESTED':
+            rowsObj = devices.map(mapContestedRow);
+            break;
+          case 'SOLAR_GENERATION_METER':
+            rowsObj = devices.map(mapSolarGenRow);
+            break;
+          case 'SOLAR_NETMETER':
+            rowsObj = devices.map(mapSolarNetRow);
+            break;
+          case 'STOP_DEFECTIVE':
+            rowsObj = devices.map(mapStopDefRow);
+            break;
+          default:
+            // generic fallback: pass the raw devices array
+            rowsObj = devices;
+            break;
+        }
+
+        if (!rowsObj || !rowsObj.length) {
+          alert('No device rows found for this report — cannot generate PDF.');
+          console.warn('No rows found from API response:', data);
+          this.loading = false;
+          return;
+        }
+
+        // Call the service
+        try {
+          await handler.call(headerObj, rowsObj);
+          // success
+        } catch (err) {
+          console.error(`Failed to generate ${type} PDF via ${handler.serviceName}:`, err);
+          alert('Failed to generate PDF. See console for details.');
+        }
+
+      } catch (err: any) {
+        console.error('Failed to fetch report data:', err);
+        alert('Could not generate PDF. Try again later.');
+      } finally {
+        this.loading = false;
+      }
     }
-  });
-}
+
 
 
   /** When the user changes any date or report_type, re-query the API */
@@ -197,12 +488,11 @@ downloadTestreports_byreportidwithReportTypes(report_id?: string | null, report_
 
   resetFilters(): void {
     this.filters = { from: '', to: '', report_type: '' };
-    this.fetchFromServer(true); // loads current month by rule
+    this.fetchFromServer(true); 
   }
 
   // ===== Pagination helpers =====
   private buildPageWindow(current: number, total: number, radius = 1): Array<number|'…'> {
-    // Always show 1, last, current±radius, and glue with ellipses where gaps exist
     const set = new Set<number>();
     const add = (n: number) => { if (n >= 1 && n <= total) set.add(n); };
 
@@ -248,7 +538,7 @@ downloadTestreports_byreportidwithReportTypes(report_id?: string | null, report_
   }
 
   onPageSizeChange(): void {
-    this.page = 1; // reset to first page for clarity
+    this.page = 1; 
     this.repaginate();
   }
 
@@ -256,8 +546,6 @@ downloadTestreports_byreportidwithReportTypes(report_id?: string | null, report_
   openDetails(r: TestReport): void {
     this.selected = r;
   }
-  // edit(r: TestReport): void { this.router.navigate(['/rmtl/edit-testreport', r.id]); }
-  // print(r: TestReport): void { this.router.navigate(['/rmtl/testreport/print', r.id]); }
 
   // ===== CSV export =====
   exportCSV(): void {

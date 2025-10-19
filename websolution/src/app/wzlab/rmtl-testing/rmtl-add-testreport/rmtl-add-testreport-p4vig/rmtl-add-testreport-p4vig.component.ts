@@ -3,65 +3,20 @@ import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import { P4VigReportPdfService, VigHeader, VigRow } from 'src/app/shared/p4vig-report-pdf.service';
 
-interface MeterDevice {
-  id: number;
-  serial_number: string;
-  make?: string;
-  capacity?: string;
-  location_code?: string | null;
-  location_name?: string | null;
-}
+interface MeterDevice { id: number; serial_number: string; make?: string; capacity?: string; location_code?: string | null; location_name?: string | null; }
 interface AssignmentItem { id: number; device_id: number; device?: MeterDevice | null; testing_bench?: { bench_name?: string } | null; bench_name?: string; user_assigned?: { username?: string } | null; assigned_by_user?: { username?: string } | null; username?: string; }
 
 interface Row {
-  serial: string;
-  make: string;
-  capacity: string;
-  removal_reading?: number;
-  test_result?: string;
-
-  consumer_name?: string;
-  address?: string;
-  account_number?: string;
-  division_zone?: string;
-  panchanama_no?: string;
-  panchanama_date?: string;
-  condition_at_removal?: string;
-
-  testing_date?: string;
-  is_burned: boolean;
-  seal_status: string;
-  meter_glass_cover: string;
-  terminal_block: string;
-  meter_body: string;
-  other: string;
-
-  reading_before_test?: number;
-  reading_after_test?: number;
-  rsm_kwh?: number;
-  meter_kwh?: number;
-  error_percentage?: number;
-  starting_current_test?: string;
-  creep_test?: string;
-
-  remark?: string;
-
-  assignment_id?: number;
-  device_id?: number;
-  notFound?: boolean;
-
-  _open?: boolean;
+  serial: string; make: string; capacity: string; removal_reading?: number; test_result?: string;
+  consumer_name?: string; address?: string; account_number?: string; division_zone?: string;
+  panchanama_no?: string; panchanama_date?: string; condition_at_removal?: string;
+  testing_date?: string; is_burned: boolean; seal_status: string; meter_glass_cover: string; terminal_block: string; meter_body: string; other: string;
+  reading_before_test?: number; reading_after_test?: number; rsm_kwh?: number; meter_kwh?: number; error_percentage?: number; starting_current_test?: string; creep_test?: string;
+  remark?: string; assignment_id?: number; device_id?: number; notFound?: boolean; dial_testby?: string; _open?: boolean;
 }
 
 type ModalAction = 'submit' | null;
-
-interface ModalState {
-  open: boolean;
-  title: string;
-  message?: string;
-  action: ModalAction;
-  payload?: any;
-}
+interface ModalState { open: boolean; title: string; message?: string; action: ModalAction; payload?: any; }
 
 @Component({
   selector: 'app-rmtl-add-testreport-p4vig',
@@ -122,7 +77,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   testResults: any;
   commentby_testers: any;
 
-  // ===== alert modal =====
+  // ===== alert modal (kept for preview/submit) =====
   alert = {
     open: false,
     type: 'info' as 'success' | 'error' | 'warning' | 'info',
@@ -146,6 +101,12 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   device_testing_purpose: any;
   device_type: any;
 
+  // ===== page-level message (non-modal) =====
+  pageMessage: { type: 'success'|'error'|'warning'|'info', text: string } | null = null;
+  test_dail_current_cheaps: any;
+  fees_mtr_cts: any;
+  ternal_testing_types: any;
+
   constructor(private api: ApiServicesService,
      private pdfSvc: P4VigReportPdfService,
      private authService: AuthService) {}
@@ -156,8 +117,6 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // this.currentUserId = this.safeNumber(localStorage.getItem('currentUserId'));
-    // this.currentLabId  = this.safeNumber(localStorage.getItem('currentLabId'));
     this.currentUserId = this.authService.getuseridfromtoken();
     this.currentLabId = this.authService.getlabidfromtoken();
     this.header.testing_user = this.authService.getUserNameFromToken() || '';
@@ -174,10 +133,12 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         this.testResults    = d?.test_results || [];
         this.commentby_testers = d?.commentby_testers || [];
 
-        // Ensure these are NEVER falsy so filtering works
         this.report_type = d?.test_report_types?.VIGILENCE_CHECKING || 'VIGILENCE_CHECKING';
         this.device_testing_purpose = d?.test_report_types?.VIGILENCE_CHECKING || 'VIGILENCE_CHECKING';
-        this.device_type = d?.device_types?.METER || 'METER';
+        this.device_type = d?.device_types?.METER || 'METER';    
+        this.ternal_testing_types = d?.ternal_testing_types || [];
+        this.fees_mtr_cts= d?.fees_mtr_cts || [];
+        this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
 
         // build serial index w/o pushing rows
         this.loadAssignedIndexOnly();
@@ -195,6 +156,11 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
           logo_left_url: info?.logo_left_url,
           logo_right_url: info?.logo_right_url
         };
+      },
+      error: (e) => {
+        // show a subtle page message instead of modal alert
+        this.setPageMessage('warning', 'Could not fetch lab info.');
+        console.error('Labinfo load error', e);
       }
     });
   }
@@ -202,7 +168,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   // ---------- Source fetch ----------
   fetchButtonData(): void {
     if (!this.selectedSourceType || !this.selectedSourceName) {
-      this.openAlert('warning', 'Missing input', 'Select a source type and enter code.');
+      this.setPageMessage('warning', 'Select a source type and enter code.');
       return;
     }
     this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
@@ -210,15 +176,18 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         this.filteredSources = data;
         this.header.location_name = this.filteredSources?.name ?? '';
         this.header.location_code = this.filteredSources?.code ?? '';
-        // this.openAlert('success', 'Source loaded', 'Office/Store/Vendor fetched.', 1200);
+        this.setPageMessage('success', 'Source loaded.');
       },
-      error: () => this.openAlert('error', 'Lookup failed', 'Check the code and try again.')
+      error: () => {
+        this.setPageMessage('error', 'Lookup failed — check the code and try again.');
+      }
     });
   }
 
   onSourceTypeChange(): void {
     this.selectedSourceName = '';
     this.filteredSources = [];
+    this.clearPageMessage();
   }
 
   // ===== derived counters =====
@@ -231,12 +200,12 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       serial: '', make: '', capacity: '',
       is_burned: false, seal_status: '', meter_glass_cover: '', terminal_block: '', meter_body: '',
       other: '', _open: false, ...seed
-    };
+    } as Row;
   }
   addRow(){ this.rows.push(this.emptyRow({ _open: true })); }
   removeRow(i:number){
     if (i < 0 || i >= this.rows.length) return;
-    this.rows.splice(i,1); // no confirm
+    this.rows.splice(i,1);
     if (!this.rows.length) this.addRow();
   }
 
@@ -269,18 +238,16 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   }
 
   private ensureParamsReady(): boolean {
-    // guard against null/0 that block API filtering
     if (!this.device_type) this.device_type = 'METER';
     if (!this.device_testing_purpose) this.device_testing_purpose = 'VIGILENCE_CHECKING';
     if (!this.currentUserId || this.currentUserId <= 0) {
-      this.openAlert('warning', 'Missing User', 'Current user is not set. Please re-login or set currentUserId.');
+      this.setPageMessage('warning', 'Current user is not set. Please re-login or set currentUserId.');
       return false;
     }
     if (!this.currentLabId || this.currentLabId <= 0) {
-      this.openAlert('warning', 'Missing Lab', 'Current lab is not set. Please select a lab (currentLabId).');
+      this.setPageMessage('warning', 'Current lab is not set. Please select a lab (currentLabId).');
       return false;
     }
-    // Make sure header fields are not null
     if (!this.header.testing_user) this.header.testing_user ;
     if (!this.header.testing_bench) this.header.testing_bench ;
     if (!this.header.approving_user) this.header.approving_user;
@@ -300,20 +267,19 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     ).subscribe({
       next: (data:any) => {
         const asg:AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
-        // Sort index source by make asc (for consistency)
         asg.sort((a, b) => (a.device?.make || '').localeCompare(b.device?.make || ''));
         this.rebuildSerialIndex(asg);
 
         const first = asg.find(a=>a.device);
         if (first?.device){
-          // prefill zone/dc if empty
           this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
           this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
         }
         this.loading = false;
-        // this.openAlert('info', 'Assignments Loaded', `Loaded ${asg.length} assigned devices.`, 1000);
+        // don't show modal alerts here — show subtle page message instead
+        this.setPageMessage('info', `Loaded ${asg.length} assigned devices.`);
       },
-      error: ()=>{ this.loading=false; this.openAlert('error','Load Failed','Could not load assigned devices.'); }
+      error: (err)=>{ this.loading=false; console.error('Assigned load failed', err); this.setPageMessage('error','Could not load assigned devices.'); }
     });
   }
 
@@ -335,31 +301,29 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     ).subscribe({
       next: (data:any) => {
         const asg:AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
-        // Sort by make ASC
         asg.sort((a, b) => (a.device?.make || '').localeCompare(b.device?.make || ''));
         this.devicePicker.items = asg;
 
-        // prefill header code/name from the first one (if empty)
         const first = asg.find(a=>a.device);
         if (first?.device){
           if (!this.header.location_code) this.header.location_code = first.device.location_code ?? '';
           if (!this.header.location_name) this.header.location_name = first.device.location_name ?? '';
           if (!this.header.testing_bench) this.header.testing_bench = first.testing_bench?.bench_name ?? '';
           if (!this.header.testing_user) this.header.testing_user = first.user_assigned?.username ?? '';
-          if (!this.header.approving_user) this.header.approving_user = first.assigned_by_user?.username ?? '';
+          if (!this.header.approving_user) this.header.approving_user ??= first.assigned_by_user?.username ?? '';
         }
         this.devicePicker.open = true;
         this.devicePicker.loading = false;
-        // this.openAlert('info', 'Picker Ready', `You can search by serial & sort by make.`, 1200);
+        this.clearPageMessage();
       },
-      error: ()=> {
+      error: (err)=> {
         this.devicePicker.loading = false;
-        this.openAlert('error', 'Reload failed', 'Could not fetch assigned meters.');
+        console.error('Picker load failed', err);
+        this.setPageMessage('error', 'Could not fetch assigned meters.');
       }
     });
   }
 
-  // Items to display in picker (search + sorted by make already)
   devicePickerDisplayItems(): AssignmentItem[] {
     const q = (this.devicePicker.search || '').trim().toLowerCase();
     const filtered = !q ? this.devicePicker.items :
@@ -406,7 +370,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     if (!this.rows.length) this.addRow();
 
     this.closeDevicePicker();
-    // this.openAlert('success', 'Added', 'Selected devices added to the table.', 1400);
+    this.setPageMessage('success', 'Selected devices added to the table.');
   }
 
   onSerialChanged(i:number, serial:string){
@@ -419,8 +383,10 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       row.device_id = hit.device_id || 0;
       row.assignment_id = hit.assignment_id || 0;
       row.notFound = false;
+      this.clearPageMessage();
     } else {
       row.make = ''; row.capacity = ''; row.device_id = 0; row.assignment_id = 0; row.notFound = key.length>0;
+      if (key.length > 0) this.setPageMessage('warning', `Serial "${serial}" not found in assigned list.`);
     }
   }
 
@@ -436,30 +402,30 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     if (!this.ensureParamsReady()) return false;
 
     if (!this.header.location_code || !this.header.location_name) {
-      this.openAlert('warning', 'Missing Zone/DC', 'Please fill Zone/DC code and name.');
+      this.setPageMessage('warning', 'Please fill Zone/DC code and name.');
       return false;
     }
     if (!this.header.approving_user) {
-      this.openAlert('warning', 'Approver Required', 'Please enter Approving User.');
+      this.setPageMessage('warning', 'Please enter Approving User.');
       return false;
     }
     if (!this.header.testing_user) {
-      this.openAlert('warning', 'Testing User Required', 'Please enter Testing User.');
+      this.setPageMessage('warning', 'Please enter Testing User.');
       return false;
     }
     if (!this.header.testing_bench) {
-      this.openAlert('warning', 'Testing Bench Required', 'Please enter Testing Bench.');
+      this.setPageMessage('warning', 'Please enter Testing Bench.');
       return false;
     }
 
     if (!this.rows.length || !this.rows.some(r => (r.serial || '').trim())) {
-      this.openAlert('warning', 'No Rows', 'Please add at least one meter row.');
+      this.setPageMessage('warning', 'Please add at least one meter row.');
       return false;
     }
 
     const missingResultIdx = this.rows.findIndex(r => (r.serial||'').trim() && (!r.test_result));
     if (missingResultIdx !== -1){
-      this.openAlert('warning', 'Validation error', `Row #${missingResultIdx+1} is missing Test Result (OK/DEF/PASS/FAIL).`);
+      this.setPageMessage('warning', `Row #${missingResultIdx+1} is missing Test Result (OK/DEF/PASS/FAIL).`);
       return false;
     }
 
@@ -467,12 +433,11 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   }
 
   private buildPayload(): any[] {
-    // ensure non-null names for header fields used in UI/PDF
     if (!this.header.testing_user) this.header.testing_user = 'TestingUser';
     if (!this.header.testing_bench) this.header.testing_bench = 'DefaultBench';
     if (!this.header.approving_user) this.header.approving_user = 'Approver';
 
-    const approverId = this.currentUserId || 0; // fallback if no dedicated approver selector yet
+    const approverId = this.currentUserId || 0;
     const createdById = this.currentUserId || 0;
 
     return (this.rows||[])
@@ -537,14 +502,12 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
           p4_date: r.panchanama_date || null,
           p4_metercodition: r.condition_at_removal || null,
           approver_id: approverId || null,
-          created_by_id: createdById || null, 
+          created_by_id: createdById || null,
           report_id: null,
           report_type: 'VIGILENCE_CHECKING',
         };
       });
   }
-
-  // report_type: 'VIGILENCE_CHECKING',
 
   // ===== submit modal (only for preview/submit) =====
   openConfirmSubmit(){
@@ -578,13 +541,13 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     this.submitting = true;
     this.alertSuccess = null;
     this.alertError = null;
+    // keep submit alert behaviour (user requested preview+submit alerts)
     this.openAlert('info', 'Submitting…', 'Saving data to server.');
 
     this.api.postTestReports(payload).subscribe({
       next: async () => {
         this.submitting = false;
 
-        // Ensure non-null header bits for PDF (lab info + logos will be applied below)
         const header: VigHeader = {
           location_code: this.header.location_code || '',
           location_name: this.header.location_name || '',
@@ -636,13 +599,13 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
           remark: r.remark
         }));
 
-        // Alert before PDF generation
+        // Alert before PDF generation (kept)
         this.openAlert('success', 'Saved', 'Data saved. Generating PDF…', 1200);
 
         // Download PDF via service (await to ensure completion)
         await this.pdfSvc.download(header, rows);
 
-        // Alert after PDF download
+        // Alert after PDF download (kept)
         this.alertSuccess = 'Batch submitted and PDF downloaded successfully!';
         this.openAlert('success', 'Completed', 'PDF downloaded to your device.', 1600);
 
@@ -658,7 +621,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     });
   }
 
-  // ===== alert helpers =====
+  // ===== alert helpers (modal-based alerts still available for submit/preview) =====
   openAlert(type: 'success'|'error'|'warning'|'info', title: string, message: string, autoCloseMs: number = 0){
     if (this.alert._t){ clearTimeout(this.alert._t as any); }
     this.alert = { open: true, type, title, message, autoCloseMs, _t: 0 };
@@ -669,5 +632,13 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   closeAlert(){
     if (this.alert._t){ clearTimeout(this.alert._t as any); }
     this.alert.open = false;
+  }
+
+  // ===== page-level message helpers =====
+  setPageMessage(type: 'success'|'error'|'warning'|'info', text: string){
+    this.pageMessage = { type, text };
+  }
+  clearPageMessage(){
+    this.pageMessage = null;
   }
 }
