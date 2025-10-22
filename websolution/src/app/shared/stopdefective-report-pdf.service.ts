@@ -1,5 +1,6 @@
 // src/app/shared/stopdefective-report-pdf.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import type { TDocumentDefinitions, Content, TableCell } from 'pdfmake/interfaces';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
@@ -29,7 +30,7 @@ export interface StopDefMeta {
   testing_bench?: string;
   testing_user?: string;
   approving_user?: string;
-  lab?: StopDefLabInfo;  
+  lab?: StopDefLabInfo;
 }
 export interface PdfLogos {
   leftLogoUrl?: string;   // e.g. '/assets/icons/wzlogo.png'
@@ -38,25 +39,51 @@ export interface PdfLogos {
 
 @Injectable({ providedIn: 'root' })
 export class StopDefectiveReportPdfService {
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
-  // Normalize '/assets/...' to absolute and convert to dataURL for pdfmake
+  private logoCache = new Map<string, string>();
+
+  private resolveUrl(url: string): string {
+    try {
+      if (!url) return url;
+      if (url.startsWith('data:')) return url;
+      if (/^https?:\/\//i.test(url)) return new URL(url).toString();
+      if (!isPlatformBrowser(this.platformId)) return url;
+      return new URL(url, (document?.baseURI || '/')).toString();
+    } catch {
+      return url;
+    }
+  }
+
   private async urlToDataUrl(url: string): Promise<string> {
-    const absolute = new URL(url, document.baseURI).toString();
-    const res = await fetch(absolute);
+    if (!url) throw new Error('Empty URL');
+    if (!isPlatformBrowser(this.platformId)) throw new Error('Not in browser');
+    if (url.startsWith('data:')) return url;
+
+    const resolved = this.resolveUrl(url);
+    const cached = this.logoCache.get(resolved);
+    if (cached) return cached;
+
+    const res = await fetch(resolved, { credentials: 'same-origin' });
     if (!res.ok) throw new Error(`fetch failed: ${res.status} ${res.statusText}`);
     const blob = await res.blob();
-    return await new Promise<string>((resolve, reject) => {
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
+
+    this.logoCache.set(resolved, dataUrl);
+    return dataUrl;
   }
 
   private isOk(row: StopDefRow): boolean {
     const t = `${row.test_result ?? ''} ${row.remark ?? ''}`.toLowerCase();
     return /\bok\b|\bpass\b/.test(t);
   }
+
   private resultText(row: StopDefRow): string {
     const t = (row.test_result || '').trim();
     const m = (row.remark || '').trim();
@@ -65,21 +92,72 @@ export class StopDefectiveReportPdfService {
     return m || '-';
   }
 
+  private headerBar(meta: {
+    orgLine: string;
+    labLine: string;
+    addressLine?: string;
+    email?: string;
+    phone?: string;
+    logoWidth: number;
+    logoHeight: number;
+    hasLeft: boolean;
+    hasRight: boolean;
+    pageWidth: number;
+    contentWidth: number;
+  }) {
+    const addr = (meta.addressLine || '').trim();
+    const email = (meta.email || '').trim();
+    const phone = (meta.phone || '').trim();
+
+    // Keep it compact so pdfmake avoids wrapping across pages
+    const contactLine =
+      (email || phone)
+        ? `Email: ${email || '-'}${email && phone ? '   •   ' : ''}Phone: ${phone || '-'}`
+        : '';
+
+    const sepLine: Content = {
+      canvas: [{ type: 'line', x1: 0, y1: 0, x2: meta.contentWidth, y2: 0, lineWidth: 1 }],
+      margin: [0, 6, 0, 0]
+    } as Content;
+
+    return {
+      margin: [28, 8, 28, 6],
+      stack: [
+        {
+          columns: [
+            meta.hasLeft ? { image: 'leftLogo', width: meta.logoWidth, height: meta.logoHeight } : { width: meta.logoWidth, text: '' },
+            {
+              width: '*',
+              stack: [
+                { text: meta.orgLine, alignment: 'center', bold: true, fontSize: 12 },
+                { text: meta.labLine, alignment: 'center', bold: true, fontSize: 11, margin: [0, 2, 0, 0] },
+                ...(addr ? [{ text: addr, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0], noWrap: false }] : []),
+                ...(contactLine ? [{ text: contactLine, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] }] : [])
+              ]
+            },
+            meta.hasRight ? { image: 'rightLogo', width: meta.logoWidth, height: meta.logoHeight } : { width: meta.logoWidth, text: '' }
+          ],
+          columnGap: 10
+        },
+        sepLine
+      ]
+    } as Content;
+  }
+
   private buildDoc(
     rows: StopDefRow[],
     meta: StopDefMeta,
     imagesDict: Record<string, string> = {}
   ): TDocumentDefinitions {
-    const total = rows.length;
+    const total   = rows.length;
     const okCount = rows.filter(r => this.isOk(r)).length;
     const defCount = total - okCount;
 
-    const labName  = meta.lab?.lab_name || 'REMOTE METERING TESTING LABORATORY INDORE';
-    const address1 = meta.lab?.address_line || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003';
-    const email    = meta.lab?.email  ;
-    const phone    = meta.lab?.phone ;
+    const labName  = (meta.lab?.lab_name || '').trim();
+    const address1 = (meta.lab?.address_line || '').trim();
+    const email    = (meta.lab?.email || '').trim() || undefined;
+    const phone    = (meta.lab?.phone || '').trim() || undefined;
 
-    // Data table
     const tableBody: TableCell[][] = [[
       { text: 'S.No', style: 'th', alignment: 'center' },
       { text: 'METER NUMBER', style: 'th' },
@@ -97,101 +175,67 @@ export class StopDefectiveReportPdfService {
       ]);
     });
 
-// Build the “Email • Phone” line only from available parts
-const contactBits = [
-  email ? `Email: ${email}` : '',
-  phone ? `Phone: ${phone}` : '',
-].filter(Boolean);
-const contactLine = contactBits.join(' • ');
+    const contentWidth = 595.28 - 28 - 28; // A4 width - margins
 
-// HEADER (logos + 3 stacked centered lines)
-const headerRow: Content = {
-  columns: [
-    imagesDict['leftLogo']
-      ? { image: 'leftLogo', width: 36, alignment: 'left', margin: [0, 0, 8, 0] }
-      : { text: '', width: 36 },
+    const makeHeader = () => this.headerBar({
+      orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
+      labLine: labName || '—',
+      addressLine: address1 || undefined,
+      email,
+      phone,
+      logoWidth: 36,
+      logoHeight: 36,
+      hasLeft: !!imagesDict['leftLogo'],
+      hasRight: !!imagesDict['rightLogo'],
+      pageWidth: 595.28,
+      contentWidth,
+    });
 
-    {
-      width: '*',
-      stack: [
-        {
-          text: "MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED",
-          alignment: 'center',
-          bold: true,
-          fontSize: 13,
-          margin: [0, 0, 0, 2],
-        },
-        {
-          text: labName,
-          alignment: 'center',
-          fontSize: 12,
-          bold: true,
-          margin: [0, 0, 0, 2],
-        },
-        {
-          text: `${address1}\n${contactLine}`,
-          alignment: 'center',
-          fontSize: 10,
-          color: '#444',
-        },
-      ],
-    },
+    const infoTable: Content = {
+      layout: {
+        fillColor: (_row: number, col: number) => (col % 2 === 0 ? '#f6f8fa' : undefined),
+        hLineWidth: () => 0.4,
+        vLineWidth: () => 0.4,
+        hLineColor: () => '#e5e7eb',
+        vLineColor: () => '#e5e7eb',
+        paddingLeft: () => 4,
+        paddingRight: () => 4,
+        paddingTop: () => 4,
+        paddingBottom: () => 4,
+      } as any,
+      table: {
+        widths: ['auto','*','auto','*'],
+        body: [
+          [{ text: 'ZONE/DC', style: 'kv' }, (meta.zone || '-') as any,
+           { text: 'PHASE', style: 'kv' }, (meta.phase || '-') as any],
 
-    imagesDict['rightLogo']
-      ? { image: 'rightLogo', width: 36, alignment: 'right', margin: [8, 0, 0, 0] }
-      : { text: '', width: 36 },
-  ],
-  margin: [0, 0, 0, 6],
-};
+          [{ text: 'TESTING DATE', style: 'kv' }, meta.date,
+           { text: 'TEST METHOD', style: 'kv' }, (meta.testMethod || '-') as any],
 
+          [{ text: 'TEST STATUS', style: 'kv' }, (meta.testStatus || '-') as any,
+           { text: 'APPROVING USER', style: 'kv' }, (meta.approving_user || '-') as any ],
 
-// 2-pair (2 columns) header info table (labels shaded)
-const infoTable: Content = {
-  layout: {
-    fillColor: (_row: number, col: number) => (col % 2 === 0 ? '#f6f8fa' : undefined),
-    hLineWidth: () => 0.4,
-    vLineWidth: () => 0.4,
-    hLineColor: () => '#e5e7eb',
-    vLineColor: () => '#e5e7eb',
-    padding: [2, 4, 2, 4],
-    minHeight: 25,
-  } as any,
-  table: {
-    widths: ['auto','*','auto','*'],
-    body: [
-      [{ text: 'ZONE/DC', style: 'kv' }, (meta.zone || '-') as any,
-       { text: 'PHASE', style: 'kv' }, (meta.phase || '-') as any],
-
-      [{ text: 'TESTING DATE', style: 'kv' }, meta.date,
-       { text: 'TEST METHOD', style: 'kv' }, (meta.testMethod || '-') as any],
-
-      // approver_id removed — keep row balanced with an empty 2nd pair
-      [{ text: 'TEST STATUS', style: 'kv' }, (meta.testStatus || '-') as any,
-      { text: 'APPROVING USER', style: 'kv' }, (meta.approving_user || '-') as any ],
-
-      [{ text: 'TESTING BENCH', style: 'kv' }, (meta.testing_bench || '-') as any,
-       { text: 'TESTING USER', style: 'kv' }, (meta.testing_user || '-') as any],
-    ]
-  }
-};
-
+          [{ text: 'TESTING BENCH', style: 'kv' }, (meta.testing_bench || '-') as any,
+           { text: 'TESTING USER', style: 'kv' }, (meta.testing_user || '-') as any],
+        ]
+      }
+    };
 
     return {
       pageSize: 'A4',
-      pageMargins: [28, 28, 28, 34],
+      pageMargins: [28, 92, 28, 28],
       defaultStyle: { fontSize: 10 },
       info: { title: `Stop-Defective_${meta.date}` },
       images: imagesDict,
       styles: {
         th: { bold: true },
-        kv: { bold: true, fontSize: 10, color: '#111827' }, // label cells
+        kv: { bold: true, fontSize: 10, color: '#111827' },
         badge: { bold: true, fontSize: 10 },
-        sectionTitle: { bold: true, fontSize: 14, alignment: 'center' }
+        sectionTitle: { bold: true, fontSize: 13, alignment: 'center' }
       },
+      header: makeHeader as any,
       content: [
-        headerRow,
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 540, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
-        { text: 'STOP DEFECTIVE TEST REPORT', style: 'sectionTitle', margin: [0, 0, 0, 8] },
+        { text: 'STOP / DEFECTIVE TEST REPORT', style: 'sectionTitle', margin: [0, 0, 0, 8] },
 
         infoTable,
 
@@ -201,7 +245,8 @@ const infoTable: Content = {
             hLineColor: () => '#e5e7eb',
             vLineColor: () => '#e5e7eb',
           } as any,
-          table: { headerRows: 1, widths: ['auto','*','*','*','*'], body: tableBody }
+          table: { headerRows: 1, widths: ['auto','*','*','*','*'], body: tableBody },
+          margin: [0, 10, 0, 0]
         },
 
         { text: `\nTOTAL: ${total}   •   OK: ${okCount}   •   DEF: ${defCount}`, alignment: 'right', margin: [0, 2, 0, 0] },
@@ -216,7 +261,7 @@ const infoTable: Content = {
                 { text: '\n\nTested by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
                 { text: (meta.testing_user || meta.testerName || ''), alignment: 'center', color: '#444' },
-                { text: 'TESTING ASSISTANT ', alignment: 'center', color: '#444', fontSize: 9 },
+                { text: 'TESTING ASSISTANT', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
             {
@@ -224,8 +269,7 @@ const infoTable: Content = {
               stack: [
                 { text: '\n\nVerified by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                // { text: (meta.testerName || ''), alignment: 'center', color: '#444' },
-                { text: 'JUNIOR ENGINEER ', alignment: 'center', color: '#444', fontSize: 9 },
+                { text: 'JUNIOR ENGINEER', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
             {
@@ -234,7 +278,7 @@ const infoTable: Content = {
                 { text: '\n\nApproved by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
                 { text: (meta.approving_user || ''), alignment: 'center', color: '#444' },
-                { text: 'ASSISTANT ENGINEER ', alignment: 'center', color: '#444', fontSize: 9 },
+                { text: 'ASSISTANT ENGINEER', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
           ],
@@ -251,22 +295,16 @@ const infoTable: Content = {
     };
   }
 
-  // Public API: accept rows + meta + optional logos
   async download(rows: StopDefRow[], meta: StopDefMeta, logos?: PdfLogos): Promise<void> {
-    const imagesDict: Record<string, string> = {};
+    if (!isPlatformBrowser(this.platformId)) return;
 
+    const imagesDict: Record<string, string> = {};
     try {
-      if (logos?.leftLogoUrl) {
-        imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
-      }
-      if (logos?.rightLogoUrl) {
-        imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
-      } else if (imagesDict['leftLogo']) {
-        // reuse left if right not provided
-        imagesDict['rightLogo'] = imagesDict['leftLogo'];
-      }
+      if (logos?.leftLogoUrl) imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
+      if (logos?.rightLogoUrl) imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
+      else if (imagesDict['leftLogo']) imagesDict['rightLogo'] = imagesDict['leftLogo'];
     } catch (e) {
-      // If any logo fails to load, just skip both so header renders cleanly
+      // If one logo fails, continue gracefully without logos
       delete imagesDict['leftLogo'];
       delete imagesDict['rightLogo'];
       console.warn('Logo load failed:', e);
@@ -275,7 +313,24 @@ const infoTable: Content = {
     const doc = this.buildDoc(rows, meta, imagesDict);
     const fname = `StopDefective_${meta.date}.pdf`;
     return new Promise<void>((resolve) => {
-      pdfMake.createPdf(doc).download(fname, () => resolve());
+      try {
+        pdfMake.createPdf(doc).download(fname);
+      } finally {
+        resolve();
+      }
     });
+  }
+
+  async open(rows: StopDefRow[], meta: StopDefMeta, logos?: PdfLogos): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    const imagesDict: Record<string, string> = {};
+    try {
+      if (logos?.leftLogoUrl) imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
+      if (logos?.rightLogoUrl) imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
+      else if (imagesDict['leftLogo']) imagesDict['rightLogo'] = imagesDict['leftLogo'];
+    } catch {}
+    const doc = this.buildDoc(rows, meta, imagesDict);
+    pdfMake.createPdf(doc).open();
   }
 }

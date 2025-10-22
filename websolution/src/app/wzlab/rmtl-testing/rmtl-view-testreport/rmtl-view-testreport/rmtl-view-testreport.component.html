@@ -82,16 +82,8 @@
             <tr>
               <th style="min-width:56px;">#</th>
               <th>Report ID</th>
-              <th style="min-width:90px;">Device ID</th>
-              <th style="min-width:90px;">Assign ID</th>
-              <th style="min-width:140px;">Terminal Block</th>
-              <th style="min-width:120px;">Meter Body</th>
-              <th style="min-width:120px;">Glass Cover</th>
-              <th style="min-width:100px;">Seal</th>
               <th style="min-width:110px;">Method</th>
               <th style="min-width:110px;">Status</th>
-              <th style="min-width:110px;">Result</th>
-              <th style="min-width:140px;">Condition</th>
               <th style="min-width:90px;">Burned</th>
               <th style="min-width:160px;">Start</th>
               <th style="min-width:160px;">End</th>
@@ -117,14 +109,7 @@
                 </td>
             
   
-              <!-- both flattened and nested shapes -->
-              <td>{{ r.device_id || r.testing?.device_id || r.device?.id || '-' }}</td>
-              <td>{{ r.assignment_id || r.testing?.assignment_id || r.assignment?.id || '-' }}</td>
-
-              <td>{{ r.terminal_block || r.testing?.terminal_block || '-' }}</td>
-              <td>{{ r.meter_body || r.testing?.meter_body || '-' }}</td>
-              <td>{{ r.meter_glass_cover || r.testing?.meter_glass_cover || '-' }}</td>
-              <td>{{ r.seal_status || r.testing?.seal_status || '-' }}</td>
+           
 
               <td><span class="badge rounded-pill bg-secondary">
                 {{ r.test_method || r.testing?.test_method || '-' }}
@@ -139,22 +124,7 @@
                   }">
                   {{ r.test_status || r.testing?.test_status || '-' }}
                 </span>
-              </td>
-
-              <td>
-                <span class="badge rounded-pill"
-                  [ngClass]="{
-                    'bg-success': (r.test_result || r.testing?.test_result) === 'PASS',
-                    'bg-danger': (r.test_result || r.testing?.test_result) === 'FAIL',
-                    'bg-warning text-dark': (r.test_result || r.testing?.test_result) === 'PENDING',
-                    'bg-secondary': !(r.test_result || r.testing?.test_result)
-                  }">
-                  {{ r.test_result || r.testing?.test_result || '-' }}
-                </span>
-              </td>
-
-              <td>{{ r.physical_condition_of_device || r.testing?.physical_condition_of_device || '-' }}</td>
-
+              </td>             
               <td>
                 <span [ngClass]="{'text-danger fw-semibold': (r.is_burned ?? r.testing?.is_burned) === true, 'text-success': (r.is_burned ?? r.testing?.is_burned) !== true}">
                   {{ (r.is_burned ?? r.testing?.is_burned) ? 'YES' : 'NO' }}

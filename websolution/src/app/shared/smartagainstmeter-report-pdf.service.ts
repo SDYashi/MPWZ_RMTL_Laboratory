@@ -1,5 +1,6 @@
 // src/app/shared/smartagainstmeter-report-pdf.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import type { TDocumentDefinitions, Content, TableCell } from 'pdfmake/interfaces';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
@@ -26,8 +27,9 @@ export interface SmartMeta {
   testStatus?: string;
   testing_bench?: string;
   testing_user?: string;
-  approving_user?: string;
+  approving_user?: string;  
   lab?: SmartLabInfo;
+  approver_remarks?: string | null;
 }
 export interface PdfLogos {
   leftLogoUrl?: string;
@@ -36,30 +38,107 @@ export interface PdfLogos {
 
 @Injectable({ providedIn: 'root' })
 export class SmartAgainstMeterReportPdfService {
-  // Convert asset URL to dataURL
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+
+  private logoCache = new Map<string,string>();
+
+  private resolveUrl(url: string): string {
+    try {
+      if (!url) return url;
+      if (url.startsWith('data:')) return url;
+      if (/^https?:\/\//i.test(url)) return new URL(url).toString();
+      if (!isPlatformBrowser(this.platformId)) return url;
+      return new URL(url, (document?.baseURI || '/')).toString();
+    } catch {
+      return url;
+    }
+  }
+
   private async urlToDataUrl(url: string): Promise<string> {
-    const absolute = new URL(url, document.baseURI).toString();
-    const res = await fetch(absolute);
+    if (!url) throw new Error('Empty URL');
+    if (!isPlatformBrowser(this.platformId)) throw new Error('Not in browser');
+    if (url.startsWith('data:')) return url;
+
+    const resolved = this.resolveUrl(url);
+    const cached = this.logoCache.get(resolved);
+    if (cached) return cached;
+
+    const res = await fetch(resolved, { credentials: 'same-origin' });
     if (!res.ok) throw new Error(`fetch failed: ${res.status} ${res.statusText}`);
     const blob = await res.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
     });
+
+    this.logoCache.set(resolved, dataUrl);
+    return dataUrl;
   }
 
   private isOk(row: SmartRow): boolean {
     const t = `${row.test_result ?? ''} ${row.remark ?? ''}`.toLowerCase();
     return /\bok\b|\bpass\b/.test(t);
   }
+
   private resultText(row: SmartRow): string {
     const t = (row.test_result || '').trim();
     const m = (row.remark || '').trim();
     if (t && m && t.toUpperCase() !== 'OK') return `${t} — ${m}`;
     if (t && (!m || t.toUpperCase() === 'OK')) return t;
     return m || '-';
+  }
+
+  private headerBar(meta: {
+    orgLine: string;
+    labLine: string;
+    addressLine?: string;
+    email?: string;
+    phone?: string;
+    logoWidth: number;
+    logoHeight: number;
+    hasLeft: boolean;
+    hasRight: boolean;
+    pageWidth: number;
+    contentWidth: number;
+  }): Content {
+    const addr = (meta.addressLine || '').trim();
+    const email = (meta.email || '').trim();
+    const phone = (meta.phone || '').trim();
+    const contact =
+      (email || phone)
+        ? `Email: ${email || '-'}${email && phone ? '   •   ' : ''}Phone: ${phone || '-'}`
+        : '';
+
+    const sepLine: Content = {
+      canvas: [{ type: 'line', x1: 0, y1: 0, x2: meta.contentWidth, y2: 0, lineWidth: 1 }],
+      margin: [0, 6, 0, 0]
+    } as Content;
+
+    return {
+      margin: [28, 8, 28, 6],
+      stack: [
+        {
+          columns: [
+            meta.hasLeft ? { image: 'leftLogo', width: meta.logoWidth, height: meta.logoHeight } : { width: meta.logoWidth, text: '' },
+            {
+              width: '*',
+              stack: [
+                { text: meta.orgLine, alignment: 'center', bold: true, fontSize: 12, margin: [0, 0, 0, 0] },
+                { text: meta.labLine, alignment: 'center', bold: true, fontSize: 11, margin: [0, 2, 0, 0] },
+                ...(addr ? [{ text: addr, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0], noWrap: false }] : []),
+                ...(contact ? [{ text: contact, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] }] : []),
+              ]
+            },
+            meta.hasRight ? { image: 'rightLogo', width: meta.logoWidth, height: meta.logoHeight } : { width: meta.logoWidth, text: '' }
+          ],
+          columnGap: 10
+        },
+        sepLine
+      ]
+    } as Content;
   }
 
   private buildDoc(
@@ -71,28 +150,24 @@ export class SmartAgainstMeterReportPdfService {
     const okCount = rows.filter(r => this.isOk(r)).length;
     const defCount = total - okCount;
 
-    const labName  = meta.lab?.lab_name || 'REMOTE METERING TESTING LABORATORY INDORE';
-    const address1 = meta.lab?.address_line || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003';
-    const email    = meta.lab?.email || 'testinglabwzind@gmail.com';
-    const phone    = meta.lab?.phone || '0731-2997802';
+    const labName  = (meta.lab?.lab_name || '—').toString().trim() || '—';
+    const address1 = (meta.lab?.address_line || '').toString().trim();
+    const email    = (meta.lab?.email || '').toString().trim() || undefined;
+    const phone    = (meta.lab?.phone || '').toString().trim() || undefined;
 
-    const headerRow: Content = {
-      columns: [
-        imagesDict['leftLogo'] ? { image: 'leftLogo', width: 30 } : { text: '' },
-        {
-          width: '*',
-          stack: [
-            { text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED', alignment: 'center', bold: true, fontSize: 13 },
-            { text: labName, alignment: 'center', color: '#666', margin: [0, 2, 0, 0], fontSize: 12 },
-            { text: `${address1}\nEmail: ${email} • Phone: ${phone}`, alignment: 'center', color: '#666', margin: [0, 2, 0, 0], fontSize: 10 }
-          ]
-        },
-        imagesDict['rightLogo'] ? { image: 'rightLogo', width: 30, alignment: 'right' } : { text: '' }
-      ],
-      margin: [0,0,0,2]
-    };
+    const contentWidth = 595.28 - 28 - 28;
+    const makeHeader = () => this.headerBar({
+      orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
+      labLine: labName,
+      addressLine: address1 || undefined,
+      email, phone,
+      logoWidth: 36, logoHeight: 36,
+      hasLeft: !!imagesDict['leftLogo'],
+      hasRight: !!imagesDict['rightLogo'],
+      pageWidth: 595.28, contentWidth
+    });
 
-    // Info table (labels shaded)
+    // Info table
     const infoTable: Content = {
       layout: {
         fillColor: (_row: number, col: number) => (col % 2 === 0 ? '#f6f8fa' : undefined),
@@ -100,8 +175,10 @@ export class SmartAgainstMeterReportPdfService {
         vLineWidth: () => 0.4,
         hLineColor: () => '#e5e7eb',
         vLineColor: () => '#e5e7eb',
-        padding: [2, 4, 2, 4],
-        minHeight: 25,
+        paddingLeft: () => 4,
+        paddingRight: () => 4,
+        paddingTop: () => 4,
+        paddingBottom: () => 4,
       } as any,
       table: {
         widths: ['auto','*','auto','*'],
@@ -141,31 +218,28 @@ export class SmartAgainstMeterReportPdfService {
 
     return {
       pageSize: 'A4',
-      pageMargins: [28, 28, 28, 34],
+      pageMargins: [28, 92, 28, 28],
       defaultStyle: { fontSize: 10 },
       info: { title: `SMART_AGAINST_METER_${meta.date}` },
       images: imagesDict,
       styles: {
         th: { bold: true },
         kv: { bold: true, fontSize: 10, color: '#111827' },
-        sectionTitle: { bold: true, fontSize: 14, alignment: 'center' }
+        sectionTitle: { bold: true, fontSize: 13, alignment: 'center' }
       },
+      header: makeHeader as any,
       content: [
-        headerRow,
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 540, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
         { text: 'SMART AGAINST METER TEST REPORT', style: 'sectionTitle', margin: [0, 0, 0, 8] },
-
         infoTable,
-
         {
           layout: {
             fillColor: (rowIndex: number) => (rowIndex > 0 && rowIndex % 2 ? '#fafafa' : undefined),
             hLineColor: () => '#e5e7eb',
             vLineColor: () => '#e5e7eb',
           } as any,
-          table: { headerRows: 1, widths: ['auto','*','*','*','*'], body: tableBody }
+          table: { headerRows: 1, widths: ['auto','*','*','*','*'], body: tableBody },
+          margin: [0, 10, 0, 0]
         },
-
         { text: `\nTOTAL: ${total}   •   OK: ${okCount}   •   DEF: ${defCount}`, alignment: 'right', margin: [0, 2, 0, 0] },
 
         { text: '\n' },
@@ -175,27 +249,24 @@ export class SmartAgainstMeterReportPdfService {
             {
               width: '*',
               stack: [
-                { text: 'Tested by', alignment: 'center', bold: true },
+                { text: '\n\nTested by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                // { text: (meta.testing_user || ''), alignment: 'center', color: '#444' },
                 { text: 'TESTING ASSISTANT (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
             {
               width: '*',
               stack: [
-                { text: 'Verified by', alignment: 'center', bold: true },
+                { text: '\n\nVerified by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                // { text: (meta.testing_user || ''), alignment: 'center', color: '#444' },
                 { text: 'JUNIOR ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
             {
               width: '*',
               stack: [
-                { text: 'Approved by', alignment: 'center', bold: true },
+                { text: '\n\nApproved by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                // { text: (meta.approving_user || ''), alignment: 'center', color: '#444' },
                 { text: 'ASSISTANT ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
@@ -215,6 +286,8 @@ export class SmartAgainstMeterReportPdfService {
 
   // Public API
   async download(rows: SmartRow[], meta: SmartMeta, logos?: PdfLogos): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+
     const imagesDict: Record<string, string> = {};
     try {
       if (logos?.leftLogoUrl) imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
@@ -232,7 +305,24 @@ export class SmartAgainstMeterReportPdfService {
     const doc = this.buildDoc(rows, meta, imagesDict);
     const fname = `SMART_AGAINST_METER_${meta.date}.pdf`;
     return new Promise<void>((resolve) => {
-      pdfMake.createPdf(doc).download(fname, () => resolve());
+      try {
+        pdfMake.createPdf(doc).download(fname);
+      } finally {
+        resolve();
+      }
     });
+  }
+
+  async open(rows: SmartRow[], meta: SmartMeta, logos?: PdfLogos): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    const imagesDict: Record<string, string> = {};
+    try {
+      if (logos?.leftLogoUrl) imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
+      if (logos?.rightLogoUrl) imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
+      else if (imagesDict['leftLogo']) imagesDict['rightLogo'] = imagesDict['leftLogo'];
+    } catch {}
+    const doc = this.buildDoc(rows, meta, imagesDict);
+    pdfMake.createPdf(doc).open();
   }
 }

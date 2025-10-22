@@ -135,8 +135,8 @@ export class InwardReceiptPdfService {
 
     const metaForHeader = {
       orgLine: (header?.orgLine || 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED').toUpperCase(),
-      labLine: (header?.labLine || d.lab_name || 'REGIONAL METERING TESTING LABORATORY INDORE').toUpperCase(),
-      addressLine: header?.addressLine || d.lab_address || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003',
+      labLine: (header?.labLine || d.lab_name || '-').toUpperCase(),
+      addressLine: header?.addressLine || d.lab_address || '-',
       email: header?.email || d.lab_email || '-',
       phone: header?.phone || d.lab_phone || '-',
       logoWidth: header?.logoWidth ?? 36,
@@ -226,24 +226,6 @@ export class InwardReceiptPdfService {
       ]
     };
   }
-
-  // private metaBand(g: any) {
-  //   const lbl = { bold: true, fillColor: '#f5f5f5' };
-  //   return {
-  //     layout: 'noBorders',
-  //     margin: [28, 0, 28, 8],
-  //     table: {
-  //       widths: ['auto','*','auto','*'],
-  //       body: [
-  //         [{ text: 'Lab ID', ...lbl }, { text: g.lab_id }, { text: 'Office Type', ...lbl }, { text: g.office_type }],
-  //         [{ text: 'Date of Entry', ...lbl }, { text: g.date_of_entry }, { text: 'Device Type', ...lbl }, { text: g.device_type }],
-  //         [{ text: 'Location Code', ...lbl }, { text: g.location_code }, { text: 'Location Name', ...lbl }, { text: g.location_name }],
-  //         [{ text: 'Total Items', ...lbl }, { text: g.total.toString() }, { text: 'Inward No', ...lbl }, { text: g.inward_no }],
-  //         [{ text: 'Generated At', ...lbl }, { text: g.created_at }, { text: '', ...lbl }, { text: '' }],
-  //       ]
-  //     }
-  //   };
-  // }
 
   private metaBand(g: any) {
   return {

@@ -1,7 +1,8 @@
-// src/app/wzlab/rmtl-testing/rmtl-add-testreport/rmtl-add-testreport-stopdefective/rmtl-add-testreport-stopdefective.component.ts
+// rmtl-add-testreport-stopdefective.component.ts
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
+import { SmartLabInfo } from 'src/app/shared/smartagainstmeter-report-pdf.service';
 
 import {
   StopDefectiveReportPdfService,
@@ -11,6 +12,8 @@ import {
 } from 'src/app/shared/stopdefective-report-pdf.service';
 
 type Id = number;
+type ErrorFromMode = 'SHUNT' | 'NUTRAL' | 'BOTH' | null;
+type ViewMode = 'SHUNT' | 'NUTRAL' | 'BOTH';
 
 interface AssignmentDevice {
   id: Id;
@@ -26,54 +29,69 @@ interface AssignmentItem {
   device_id: Id;
   device?: AssignmentDevice | null;
 
-  // The API provides these — we access them safely
   testing_bench?: { bench_name?: string } | null;
   user_assigned?: { name?: string; username?: string } | null;
   assigned_by_user?: { name?: string; username?: string } | null;
 }
 
 interface Row {
-  // visible (match template)
   meter_sr_no: string;
   meter_make: string;
   meter_capacity: string;
-  remark: string;
-  test_result?: string;
+
+  // UI comment (mapped to details & final_remarks on submit)
+  remark?: string;
+
+  test_result?: string; // enum
   consumer_name?: string;
+  consumer_address?: string;
 
-  // extended (template expects these keys)
-  physical_condition_of_device?: string;
-  seal_status?: string;
-  meter_glass_cover?: string;
-  terminal_block?: string;
-  meter_body?: string;
+  // Fees
+  testing_fees?: string | null;
+  fees_mr_no?: string | null;
+  fees_mr_date?: string | null; // yyyy-mm-dd
+  ref_no?: string | null;
+
+  // SHUNT (required)
+  shunt_reading_before_test?: number | null;
+  shunt_reading_after_test?: number | null;
+  shunt_ref_start_reading?: number | null;
+  shunt_ref_end_reading?: number | null;
+  shunt_current_test?: string | null;
+  shunt_creep_test?: string | null;
+  shunt_dail_test?: string | null;
+  shunt_error_percentage?: number | null;
+
+  // NUTRAL (required)
+  nutral_reading_before_test?: number | null;
+  nutral_reading_after_test?: number | null;
+  nutral_ref_start_reading?: number | null;
+  nutral_ref_end_reading?: number | null;
+  nutral_current_test?: string | null;
+  nutral_creep_test?: string | null;
+  nutral_dail_test?: string | null;
+  nutral_error_percentage?: number | null;
+
+  // Optional combined error
+  error_from_mode: ErrorFromMode;
+  error_percentage_import?: number | null;
+
+  // Device condition
+  physical_condition_of_device?: string | null;
+  seal_status?: string | null;
+  meter_glass_cover?: string | null;
+  terminal_block?: string | null;
+  meter_body?: string | null;
   is_burned?: boolean;
+  certificate_number?: string | null;
+  final_remarks?: string | null;
 
-  reading_before_test?: number;
-  reading_after_test?: number;
-  ref_start_reading?: number;
-  ref_end_reading?: number;
-  error_percentage?: number;
-
-  // optional cert/meta (used in preview)
-  certificate_no?: string;
-  date_of_testing?: string;
-  address?: string;
-  testing_fees?: number;
-  mr_no?: string;
-  mr_date?: string;
-  ref_no?: string;
-
-  // small tests
-  starting_current_test?: string;
-  creep_test?: string;
-  dial_test?: string;
-
-  // linking
   device_id?: Id;
   assignment_id?: Id;
 
-  // ui
+  // UI only
+  view_mode?: ViewMode;
+
   _open?: boolean;
   notFound?: boolean;
 }
@@ -92,13 +110,6 @@ interface ModalState {
   title: string;
   message: string;
   action?: 'submit' | 'clear';
-}
-
-interface AlertState {
-  open: boolean;
-  type: 'success' | 'error' | 'warning' | 'info';
-  title: string;
-  message: string;
 }
 
 @Component({
@@ -121,7 +132,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   capacities: string[] = [];
   device_status: 'ASSIGNED' = 'ASSIGNED';
 
-  // type/purpose (must be valid before API)
   device_type = '';
   device_testing_purpose = '';
   report_type = '';
@@ -129,10 +139,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   // ids
   currentUserId: any;
   currentLabId: any;
-  // currentUserId = 0;
-  // currentLabId  = 0;
-  //
-  approverId:  any;
+  approverId: any;
 
   // header/date + ui
   header: Header = {
@@ -143,23 +150,21 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     testing_user: '',
     approving_user: ''
   };
-  batchDate = this.toYMD(new Date()); // replaces batch.header.date
+  batchDate = this.toYMD(new Date());
   filterText = '';
   loading = false;
   submitting = false;
 
-  // rows
-  rows: Row[] = [this.emptyRow()];
+  inlineInfo: string | null = null;
+  inlineError: string | null = null;
 
-  // expose a batch adapter for template compatibility (batch.header.*, batch.rows)
+  rows: Row[] = [this.emptyRow()];
   batch = { header: this.header, rows: this.rows };
 
-  // preview modal
   modal: ModalState = { open: false, title: '', message: '' };
-  alertSuccess: string | null = null;
-  alertError: string | null = null;
+  success = { open: false, message: '' };
 
-  // picker modal
+  // picker
   asgPicker = {
     open: false,
     filter: '',
@@ -172,21 +177,20 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   testMethod: string | null = null;
   testStatus: string | null = null;
 
-  // readiness flags
+  // Global view mode (toolbar)
+  globalViewMode: ViewMode = 'BOTH';
+
   private enumsReady = false;
   private idsReady = false;
 
-  // quick serial index
   private serialIndex: Record<string, { make?: string; capacity?: string; device_id: Id; assignment_id: Id; phase?: string; }> = {};
-
-  // alerts
-  alert: AlertState = { open: false, type: 'info', title: '', message: '' };
-
-  // outgoing payload (debug/inspection)
+  // Lab info + benches
+  labInfo: SmartLabInfo | null = null;
+  benches: string[] = [];
   payload: any[] = [];
-  ternal_testing_types: any;
-  fees_mtr_cts: any;
-  test_dail_current_cheaps: any;
+  ternal_testing_types: string[] = [];
+  fees_mtr_cts: (string | number)[] = [];
+  test_dail_current_cheaps: string[] = [];
 
   constructor(
     private api: ApiServicesService,
@@ -196,14 +200,10 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
 
   // ===== lifecycle
   ngOnInit(): void {
-    // IDs first (sync)
-    // this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    // this.currentLabId  = Number(localStorage.getItem('currentLabId')  || 0);
     this.currentUserId = this.authService.getuseridfromtoken();
     this.currentLabId = this.authService.getlabidfromtoken();
     this.idsReady = !!this.currentUserId && !!this.currentLabId;
 
-    // enums
     this.api.getEnums().subscribe({
       next: (data) => {
         this.device_status = (data?.device_status as 'ASSIGNED') ?? 'ASSIGNED';
@@ -219,29 +219,40 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
         this.meter_bodies = data?.meter_bodies || [];
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
-        this.ternal_testing_types = data?.device_testing_purpose || [];
-        this.fees_mtr_cts= data?.fees_mtr_cts || [];
-        this.test_dail_current_cheaps = data?.test_dail_current_cheaps || [];
 
-        // normalize STOP_DEFECTIVE vs STOPDEFECTIVE
         const stopDef =
           data?.test_report_types?.STOP_DEFECTIVE ??
-          data?.test_report_types?.STOPDEFECTIVE ??
-          'STOP_DEFECTIVE';
+          data?.test_report_types?.STOPDEFECTIVE ?? 'STOP_DEFECTIVE';
         this.report_type = stopDef;
         this.device_testing_purpose = stopDef;
-
-        // device type for this screen
         this.device_type = data?.device_types?.METER ?? 'METER';
+
+        this.ternal_testing_types = data?.ternal_testing_types || ['SHUNT', 'NUTRAL', 'BOTH'];
+        this.fees_mtr_cts = data?.fees_mtr_cts || [];
+        this.test_dail_current_cheaps = data?.test_dail_current_cheaps || [];
 
         this.enumsReady = true;
         this.tryInitialLoad();
-
-        // activity alert
-        // this.raise('success', 'Configuration Ready', 'Enums loaded successfully.');
       },
-      error: () => this.raise('error', 'Enums Load Failed', 'Unable to load configuration (enums). Please reload.')
+      error: () => {
+        this.inlineError = 'Unable to load configuration (enums). Please reload.';
+      }
     });
+
+    // Lab info (for PDF header)
+    if (this.currentLabId) {
+      this.api.getLabInfo(this.currentLabId).subscribe({
+        next: (info: any) => {
+          this.labInfo = {
+            lab_name: String(info?.lab_pdfheader_name || info?.lab_name || '').trim(),
+            address_line: String(info?.address || info?.address_line || '').trim(),
+            email: String(info?.email || info?.contact_email || info?.lab_email || info?.support_email || '').trim(),
+            phone: String(info?.phone || info?.phone_no || info?.contact_phone || info?.mobile || info?.tel || '').trim()
+          };
+          this.benches = Array.isArray(info?.benches) ? info.benches : [];
+        }
+      });
+    }
   }
 
   // ===== guards + load
@@ -271,16 +282,15 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
           this.asgPicker.list = list;
           this.rebuildSerialIndex(list);
 
-          // Fill header from first device + bench/users
           const first = list.find(a => a.device);
           this.fillHeaderFromAssignment(first);
 
           this.loading = false;
-          // this.raise('success', 'Assigned Devices Loaded', `${list.length} item(s) available for selection.`);
+          this.inlineInfo =  `Total ${list.length} assigned device(s) loaded for the selected Test Report Type.`;
         },
         error: () => {
           this.loading = false;
-          this.raise('error', 'Load Failed', 'Could not load assigned devices.');
+          this.inlineError = 'No assigned devices found for the selected Test Report Type.';
         }
       });
   }
@@ -308,20 +318,26 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
       meter_make: '',
       meter_capacity: '',
       remark: '',
+      view_mode: 'BOTH',
+      error_from_mode: null,
       _open: false,
       ...seed
     };
   }
   addRow() { this.rows.push(this.emptyRow()); }
-  addBatchRow() { this.addRow(); } // alias for template compatibility
+  addBatchRow() { this.addRow(); }
   removeRow(i: number) {
     this.rows.splice(i, 1);
     if (!this.rows.length) this.addRow();
   }
   get totalCount(): number { return this.rows.length; }
 
+  applyViewModeToAll() {
+    for (const r of this.rows) r.view_mode = this.globalViewMode;
+  }
+
   trackByRow = (_: number, r: Row) =>
-    `${r.assignment_id || 0}_${r.device_id || 0}_${r.meter_sr_no || ''}`;
+    `${r.assignment_id || 0}_${r.device_id || 0}_${(r.meter_sr_no || '').toUpperCase()}`;
 
   onSerialChanged(i: number, sr: string) {
     const key = (sr || '').toUpperCase().trim();
@@ -360,17 +376,62 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   get matchedCount(): number { return this.rows.filter(r => !!r.meter_sr_no && !r.notFound).length; }
   get unknownCount(): number { return this.rows.filter(r => !!r.notFound).length; }
 
-  errorpercentage_calculate(i: number) {
+  // ===== numbers + calc
+  private toNumOrNull(v: any): number | null {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  private computeError(before?: number | null, after?: number | null, refStart?: number | null, refEnd?: number | null): number | null {
+    const b = Number(before);
+    const a = Number(after);
+    const s = Number(refStart);
+    const e = Number(refEnd);
+    if (!Number.isFinite(b) || !Number.isFinite(a) || !Number.isFinite(s) || !Number.isFinite(e)) return null;
+    const refDiff = e - s;
+    if (!refDiff) return 0;
+    const pct = ((a - b) - refDiff) / refDiff * 100;
+    // Keep two decimals; UI shows exact value, PDF can round visually if needed
+    return Math.round(pct * 100) / 100;
+  }
+
+  calcShunt(i: number) {
     const r = this.rows[i];
-    const before = Number(r.reading_before_test) || 0;
-    const after  = Number(r.reading_after_test) || 0;
-    const refS   = Number(r.ref_start_reading) || 0;
-    const refE   = Number(r.ref_end_reading) || 0;
-    const refDiff = refE - refS;
-    if (refDiff !== 0) {
-      r.error_percentage = Math.round(((after - before) - refDiff) / refDiff * 100);
+    r.shunt_error_percentage = this.computeError(r.shunt_reading_before_test, r.shunt_reading_after_test, r.shunt_ref_start_reading, r.shunt_ref_end_reading);
+    if (r.error_from_mode === 'SHUNT') {
+      r.error_percentage_import = r.shunt_error_percentage ?? null;
+    }
+  }
+
+  calcNutral(i: number) {
+    const r = this.rows[i];
+    r.nutral_error_percentage = this.computeError(r.nutral_reading_before_test, r.nutral_reading_after_test, r.nutral_ref_start_reading, r.nutral_ref_end_reading);
+    if (r.error_from_mode === 'NUTRAL') {
+      r.error_percentage_import = r.nutral_error_percentage ?? null;
+    }
+  }
+
+  // Copies from selected source into combined import
+  calculateErrorPct(i: number) {
+    const r = this.rows[i];
+    if (r.error_from_mode === 'SHUNT') {
+      if (r.shunt_error_percentage == null) this.calcShunt(i);
+      r.error_percentage_import = r.shunt_error_percentage ?? null;
+    } else if (r.error_from_mode === 'NUTRAL') {
+      if (r.nutral_error_percentage == null) this.calcNutral(i);
+      r.error_percentage_import = r.nutral_error_percentage ?? null;
+    } else if (r.error_from_mode === 'BOTH') {
+      this.calcNutral(i);
+      this.calcShunt(i);
+      const shuntErr = r.shunt_error_percentage;
+      const nutralErr = r.nutral_error_percentage;
+      if (shuntErr != null && nutralErr != null) {
+        r.error_percentage_import = Math.round(((shuntErr + nutralErr) / 2) * 100) / 100;
+      } else {
+        r.error_percentage_import = null;
+      }
     } else {
-      r.error_percentage = 0;
+      r.error_percentage_import = null;
     }
   }
 
@@ -406,11 +467,11 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     if (action === 'submit') {
       const v = this.validateBeforeSubmit();
       if (!v.ok) {
-        this.alertError = v.reason || 'Invalid data.';
-        this.modal = { open: true, title: 'Validation Errors', message: v.reason || '', action: undefined };
+        this.inlineError = v.reason || 'Invalid data.';
+        this.modal = { open: false, title: '', message: '', action: undefined };
         return;
       }
-      this.alertError = null;
+      this.inlineError = null;
       this.modal = { open: true, title: 'Submit Batch Report — Preview', message: '', action: 'submit' };
     }
   }
@@ -419,7 +480,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   confirmModal() {
     if (this.modal.action === 'clear') {
       this.rows = [this.emptyRow()];
-      this.batch.rows = this.rows; // keep adapter in sync
+      this.batch.rows = this.rows;
       this.closeModal();
       return;
     }
@@ -428,68 +489,95 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     }
   }
 
-  confirmSubmitFromModal() {
+  async confirmSubmitFromModal() {
     const v = this.validateBeforeSubmit();
-    if (!v.ok) { this.alertError = v.reason || 'Invalid data.'; return; }
+    if (!v.ok) { this.inlineError = v.reason || 'Invalid data.'; return; }
 
     const whenISO = new Date(`${this.batchDate}T10:00:00`);
     const iso = new Date(whenISO.getTime() - whenISO.getTimezoneOffset() * 60000).toISOString();
 
     this.payload = this.rows
       .filter(r => (r.meter_sr_no || '').trim())
-      .map(r => ({
-        assignment_id: r.assignment_id!,
-        device_id: r.device_id!,
-        report_type: this.report_type,
-        device_testing_purpose: this.device_testing_purpose,
-        device_type: this.device_type,
-        start_datetime: iso,
-        end_datetime: iso,
-        test_method: this.testMethod!,
-        test_status: this.testStatus!,
-        remark: r.remark || '-',
-        test_result: r.test_result!,
-        consumer_name: r.consumer_name || null,
-        meta: {
-          certificate_no: r.certificate_no || null,
-          date_of_testing: r.date_of_testing || this.batchDate || null,
-          address: r.address || null,
-          testing_fees: r.testing_fees ?? null,
-          mr_no: r.mr_no || null,
-          mr_date: r.mr_date || null,
-          ref_no: r.ref_no || null,
-          reading: {
-            before: r.reading_before_test ?? null,
-            after: r.reading_after_test ?? null,
-            ref_start: r.ref_start_reading ?? null,
-            ref_end: r.ref_end_reading ?? null,
-            error_pct: r.error_percentage ?? null
-          }
-        }
-      }));
+      .map(r => {
+        const body: any = {
+          assignment_id: r.assignment_id!,
+          device_id: r.device_id!,
+          report_type: this.report_type,
+          start_datetime: iso,
+          end_datetime: iso,
+          test_method: this.testMethod!,
+          test_status: this.testStatus!,
+          test_result: r.test_result!,
+
+          // remarks mapping
+          details: r.remark ?? r.final_remarks ?? null,
+          final_remarks: r.final_remarks ?? r.remark ?? null,
+
+          // identity & address
+          consumer_name: r.consumer_name ?? null,
+          consumer_address: r.consumer_address ?? null,
+
+          // receipts & refs
+          certificate_number: r.certificate_number ?? null,
+          testing_fees: r.testing_fees,
+          fees_mr_no: r.fees_mr_no ?? null,
+          fees_mr_date: r.fees_mr_date ?? null,
+          ref_no: r.ref_no ?? null,
+
+          // device condition
+          physical_condition_of_device: r.physical_condition_of_device ?? null,
+          seal_status: r.seal_status ?? null,
+          meter_glass_cover: r.meter_glass_cover ?? null,
+          terminal_block: r.terminal_block ?? null,
+          meter_body: r.meter_body ?? null,
+          is_burned: !!r.is_burned,
+
+          // error % (combined optional)
+          error_percentage_import: this.toNumOrNull(r.error_percentage_import),
+
+          // audit
+          created_by: String(this.currentUserId || ''),
+          updated_by: String(this.currentUserId || '')
+        };
+
+        // SHUNT readings (required)
+        body.shunt_reading_before_test = this.toNumOrNull(r.shunt_reading_before_test);
+        body.shunt_reading_after_test  = this.toNumOrNull(r.shunt_reading_after_test);
+        body.shunt_ref_start_reading   = this.toNumOrNull(r.shunt_ref_start_reading);
+        body.shunt_ref_end_reading     = this.toNumOrNull(r.shunt_ref_end_reading);
+        body.shunt_current_test        = r.shunt_current_test? String(r.shunt_current_test).trim() : null;
+        body.shunt_creep_test          = r.shunt_creep_test? String(r.shunt_creep_test).trim() : null;
+        body.shunt_dail_test           = r.shunt_dail_test? String(r.shunt_dail_test).trim() : null;
+        body.shunt_error_percentage    = this.toNumOrNull(r.shunt_error_percentage);
+
+        // NUTRAL readings (required)
+        body.nutral_reading_before_test = this.toNumOrNull(r.nutral_reading_before_test);
+        body.nutral_reading_after_test  = this.toNumOrNull(r.nutral_reading_after_test);
+        body.nutral_ref_start_reading   = this.toNumOrNull(r.nutral_ref_start_reading);
+        body.nutral_ref_end_reading     = this.toNumOrNull(r.nutral_ref_end_reading);
+        body.nutral_current_test        = r.nutral_current_test? String(r.nutral_current_test).trim() : null;
+        body.nutral_creep_test          = r.nutral_creep_test? String(r.nutral_creep_test).trim() : null;
+        body.nutral_dail_test           = r.nutral_dail_test? String(r.nutral_dail_test).trim() : null;
+        body.nutral_error_percentage    = this.toNumOrNull(r.nutral_error_percentage);
+
+        return body;
+      });
 
     this.submitting = true;
     this.api.postTestReports(this.payload).subscribe({
       next: async () => {
         this.submitting = false;
-        this.alertSuccess = 'Batch Report submitted successfully!';
-
-        // Immediate PDF
         await this.generatePdfAndNotify();
-
-        // reset rows
         this.rows = [this.emptyRow()];
         this.batch.rows = this.rows;
         this.closeModal();
-
-        this.raise('success', 'Submitted', 'Batch Report submitted successfully.');
+        this.inlineInfo = 'Submitted successfully.';
+        this.inlineError = null;
       },
       error: (e) => {
         this.submitting = false;
-        this.alertSuccess = null;
-        this.alertError = 'Error submitting report. Please verify rows and try again.';
         console.error(e);
-        this.raise('error', 'Submit Failed', 'Could not submit the batch report.');
+        this.inlineError = 'Error submitting report. Please verify rows and try again.';
       }
     });
   }
@@ -497,7 +585,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   // ===== picker
   openAssignedPicker() {
     const p = this.getAssignedParams();
-    if (!p) { this.raise('warning', 'Missing Inputs', 'Please ensure Lab/User/Device Type/Purpose are ready.'); return; }
+    if (!p) { this.inlineError = 'Please ensure Lab/User/Device Type/Purpose are ready.'; return; }
 
     this.asgPicker.open = true;
     this.asgPicker.selected = {};
@@ -510,15 +598,11 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
 
           const first = list.find(a => a.device);
           this.fillHeaderFromAssignment(first);
-
-          // this.raise('info', 'Picker Ready', `${list.length} item(s) loaded. Use search or Select All.`);
         },
-        error: () => { this.raise('error', 'Load Failed', 'Could not load assigned devices.'); }
+        error: () => { this.inlineError = 'Could not load assigned devices.'; }
       });
   }
-  // alias to match old template call
   openPicker() { this.openAssignedPicker(); }
-
   closeAssignedPicker() { this.asgPicker.open = false; }
 
   get filteredAssigned(): AssignmentItem[] {
@@ -534,7 +618,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
       );
     });
 
-    // ALWAYS sort by make (A→Z); tie-break by serial
     return base.sort((x, y) => {
       const mx = (x.device?.make || '').toLowerCase();
       const my = (y.device?.make || '').toLowerCase();
@@ -557,7 +640,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     const newRows: Row[] = [];
     for (const a of chosen) {
       const d = a.device!;
-      const sr = d.serial_number.trim();
+      const sr = (d.serial_number || '').trim();
       if (!sr || existing.has(sr.toUpperCase())) continue;
       newRows.push({
         meter_sr_no: sr,
@@ -567,7 +650,9 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
         assignment_id: a.id,
         device_id: d.id || a.device_id,
         _open: false,
-        notFound: false
+        notFound: false,
+        error_from_mode: null,
+        view_mode: this.globalViewMode
       });
       existing.add(sr.toUpperCase());
     }
@@ -580,23 +665,11 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     }
     this.asgPicker.open = false;
 
-    this.raise('success', 'Selection Added', `${newRows.length} row(s) added to the batch.`);
+    this.inlineInfo = `${newRows.length} row(s) added to the batch.`;
+    this.inlineError = null;
   }
 
-  // ===== misc
-  recompute(i: number) {
-    const r = this.rows[i];
-    const s = Number(r.reading_before_test) || 0;
-    const f = Number(r.reading_after_test) || 0;
-    r.error_percentage = +(f - s).toFixed(2);
-  }
-
-  raise(type: AlertState['type'], title: string, message: string) {
-    this.alert = { open: true, type, title, message };
-  }
-  closeAlert() { this.alert.open = false; }
-
-  // ===== PDF helpers (NEW)
+  // ===== PDF helpers
   private buildPdfInputs(): { rows: StopDefRow[]; meta: StopDefMeta; logos?: PdfLogos } {
     const rows: StopDefRow[] = this.rows
       .filter(r => (r.meter_sr_no || '').trim())
@@ -605,7 +678,7 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
         make: r.meter_make || '-',
         capacity: r.meter_capacity || '-',
         remark: r.remark || '-',
-        test_result: r.test_result || '-' // service merges with remark
+        test_result: r.test_result || '-'
       }));
 
     const meta: StopDefMeta = {
@@ -618,39 +691,53 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
       testing_user: this.header.testing_user || undefined,
       approving_user: this.header.approving_user || undefined,
       lab: {
-        lab_name: 'REMOTE METERING TESTING LABORATORY INDORE',
-        address_line: 'MPPKVVCL, Polo Ground, Indore (MP) 452003',
-        email: 'testinglabwzind@gmail.com',
-        phone: '0731-2997802'
+        lab_name: this.labInfo?.lab_name || '',
+        address_line: this.labInfo?.address_line || '',
+        email: this.labInfo?.email || '',
+        phone: this.labInfo?.phone || ''
       }
     };
 
     const logos: PdfLogos | undefined = {
       leftLogoUrl: '/assets/icons/wzlogo.png',
-      rightLogoUrl: '/assets/icons/mpkvvcl.png'
+      rightLogoUrl: '/assets/icons/wzlogo.png',
     };
 
     return { rows, meta, logos };
   }
 
-  private async generatePdfAndNotify() {
+  async previewPdf() {
     try {
+      await this.ensureLabInfo();
       const { rows, meta, logos } = this.buildPdfInputs();
-      await this.stopDefPdf.download(rows, meta, logos);
-      this.raise('success', 'PDF Generated', `Stop-Defective report downloaded for ${meta.date}.`);
+      await this.stopDefPdf.open(rows, meta, logos);
     } catch (e) {
       console.error(e);
-      this.raise('error', 'PDF Failed', 'Could not generate the PDF. Please try again.');
+      this.inlineError = 'PDF preview failed. Please try again.';
+    }
+  }
+
+  private async generatePdfAndNotify() {
+    try {
+      await this.ensureLabInfo();
+      const { rows, meta, logos } = this.buildPdfInputs();
+      await this.stopDefPdf.download(rows, meta, logos);
+      this.inlineInfo = 'Batch Report submitted and PDF generated successfully.';
+    } catch (e) {
+      console.error(e);
+      this.inlineError = 'PDF generation failed. Please try again.';
     }
   }
 
   // ===== util
   private toYMD(d: Date): string {
-    const dt = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-    return dt.toISOString().slice(0, 10);
+    // Normalize to local date (strip tz) but keep YYYY-MM-DD
+    const y = d.getFullYear();
+    const m = `${d.getMonth() + 1}`.padStart(2, '0');
+    const day = `${d.getDate()}`.padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
-  // ===== header population from API item (NEW)
   private fillHeaderFromAssignment(first?: AssignmentItem) {
     if (!first?.device) return;
     const d = first.device;
@@ -659,7 +746,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     this.header.location_name = d.location_name ?? '';
     if (!this.header.phase && d.phase) this.header.phase = (d.phase || '').toUpperCase();
 
-    // bench / users from API payload
     const benchName = first?.testing_bench?.bench_name || '';
     this.header.testing_bench = benchName;
 
@@ -668,5 +754,30 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
 
     const approverName = first?.assigned_by_user?.name || first?.assigned_by_user?.username || '';
     this.header.approving_user = approverName;
+  }
+
+  closeSuccess() { this.success.open = false; }
+
+  private ensureLabInfo(): Promise<void> {
+    if (this.labInfo && (this.labInfo.lab_name || this.labInfo.address_line || this.labInfo.email || this.labInfo.phone)) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      const lid = this.currentLabId;
+      if (!lid) { resolve(); return; }
+      this.api.getLabInfo(lid).subscribe({
+        next: (info: any) => {
+          this.labInfo = {
+            lab_name: String(info?.lab_pdfheader_name || info?.lab_name || '').trim(),
+            address_line: String(info?.address || info?.address_line || '').trim(),
+            email: String(info?.email || info?.contact_email || info?.lab_email || info?.support_email || '').trim(),
+            phone: String(info?.phone || info?.phone_no || info?.contact_phone || info?.mobile || info?.tel || '').trim()
+          };
+          this.benches = Array.isArray(info?.benches) ? info.benches : [];
+          resolve();
+        },
+        error: () => resolve()
+      });
+    });
   }
 }

@@ -5,6 +5,9 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
 import {
   SmartAgainstMeterReportPdfService,
   SmartLabInfo,
+  SmartMeta,
+  SmartRow,
+  PdfLogos
 } from 'src/app/shared/smartagainstmeter-report-pdf.service';
 
 interface MeterDevice {
@@ -16,45 +19,107 @@ interface MeterDevice {
   location_code?: string | null;
   location_name?: string | null;
 }
-
 interface AssignmentItem {
-  id: number;                 // assignment_id
+  id: number;  // assignment_id
   device_id: number;
   device?: MeterDevice | null;
   testing_bench?: { bench_name?: any } | null;
   user_assigned?: { name?: string; username?: string } | null;
   assigned_by_user?: { name?: string; username?: string } | null;
 }
-
 interface DeviceRow {
+  // identity
   serial: string;
   make: string;
   capacity: string;
-  remark: string;                  // dropdown “Test Report Remark”
-  test_result?: string;
-  test_method: 'MANUAL' | 'AUTOMATED';
-  test_status?: string;
   device_id: number;
   assignment_id: number;
   notFound?: boolean;
 
+  // dropdown remark (-> details) + extra
+  remark: string;
+  other: string;
+
+  // model enums
+  test_result?: string;
+  test_method: 'MANUAL' | 'AUTOMATED';
+  test_status?: string;
+
+  // consumer/fees/doc
+  consumer_name?: string;
+  consumer_address?: string;
+  certificate_number?: string | null;
+  testing_fees?: string | null;
+  fees_mr_no?: string | null;
+  fees_mr_date?: string | null;     // ISO date string
+  ref_no?: string | null;
+
+  // import channel (maps to model’s *_import)
+  start_reading_import?: number | null;
+  final_reading__import?: number | null;
+  difference__import?: number | null;
+  error_percentage_import?: number | null;
+
+  // export channel
+  start_reading_export?: number | null;
+  final_reading_export?: number | null;
+  difference_export?: number | null;
+  error_percentage_export?: number | null;
+
+  // reference readings for error calc (import)
+  ref_start_reading?: number | null;
+  ref_end_reading?: number | null;
+
+  // export reference (optional — not in DB but used to compute export error)
+  export_ref_start_reading?: number | null;
+  export_ref_end_reading?: number | null;
+
+  // quick tests (strings)
+  shunt_current_test?: string | null;
+  shunt_creep_test?: string | null;
+  shunt_dail_test?: string | null;
+  nutral_current_test?: string | null;
+  nutral_creep_test?: string | null;
+  nutral_dail_test?: string | null;
+
+  // status/condition
   physical_condition_of_device: string;
   seal_status: string;
   meter_glass_cover: string;
   terminal_block: string;
   meter_body: string;
-  other: string;
   is_burned: boolean;
 
+  // calculated + misc
+  final_Meter_Difference?: number | null;
+
+  test_requester_name?: string | null;
+  meter_removaltime_reading?: number | null;
+  meter_removaltime_metercondition?: string | null;
+  any_other_remarkny_zone?: string | null;
+
+  dail_test_kwh_rsm?: number | null;
+  recorderedbymeter_kwh?: number | null;
+
+  final_remarks?: string | null;
+
+  p4_division?: string | null;
+  p4_no?: string | null;
+  p4_date?: string | null;
+  p4_metercodition?: string | null;
+
+  approver_id?: number | null;
+  approver_remark?: string | null;
+
+  // legacy single-set readings kept for convenience
   reading_before_test: number;
   reading_after_test: number;
-  ref_start_reading: number;
-  ref_end_reading: number;
-  error_percentage: number;
+  ref_start_reading_legacy?: number | null;
+  ref_end_reading_legacy?: number | null;
+  error_percentage_legacy?: number | null;
 
   _open?: boolean;
 }
-
 interface ModalState {
   open: boolean;
   title: string;
@@ -70,7 +135,7 @@ interface ModalState {
 })
 export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
 
-  // Enums/options
+  // enums/options
   device_status: 'ASSIGNED' = 'ASSIGNED';
   comment_bytester: string[] = [];
   test_methods: string[] = [];
@@ -83,9 +148,11 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
   makes: string[] = [];
   capacities: string[] = [];
   test_results: string[] = [];
-  report_type: string = 'SMART_AGAINST_METER';
+  fees_mtr_cts: string[] = [];
+  test_dail_current_cheaps: string[] = []; // used for quick tests
+  report_type = 'SMART_AGAINST_METER';
 
-  // Header + rows
+  // header + rows
   batch = {
     header: {
       zone: '',
@@ -96,48 +163,41 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
       testing_bench: '',
       testing_user: '',
       approving_user: ''
-      
     },
     rows: [] as DeviceRow[]
   };
 
-  // IDs / context
-  currentUserId:any
-  currentLabId :any;
+  // context
+  currentUserId: any;
+  currentLabId: any;
   device_testing_purpose: any | null = null;
   device_type: any | null = null;
 
-  // UI state
+  // ui
   filterText = '';
   loading = false;
   submitting = false;
-  modal: ModalState = { open: false, title: '', message: '', action: null };
+  modal: ModalState = { open:false, title:'', message:'', action:null };
   alertSuccess: string | null = null;
   alertError: string | null = null;
 
   payload: any[] = [];
   testMethod: string | null = null;
   testStatus: string | null = null;
-  approverId: number | null = null;
+  approverRemark: string | null = null;
 
-  // Serial → device index
-  private serialIndex: Record<string, {
-    make?: string;
-    capacity?: string;
-    device_id: number;
-    assignment_id: number;
-    phase?: string;
-  }> = {};
+  // serial index
+  private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; phase?: string; }> = {};
 
-  // Lab info + benches
+  // lab
   labInfo: SmartLabInfo | null = null;
   benches: string[] = [];
 
-  // Picker
+  // picker
   picking = false;
   pickerLoading = false;
   pickerAssignments: AssignmentItem[] = [];
-  pickerSelected: Record<number, boolean> = {}; // key: assignment_id
+  pickerSelected: Record<number, boolean> = {};
   pickerFilter = '';
 
   constructor(
@@ -146,17 +206,11 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
     private authService: AuthService
   ) {}
 
-  // ===================== Lifecycle =====================
   ngOnInit(): void {
     this.batch.header.date = this.toYMD(new Date());
-
-    // Load ids
-    // this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    // this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
     this.currentUserId = this.authService.getuseridfromtoken();
-    this.currentLabId = this.authService.getlabidfromtoken();
+    this.currentLabId  = this.authService.getlabidfromtoken();
 
-    // Load enums/options
     this.api.getEnums().subscribe({
       next: (data) => {
         this.device_status = (data?.device_status as 'ASSIGNED') ?? 'ASSIGNED';
@@ -171,27 +225,26 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
         this.meter_bodies = data?.meter_bodies || [];
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
+        this.fees_mtr_cts = data?.fees_mtr_cts || [];
+        this.test_dail_current_cheaps = data?.test_dail_current_cheaps || [];
         this.report_type = data?.test_report_types?.SMART_AGAINST_METER ?? 'SMART_AGAINST_METER';
         this.device_testing_purpose = data?.test_report_types?.SMART_AGAINST_METER ?? 'SMART_AGAINST_METER';
         this.device_type = data?.device_types?.METER ?? 'METER';
 
         if (!this.batch.rows.length) this.addBatchRow();
-
-        // cache assignments (guarded)
         this.doReloadAssignedWithoutAddingRows();
       },
       error: () => this.alertError = 'Failed to load configuration (enums). Please reload.'
     });
 
-    // Lab info (for PDF header)
     if (this.currentLabId) {
       this.api.getLabInfo(this.currentLabId).subscribe({
         next: (info: any) => {
           this.labInfo = {
-            lab_name: info?.lab_pdfheader_name || info?.lab_name,
-            address_line: info?.address || info?.address_line,
-            email: info?.email,
-            phone: info?.phone
+            lab_name: String(info?.lab_pdfheader_name || info?.lab_name || '').trim(),
+            address_line: String(info?.address || info?.address_line || '').trim(),
+            email: String(info?.email || info?.contact_email || '').trim(),
+            phone: String(info?.phone || info?.phone_no || '').trim()
           };
           this.benches = Array.isArray(info?.benches) ? info.benches : [];
         }
@@ -199,54 +252,56 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
     }
   }
 
-  // ===================== Guards & Validation =====================
-  private validateContextForAssignments(): { ok: boolean; reason?: string } {
-    if (!this.currentUserId || !this.currentLabId) {
-      return { ok: false, reason: 'Missing User/Lab context. Ensure you are logged in and a lab is selected.' };
-    }
-    if (!this.device_type || !this.device_testing_purpose) {
-      return { ok: false, reason: 'Missing Device Type/Testing Purpose. Please reload configuration.' };
-    }
-    return { ok: true };
-  }
+  // ======= calc helpers =======
+  calcImport(i: number) {
+    const r = this.batch.rows[i];
+    const s = Number(r.start_reading_import) || 0;
+    const f = Number(r.final_reading__import) || 0;
+    r.difference__import = +(f - s).toFixed(3);
 
-  private validateBeforeSubmit(): { ok: boolean; reason?: string } {
-    const ctx = this.validateContextForAssignments();
-    if (!ctx.ok) return ctx;
-
-    if (!this.batch.header.location_code || !this.batch.header.location_name) {
-      return { ok: false, reason: 'Zone/DC Code & Name are required (auto-filled from assignment).' };
-    }
-    if (!this.batch.header.date) return { ok: false, reason: 'Testing Date is required.' };
-    if (!this.testMethod) return { ok: false, reason: 'Select a Test Method.' };
-    if (!this.testStatus) return { ok: false, reason: 'Select a Test Status.' };
-
-    const clean = (this.batch.rows || []).filter(r => (r.serial || '').trim());
-    if (!clean.length) return { ok: false, reason: 'Enter at least one serial number.' };
-
-    for (let i = 0; i < clean.length; i++) {
-      const r = clean[i];
-      if (r.notFound) return { ok: false, reason: `Row #${i + 1}: Serial not in assigned list.` };
-      if (!r.assignment_id || !r.device_id) return { ok: false, reason: `Row #${i + 1}: Missing assignment/device mapping.` };
-      if (!r.test_result) return { ok: false, reason: `Row #${i + 1}: Choose Test Result.` };
-    }
-    return { ok: true };
-  }
-
-  // ===================== Helpers =====================
-  errorpercentage_calculate(i: number) {
-    const row = this.batch.rows[i];
-    const rb = Number(row.reading_before_test) || 0;
-    const ra = Number(row.reading_after_test) || 0;
-    const rs = Number(row.ref_start_reading) || 0;
-    const re = Number(row.ref_end_reading) || 0;
+    const rs = Number(r.ref_start_reading) || 0;
+    const re = Number(r.ref_end_reading) || 0;
     const refDiff = re - rs;
-    row.error_percentage = refDiff
-      ? Math.round((((ra - rb) - refDiff) / refDiff) * 100)
-      : 0;
+
+    // If refDiff provided, compute error%; else leave as is/null
+    r.error_percentage_import = refDiff
+      ? +((((f - s) - refDiff) / refDiff) * 100).toFixed(2)
+      : (r.error_percentage_import ?? null);
+  }
+  calcExport(i: number) {
+    const r = this.batch.rows[i];
+    const s = Number(r.start_reading_export) || 0;
+    const f = Number(r.final_reading_export) || 0;
+    r.difference_export = +(f - s).toFixed(3);
+
+    const rs = Number(r.export_ref_start_reading) || 0;
+    const re = Number(r.export_ref_end_reading) || 0;
+    const refDiff = re - rs;
+
+    r.error_percentage_export = refDiff
+      ? +((((f - s) - refDiff) / refDiff) * 100).toFixed(2)
+      : (r.error_percentage_export ?? null);
+  }
+  calcFinalDifference(i: number) {
+    const r = this.batch.rows[i];
+    const imp = Number(r.difference__import) || 0;
+    const exp = Number(r.difference_export) || 0;
+    r.final_Meter_Difference = +(imp - exp).toFixed(3);
+  }
+
+  // legacy single-channel calc (still available for keyboard Enter in old field)
+  errorpercentage_calculate(i: number) {
+    const r = this.batch.rows[i];
+    const rb = Number(r.reading_before_test) || 0;
+    const ra = Number(r.reading_after_test) || 0;
+    const rs = Number(r.ref_start_reading_legacy) || 0;
+    const re = Number(r.ref_end_reading_legacy) || 0;
+    const refDiff = re - rs;
+    r.error_percentage_legacy = refDiff ? Math.round((((ra - rb) - refDiff) / refDiff) * 100) : 0;
     return 0;
   }
 
+  // ======= utils =======
   private toYMD(d: Date): string {
     const dt = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
     return dt.toISOString().slice(0, 10);
@@ -263,7 +318,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
   private rebuildSerialIndex(assignments: AssignmentItem[]): void {
     this.serialIndex = {};
     for (const a of assignments) {
-      const d = a?.device ?? null;
+      const d = a?.device;
       const serial = (d?.serial_number || '').toUpperCase().trim();
       if (!serial) continue;
       this.serialIndex[serial] = {
@@ -275,7 +330,6 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
       };
     }
   }
-
   private loadHeaderFromAssignments(assignments: AssignmentItem[]) {
     const first = assignments.find(a => a.device);
     if (first) {
@@ -283,19 +337,15 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
       this.batch.header.location_name = first.device?.location_name ?? '';
       this.batch.header.testing_bench = first.testing_bench?.bench_name ?? '';
       this.batch.header.testing_user =
-        first.user_assigned?.name || first.user_assigned?.username || this.batch.header.testing_user || (localStorage.getItem('currentUserName') || '');
+        first.user_assigned?.name || first.user_assigned?.username || this.batch.header.testing_user || '';
       this.batch.header.approving_user =
         first.assigned_by_user?.name || first.assigned_by_user?.username || this.batch.header.approving_user || '-';
     }
-
     if (!this.batch.header.phase) {
-      const uniq = new Set(
-        assignments.map(a => (a.device?.phase || '').toUpperCase()).filter(Boolean)
-      );
+      const uniq = new Set(assignments.map(a => (a.device?.phase || '').toUpperCase()).filter(Boolean));
       this.batch.header.phase = uniq.size === 1 ? [...uniq][0] : this.batch.header.phase || '';
     }
   }
-
   private loadDataWithoutAddingRows(assignments: AssignmentItem[]): void {
     this.rebuildSerialIndex(assignments);
     this.loadHeaderFromAssignments(assignments);
@@ -304,35 +354,26 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
   doReloadAssignedWithoutAddingRows(): void {
     const v = this.validateContextForAssignments();
     if (!v.ok) { this.alertError = v.reason || 'Context invalid.'; return; }
-
     this.loading = true;
     this.api.getAssignedMeterList(
       this.device_status, this.currentUserId, this.currentLabId,
       this.device_testing_purpose, this.device_type
     ).subscribe({
       next: (data: any) => {
-        const assignments: AssignmentItem[] = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.results) ? data.results : [];
-        this.loadDataWithoutAddingRows(assignments);
+        const list: AssignmentItem[] = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
+        this.loadDataWithoutAddingRows(list);
         this.loading = false;
-        this.alertSuccess = `Assigned devices loaded (${assignments.length}).`;
+        this.alertSuccess = `Assigned devices loaded (${list.length}).`;
       },
       error: () => { this.loading = false; this.alertError = 'Assigned list load failed.'; }
     });
   }
 
-  // ===================== Picker (select devices to add) =====================
+  // picker
   openPicker(): void {
     const v = this.validateContextForAssignments();
     if (!v.ok) { this.alertError = v.reason || 'Context invalid.'; return; }
-
-    this.picking = true;
-    this.pickerLoading = true;
-    this.pickerAssignments = [];
-    this.pickerSelected = {};
-    this.pickerFilter = '';
-
+    this.picking = true; this.pickerLoading = true; this.pickerAssignments = []; this.pickerSelected = {}; this.pickerFilter = '';
     this.api.getAssignedMeterList(
       this.device_status, this.currentUserId, this.currentLabId,
       this.device_testing_purpose, this.device_type
@@ -341,7 +382,6 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
         const list: AssignmentItem[] = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
         this.pickerAssignments = list;
         this.pickerLoading = false;
-
         this.loadHeaderFromAssignments(list);
         this.rebuildSerialIndex(list);
       },
@@ -349,30 +389,17 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
     });
   }
   closePicker(): void { this.picking = false; }
-
   get pickerFiltered(): AssignmentItem[] {
     const q = (this.pickerFilter || '').trim().toLowerCase();
     const base = (this.pickerAssignments || []).filter(a => {
-      const d = a.device;
-      if (!d) return false;
+      const d = a.device; if (!d) return false;
       if (!q) return true;
-      return (
-        (d.serial_number || '').toLowerCase().includes(q) ||
-        (d.make || '').toLowerCase().includes(q) ||
-        (d.capacity || '').toLowerCase().includes(q)
-      );
+      return (d.serial_number || '').toLowerCase().includes(q)
+          || (d.make || '').toLowerCase().includes(q)
+          || (d.capacity || '').toLowerCase().includes(q);
     });
-    return base.sort((x, y) => {
-      const mx = (x.device?.make || '').toLowerCase();
-      const my = (y.device?.make || '').toLowerCase();
-      if (mx < my) return -1;
-      if (mx > my) return 1;
-      const sx = (x.device?.serial_number || '').toLowerCase();
-      const sy = (y.device?.serial_number || '').toLowerCase();
-      return sx.localeCompare(sy);
-    });
+    return base.sort((x, y) => (x.device?.make || '').localeCompare(y.device?.make || ''));
   }
-
   get allPicked(): boolean {
     const list = this.pickerFiltered;
     return list.length > 0 && list.every(a => !!this.pickerSelected[a.id]);
@@ -384,66 +411,60 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
 
   addPickedToRows(): void {
     const chosen = this.pickerFiltered.filter(a => this.pickerSelected[a.id]);
-    const existingSerials = new Set(this.batch.rows.map(r => (r.serial || '').toUpperCase().trim()));
-
+    const existing = new Set(this.batch.rows.map(r => (r.serial || '').toUpperCase().trim()));
     let added = 0;
-    chosen.forEach((a) => {
-      const d = a.device || ({} as MeterDevice);
-      const serial = (d.serial_number || '').trim();
-      if (!serial || existingSerials.has(serial.toUpperCase())) return;
-
+    chosen.forEach(a => {
+      const d = a.device!;
+      const serial = (d?.serial_number || '').trim();
+      if (!serial || existing.has(serial.toUpperCase())) return;
       this.batch.rows.push(this.emptyRow({
-        serial,
-        make: d.make || '',
-        capacity: d.capacity || '',
-        device_id: d.id ?? a.device_id ?? 0,
-        assignment_id: a.id ?? 0,
-        notFound: false
+        serial, make: d.make || '', capacity: d.capacity || '',
+        device_id: d.id ?? a.device_id ?? 0, assignment_id: a.id ?? 0, notFound: false
       }));
-      existingSerials.add(serial.toUpperCase());
-      added++;
+      existing.add(serial.toUpperCase()); added++;
     });
-
     if (!this.batch.rows.length) this.addBatchRow();
     this.closePicker();
-
-    this.alertSuccess = added ? `${added} device(s) added to the batch.` : 'No new devices were added (duplicates or none selected).';
+    this.alertSuccess = added ? `${added} device(s) added.` : 'No new devices (duplicates or none selected).';
   }
 
-  // ===================== Row ops =====================
+  // rows
   private emptyRow(seed?: Partial<DeviceRow>): DeviceRow {
     return {
-      serial: '',
-      make: '',
-      capacity: '',
-      remark: '',
-      test_result: undefined,
-      test_method: 'MANUAL',
-      device_id: 0,
-      assignment_id: 0,
-      notFound: false,
+      serial: '', make:'', capacity:'', device_id:0, assignment_id:0, notFound:false,
+      remark:'', other:'', test_result: undefined, test_method:'MANUAL', test_status: undefined,
 
-      physical_condition_of_device: '',
-      seal_status: '',
-      meter_glass_cover: '',
-      terminal_block: '',
-      meter_body: '',
-      other: '',
-      is_burned: false,
+      consumer_name:'', consumer_address:'', certificate_number: null,
+      testing_fees: null, fees_mr_no: null, fees_mr_date: null, ref_no: null,
 
-      reading_before_test: 0,
-      reading_after_test: 0,
-      ref_start_reading: 0,
-      ref_end_reading: 0,
-      error_percentage: 0,
+      start_reading_import: null, final_reading__import: null, difference__import: null, error_percentage_import: null,
+      start_reading_export: null, final_reading_export: null, difference_export: null, error_percentage_export: null,
 
-      _open: false,
+      ref_start_reading: null, ref_end_reading: null,
+      export_ref_start_reading: null, export_ref_end_reading: null,
+
+      shunt_current_test: null, shunt_creep_test: null, shunt_dail_test: null,
+      nutral_current_test: null, nutral_creep_test: null, nutral_dail_test: null,
+
+      physical_condition_of_device:'', seal_status:'', meter_glass_cover:'', terminal_block:'', meter_body:'', is_burned:false,
+
+      final_Meter_Difference: null,
+      test_requester_name: null, meter_removaltime_reading: null, meter_removaltime_metercondition: null,
+      any_other_remarkny_zone: null,
+      dail_test_kwh_rsm: null, recorderedbymeter_kwh: null,
+      final_remarks: null,
+
+      p4_division: null, p4_no: null, p4_date: null, p4_metercodition: null,
+      approver_id: null, approver_remark: null,
+
+      reading_before_test: 0, reading_after_test: 0,
+      ref_start_reading_legacy: null, ref_end_reading_legacy: null, error_percentage_legacy: null,
+
+      _open:false,
       ...seed
     };
   }
-
   addBatchRow(): void { this.batch.rows.push(this.emptyRow()); }
-
   removeRow(index: number): void {
     this.batch.rows.splice(index, 1);
     if (!this.batch.rows.length) this.addBatchRow();
@@ -453,23 +474,15 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
     const key = (serial || '').toUpperCase().trim();
     const row = this.batch.rows[i];
     const hit = this.serialIndex[key];
-
     if (hit) {
       row.make = hit.make || '';
       row.capacity = hit.capacity || '';
       row.device_id = hit.device_id || 0;
       row.assignment_id = hit.assignment_id || 0;
       row.notFound = false;
-
-      if (!this.batch.header.phase && hit.phase) {
-        this.batch.header.phase = (hit.phase || '').toUpperCase();
-      }
+      if (!this.batch.header.phase && hit.phase) this.batch.header.phase = (hit.phase || '').toUpperCase();
     } else {
-      row.make = '';
-      row.capacity = '';
-      row.device_id = 0;
-      row.assignment_id = 0;
-      row.notFound = key.length > 0;
+      row.make = ''; row.capacity = ''; row.device_id = 0; row.assignment_id = 0; row.notFound = key.length > 0;
     }
   }
 
@@ -481,114 +494,119 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
       (r.make || '').toLowerCase().includes(q) ||
       (r.capacity || '').toLowerCase().includes(q) ||
       (r.remark || '').toLowerCase().includes(q) ||
-      ((r.test_result || '').toString().toLowerCase().includes(q))
+      ((r.test_result || '').toString().toLowerCase().includes(q)) ||
+      (r.consumer_name || '').toLowerCase().includes(q)
     );
   }
-
   trackRow(index: number, r: DeviceRow): string {
     return `${r.assignment_id || 0}_${r.device_id || 0}_${r.serial || ''}_${index}`;
   }
 
-  // ===================== Submit helpers =====================
-  private buildPayloadForPreview(): any[] {
-    const when = this.isoOn(this.batch.header.date);
-
-    return (this.batch.rows || [])
-      .filter(r => (r.serial || '').trim())
-      .map(r => ({
-        device_id: r.device_id ?? 0,
-        assignment_id: r.assignment_id ?? 0,
-        start_datetime: when,
-        end_datetime: when,
-
-        physical_condition_of_device: r.physical_condition_of_device || '-',
-        seal_status: r.seal_status || '-',
-        meter_glass_cover: r.meter_glass_cover || '-',
-        terminal_block: r.terminal_block || '-',
-        meter_body: r.meter_body || '-',
-        other: r.other || '-',
-        is_burned: !!r.is_burned,
-
-        reading_before_test: Number(r.reading_before_test) || 0,
-        reading_after_test: Number(r.reading_after_test) || 0,
-        ref_start_reading: Number(r.ref_start_reading) || 0,
-        ref_end_reading: Number(r.ref_end_reading) || 0,
-        error_percentage: Number(r.error_percentage) || 0,
-
-        details: r.remark || null,
-        test_result: (r.test_result as string) || null,
-        test_method: this.testMethod,
-        test_status: this.testStatus,
-        approver_id: this.approverId ?? null,
-        report_type: this.report_type ?? 'SMART_AGAINST_METER'
-      }));
+  // ======= validation =======
+  private validateContextForAssignments(): { ok: boolean; reason?: string } {
+    if (!this.currentUserId || !this.currentLabId)
+      return { ok:false, reason:'Missing User/Lab context. Ensure you are logged in and a lab is selected.' };
+    if (!this.device_type || !this.device_testing_purpose)
+      return { ok:false, reason:'Missing Device Type/Testing Purpose. Please reload configuration.' };
+    return { ok:true };
   }
 
-  private buildPrintableSnapshot(): {
-    rows: Array<{serial:string;make:string;capacity:string;remark:string;test_result:string}>;
-    meta: any
-  } {
-    const rows = (this.batch.rows || [])
+  private validateBeforeSubmit(): { ok: boolean; reason?: string } {
+    const ctx = this.validateContextForAssignments();
+    if (!ctx.ok) return ctx;
+    if (!this.batch.header.location_code || !this.batch.header.location_name)
+      return { ok:false, reason:'Zone/DC Code & Name are required (auto-filled from assignment).' };
+    if (!this.batch.header.date) return { ok:false, reason:'Testing Date is required.' };
+    if (!this.testMethod) return { ok:false, reason:'Select a Test Method.' };
+    if (!this.testStatus) return { ok:false, reason:'Select a Test Status.' };
+
+    const clean = (this.batch.rows || []).filter(r => (r.serial || '').trim());
+    if (!clean.length) return { ok:false, reason:'Enter at least one serial number.' };
+
+    for (let i = 0; i < clean.length; i++) {
+      const r = clean[i];
+      if (r.notFound) return { ok:false, reason:`Row #${i+1}: Serial not in assigned list.` };
+      if (!r.assignment_id || !r.device_id) return { ok:false, reason:`Row #${i+1}: Missing assignment/device mapping.` };
+      if (!r.test_result) return { ok:false, reason:`Row #${i+1}: Choose Test Result.` };
+    }
+    return { ok:true };
+  }
+
+  // ======= PDF =======
+  private buildPrintableSnapshot(): { rows: SmartRow[]; meta: SmartMeta; logos: PdfLogos } {
+    const rows: SmartRow[] = (this.batch.rows || [])
       .filter(r => (r.serial || '').trim())
       .map(r => ({
         serial: r.serial?.trim() || '-',
         make: r.make || '',
         capacity: r.capacity || '',
-        remark: r.remark || r.other || '',
-        test_result: r.test_result || ''
+        test_result: r.test_result || '',
+        consumer_name: r.consumer_name || '',
+        error_percentage_import: r.error_percentage_import ?? null,
+        error_percentage_export: r.error_percentage_export ?? null,
+        testing_fees: r.testing_fees ?? null,
+        remark: r.remark || '',
+        other: r.other || ''
       }));
 
-    const meta = {
+    const meta: SmartMeta = {
       zone: (this.batch.header.location_code ? this.batch.header.location_code + ' - ' : '') + (this.batch.header.location_name || '') || '',
       phase: this.batch.header.phase || '',
       date: this.batch.header.date || this.toYMD(new Date()),
       testMethod: this.testMethod || '-',
       testStatus: this.testStatus || '-',
       testing_bench: this.batch.header.testing_bench || '-',
-      testing_user: this.batch.header.testing_user || (localStorage.getItem('currentUserName') || '').toString(),
+      testing_user: this.batch.header.testing_user || '',
       approving_user: this.batch.header.approving_user || '-',
+      approver_remarks: this.approverRemark || null,
       lab: this.labInfo || undefined
     };
 
-    return { rows, meta };
-  }
-
-  private async downloadPdfFromBatch(): Promise<void> {
-    const snap = this.buildPrintableSnapshot();
-    await this.smartPdf.download(snap.rows, snap.meta, {
+    const logos: PdfLogos = {
       leftLogoUrl: '/assets/icons/wzlogo.png',
       rightLogoUrl: '/assets/icons/wzlogo.png'
-    });
+    };
+    return { rows, meta, logos };
   }
 
-  // ===================== Submit (API + PDF) =====================
+  async previewPdf(): Promise<void> {
+    try {
+      const snap = this.buildPrintableSnapshot();
+      await this.smartPdf.open(snap.rows, snap.meta, snap.logos);
+    } catch (e) {
+      console.error('PDF preview error:', e);
+      this.alertError = 'Unable to preview PDF.';
+    }
+  }
+  private async downloadPdfFromBatch(): Promise<void> {
+    const snap = this.buildPrintableSnapshot();
+    await this.smartPdf.download(snap.rows, snap.meta, snap.logos);
+  }
+
+  // ======= submit =======
   openConfirm(action: ModalState['action']): void {
     if (action !== 'submit') { this.alertSuccess = null; this.alertError = null; }
 
-    // inline validate for submit
     if (action === 'submit') {
       const v = this.validateBeforeSubmit();
       if (!v.ok) {
         this.alertError = v.reason || 'Validation failed.';
-        this.modal = { open: true, title: 'Validation Errors', message: v.reason || '', action: null };
+        this.modal = { open:true, title:'Validation Errors', message:v.reason || '', action:null };
         return;
       }
     }
 
     this.modal.action = action;
-    switch (action) {
-      case 'clear':
-        this.modal.title = 'Clear All Rows';
-        this.modal.message = 'Clear all rows and leave one empty row?';
-        break;
-      case 'submit':
-        this.payload = this.buildPayloadForPreview();
-        this.modal.title = 'Submit Batch Report — Preview';
-        this.modal.message = '';
-        break;
-      default:
-        this.modal.title = '';
-        this.modal.message = '';
+    if (action === 'clear') {
+      this.modal.title = 'Clear All Rows';
+      this.modal.message = 'Clear all rows and leave one empty row?';
+    } else if (action === 'submit') {
+      this.payload = this.buildPayloadForPreview();
+      this.modal.title = 'Submit Batch Report — Preview';
+      this.modal.message = '';
+    } else {
+      this.modal.title = '';
+      this.modal.message = '';
     }
     this.modal.open = true;
   }
@@ -598,12 +616,101 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
     this.modal.action = null;
     this.modal.payload = undefined;
   }
-
   confirmModal(): void {
-    const a = this.modal.action;
-    if (a !== 'submit') this.closeModal();
-    if (a === 'clear') this.batch.rows = [this.emptyRow()];
-    if (a === 'submit') this.doSubmitBatch();
+    if (this.modal.action === 'clear') {
+      this.batch.rows = [this.emptyRow()];
+      this.closeModal();
+      return;
+    }
+    if (this.modal.action === 'submit') this.doSubmitBatch();
+  }
+
+  private buildPayloadForPreview(): any[] {
+    const when = this.isoOn(this.batch.header.date);
+
+    return (this.batch.rows || [])
+      .filter(r => (r.serial || '').trim())
+      .map(r => ({
+        device_id: r.device_id ?? 0,
+        assignment_id: r.assignment_id ?? 0,
+        report_type: this.report_type ?? 'SMART_AGAINST_METER',
+
+        start_datetime: when,
+        end_datetime: when,
+
+        // condition
+        physical_condition_of_device: r.physical_condition_of_device || null,
+        seal_status: r.seal_status || null,
+        meter_glass_cover: r.meter_glass_cover || null,
+        terminal_block: r.terminal_block || null,
+        meter_body: r.meter_body || null,
+        other: r.other || null,
+        is_burned: !!r.is_burned,
+
+        // consumer/docs/fees
+        consumer_name: r.consumer_name || null,
+        consumer_address: r.consumer_address || null,
+        certificate_number: r.certificate_number || null,
+        testing_fees: r.testing_fees || null,
+        fees_mr_no: r.fees_mr_no || null,
+        fees_mr_date: r.fees_mr_date || null,
+        ref_no: r.ref_no || null,
+
+        // IMPORT
+        start_reading_import: Number(r.start_reading_import) || 0,
+        final_reading__import: Number(r.final_reading__import) || 0,
+        difference__import: Number.isFinite(Number(r.difference__import)) ? Number(r.difference__import) :
+          Math.max(0, (Number(r.final_reading__import)||0) - (Number(r.start_reading_import)||0)),
+        error_percentage_import: Number.isFinite(Number(r.error_percentage_import)) ? Number(r.error_percentage_import) : null,
+
+        // EXPORT
+        start_reading_export: Number(r.start_reading_export) || 0,
+        final_reading_export: Number(r.final_reading_export) || 0,
+        difference_export: Number.isFinite(Number(r.difference_export)) ? Number(r.difference_export) :
+          Math.max(0, (Number(r.final_reading_export)||0) - (Number(r.start_reading_export)||0)),
+        error_percentage_export: Number.isFinite(Number(r.error_percentage_export)) ? Number(r.error_percentage_export) : null,
+
+        // union refs saved to model’s import refs
+        ref_start_reading: Number(r.ref_start_reading) || 0,
+        ref_end_reading: Number(r.ref_end_reading) || 0,
+
+        // quick tests
+        shunt_current_test: r.shunt_current_test || null,
+        shunt_creep_test: r.shunt_creep_test || null,
+        shunt_dail_test: r.shunt_dail_test || null,
+        nutral_current_test: r.nutral_current_test || null,
+        nutral_creep_test: r.nutral_creep_test || null,
+        nutral_dail_test: r.nutral_dail_test || null,
+
+        // combined/extra
+        final_Meter_Difference: Number.isFinite(Number(r.final_Meter_Difference)) ? Number(r.final_Meter_Difference) : null,
+        test_requester_name: r.test_requester_name || null,
+        meter_removaltime_reading: Number(r.meter_removaltime_reading) || null,
+        meter_removaltime_metercondition: r.meter_removaltime_metercondition || null,
+        any_other_remarkny_zone: r.any_other_remarkny_zone || null,
+        dail_test_kwh_rsm: Number(r.dail_test_kwh_rsm) || null,
+        recorderedbymeter_kwh: Number(r.recorderedbymeter_kwh) || null,
+
+        final_remarks: r.final_remarks || null,
+
+        p4_division: r.p4_division || null,
+        p4_no: r.p4_no || null,
+        p4_date: r.p4_date || null,
+        p4_metercodition: r.p4_metercodition || null,
+
+        approver_id: Number.isFinite(Number(r.approver_id)) ? Number(r.approver_id) : null,
+        approver_remark: r.approver_remark || this.approverRemark || null,
+
+        // details+status
+        details: r.remark || r.other || null,
+        test_result: r.test_result || null,
+        test_method: this.testMethod,
+        test_status: this.testStatus,
+
+        // audit
+        created_by: String(this.currentUserId || ''),
+        updated_by: String(this.currentUserId || '')
+      }));
   }
 
   private doSubmitBatch(): void {
@@ -611,10 +718,9 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
     if (!v.ok) { this.alertError = v.reason || 'Validation failed.'; this.alertSuccess = null; return; }
 
     this.payload = this.buildPayloadForPreview();
-
     const missing = this.payload.findIndex(p => !p.test_result);
     if (missing !== -1) {
-      this.alertError = `Row #${missing + 1} is missing Test Result (PASS/FAIL).`;
+      this.alertError = `Row #${missing + 1} is missing Test Result.`;
       this.alertSuccess = null;
       return;
     }
@@ -634,8 +740,8 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
           this.alertSuccess = 'Batch Report submitted successfully!';
           this.alertError = 'PDF generation failed.';
         }
-        this.batch.rows = [this.emptyRow()];  // reset rows
-        setTimeout(() => this.closeModal(), 1000);
+        this.batch.rows = [this.emptyRow()];
+        setTimeout(() => this.closeModal(), 600);
       },
       error: (error) => {
         this.submitting = false;
