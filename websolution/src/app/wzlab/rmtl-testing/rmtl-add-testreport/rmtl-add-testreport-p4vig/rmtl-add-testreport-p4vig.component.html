@@ -7,24 +7,9 @@
       style="background:#151433"
     >
       <h5 class="mb-0">RMTL — P4 (VIG) Meter Report</h5>
-      <div class="d-flex flex-wrap gap-2">
-        <span class="badge bg-secondary" aria-label="Total rows">Total {{ rows.length }}</span>
-        <span class="badge bg-success" aria-label="Known rows">Matched {{ matchedCount }}</span>
-        <span class="badge bg-danger" aria-label="Unknown rows">Unknown {{ unknownCount }}</span>
-      </div>
     </div>
 
     <div class="card-body">
-      <!-- Inline alerts -->
-      <div class="mb-3 d-print-none">
-        <small *ngIf="alertSuccess" class="alert alert-success d-block" role="status">{{ alertSuccess }}</small>
-        <small *ngIf="alertError" class="alert alert-danger d-block" role="alert">{{ alertError }}</small>
-        <small *ngIf="pageMessage" class="alert"
-               [ngClass]="{'alert-success': pageMessage.type==='success', 'alert-danger': pageMessage.type==='error',
-                          'alert-warning': pageMessage.type==='warning','alert-info': pageMessage.type==='info'}">
-          {{ pageMessage.text }}
-        </small>
-      </div>
 
       <!-- Toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none align-items-center">
@@ -449,6 +434,17 @@
         </div>
       </div>
     </div>
+    
+      <!-- Inline alerts -->
+    <div class="mb-3">
+        <small *ngIf="alertSuccess" class="alert alert-success d-block" role="status">{{ alertSuccess }}</small>
+        <small *ngIf="alertError" class="alert alert-danger d-block" role="alert">{{ alertError }}</small>
+        <small *ngIf="pageMessage" class="alert d-block"
+               [ngClass]="{'alert-success': pageMessage.type==='success', 'alert-danger': pageMessage.type==='error',
+                          'alert-warning': pageMessage.type==='warning','alert-info': pageMessage.type==='info'}">
+          {{ pageMessage.text }}
+        </small>
+      </div>
   </div>
 
   <!-- Loading overlay -->

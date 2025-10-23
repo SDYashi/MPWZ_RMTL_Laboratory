@@ -13,12 +13,16 @@ interface DeviceLite {
   capacity?: string;
   location_code?: string | null;
   location_name?: string | null;
-  // Optional hints (if your API provides)
-  testing_bench?: string | null;
-  testing_user?: string | null;
-  approving_user?: string | null;
 }
-interface AssignmentItem { id: number; device_id: number; device?: DeviceLite | null; }
+
+interface AssignmentItem {
+  id: number;
+  device_id: number;
+  device?: DeviceLite | null;
+  testing_bench?: { bench_name?: string } | null;
+  user_assigned?: { name?: string } | null;
+  assigned_by_user?: { name?: string } | null;
+}
 
 interface CtRow {
   ct_no: string;
@@ -27,7 +31,7 @@ interface CtRow {
   ratio: CTRatio | string;
   polarity: string;
   remark: string;
-  working?: Working;                 // NEW: Working enum selection
+  working?: Working;
   assignment_id?: number;
   device_id?: number;
   notFound?: boolean;
@@ -64,15 +68,14 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     testing_bench: ''
   };
 
-  // Non-null bench/user/approver (enforced non-null in validate / picker fill)
-  testing_bench: string = '';
-  testing_user: string = '';
-  approving_user: string = '';
+  // Non-null display values used in header
+  testing_bench: any = '';
+  testing_user: any = '';
+  approving_user: any = '';
 
-  // PDF date
   pdf_date: string = '';
 
-  // Lab info fetched (read-only)
+  // Lab info
   lab_name: string = '';
   lab_address: string = '';
   lab_email: string = '';
@@ -89,14 +92,14 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   makes: any;
   ct_classes: any;
 
-  // NEW: row dropdown options
+  // dropdown options
   workingOptions: Working[] = ['OK', 'FAST', 'SLOW', 'NOT WORKING'];
   ratioOptions: CTRatio[] = ['100/5', '200/5', '300/5', '400/5', '600/5'];
 
-  // assignment / lab context
+  // context
   device_status: 'ASSIGNED' = 'ASSIGNED';
-  currentUserId:any;
-  currentLabId:any;
+  currentUserId: any;
+  currentLabId: any;
   report_type = 'CT_TESTING';
   device_testing_purpose: any;
   device_type: any;
@@ -105,7 +108,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; }> = {};
 
   // rows
-  ctRows: CtRow[] = [ this.emptyCtRow() ];
+  ctRows: CtRow[] = [this.emptyCtRow()];
   filterText = '';
 
   // modals
@@ -124,7 +127,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
 
   approverId: number | null = null;
 
-  // Assigned picker w/ search + sorting
+  // Assigned picker
   assignedPicker = {
     open: false,
     items: [] as Array<{
@@ -134,92 +137,92 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       make?: string;
       capacity?: string;
       selected: boolean;
-      // optional bench/user/approver hints if API provides
-      testing_bench?: string | null;
-      testing_user?: string | null;
-      approving_user?: string | null;
+      testing_bench?: { bench_name?: string } | null;
+      testing_user?: { name?: string } | null;
+      approving_user?: { name?: string } | null;
+      device?: DeviceLite | null;
     }>,
-    query: '' // 🔍 search
+    query: ''
   };
 
-  constructor(private api: ApiServicesService, 
+  capacities: any;
+  fees_mtr_cts: any;
+  test_dail_current_cheaps: any;
+
+  constructor(
+    private api: ApiServicesService,
     private ctPdf: CtReportPdfService,
-    private authService: AuthService) {}
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
-    // Robust defaults to avoid null / 0 issues
+    // context
     this.device_type = 'CT';
     this.device_testing_purpose = 'CT_TESTING';
 
-    // this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    // this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
     this.currentUserId = this.authService.getuseridfromtoken();
     this.currentLabId = this.authService.getlabidfromtoken();
-    const userName = localStorage.getItem('currentUserName') || '';
+
+    const userName = this.authService.getUserNameFromToken?.() || localStorage.getItem('currentUserName') || '';
     if (userName) {
       this.testing_user = userName;
       this.header.testing_user = userName;
     }
 
+    // enums
     this.api.getEnums().subscribe({
       next: (d) => {
-        this.test_methods  = d?.test_methods || [];
+        this.test_methods = d?.test_methods || [];
         this.test_statuses = d?.test_statuses || [];
-        this.report_type   = d?.test_report_types?.CT_TESTING || this.report_type;
-        this.office_types  = d?.office_types || [];
+        this.report_type = d?.test_report_types?.CT_TESTING || this.report_type;
+        this.office_types = d?.office_types || [];
         this.commentby_testers = d?.commentby_testers || [];
         this.test_results = d?.test_results || [];
-        this.makes = d?.device_makes || [];
+        this.makes = d?.makes || [];
         this.ct_classes = d?.ct_classes || [];
-
-        // purpose/type with robust fallback
         this.device_testing_purpose = d?.test_report_types?.CT_TESTING ?? 'CT_TESTING';
         this.device_type = d?.device_types?.CT ?? 'CT';
+        this.capacities = d?.capacities || [];
+        this.fees_mtr_cts= d?.fees_mtr_cts || [];
+        this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
       }
     });
 
     this.loadLabInfo();
+    this.loadAssignedPrefill();
   }
 
   // ===== Validation guards =====
   private validateContext(): { ok: boolean; reason?: string } {
-    if (!this.device_type)   return { ok:false, reason:'Missing device_type — refresh enums.' };
-    if (!this.device_testing_purpose) return { ok:false, reason:'Missing device_testing_purpose — refresh enums.' };
-
-    // User & lab must be present for assignment filtering
-    if (!this.currentUserId || this.currentUserId <= 0) return { ok:false, reason:'Missing user_id — sign in again.' };
-    if (!this.currentLabId  || this.currentLabId <= 0)  return { ok:false, reason:'Missing lab_id — select a lab.' };
-    return { ok:true };
+    if (!this.device_type) return { ok: false, reason: 'Missing device_type — refresh enums.' };
+    if (!this.device_testing_purpose) return { ok: false, reason: 'Missing device_testing_purpose — refresh enums.' };
+    if (!this.currentUserId || this.currentUserId <= 0) return { ok: false, reason: 'Missing user_id — sign in again.' };
+    if (!this.currentLabId || this.currentLabId <= 0) return { ok: false, reason: 'Missing lab_id — select a lab.' };
+    return { ok: true };
   }
 
-  private validate(): { ok:boolean; reason?: string } {
+  private validate(): { ok: boolean; reason?: string } {
     const ctx = this.validateContext();
     if (!ctx.ok) return ctx;
 
-    if (!this.testMethod || !this.testStatus) {
-      return { ok:false, reason:'Select Test Method and Test Status.' };
-    }
-    if (!this.header.date_of_testing) {
-      return { ok:false, reason:'Date of testing is required.' };
-    }
-    const validRows = (this.ctRows||[]).filter(r => (r.ct_no||'').trim());
-    if (!validRows.length) {
-      return { ok:false, reason:'Add at least one CT row.' };
-    }
+    if (!this.testMethod || !this.testStatus) return { ok: false, reason: 'Select Test Method and Test Status.' };
+    if (!this.header.date_of_testing) return { ok: false, reason: 'Date of testing is required.' };
 
-    // Enforce non-null bench/user/approver (UI + header mirror)
-    this.testing_bench   = (this.testing_bench   || '').trim() || '-';
-    this.testing_user    = (this.testing_user    || '').trim() || '-';
-    this.approving_user  = (this.approving_user  || '').trim() || '-';
+    const validRows = (this.ctRows || []).filter(r => (r.ct_no || '').trim());
+    if (!validRows.length) return { ok: false, reason: 'Add at least one CT row.' };
+
+    // Ensure non-empty display values (safe for any)
+    this.testing_bench = String(this.testing_bench ?? '').trim() || '-';
+    this.testing_user = String(this.testing_user ?? '').trim() || '-';
+    this.approving_user = String(this.approving_user ?? '').trim() || '-';
     this.header.testing_bench = this.testing_bench;
-    this.header.testing_user  = this.testing_user;
+    this.header.testing_user = this.testing_user;
     this.header.approving_user = this.approving_user;
 
-    // Small conveniences
     this.header.no_of_ct = validRows.length.toString();
     if (!this.header.ct_make && validRows[0]) this.header.ct_make = validRows[0].make || '';
 
-    return { ok:true };
+    return { ok: true };
   }
 
   // ===== Lab info =====
@@ -227,74 +230,20 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     if (!this.currentLabId) return;
     this.api.getLabInfo?.(this.currentLabId)?.subscribe?.({
       next: (lab: any) => {
-        this.lab_name    = lab?.lab_pdfheader_name || lab?.name || lab?.lab_name || this.lab_name;
+        this.lab_name = lab?.lab_pdfheader_name || lab?.name || lab?.lab_name || this.lab_name;
         this.lab_address = lab?.address || lab?.lab_address || this.lab_address;
-        this.lab_email   = lab?.email || lab?.lab_email || this.lab_email;
-        this.lab_phone   = lab?.phone || lab?.lab_phone || this.lab_phone;
+        this.lab_email = lab?.email || lab?.lab_email || this.lab_email;
+        this.lab_phone = lab?.phone || lab?.lab_phone || this.lab_phone;
       },
       error: () => { /* keep defaults */ }
     });
   }
 
-  // ===== Source lookups =====
-  selectedSourceType: any;
-  selectedSourceName: string = '';
-  filteredSources: any;
+  // ===== Prefill on load =====
+  private loadAssignedPrefill(): void {
+    const ctx = this.validateContext();
+    if (!ctx.ok) { return; }
 
-  fetchButtonData(): void {
-    if (!this.selectedSourceType || !this.selectedSourceName) {
-      this.openAlert('warning', 'Missing Input', 'Select a source type and enter code.');
-      return;
-    }
-    this.api.getOffices(this.selectedSourceType, this.selectedSourceName).subscribe({
-      next: (data) => {
-        this.filteredSources = data;
-        this.header.location_name = this.filteredSources?.name ?? '';
-        this.header.location_code = this.filteredSources?.code ?? '';
-        this.openAlert('success', 'Source loaded', 'Office/Store/Vendor fetched.', 1200);
-      },
-      error: () => this.openAlert('error', 'Lookup failed', 'Check the code and try again.')
-    });
-  }
-  onSourceTypeChange(): void { this.selectedSourceName = ''; this.filteredSources = []; }
-
-  // ===== Counts / rows =====
-  get matchedCount(){ return (this.ctRows ?? []).filter(r => !!r.ct_no && !r.notFound).length; }
-  get unknownCount(){ return (this.ctRows ?? []).filter(r => !!r.notFound).length; }
-
-  emptyCtRow(seed?: Partial<CtRow>): CtRow {
-    return { ct_no: '', make: '', cap: '', ratio: '', polarity: '', remark: '', working: undefined, ...seed };
-  }
-  addCtRow(){ this.ctRows.push(this.emptyCtRow()); }
-  removeCtRow(i: number){
-    if (i >= 0 && i < this.ctRows.length) {
-      this.ctRows.splice(i, 1);
-      if (!this.ctRows.length) this.addCtRow();
-      this.header.no_of_ct = (this.ctRows.filter(r => (r.ct_no||'').trim()).length || 1).toString();
-      if (!this.header.ct_make && this.ctRows[0]) this.header.ct_make = this.ctRows[0].make || '';
-    }
-  }
-  clearCtRows(){ this.ctRows = [ this.emptyCtRow() ]; }
-
-  trackByCtRow(i:number, r:CtRow){ return `${r.assignment_id || 0}_${r.device_id || 0}_${r.ct_no || ''}_${i}`; }
-
-  displayRows(): CtRow[] {
-    const q = (this.filterText||'').trim().toLowerCase();
-    if (!q) return this.ctRows;
-    return this.ctRows.filter(r =>
-      (r.ct_no || '').toLowerCase().includes(q) ||
-      (r.make  || '').toLowerCase().includes(q) ||
-      (r.remark|| '').toLowerCase().includes(q)
-    );
-  }
-
-  // ===== Assigned devices picker (sorted + search) =====
-  openAssignPicker(){
-    const v = this.validateContext();
-    if (!v.ok){ this.openAlert('warning','Context Error',v.reason!); return; }
-
-    this.loading = true;
-    // Use robust param order: status, userId, labId, purpose, type
     this.api.getAssignedMeterList(
       this.device_status,
       this.currentUserId,
@@ -302,9 +251,100 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       this.device_testing_purpose,
       this.device_type
     ).subscribe({
-      next: (data:any) => {
+      next: (data: any) => {
+        const asg: AssignmentItem[] = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
+
+        // Build serial index for quick fill on CT no change
+        this.serialIndex = {};
+        for (const a of asg) {
+          const d = a.device as DeviceLite | undefined;
+          const key = (d?.serial_number || '').toUpperCase().trim();
+          if (!key) continue;
+          this.serialIndex[key] = {
+            make: d?.make || '',
+            capacity: d?.capacity || '',
+            device_id: d?.id ?? a.device_id ?? 0,
+            assignment_id: a?.id ?? 0
+          };
+        }
+
+        // Prefill header from FIRST assignment
+        const first = asg[0];
+        if (first) {
+          const dev = first.device as DeviceLite | undefined;
+          const bench = first.testing_bench;
+          const userAssigned = first.user_assigned;
+          const assignedBy = first.assigned_by_user;
+
+          // Zone/DC from device
+          this.header.location_code = dev?.location_code || '';
+          this.header.location_name = dev?.location_name || '';
+
+          // Bench / users
+          this.testing_bench = bench?.bench_name || this.testing_bench || '-';
+          this.testing_user = userAssigned?.name || this.testing_user || '-';
+          this.approving_user = assignedBy?.name || this.approving_user || '-';
+
+          // Mirror into header block
+          this.header.testing_bench = this.testing_bench;
+          this.header.testing_user = this.testing_user;
+          this.header.approving_user = this.approving_user;
+
+          // Optional make hint
+          if (!this.header.ct_make) this.header.ct_make = dev?.make || '';
+        }
+      },
+      error: () => { /* ignore prefill errors */ }
+    });
+  }
+
+  // ===== Helpers =====
+  emptyCtRow(seed?: Partial<CtRow>): CtRow {
+    return { ct_no: '', make: '', cap: '', ratio: '', polarity: '', remark: '', working: undefined, ...seed };
+  }
+
+  addCtRow() { this.ctRows.push(this.emptyCtRow()); }
+
+  removeCtRow(i: number) {
+    if (i >= 0 && i < this.ctRows.length) {
+      this.ctRows.splice(i, 1);
+      if (!this.ctRows.length) this.addCtRow();
+      this.header.no_of_ct = (this.ctRows.filter(r => (r.ct_no || '').trim()).length || 1).toString();
+      if (!this.header.ct_make && this.ctRows[0]) this.header.ct_make = this.ctRows[0].make || '';
+    }
+  }
+
+  clearCtRows() { this.ctRows = [this.emptyCtRow()]; }
+
+  trackByCtRow(i: number, r: CtRow) { return `${r.assignment_id || 0}_${r.device_id || 0}_${r.ct_no || ''}_${i}`; }
+
+  displayRows(): CtRow[] {
+    const q = (this.filterText || '').trim().toLowerCase();
+    if (!q) return this.ctRows;
+    return this.ctRows.filter(r =>
+      (r.ct_no || '').toLowerCase().includes(q) ||
+      (r.make || '').toLowerCase().includes(q) ||
+      (r.remark || '').toLowerCase().includes(q)
+    );
+  }
+
+  // ===== Assigned devices picker =====
+  openAssignPicker() {
+    const v = this.validateContext();
+    if (!v.ok) { this.openAlert('warning', 'Context Error', v.reason!); return; }
+
+    this.loading = true;
+    this.api.getAssignedMeterList(
+      this.device_status,
+      this.currentUserId,
+      this.currentLabId,
+      this.device_testing_purpose,
+      this.device_type
+    ).subscribe({
+      next: (data: any) => {
         const asg: AssignmentItem[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
-        // build index
+
+        // build index + items
         this.serialIndex = {};
         const items = asg
           .map(a => {
@@ -325,55 +365,55 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
               make: d.make || '',
               capacity: d.capacity || '',
               selected: false,
-              testing_bench: d.testing_bench ?? null,
-              testing_user: d.testing_user ?? null,
-              approving_user: d.approving_user ?? null
+              testing_bench: a.testing_bench ?? null,
+              testing_user: a.user_assigned ?? null,
+              approving_user: a.assigned_by_user ?? null,
+              device: d || null
             };
           })
-          // sort by make → serial
-          .sort((x,y) => {
-            const ma=(x.make||'').toLowerCase(), mb=(y.make||'').toLowerCase();
-            if (ma!==mb) return ma.localeCompare(mb);
-            return (x.serial_number||'').localeCompare(y.serial_number||'');
+          .sort((x, y) => {
+            const ma = (x.make || '').toLowerCase(), mb = (y.make || '').toLowerCase();
+            if (ma !== mb) return ma.localeCompare(mb);
+            return (x.serial_number || '').localeCompare(y.serial_number || '');
           });
 
         this.assignedPicker.items = items;
         this.assignedPicker.query = '';
         this.assignedPicker.open = true;
         this.loading = false;
-        // this.openAlert('info','Assignments loaded', `${items.length} device(s) ready to pick.`, 1200);
       },
       error: () => { this.loading = false; this.openAlert('error', 'Load failed', 'Could not fetch assigned devices.'); }
     });
   }
 
-  get filteredAssigned(){
-    const q=(this.assignedPicker.query||'').toLowerCase().trim();
-    if(!q) return this.assignedPicker.items;
+  get filteredAssigned() {
+    const q = (this.assignedPicker.query || '').toLowerCase().trim();
+    if (!q) return this.assignedPicker.items;
     return this.assignedPicker.items.filter(it =>
-         (it.serial_number||'').toLowerCase().includes(q)
-      || (it.make||'').toLowerCase().includes(q)
-      || (it.capacity||'').toLowerCase().includes(q)
+      (it.serial_number || '').toLowerCase().includes(q)
+      || (it.make || '').toLowerCase().includes(q)
+      || (it.capacity || '').toLowerCase().includes(q)
     );
   }
 
-  toggleSelectAll(ev: any){
+  toggleSelectAll(ev: any) {
     const on = !!ev?.target?.checked;
     this.filteredAssigned.forEach(i => i.selected = on);
   }
 
-  confirmAssignPicker(){
+  confirmAssignPicker() {
     const chosen = this.assignedPicker.items.filter(i => i.selected);
-    if (!chosen.length){ this.assignedPicker.open = false; return; }
+    if (!chosen.length) { this.assignedPicker.open = false; return; }
 
     const onlyOneEmpty = this.ctRows.length === 1 && !Object.values(this.ctRows[0]).some(v => (v ?? '').toString().trim());
     if (onlyOneEmpty) this.ctRows = [];
 
     const existing = new Set(this.ctRows.map(r => (r.ct_no || '').toUpperCase().trim()));
     let added = 0;
-    for (const c of chosen){
+    for (const c of chosen) {
       const ctno = (c.serial_number || '').trim();
       if (!ctno || existing.has(ctno.toUpperCase())) continue;
+
       this.ctRows.push(this.emptyCtRow({
         ct_no: ctno,
         make: c.make || '',
@@ -387,47 +427,57 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     }
     if (!this.ctRows.length) this.ctRows.push(this.emptyCtRow());
 
-    // Auto-fill bench/user/approver from FIRST selected device if empty
+    // Zone/DC from first selected device (assignment.device)
     const first = chosen[0];
-    if (!this.testing_bench)   this.testing_bench   = (first.testing_bench || '') || '-';
-    if (!this.testing_user)    this.testing_user    = (first.testing_user || this.testing_user || '') || '-';
-    if (!this.approving_user)  this.approving_user  = (first.approving_user || '') || '-';
+    const dev = first.device;
+    if (dev) {
+      if (!this.header.location_code) this.header.location_code = dev.location_code || '';
+      if (!this.header.location_name) this.header.location_name = dev.location_name || '';
+    }
+
+    // Bench / user / approver from assignment fields
+    this.testing_bench = first.testing_bench?.bench_name || this.testing_bench || '-';
+    this.testing_user = first.testing_user?.name || this.testing_user || '-';
+    this.approving_user = first.approving_user?.name || this.approving_user || '-';
+
     this.header.testing_bench = this.testing_bench;
-    this.header.testing_user  = this.testing_user;
+    this.header.testing_user = this.testing_user;
     this.header.approving_user = this.approving_user;
 
-    this.header.no_of_ct = this.ctRows.filter(r => (r.ct_no||'').trim()).length.toString();
+    this.header.no_of_ct = this.ctRows.filter(r => (r.ct_no || '').trim()).length.toString();
     this.header.ct_make = this.ctRows[0]?.make || '';
 
     this.assignedPicker.open = false;
-    // this.openAlert('success', 'Devices added', `${added} device(s) added to rows.`, 1200);
   }
 
   // ===== Field helpers =====
-  onCtNoChanged(i:number, value:string){
+  onCtNoChanged(i: number, value: string) {
     const key = (value || '').toUpperCase().trim();
     const row = this.ctRows[i];
     const hit = this.serialIndex[key];
 
-    if (hit){
+    if (hit) {
       row.make = hit.make || '';
-      row.cap  = hit.capacity || '';
+      row.cap = hit.capacity || '';
       row.device_id = hit.device_id || 0;
       row.assignment_id = hit.assignment_id || 0;
       row.notFound = false;
     } else {
-      row.make = ''; row.cap = ''; row.device_id = 0; row.assignment_id = 0; row.notFound = key.length>0;
+      row.make = '';
+      row.cap = '';
+      row.device_id = 0;
+      row.assignment_id = 0;
+      row.notFound = key.length > 0;
     }
-    this.header.no_of_ct = this.ctRows.filter(r => (r.ct_no||'').trim()).length.toString();
+    this.header.no_of_ct = this.ctRows.filter(r => (r.ct_no || '').trim()).length.toString();
     if (!this.header.ct_make) this.header.ct_make = row.make || '';
   }
 
-  private isoOn(dateStr?: string){
-    const d = dateStr ? new Date(dateStr+'T10:00:00') : new Date();
-    return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString();
+  private isoOn(dateStr?: string) {
+    const d = dateStr ? new Date(dateStr + 'T10:00:00') : new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString();
   }
 
-  // Map remark → Working when user didn’t select explicitly
   private inferWorkingFromRemark(remark: string): Working | undefined {
     const t = (remark || '').toLowerCase();
     if (!t) return undefined;
@@ -466,7 +516,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           remark: r.remark || ''
         };
 
-        // IMPORTANT: send Working enum, not PASS/FAIL
         const working: Working = r.working || this.inferWorkingFromRemark(r.remark) || 'OK';
 
         return {
@@ -490,7 +539,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           error_percentage: 0,
 
           details: JSON.stringify(detailsObj),
-          test_result: working,                // <-- FIX: Working enum string
+          test_result: working,
           test_method: this.testMethod,
           test_status: this.testStatus,
 
@@ -502,31 +551,32 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   }
 
   // ===== Submit flow =====
-  openConfirm(action: ModalState['action'], payload?: any){
+  openConfirm(action: ModalState['action'], payload?: any) {
     this.modal.action = action; this.modal.payload = payload;
-    if (action === 'submit'){ this.modal.title = 'Submit CT Report — Preview'; this.modal.message = ''; }
-    else if (action === 'clear'){ this.modal.title = 'Clear All Rows'; this.modal.message = 'Clear all rows and leave one empty row?'; }
+    if (action === 'submit') { this.modal.title = 'Submit CT Report — Preview'; this.modal.message = ''; }
+    else if (action === 'clear') { this.modal.title = 'Clear All Rows'; this.modal.message = 'Clear all rows and leave one empty row?'; }
     else { this.modal.title = ''; this.modal.message = ''; }
     this.modal.open = true;
   }
-  closeModal(){ this.modal.open=false; this.modal.action=null; this.modal.payload=undefined; }
 
-  confirmModal(){
+  closeModal() { this.modal.open = false; this.modal.action = null; this.modal.payload = undefined; }
+
+  confirmModal() {
     const a = this.modal.action;
     if (a !== 'submit') this.closeModal();
     if (a === 'clear') this.clearCtRows();
     if (a === 'submit') this.doSubmit();
   }
 
-  private doSubmit(){
+  private doSubmit() {
     const v = this.validate();
-    if (!v.ok){
-      this.openAlert('warning','Validation error', v.reason!);
+    if (!v.ok) {
+      this.openAlert('warning', 'Validation error', v.reason!);
       return;
     }
 
     const payload = this.buildPayload();
-    if (!payload.length){
+    if (!payload.length) {
       this.openAlert('warning', 'Nothing to submit', 'Please add at least one valid row.');
       return;
     }
@@ -537,16 +587,14 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
         this.submitting = false;
         this.openAlert('success', 'Submitted', 'CT Testing report saved.');
         try {
-          // Immediate PDF download + alert
           this.downloadPdfNow(true);
-        } catch(e){
+        } catch (e) {
           console.error('PDF generation failed:', e);
-          this.openAlert('warning','PDF error','Saved, but PDF could not be generated.');
+          this.openAlert('warning', 'PDF error', 'Saved, but PDF could not be generated.');
         }
-        // reset
-        this.ctRows = [ this.emptyCtRow() ];
+        this.ctRows = [this.emptyCtRow()];
         this.header.no_of_ct = '1';
-        setTimeout(()=> this.closeModal(), 600);
+        setTimeout(() => this.closeModal(), 600);
       },
       error: (err) => {
         this.submitting = false;
@@ -599,26 +647,35 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       }));
   }
 
-  downloadPdfNow(fromSubmit = false){
+  downloadPdfNow(fromSubmit = false) {
     const header = this.toCtHeader();
     const rows = this.toCtRows();
-    this.ctPdf.download(header, rows, `CT_TESTING_${header.date_of_testing || new Date().toISOString().slice(0,10)}.pdf`);
+
+    // Simple PDF: no QR, no badges, all info as tables
+    this.ctPdf.download(
+      header,
+      rows,
+      `CT_TESTING_${header.date_of_testing || new Date().toISOString().slice(0, 10)}.pdf`
+    );
+
     this.openAlert(
       'success',
       fromSubmit ? 'PDF downloaded' : 'PDF Ready',
       fromSubmit ? 'Report submitted & PDF downloaded.' : 'CT Testing PDF downloaded.',
-      1500
+      1200
     );
   }
 
+
   // ===== Alerts =====
-  openAlert(type: 'success'|'error'|'warning'|'info', title: string, message: string, autoCloseMs: number = 0){
-    if (this.alert._t){ clearTimeout(this.alert._t); }
+  openAlert(type: 'success' | 'error' | 'warning' | 'info', title: string, message: string, autoCloseMs: number = 0) {
+    if (this.alert._t) { clearTimeout(this.alert._t); }
     this.alert = { open: true, type, title, message, autoCloseMs, _t: 0 };
-    if (autoCloseMs > 0){ this.alert._t = setTimeout(()=> this.closeAlert(), autoCloseMs); }
+    if (autoCloseMs > 0) { this.alert._t = setTimeout(() => this.closeAlert(), autoCloseMs) as any; }
   }
-  closeAlert(){
-    if (this.alert._t){ clearTimeout(this.alert._t); }
+
+  closeAlert() {
+    if (this.alert._t) { clearTimeout(this.alert._t); }
     this.alert.open = false;
   }
 }

@@ -421,8 +421,8 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       if (this.cts.some(ct => (ct.serial_number || '').trim() === sn)) continue;
       this.cts.push({
         serial_number: sn,
-        ct_class: (ct_class || '').trim() || null,
-        ct_ratio: (ct_ratio || '').trim() || null,
+        ct_class: this.ctMeta.ct_class || (ct_class || '').trim() || null,
+        ct_ratio: this.ctMeta.ct_ratio || (ct_ratio || '').trim() || null,
         make: this.ctMeta.make,
         connection_type: this.ctMeta.connection_type,
         device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,

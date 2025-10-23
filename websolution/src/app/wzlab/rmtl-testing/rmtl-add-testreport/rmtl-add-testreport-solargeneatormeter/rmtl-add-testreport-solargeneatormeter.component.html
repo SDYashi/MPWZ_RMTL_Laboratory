@@ -1,69 +1,38 @@
 <div class="container-fluid mt-4">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
-      <h5 class="mb-0">RMTL — Solar Generation Meter Certificate</h5>
-      <div class="d-flex gap-2">
-        <span class="badge bg-secondary">Rows {{ rows.length }}</span>
-        <span class="badge bg-success">Known {{ matchedCount }}</span>
-        <span class="badge bg-danger">Unknown {{ unknownCount }}</span>
-      </div>
+      <h5 class="mb-0">RMTL — Solar Net Meter Generation Form</h5>
     </div>
 
     <div class="card-body">
       <!-- Top toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
         <button type="button" class="btn btn-outline-danger" (click)="openAssignedPicker()">⟳ Load Assigned (Select)</button>
-          <div class="ms-auto d-flex gap-2">
+        <div class="ms-auto d-flex gap-2">
           <input class="form-control" style="min-width:260px"
                  [(ngModel)]="filterText" name="filterText" placeholder="Filter by Sr. No / Make / Consumer">
         </div>
       </div>
-
-      <!-- SOURCE -->
-      <form #sourceForm="ngForm" class="mb-4">
-        <div class="rounded-4 border p-3 p-md-4 bg-light-subtle">
-          <div class="row g-3 align-items-end">
-            <div class="col-md-4">
-              <div class="form-floating">
-                <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type"
-                        (change)="onSourceTypeChange()" required>
-                  <option [ngValue]="''" disabled>Select...</option>
-                  <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
-                </select>
-                <label class="fw-semibold">Source Type</label>
-              </div>
-            </div>
-
-            <div class="col-md-5">
-              <div class="input-group input-group-lg">
-                <div class="form-floating flex-grow-1">
-                  <input type="text" class="form-control" [(ngModel)]="selectedSourceName"
-                         name="source_name" placeholder="Code" required (keydown.enter)="fetchButtonData()">
-                  <label class="fw-semibold">Location / Store / Vendor Code</label>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-3 d-grid">
-              <button type="button" class="btn btn-primary py-3" (click)="fetchButtonData()">
-                <i class="bi bi-search"></i> Search Office/Store/Vendor
-              </button>
-            </div>
-          </div>
-        </div>
-      </form>
-
-      <!-- Batch header (DC/Zone + Test method/status + bench/user/approver) -->
+      
+      <!-- Batch header (aligned to Stop/Defective look) -->
       <div class="card shadow-sm mb-3">
         <div class="card-body">
           <div class="row g-3">
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Zone/DC Code</label>
-              <input class="form-control" [(ngModel)]="header.location_code" name="loc_code" readonly disabled>
-            </div>
-            <div class="col-md-3">
+             <div class="col-md-3">
               <label class="form-label fw-bold">Zone/DC Name</label>
               <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" readonly disabled>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold mt-2">Testing Bench</label>
+              <input class="form-control" [(ngModel)]="testing_bench" name="testing_bench" placeholder="e.g., zera_one" readonly disabled>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold mt-2">Testing User</label>
+              <input class="form-control" [(ngModel)]="testing_user" name="testing_user" placeholder="e.g., Admin" readonly disabled>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold mt-2">Approver</label>
+              <input class="form-control" [(ngModel)]="approver_user" name="approver_user" placeholder="e.g., JE / AE" readonly disabled>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Test Method</label>
@@ -76,19 +45,6 @@
               <select class="form-select" [(ngModel)]="testStatus" name="test_status">
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
-            </div>
-
-            <div class="col-md-3">
-              <label class="form-label fw-bold mt-2">Testing Bench</label>
-              <input class="form-control" [(ngModel)]="testing_bench" name="testing_bench" placeholder="e.g., zera_one" readonly disabled>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold mt-2">Testing User</label>
-              <input class="form-control" [(ngModel)]="testing_user" name="testing_user" placeholder="e.g., Admin" readonly disabled>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold mt-2">Approver</label>
-              <input class="form-control" [(ngModel)]="approver_user" name="approver_user" placeholder="e.g., JE / AE" readonly disabled>
             </div>
           </div>
         </div>
@@ -150,7 +106,7 @@
 
                 <td class="text-center d-print-none">
                   <button type="button" class="btn btn-sm btn-outline-primary" (click)="r._open=!r._open">
-                    {{ r._open ? 'Hide' : 'Edit' }}
+                    {{ r._open ? 'Edit' : 'Hide' }}
                   </button>
                 </td>
 
@@ -179,7 +135,8 @@
                     <div class="col-md-3">
                       <label class="form-label small fw-bold mb-0">Testing Fees (₹)</label>
                       <select class="form-select form-select-sm" [(ngModel)]="r.testing_fees" [name]="'fees_'+i">
-                        <option *ngFor="let fee of fees_mtr_cts" [value]="fee">{{ fee }}</option>
+                        <option [ngValue]="null">--</option>
+                        <option *ngFor="let fee of fees_mtr_cts" [ngValue]="fee">{{ fee }}</option>
                       </select>
                     </div>
                     <div class="col-md-5">
@@ -194,27 +151,72 @@
                       <input class="form-control form-control-sm" [(ngModel)]="r.ref_no" [name]="'ref_'+i">
                     </div>
 
-                    <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Starting Reading (Import)</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.starting_reading"
-                             (ngModelChange)="recompute(i)" [name]="'sr_read_'+i" step="0.0001">
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Final Reading (Import)</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.final_reading_r"
-                             (ngModelChange)="recompute(i)" [name]="'fr_r_'+i" step="0.0001">
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Final Reading (Export)</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.final_reading_e"
-                             [name]="'fr_e_'+i" step="0.0001">
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Difference (Final − Start)</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.difference"
-                             [name]="'diff_'+i" step="0.0001" readonly>
+                    <!-- IMPORT group -->
+                    <div class="col-12">
+                      <div class="p-3 border rounded bg-secondary bg-opacity-10">
+                        <div class="fw-bold small mb-2 p-2 bg-secondary text-white">Import (kWh)</div>
+                        <div class="row g-3">
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Start</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   [(ngModel)]="r.start_reading_import" (ngModelChange)="recompute(i)" [name]="'imp_s_'+i" step="0.0001">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Final</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   [(ngModel)]="r.final_reading_import" (ngModelChange)="recompute(i)" [name]="'imp_f_'+i" step="0.0001">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Difference (F − S)</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   [(ngModel)]="r.difference_import" [name]="'imp_d_'+i" step="0.0001" readonly>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Error % (Import)</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   [(ngModel)]="r.error_percentage_import" [name]="'imp_err_'+i" step="0.01">
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
+                    <!-- EXPORT group -->
+                    <div class="col-12">
+                      <div class="p-3 border rounded bg-secondary bg-opacity-10">
+                        <div class="fw-bold small mb-2 p-2 bg-secondary text-white">Export (kWh)</div>
+                        <div class="row g-3">
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Start</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   [(ngModel)]="r.start_reading_export" (ngModelChange)="recompute(i)" [name]="'exp_s_'+i" step="0.0001">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Final</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   [(ngModel)]="r.final_reading_export" (ngModelChange)="recompute(i)" [name]="'exp_f_'+i" step="0.0001">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Difference (F − S)</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   [(ngModel)]="r.difference_export" [name]="'exp_d_'+i" step="0.0001" readonly>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Error % (Export)</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   [(ngModel)]="r.error_percentage_export" [name]="'exp_err_'+i" step="0.01">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Combined -->
+                    <div class="col-md-4">
+                      <label class="form-label small fw-bold mb-0">Final Meter Difference (Imp − Exp)</label>
+                      <input type="number" class="form-control form-control-sm"
+                             [(ngModel)]="r.final_Meter_Difference" [name]="'final_diff_'+i" step="0.0001" readonly>
+                    </div>
+
+                    <!-- Tests -->
                     <div class="col-md-3">
                       <label class="form-label small fw-bold mb-0">Starting Current Test</label>
                       <select class="form-select form-select-sm" [(ngModel)]="r.starting_current_test" [name]="'sct_'+i">
@@ -229,13 +231,14 @@
                         <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
                       </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                       <label class="form-label small fw-bold mb-0">Dial Test</label>
                       <select class="form-select form-select-sm" [(ngModel)]="r.dial_test" [name]="'dial_'+i">
                         <option value="">--</option>
                         <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
                       </select>
-                          </div>
+                    </div>
+
                     <div class="col-12">
                       <label class="form-label small fw-bold mb-0">Remark</label>
                       <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'remark_'+i"></textarea>
@@ -250,7 +253,7 @@
 
       <!-- Actions -->
       <div class="d-flex gap-2 mt-3 d-print-none">
-          <button type="button" class="btn btn-outline-primary" (click)="addRow()">➕ Add Row</button>
+        <button type="button" class="btn btn-outline-primary" (click)="addRow()">➕ Add Row</button>
         <button type="button" class="btn btn-primary right ms-auto"
                 [disabled]="submitting || !rows.length"
                 (click)="openConfirm('submit')">
@@ -273,7 +276,7 @@
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modal.open}" *ngIf="modal.open">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header " style="background:#151433; color:#fff;">
+        <div class="modal-header" style="background:#151433; color:#fff;">
           <h5 class="modal-title">{{ modal.title }}</h5>
           <button type="button" class="btn-close" (click)="closeModal()"></button>
         </div>
@@ -291,7 +294,17 @@
             <table class="table table-sm table-bordered">
               <thead>
                 <tr>
-                  <th>#</th><th>Sr No</th><th>Make</th><th>Capacity</th><th>Consumer</th><th>Date</th><th>Diff</th><th>SCT</th><th>Creep</th><th>Dial</th>
+                  <th>#</th>
+                  <th>Sr No</th>
+                  <th>Make</th>
+                  <th>Cap.</th>
+                  <th>Consumer</th>
+                  <th>Date</th>
+                  <th>Imp Δ</th>
+                  <th>Exp Δ</th>
+                  <th>Final Δ</th>
+                  <th>Err% Imp</th>
+                  <th>Err% Exp</th>
                 </tr>
               </thead>
               <tbody>
@@ -302,10 +315,11 @@
                   <td>{{ r.meter_capacity }}</td>
                   <td>{{ r.consumer_name }}</td>
                   <td>{{ r.date_of_testing || '—' }}</td>
-                  <td>{{ r.difference || '—' }}</td>
-                  <td>{{ r.starting_current_test || '—' }}</td>
-                  <td>{{ r.creep_test || '—' }}</td>
-                  <td>{{ r.dial_test || '—' }}</td>
+                  <td>{{ r.difference_import ?? '—' }}</td>
+                  <td>{{ r.difference_export ?? '—' }}</td>
+                  <td>{{ r.final_Meter_Difference ?? '—' }}</td>
+                  <td>{{ r.error_percentage_import ?? '—' }}</td>
+                  <td>{{ r.error_percentage_export ?? '—' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -384,7 +398,7 @@
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': alert.open}" *ngIf="alert.open">
     <div class="modal-dialog modal-sm modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header" style="background:#151433; color:#fff;"
+        <div class="modal-header"
              [ngClass]="{
                 'bg-success text-white': alert.type==='success',
                 'bg-danger text-white': alert.type==='error',

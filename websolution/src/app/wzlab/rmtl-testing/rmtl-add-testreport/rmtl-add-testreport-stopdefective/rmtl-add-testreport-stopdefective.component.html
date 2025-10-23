@@ -2,41 +2,16 @@
 <div class="container-fluid mt-4">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex flex-wrap gap-2 justify-content-between align-items-center" style="background:#151433">
-      <h5 class="mb-0">RMTL — Stop/Defective Test Report Generation</h5>
-      <div class="d-flex flex-wrap gap-2">
-        <span class="badge bg-secondary" aria-label="Total rows">Total {{ totalCount }}</span>
-        <span class="badge bg-success" aria-label="Known rows">Known {{ matchedCount }}</span>
-        <span class="badge bg-danger" aria-label="Unknown rows">Unknown {{ unknownCount }}</span>
-      </div>
+      <h5 class="mb-0">RMTL — Stop/Defective Test Report Generation</h5>    
     </div>
 
     <div class="card-body">
-      <!-- Inline messages -->
-      <div class="mb-3">
-        <small *ngIf="inlineInfo" class="alert alert-success d-block" role="status">{{ inlineInfo }}</small>
-        <small *ngIf="inlineError" class="alert alert-danger d-block" role="alert">{{ inlineError }}</small>
-      </div>
 
       <!-- Top toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none align-items-center">
         <button type="button" class="btn btn-outline-danger" (click)="openAssignedPicker()">
           ⟳ Select Assigned Devices
         </button>
-
-        <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
-          <div class="input-group input-group-sm" style="max-width: 240px;">
-            <span class="input-group-text">Filter</span>
-            <input type="search" class="form-control" [(ngModel)]="filterText" placeholder="Serial / Make / Capacity" />
-          </div>
-          <div class="input-group input-group-sm" style="max-width: 260px;">
-            <label class="input-group-text">View</label>
-            <select class="form-select" [(ngModel)]="globalViewMode" (change)="applyViewModeToAll()">
-              <option value="BOTH">Both</option>
-              <option value="SHUNT">Shunt Only</option>
-              <option value="NUTRAL">Nutral Only</option>
-            </select>
-          </div>
-        </div>
       </div>
 
       <!-- Batch header -->
@@ -369,7 +344,6 @@
                       <label class="form-label small fw-bold mb-0">Any Remarks</label>
                       <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.final_remarks" [name]="'final_remarks_'+i"></textarea>
                     </div>
-
                   </div>
                 </td>
               </tr>
@@ -383,14 +357,18 @@
         <button type="button" class="btn btn-success" (click)="addBatchRow()">➕ Add Row</button>
         <button type="button" class="btn btn-danger" (click)="openConfirm('clear')">Clear</button>
         <div class="ms-auto d-flex gap-2">
-          <button type="button" class="btn btn-outline-secondary" (click)="previewPdf()"
-                  [disabled]="!rows.length">Preview PDF</button>
           <button type="button" class="btn btn-primary" [disabled]="submitting || !rows.length" (click)="openConfirm('submit')">
             {{ submitting ? 'Submitting…' : 'Validate & Submit' }}
           </button>
         </div>
       </div>
     </div>
+    
+      <!-- Inline messages -->
+      <div class="mb-3">
+        <small *ngIf="inlineInfo" class="alert alert-success d-block" role="status">{{ inlineInfo }}</small>
+        <small *ngIf="inlineError" class="alert alert-danger d-block" role="alert">{{ inlineError }}</small>
+      </div>
   </div>
 
   <!-- Overlay -->

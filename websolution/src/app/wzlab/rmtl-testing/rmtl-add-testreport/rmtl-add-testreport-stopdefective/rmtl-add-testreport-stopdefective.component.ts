@@ -207,7 +207,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     this.api.getEnums().subscribe({
       next: (data) => {
         this.device_status = (data?.device_status as 'ASSIGNED') ?? 'ASSIGNED';
-
         this.commentby_testers = data?.commentby_testers || [];
         this.test_results = data?.test_results || [];
         this.test_methods = data?.test_methods || [];
@@ -281,7 +280,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
           const list: AssignmentItem[] = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
           this.asgPicker.list = list;
           this.rebuildSerialIndex(list);
-
           const first = list.find(a => a.device);
           this.fillHeaderFromAssignment(first);
 

@@ -3,8 +3,6 @@ import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import { P4onmReportPdfService, P4ONMReportHeader, P4ONMReportRow } from 'src/app/shared/p4onm-report-pdf.service';
 
-type TDocumentDefinitions = any;
-
 type ViewMode = 'SHUNT' | 'NUTRAL' | 'BOTH' | '';
 type ErrorFromMode = 'SHUNT' | 'NUTRAL' | '';
 
@@ -161,6 +159,8 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
 
   // serial index
   private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; phase?: string; }> = {};
+  testing_request_types: any;
+  fees_mtr_cts: any;
 
   constructor(
     private api: ApiServicesService,
@@ -189,6 +189,8 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
         this.makes = d?.makes || [];
         this.capacities = d?.capacities || [];
         this.phases = d?.phases || [];
+        this.testing_request_types = d?.testing_request_types || [];
+        this.fees_mtr_cts = d?.fees_mtr_cts || [];      
         this.ternal_testing_types = d?.ternal_testing_types || this.ternal_testing_types;
         this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
 
@@ -219,6 +221,17 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
     if (!this.batch.rows.length) this.addBatchRow();
   }
 
+  // -------------------- counters for header badges --------------------
+  get totalCount(): number {
+    return (this.batch.rows || []).filter(r => (r.serial || '').trim()).length;
+  }
+  get matchedCount(): number {
+    return (this.batch.rows || []).filter(r => (r.serial || '').trim() && !r.notFound && r.assignment_id && r.device_id).length;
+  }
+  get unknownCount(): number {
+    return (this.batch.rows || []).filter(r => (r.serial || '').trim() && (r.notFound || !r.assignment_id || !r.device_id)).length;
+  }
+
   // -------------------- assigned cache --------------------
   private validateContext(): { ok: boolean; reason?: string } {
     if (!this.currentUserId || !this.currentLabId) return { ok:false, reason:'Missing User/Lab context.' };
@@ -238,9 +251,9 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
         this.rebuildSerialIndex(list);
         this.loadHeaderFromAssignments(list);
         this.loading = false;
-        this.inlineInfo = `Assigned devices loaded (${list.length}).`;
+        this.inlineInfo = `Total ${list.length} Assigned device(s) found for P4 ONM checking.`;
       },
-      error: () => { this.loading=false; this.inlineError = 'Assigned list load failed.'; }
+      error: () => { this.loading=false; this.inlineError = 'No assigned devices found for P4 ONM checking.'; }
     });
   }
 
@@ -321,7 +334,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   get allPicked(): boolean {
     const ids = this.pickerFiltered.map(p => p.id);
     return ids.length>0 && ids.every(id => !!this.pickerSelected[id]);
-  }
+    }
   togglePickAll(checked: boolean): void {
     this.pickerFiltered.forEach(a => this.pickerSelected[a.id] = checked);
   }
@@ -388,7 +401,8 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
       (r.make || '').toLowerCase().includes(q) ||
       (r.capacity || '').toLowerCase().includes(q) ||
       (r.remark || '').toLowerCase().includes(q) ||
-      ((r.test_result || '').toString().toLowerCase().includes(q))
+      ((r.test_result || '').toString().toLowerCase().includes(q)) ||
+      ((r.final_remarks || '').toLowerCase().includes(q))
     );
   }
   trackRow(_i:number, r:DeviceRow){ return `${r.assignment_id||0}_${r.device_id||0}_${r.serial||''}`; }
@@ -420,7 +434,6 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   private pctError(meterDiff: number|null, refDiff: number|null): number | null {
     if (meterDiff==null || refDiff==null) return null;
     if (refDiff === 0) return null;
-    // (% error) = ((meter - reference) / reference) * 100
     return ((meterDiff - refDiff) / refDiff) * 100;
   }
 
@@ -449,7 +462,6 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
       case 'SHUNT':  source = r.shunt_error_percentage ?? null; break;
       case 'NUTRAL': source = r.nutral_error_percentage ?? null; break;
       default:
-        // if BOTH/blank, prefer SHUNT if entered else NUTRAL
         source = r.shunt_error_percentage ?? r.nutral_error_percentage ?? null;
     }
     r.error_percentage_import = this.round2(source);
@@ -489,75 +501,71 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
     const whenISO = this.isoOn(this.batch.header.date);
     return (this.batch.rows || [])
       .filter(r => (r.serial || '').trim())
-      .map(r => {
-        // Map to Testing model fields (server)
-        return {
-          device_id: r.device_id ?? 0,
-          assignment_id: r.assignment_id ?? 0,
-          start_datetime: whenISO,
-          end_datetime: whenISO,
+      .map(r => ({
+        device_id: r.device_id ?? 0,
+        assignment_id: r.assignment_id ?? 0,
+        start_datetime: whenISO,
+        end_datetime: whenISO,
 
-          physical_condition_of_device: r.physical_condition_of_device || null,
-          seal_status: r.seal_status || null,
-          meter_glass_cover: r.meter_glass_cover || null,
-          terminal_block: r.terminal_block || null,
-          meter_body: r.meter_body || null,
-          other: null,
-          is_burned: !!r.is_burned,
+        physical_condition_of_device: r.physical_condition_of_device || null,
+        seal_status: r.seal_status || null,
+        meter_glass_cover: r.meter_glass_cover || null,
+        terminal_block: r.terminal_block || null,
+        meter_body: r.meter_body || null,
+        other: null,
+        is_burned: !!r.is_burned,
 
-          // keep text remark too
-          details: r.remark || null,
-          test_result: r.test_result || null,
-          test_method: this.testMethod || null,
-          test_status: this.testStatus || null,
+        details: r.remark || null,
+        test_result: r.test_result || null,
+        test_method: this.testMethod || null,
+        test_status: this.testStatus || null,
 
-          // SHUNT readings
-          shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
-          shunt_reading_after_test:  this.numOrNull(r.shunt_reading_after_test),
-          shunt_ref_start_reading:  this.numOrNull(r.shunt_ref_start_reading),
-          shunt_ref_end_reading:    this.numOrNull(r.shunt_ref_end_reading),
-          shunt_error_percentage:   this.numOrNull(r.shunt_error_percentage),
-          shunt_current_test: r.shunt_current_test || null,
-          shunt_creep_test:  r.shunt_creep_test || null,
-          shunt_dail_test:   r.shunt_dail_test || null,
+        // SHUNT readings
+        shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
+        shunt_reading_after_test:  this.numOrNull(r.shunt_reading_after_test),
+        shunt_ref_start_reading:  this.numOrNull(r.shunt_ref_start_reading),
+        shunt_ref_end_reading:    this.numOrNull(r.shunt_ref_end_reading),
+        shunt_error_percentage:   this.numOrNull(r.shunt_error_percentage),
+        shunt_current_test: r.shunt_current_test || null,
+        shunt_creep_test:  r.shunt_creep_test || null,
+        shunt_dail_test:   r.shunt_dail_test || null,
 
-          // NUTRAL readings
-          nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
-          nutral_reading_after_test:  this.numOrNull(r.nutral_reading_after_test),
-          nutral_ref_start_reading:  this.numOrNull(r.nutral_ref_start_reading),
-          nutral_ref_end_reading:    this.numOrNull(r.nutral_ref_end_reading),
-          nutral_error_percentage:   this.numOrNull(r.nutral_error_percentage),
-          nutral_current_test: r.nutral_current_test || null,
-          nutral_creep_test:  r.nutral_creep_test || null,
-          nutral_dail_test:   r.nutral_dail_test || null,
+        // NUTRAL readings
+        nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
+        nutral_reading_after_test:  this.numOrNull(r.nutral_reading_after_test),
+        nutral_ref_start_reading:  this.numOrNull(r.nutral_ref_start_reading),
+        nutral_ref_end_reading:    this.numOrNull(r.nutral_ref_end_reading),
+        nutral_error_percentage:   this.numOrNull(r.nutral_error_percentage),
+        nutral_current_test: r.nutral_current_test || null,
+        nutral_creep_test:  r.nutral_creep_test || null,
+        nutral_dail_test:   r.nutral_dail_test || null,
 
-          // combined import error
-          error_percentage_import: this.numOrNull(r.error_percentage_import),
+        // combined import error
+        error_percentage_import: this.numOrNull(r.error_percentage_import),
 
-          // consumer/fees
-          consumer_name: r.consumer_name || null,
-          consumer_address: r.address || null,
-          testing_fees: this.parseAmount(r.payment_particulars),
-          fees_mr_no: r.receipt_no || null,
-          fees_mr_date: r.receipt_date || null,
-          ref_no: r.account_no_ivrs || null,
+        // consumer/fees
+        consumer_name: r.consumer_name || null,
+        consumer_address: r.address || null,
+        testing_fees: this.parseAmount(r.payment_particulars),
+        fees_mr_no: r.receipt_no || null,
+        fees_mr_date: r.receipt_date || null,
+        ref_no: r.account_no_ivrs || null,
 
-          // removal info / P4
-          meter_removaltime_reading: this.numOrNull(r.removal_reading),
-          any_other_remarkny_zone: r.condition_at_removal || null,
-          p4_metercodition: r.condition_at_removal || null,
+        // removal info / P4
+        meter_removaltime_reading: this.numOrNull(r.removal_reading),
+        any_other_remarkny_zone: r.condition_at_removal || null,
+        p4_metercodition: r.condition_at_removal || null,
 
-          // Final remarks
-          final_remarks: r.final_remarks || r.remark || null,
+        // Final remarks
+        final_remarks: r.final_remarks || r.remark || null,
 
-          approver_id: this.approverId ?? null,
-          approver_remark: null,
+        approver_id: this.approverId ?? null,
+        approver_remark: null,
 
-          report_id: null,
-          report_type: this.report_type || 'ONM_CHECKING',
-          created_by: String(this.currentUserId || '')
-        };
-      });
+        report_id: null,
+        report_type: this.report_type || 'ONM_CHECKING',
+        created_by: String(this.currentUserId || '')
+      }));
   }
 
   // -------------------- submit + pdf --------------------
@@ -612,7 +620,6 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
             make: r.make,
             capacity: r.capacity,
             removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
-
             consumer_name: r.consumer_name,
             account_no_ivrs: r.account_no_ivrs,
             address: r.address,
@@ -621,11 +628,8 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
             receipt_no: r.receipt_no,
             receipt_date: r.receipt_date,
             condition_at_removal: r.condition_at_removal,
-
-            // include mode errors for pdf (optional; your pdf can show remark + error)
             error_percentage_import: this.numOrNull(r.error_percentage_import) ?? undefined,
-
-            remark: r.final_remarks || r.remark || undefined
+            final_remarks: r.final_remarks || r.remark || undefined
           }));
 
         try {

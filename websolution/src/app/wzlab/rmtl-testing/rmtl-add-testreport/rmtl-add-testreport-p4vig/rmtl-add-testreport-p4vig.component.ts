@@ -329,9 +329,9 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
           if (!this.header.phase && first.device.phase) this.header.phase = first.device.phase.toUpperCase();
         }
         this.loading = false;
-        this.setPageMessage('info', `Loaded ${asg.length} assigned devices.`);
+        this.setPageMessage('success', `Total ${asg.length} Assigned devices found for P4 VIG checking.`);
       },
-      error: (err)=>{ this.loading=false; console.error('Assigned load failed', err); this.setPageMessage('error','Could not load assigned devices.'); }
+      error: (err)=>{ this.loading=false; console.error('Assigned load failed', err); this.setPageMessage('error','No Assigned devices found for P4 VIG checking.'); }
     });
   }
 

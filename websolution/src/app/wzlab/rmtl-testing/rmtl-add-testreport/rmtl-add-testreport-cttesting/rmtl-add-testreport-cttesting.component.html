@@ -1,57 +1,43 @@
 <div class="container-fluid mt-4">
   <div class="card shadow border-0">
-    <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
-      <h5 class="mb-0">RMTL — CT Testing Report</h5>
-      <div class="d-flex gap-2">
-        <span class="badge bg-secondary">CT rows {{ ctRows.length }}</span>
-        <span class="badge bg-success">Known {{ matchedCount }}</span>
-        <span class="badge bg-danger">Unknown {{ unknownCount }}</span>
+    <!-- Header -->
+    <div class="card-header text-white" style="background:#151433">
+      <div class="d-flex flex-column flex-md-row gap-2 align-items-md-center justify-content-between">
+        <h5 class="mb-0">RMTL - CT Testing Report Generation Form</h5>
       </div>
     </div>
 
     <div class="card-body">
       <!-- Toolbar -->
-      <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
-        <button class="btn btn-danger" (click)="openAssignPicker()">⟳ Load Assigned (Pick)</button>
-        <div class="ms-auto d-flex gap-2">
-          <input class="form-control" style="min-width:260px" [(ngModel)]="filterText" name="filterText" placeholder="Filter by CT No / Make / Remark">
-        </div>
+      <div class="d-flex flex-wrap gap-2 mb-3 d-print-none align-items-center">
+          <button class="btn btn-outline-danger" (click)="openAssignPicker()">
+            <i class="bi bi-arrow-repeat"></i> Load Assigned CTs
+          </button>
       </div>
-
-      <!-- SOURCE -->
-      <form #sourceForm="ngForm" class="mb-4">
-        <div class="p-3 p-md-4 bg-light-subtle">
-          <div class="row g-3 align-items-end">
-            <div class="col-md-4">
-              <div class="form-floating">
-                <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type" (change)="onSourceTypeChange()" required>
-                  <option [ngValue]="''" disabled>Select...</option>
-                  <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
-                </select>
-                <label class="fw-semibold">Source Type</label>
-              </div>
-            </div>
-            <div class="col-md-5">
-              <div class="input-group input-group-lg">
-                <div class="form-floating flex-grow-1">
-                  <input type="text" class="form-control" [(ngModel)]="selectedSourceName" name="source_name" placeholder="Code" required (keydown.enter)="fetchButtonData()">
-                  <label class="fw-semibold">Location / Store / Vendor Code</label>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3 d-grid">
-              <button type="button" class="btn btn-success py-3" (click)="fetchButtonData()">
-                <i class="bi bi-search"></i> Search
-              </button>
-            </div>
-          </div>
-        </div>
-      </form>
-
       <!-- Batch header -->
       <div class="card shadow-sm mb-3">
-        <div class="card-body">
+          <div class="card-body bg-secondary bg-opacity-10">
+          <h5 class="card-title mb-0">User & Location Information</h5>          
+          <hr class="mb-3">
           <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Name of Zone/DC</label>
+              <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" readonly disabled>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Testing Bench</label>
+              <input class="form-control" [(ngModel)]="testing_bench" name="testing_bench" readonly disabled>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Testing User</label>
+              <input class="form-control" [(ngModel)]="testing_user" name="testing_user" readonly disabled>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Approver User</label>
+              <input class="form-control" [(ngModel)]="approving_user" name="approving_user" readonly disabled>
+            </div>
+            
             <div class="col-md-3">
               <label class="form-label fw-bold">Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method">
@@ -66,103 +52,91 @@
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Zone/DC Code</label>
-              <input class="form-control" [(ngModel)]="header.location_code" name="loc_code" readonly disabled>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Zone/DC Name</label>
-              <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" readonly disabled>
-            </div>
-
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Testing Bench</label>
-              <input class="form-control" [(ngModel)]="testing_bench" name="testing_bench" readonly disabled >
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Testing User</label>
-              <input class="form-control" [(ngModel)]="testing_user" name="testing_user" readonly disabled >
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Approver User</label>
-              <input class="form-control" [(ngModel)]="approving_user" name="approving_user" readonly disabled>
-            </div>
           </div>
         </div>
       </div>
 
       <!-- Certificate header block -->
       <div class="card shadow-sm mb-3">
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label fw-bold">Name of consumer</label>
-              <input class="form-control" [(ngModel)]="header.consumer_name" name="consumer_name">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-bold">Address</label>
-              <input class="form-control" [(ngModel)]="header.address" name="address">
-            </div>
+        <div class="card-body bg-secondary bg-opacity-10">
+             <div class="row g-3">
+          <div class="col-md-3">
+              <label class="form-label fw-bold">Select Date of Testing <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" [(ngModel)]="header.date_of_testing" name="date_of_testing">
+               </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Name of Consumer</label>
+                <input class="form-control" [(ngModel)]="header.consumer_name" name="consumer_name" placeholder="Name">
+                  </div>
+         <div class="col-md-3">
+                <label class="form-label fw-bold">Full Address</label>
+                <input class="form-control" [(ngModel)]="header.address" name="address" placeholder="Address">
+                    </div>
 
-            <div class="col-md-4">
-              <label class="form-label fw-bold">No. of C.T</label>
+         <div class="col-md-3">
+              <label class="form-label fw-bold">No. of CT</label>
               <input class="form-control" [(ngModel)]="header.no_of_ct" name="no_of_ct" readonly>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Select City Class</label>
+                  </div>
+          <div class="col-md-3">
+              <label class="form-label fw-bold">Select Class of CT</label>
               <select class="form-select" [(ngModel)]="header.city_class" name="city_class">
                 <option *ngFor="let c of ct_classes" [value]="c">{{ c }}</option>
               </select>
             </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Reference remarks</label>
-              <input class="form-control" [(ngModel)]="header.ref_no" name="ref_no">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">C.T Make</label>
-              <input class="form-control" [(ngModel)]="header.ct_make" name="ct_make" readonly>
-            </div>
+        <div class="col-md-3">
+              <label class="form-label fw-bold">Enter Refer. No. / remarks / Note</label>
+              <input class="form-control" [(ngModel)]="header.ref_no" name="ref_no" placeholder="Ref / Note">
+                   </div>
 
-            <div class="col-md-4">
-              <label class="form-label fw-bold">M.R. No / Online Tran. ID & Date</label>
-              <div class="d-flex gap-2">
-                <input class="form-control" [(ngModel)]="header.mr_no" name="mr_no">
-                <input type="date" class="form-control" [(ngModel)]="header.mr_date" name="mr_date">
-              </div>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Amount Deposited (₹)</label>
-              <input type="number" class="form-control" [(ngModel)]="header.amount_deposited" name="amount_deposited" step="0.01">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Date of Testing</label>
-              <input type="date" class="form-control" [(ngModel)]="header.date_of_testing" name="date_of_testing">
-            </div>
+           <div class="col-md-3">
+              <label class="form-label fw-bold">Select Make of CT</label>
+              <select class="form-select" [(ngModel)]="header.ct_make" name="ct_make">
+                <option [ngValue]="null" disabled>Select Make</option>
+                <option *ngFor="let make of makes" [value]="make">{{ make }}</option>
+              </select>
+                 </div>
 
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Primary Current (Amp)</label>
+         <div class="col-md-3">
+              <label class="form-label fw-bold">Enter M.R. No / Online Transaction No</label>
+                 <input class="form-control" [(ngModel)]="header.mr_no" name="mr_no" placeholder="Receipt / Txn #">
+           </div>
+         <div class="col-md-3">
+              <label class="form-label fw-bold">Select Amount Deposited (₹)</label>
+              <select class="form-select" [(ngModel)]="header.amount_deposited" name="amount_deposited">
+                <option [ngValue]="null" disabled>Select Amount</option>
+                <option *ngFor="let fee of fees_mtr_cts" [value]="fee">{{ fee }}</option>
+              </select>
+             </div>
+
+         <div class="col-md-3">
+              <label class="form-label fw-bold">Select Payment Date</label>
+                    <input type="date" class="form-control" [(ngModel)]="header.mr_date" name="mr_date">
+           
+               </div>
+
+          <div class="col-md-3">
+              <label class="form-label fw-bold">Enter Primary Current (Amp)</label>
               <input class="form-control" [(ngModel)]="header.primary_current" name="primary_current">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Secondary Current (Amp)</label>
+             </div>
+           <div class="col-md-3">
+              <label class="form-label fw-bold">Enter Secondary Current (Amp)</label>
               <input class="form-control" [(ngModel)]="header.secondary_current" name="secondary_current">
-            </div>
+              </div>
           </div>
         </div>
       </div>
 
       <!-- Details of C.T table -->
       <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-          <thead class="table-light text-center sticky-top" style="top:0; z-index:1;">
+        <table class="table table-hover table-bordered table-sm align-middle">
+          <thead class="table-danger text-center sticky-top " style="top:0; z-index:1;">
             <tr>
               <th style="width:60px">#</th>
               <th style="min-width:180px">C.T No.</th>
               <th style="min-width:140px">Make</th>
-              <!-- <th style="min-width:120px">Cap.</th> -->
-              <th style="min-width:140px">CT Ratio</th>       <!-- UPDATED: dropdown -->
+              <th style="min-width:140px">CT Ratio</th>
               <th style="min-width:120px">Polarity</th>
-              <th style="min-width:160px">Working</th>       <!-- NEW: dropdown -->
+              <th style="min-width:160px">Working</th>
               <th style="min-width:200px">Remark</th>
               <th class="d-print-none" style="width:70px">Action</th>
             </tr>
@@ -171,23 +145,19 @@
             <tr *ngFor="let r of displayRows(); let i = index; trackBy: trackByCtRow" [ngClass]="{'table-danger': r.notFound}">
               <td class="text-center"><span class="badge bg-secondary">{{ i + 1 }}</span></td>
               <td>
-                <input class="form-control form-control-sm" [(ngModel)]="r.ct_no" [name]="'ctno_'+i" (ngModelChange)="onCtNoChanged(i, r.ct_no)">
+                <input class="form-control form-control-sm" [(ngModel)]="r.ct_no" [name]="'ctno_'+i" (ngModelChange)="onCtNoChanged(i, r.ct_no)" placeholder="CT Serial">
                 <div *ngIf="r.notFound" class="small text-danger">Not in assigned list</div>
               </td>
-              <td><input class="form-control form-control-sm" [(ngModel)]="r.make" [name]="'make_'+i"></td>
-              <!-- <td><input class="form-control form-control-sm" [(ngModel)]="r.cap" [name]="'cap_'+i" placeholder="e.g., 300/5"></td> -->
+              <td><input class="form-control form-control-sm" [(ngModel)]="r.make" [name]="'make_'+i" placeholder="Make"></td>
 
-              <!-- Ratio dropdown -->
               <td>
                 <select class="form-select form-select-sm" [(ngModel)]="r.ratio" [name]="'ratio_'+i">
                   <option [ngValue]="''" disabled>Select</option>
                   <option *ngFor="let opt of ratioOptions" [ngValue]="opt">{{ opt }}</option>
                 </select>
               </td>
-
               <td><input class="form-control form-control-sm" [(ngModel)]="r.polarity" [name]="'pol_'+i" placeholder="OK / value"></td>
 
-              <!-- Working dropdown -->
               <td>
                 <select class="form-select form-select-sm" [(ngModel)]="r.working" [name]="'working_'+i">
                   <option [ngValue]="undefined" disabled>Select</option>
@@ -197,19 +167,27 @@
 
               <td><input class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'rem_'+i" placeholder="OK / DEF …"></td>
               <td class="text-center d-print-none">
-                <button class="btn btn-sm btn-outline-danger" (click)="removeCtRow(i)">✕</button>
+                <button class="btn btn-sm btn-outline-danger" (click)="removeCtRow(i)" title="Remove">
+                  <i class="bi bi-x-lg"></i>
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
+
+        <!-- Empty state -->
+        <div *ngIf="!ctRows?.length" class="alert alert-light border text-center py-4 mb-0">
+          <div class="mb-1"><i class="bi bi-inboxes"></i></div>
+          No CT rows added yet.
+        </div>
       </div>
 
       <!-- Bottom actions -->
-      <div class="d-flex gap-2 mt-3 d-print-none">
-        <button class="btn btn-outline-primary" (click)="addCtRow()">➕ Add CT Row</button>
-        <button class="btn btn-outline-secondary" (click)="openConfirm('clear')">Clear CT Rows</button>
-        <div class="ms-auto"></div>
+      <div class="d-flex flex-wrap gap-2 mt-3 d-print-none">
+        <button class="btn btn-success" (click)="addCtRow()"><i class="bi bi-plus-lg"></i> Add CT Row</button>
+          <div class="ms-auto"></div>
         <button class="btn btn-primary" [disabled]="submitting || !ctRows.length" (click)="openConfirm('submit')">
+          <i *ngIf="!submitting" class="bi bi-check2-circle"></i>
           {{ submitting ? 'Submitting…' : 'Validate & Submit' }}
         </button>
       </div>
@@ -219,12 +197,12 @@
   <!-- Loading overlay -->
   <div *ngIf="loading" class="position-fixed top-0 start-0 w-100 h-100" style="background:rgba(0,0,0,0.15); z-index:1080;">
     <div class="d-flex h-100 align-items-center justify-content-center">
-      <div class="spinner-border"></div>
+      <div class="spinner-border" role="status" aria-live="polite"></div>
       <span class="ms-2 fw-semibold">Loading…</span>
     </div>
   </div>
 
-  <!-- Assigned picker modal (with search + sorted list) -->
+  <!-- Assigned picker modal -->
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': assignedPicker.open}" *ngIf="assignedPicker.open">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
@@ -233,16 +211,19 @@
           <button type="button" class="btn-close btn-close-white" (click)="assignedPicker.open=false"></button>
         </div>
         <div class="modal-body">
-          <div class="d-flex gap-2 mb-2">
-            <input class="form-control" [(ngModel)]="assignedPicker.query" placeholder="Search by serial / make / capacity">
-            <div class="form-check">
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input class="form-control" [(ngModel)]="assignedPicker.query" placeholder="Search by serial / make / capacity">
+            </div>
+            <div class="form-check ms-auto">
               <input type="checkbox" class="form-check-input" id="selAll" (change)="toggleSelectAll($event)">
               <label class="form-check-label" for="selAll">Select All (visible)</label>
             </div>
           </div>
 
-          <div class="table-responsive overflow-auto" style="max-height: calc(100vh - 240px);" *ngIf="assignedPicker.items.length; else emptyAssigned">
-            <table class="table table-sm table-bordered align-middle">
+          <div class="table-responsive overflow-auto" style="max-height: calc(100vh - 280px);" *ngIf="assignedPicker.items.length; else emptyAssigned">
+            <table class="table table-sm table-hover table-bordered align-middle">
               <thead class="table-light">
                 <tr>
                   <th style="width:40px" class="text-center"></th>
@@ -253,7 +234,9 @@
               </thead>
               <tbody>
                 <tr *ngFor="let it of filteredAssigned">
-                  <td class="text-center"><input type="checkbox" [(ngModel)]="it.selected" [name]="'pick_'+it.id"></td>
+                  <td class="text-center">
+                    <input type="checkbox" [(ngModel)]="it.selected" [name]="'pick_'+it.id">
+                  </td>
                   <td>{{ it.serial_number }}</td>
                   <td>{{ it.make }}</td>
                   <td>{{ it.capacity }}</td>
@@ -283,7 +266,7 @@
         </div>
         <div class="modal-body">
           <ng-container *ngIf="modal.action==='submit'">
-            <div class="row small">
+            <div class="row small gy-1">
               <div class="col-md-4"><strong>Zone/DC:</strong> {{ header.location_code }} - {{ header.location_name }}</div>
               <div class="col-md-4"><strong>Method:</strong> {{ testMethod || '-' }}</div>
               <div class="col-md-4"><strong>Status:</strong> {{ testStatus || '-' }}</div>
@@ -328,7 +311,7 @@
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': alert.open}" *ngIf="alert.open">
     <div class="modal-dialog modal-sm modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header" style="background:#151433; color:#fff;"
+        <div class="modal-header"
              [ngClass]="{
                 'bg-success text-white': alert.type==='success',
                 'bg-danger text-white': alert.type==='error',

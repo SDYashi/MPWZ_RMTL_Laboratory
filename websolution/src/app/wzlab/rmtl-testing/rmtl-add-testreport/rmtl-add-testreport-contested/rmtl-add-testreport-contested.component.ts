@@ -332,9 +332,9 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
         }
 
         this.loading = false;
-        this.alertSuccess = `Assigned devices loaded (${asg.length}).`;
+        this.alertSuccess = `Total (${asg.length}) assigned devices loaded for Contested Testing.`;
       },
-      error: () => { this.loading = false; this.alertError = 'Could not load assigned devices.'; }
+      error: () => { this.loading = false; this.alertError = 'No assigned devices found for Contested Testing.'; }
     });
   }
 
