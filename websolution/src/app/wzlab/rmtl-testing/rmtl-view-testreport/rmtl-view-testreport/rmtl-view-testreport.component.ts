@@ -256,15 +256,15 @@ export class RmtlViewTestreportComponent implements OnInit {
           meter_glass_cover: s(d.meter_glass_cover || d.glass_cover),
           terminal_block: s(d.terminal_block || d.terminal),
           meter_body: s(d.meter_body || d.body),
-          other: s(d.other || d.notes),
-          reading_before_test: n(d.reading_before_test ?? d.before_test ?? d.reading_before),
-          reading_after_test: n(d.reading_after_test ?? d.after_test ?? d.reading_after),
-          rsm_kwh: n(d.rsm_kwh ?? d.rsm),
-          meter_kwh: n(d.meter_kwh ?? d.meter_kwh_reading ?? d.meter_kwh_value),
-          error_percentage: n(d.error_percentage ?? d.ratio_error_pct ?? d.error_pct),
-          starting_current_test: s(d.starting_current_test ?? d.starting_current ?? d.start_current_status),
-          creep_test: s(d.creep_test ?? d.creep_status),
-          remark: s(d.remark || d.remarks || d.observation)
+          // other: s(d.other || d.notes),
+          // // reading_before_test: n(d.reading_before_test ?? d.before_test ?? d.reading_before),
+          // // reading_after_test: n(d.reading_after_test ?? d.after_test ?? d.reading_after),
+          // // rsm_kwh: n(d.rsm_kwh ?? d.rsm),
+          // // meter_kwh: n(d.meter_kwh ?? d.meter_kwh_reading ?? d.meter_kwh_value),
+          // // error_percentage: n(d.error_percentage ?? d.ratio_error_pct ?? d.error_pct),
+          // starting_current_test: s(d.starting_current_test ?? d.starting_current ?? d.start_current_status),
+          // creep_test: s(d.creep_test ?? d.creep_status),
+          // remark: s(d.remark || d.remarks || d.observation)
         });
 
         // Vig / P4VIG mapper 

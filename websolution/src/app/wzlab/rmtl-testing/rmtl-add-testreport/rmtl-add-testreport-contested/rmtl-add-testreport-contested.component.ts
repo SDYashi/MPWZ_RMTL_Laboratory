@@ -1,6 +1,5 @@
 // src/app/wzlab/rmtl-testing/rmtl-add-testreport/rmtl-add-testreport-contested/rmtl-add-testreport-contested.component.ts
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
 import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import {
@@ -9,8 +8,12 @@ import {
   ContestedReportRow
 } from 'src/app/shared/contested-report-pdf.service';
 
+type Id = number;
+type ErrorFromMode = 'SHUNT' | 'NUTRAL' | 'BOTH' | null;
+type ViewMode = 'SHUNT' | 'NUTRAL' | 'BOTH';
+
 interface MeterDevice {
-  id: number;
+  id: Id;
   serial_number: string;
   make?: string;
   capacity?: string;
@@ -19,60 +22,80 @@ interface MeterDevice {
   location_name?: string | null;
 }
 interface AssignmentItem {
-  id: number;
-  device_id: number;
+  id: Id;              // assignment_id
+  device_id: Id;
   device?: MeterDevice | null;
 
   testing_bench?: { bench_name?: string } | null;
   user_assigned?: { name?: string; username?: string } | null;
   assigned_by_user?: { name?: string; username?: string } | null;
 }
+
 interface DeviceRow {
+  // Identity
   serial: string;
   make: string;
   capacity: string;
-  remark: string;
+
+  // Result / remarks
   test_result?: string;
-  test_method: 'MANUAL' | 'AUTOMATED';
-  test_status?: string;
-  device_id: number;
-  assignment_id: number;
+  remark: string;
+
+  // Mapping keys
+  device_id: Id;
+  assignment_id: Id;
   notFound?: boolean;
 
-  // AE/JE Zone sheet
+  // AE/JE / Consumer slip
   form_no?: string;
   form_date?: string;
   consumer_name?: string;
   account_no_ivrs?: string;
   address?: string;
-  contested_by?: string;
-  payment_particulars?: string;
-  receipt_no?: string;
-  receipt_date?: string;
-  condition_at_removal?: string;
-  removal_reading?: number;
+  contested_by?: string;         // -> test_requester_name
+  payment_particulars?: string;  // -> testing_fees (parsed number)
+  receipt_no?: string;           // -> fees_mr_no
+  receipt_date?: string;         // -> fees_mr_date
+  condition_at_removal?: string; // -> p4_metercodition + any_other_remarkny_zone
+  removal_reading?: number;      // -> meter_removaltime_reading
 
-  // RMTL section
+  // RMTL section (device condition)
   testing_date?: string;
-  physical_condition_of_device: string;
-  seal_status: string;
-  meter_glass_cover: string;
-  terminal_block: string;
-  meter_body: string;
-  other: string;
-  is_burned: boolean;
+  physical_condition_of_device?: string;
+  seal_status?: string;
+  meter_glass_cover?: string;
+  terminal_block?: string;
+  meter_body?: string;
+  other?: string;
+  is_burned?: boolean;
 
-  reading_before_test: number;
-  reading_after_test: number;
-  ref_start_reading: number;
-  ref_end_reading: number;
-  error_percentage: number;
 
-  rsm_kwh?: number;
-  meter_kwh?: number;
-  starting_current_test?: string;
-  creep_test?: string;
+  // View & readings (SHUNT / NUTRAL)
+  view_mode?: ViewMode;
 
+  shunt_reading_before_test?: number | null;
+  shunt_reading_after_test?: number | null;
+  shunt_ref_start_reading?: number | null;
+  shunt_ref_end_reading?: number | null;
+  shunt_current_test?: string | null;
+  shunt_creep_test?: string | null;
+  shunt_dail_test?: string | null;
+  shunt_error_percentage?: number | null;
+
+  nutral_reading_before_test?: number | null;
+  nutral_reading_after_test?: number | null;
+  nutral_ref_start_reading?: number | null;
+  nutral_ref_end_reading?: number | null;
+  nutral_current_test?: string | null;
+  nutral_creep_test?: string | null;
+  nutral_dail_test?: string | null;
+  nutral_error_percentage?: number | null;
+
+  // Combined error
+  error_from_mode: ErrorFromMode;
+  error_percentage_import?: number | null;
+
+  // UI
   _open?: boolean;
 }
 
@@ -90,7 +113,7 @@ interface ModalState {
   styleUrls: ['./rmtl-add-testreport-contested.component.css']
 })
 export class RmtlAddTestreportContestedComponent implements OnInit {
-  // enums/options
+  // ===== enums/options
   device_status: 'ASSIGNED' = 'ASSIGNED';
   comment_bytester: string[] = [];
   test_methods: string[] = [];
@@ -104,8 +127,10 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
   makes: string[] = [];
   capacities: string[] = [];
   phases: string[] = [];
+  ternal_testing_types: string[] = [];
+  test_dail_current_cheaps: string[] = [];
 
-  // header + rows
+  // ===== header + rows
   batch = {
     header: {
       zone: '',
@@ -120,14 +145,15 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
     rows: [] as DeviceRow[]
   };
 
-  // ids/context
-  currentUserId:any;
-  currentLabId:any;
-  device_testing_purpose: any | null = null;
-  device_type: any | null = null;
+  // ===== ids/context
+  currentUserId: any;
+  currentLabId: any;
+  device_testing_purpose: any;
+  device_type: any;
   report_type = 'CONTESTED';
+  approverId: number | null = null;
 
-  // ui state
+  // ===== ui state
   filterText = '';
   loading = false;
   submitting = false;
@@ -137,33 +163,34 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
   payload: any[] = [];
   testMethod: string | null = null;
   testStatus: string | null = null;
-  approverId: number | null = null;
 
-  // assigned list -> quick lookup
-  private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; phase?: string; }> = {};
+  // ===== assigned cache (serial -> mapping)
+  private serialIndex: Record<string, { make?: string; capacity?: string; device_id: Id; assignment_id: Id; phase?: string; }> = {};
 
-  // PDF lab info
+  // ===== PDF lab info
   labInfo: { lab_name?: string; address?: string; email?: string; phone?: string } | null = null;
 
-  // device picker state
+  // ===== device picker state
   picking = false;
   pickerLoading = false;
   pickerAssignments: AssignmentItem[] = [];
-  pickerSelected: Record<number, boolean> = {};
+  pickerSelected: Record<Id, boolean> = {};
   pickerFilter = '';
+  testing_request_types: any;
+  fees_mtr_cts: any;
 
-  constructor(private api: ApiServicesService, 
+  constructor(
+    private api: ApiServicesService,
     private reportPdf: ContestedReportPdfService,
     private authService: AuthService
   ) {}
 
+  // ===== lifecycle
   ngOnInit(): void {
     // date
     this.batch.header.date = this.toYMD(new Date());
 
-    // ids
-    // this.currentUserId = Number(localStorage.getItem('currentUserId') || 0);
-    // this.currentLabId  = Number(localStorage.getItem('currentLabId') || 0);
+    // ids from token
     this.currentUserId = this.authService.getuseridfromtoken();
     this.currentLabId = this.authService.getlabidfromtoken();
 
@@ -183,16 +210,22 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
         this.makes = d?.makes || [];
         this.capacities = d?.capacities || [];
         this.phases = d?.phases || [];
+        this.ternal_testing_types = d?.ternal_testing_types || ['SHUNT', 'NUTRAL', 'BOTH'];
+        this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
 
-        // set report, device type/purpose (normalize)
+        // normalize report/device context similar to Stop/Defective
         this.report_type = d?.test_report_types?.CONTESTED ?? 'CONTESTED';
         this.device_testing_purpose = d?.test_report_types?.CONTESTED ?? 'CONTESTED';
         this.device_type = d?.device_types?.METER ?? 'METER';
+        this.testing_request_types = d?.testing_request_types || [];
+        this.fees_mtr_cts = d?.fees_mtr_cts || [];
+        this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
 
-        // initial row
+
+        // ensure one row
         if (!this.batch.rows.length) this.addBatchRow();
 
-        // preload assigned cache (guarded)
+        // preload assigned cache
         this.doReloadAssignedWithoutAddingRows();
       },
       error: () => {
@@ -200,22 +233,22 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
       }
     });
 
-    // Lab info for PDF
+    // Lab info for PDF header
     if (this.currentLabId) {
       this.api.getLabInfo(this.currentLabId).subscribe({
         next: (info: any) => {
           this.labInfo = {
             lab_name: info?.lab_pdfheader_name || info?.lab_name,
             address: info?.address || info?.address_line,
-            email: info?.email,
-            phone: info?.phone
+            email: info?.email || info?.contact_email || info?.lab_email || info?.support_email,
+            phone: info?.phone || info?.phone_no || info?.contact_phone || info?.mobile || info?.tel
           };
         }
       });
     }
   }
 
-  // ---------- Context Guards ----------
+  // ===== guards
   private validateContextForAssignments(): { ok: boolean; reason?: string } {
     if (!this.currentUserId || !this.currentLabId) {
       return { ok: false, reason: 'Missing User/Lab context. Please ensure you are logged in and a lab is selected.' };
@@ -230,7 +263,6 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
     const ctx = this.validateContextForAssignments();
     if (!ctx.ok) return ctx;
 
-    // Require zone/dc & date
     if (!this.batch.header.location_code || !this.batch.header.location_name) {
       return { ok: false, reason: 'Zone/DC Code & Name are required (auto-filled from assignment).' };
     }
@@ -250,12 +282,12 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
     return { ok: true };
   }
 
-  // ---------- Counts ----------
+  // ===== counts
   get totalCount(){ return this.batch?.rows?.length ?? 0; }
   get matchedCount(){ return (this.batch?.rows ?? []).filter(r => !!r.serial && !r.notFound).length; }
   get unknownCount(){ return (this.batch?.rows ?? []).filter(r => !!r.notFound).length; }
 
-  // ---------- Assigned cache ----------
+  // ===== assigned cache
   private rebuildSerialIndex(asg: AssignmentItem[]): void {
     this.serialIndex = {};
     for (const a of asg) {
@@ -271,7 +303,6 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
       };
     }
   }
-
   private loadDataWithoutAddingRows(asg: AssignmentItem[]): void { this.rebuildSerialIndex(asg); }
 
   doReloadAssignedWithoutAddingRows(): void {
@@ -299,6 +330,7 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
           const uniq = new Set(asg.map(a => (a.device?.phase || '').toUpperCase()).filter(Boolean));
           this.batch.header.phase = uniq.size === 1 ? [...uniq][0] : '';
         }
+
         this.loading = false;
         this.alertSuccess = `Assigned devices loaded (${asg.length}).`;
       },
@@ -306,7 +338,7 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
     });
   }
 
-  // ---------- Device picker ----------
+  // ===== picker
   openPicker(): void {
     const v = this.validateContextForAssignments();
     if (!v.ok) { this.alertError = v.reason || 'Context invalid.'; return; }
@@ -354,7 +386,6 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
         (d.capacity || '').toLowerCase().includes(q)
       );
     });
-    // sort by make, then serial
     return base.sort((x, y) => {
       const mx = (x.device?.make || '').toLowerCase();
       const my = (y.device?.make || '').toLowerCase();
@@ -365,7 +396,6 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
       return sx.localeCompare(sy);
     });
   }
-
   get allPicked(): boolean {
     const list = this.pickerFiltered;
     return list.length > 0 && list.every(a => !!this.pickerSelected[a.id]);
@@ -401,32 +431,56 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
 
     if (added) {
       this.alertSuccess = `${added} device(s) added to the batch.`;
+      this.alertError = null;
     } else {
       this.alertError = 'No new devices were added (duplicates or none selected).';
+      this.alertSuccess = null;
     }
   }
 
   trackAssignment(_: number, a: AssignmentItem) { return a.id; }
 
-  // ---------- Rows ----------
+  // ===== rows
   private emptyRow(seed?: Partial<DeviceRow>): DeviceRow {
     return {
-      serial: '', make: '', capacity: '', remark: '', test_result: undefined, test_method: 'MANUAL',
+      serial: '', make: '', capacity: '', remark: '', test_result: undefined,
       device_id: 0, assignment_id: 0, notFound: false,
 
       form_no: '', form_date: '',
-      consumer_name: '', account_no_ivrs: '', address: '', contested_by: '', payment_particulars: '',
+      consumer_name: '', account_no_ivrs: '', address: '',
+      contested_by: '', payment_particulars: '',
       receipt_no: '', receipt_date: '', condition_at_removal: '', removal_reading: undefined,
 
-      testing_date: '', physical_condition_of_device: '', seal_status: '', meter_glass_cover: '',
+      testing_date: '',
+      physical_condition_of_device: '', seal_status: '', meter_glass_cover: '',
       terminal_block: '', meter_body: '', other: '', is_burned: false,
 
-      reading_before_test: 0, reading_after_test: 0, ref_start_reading: 0, ref_end_reading: 0, error_percentage: 0,
-      rsm_kwh: undefined, meter_kwh: undefined, starting_current_test: '', creep_test: '',
-      _open: false, ...seed
+      view_mode: 'BOTH',
+      shunt_reading_before_test: null,
+      shunt_reading_after_test: null,
+      shunt_ref_start_reading: null,
+      shunt_ref_end_reading: null,
+      shunt_current_test: null,
+      shunt_creep_test: null,
+      shunt_dail_test: null,
+      shunt_error_percentage: null,
+
+      nutral_reading_before_test: null,
+      nutral_reading_after_test: null,
+      nutral_ref_start_reading: null,
+      nutral_ref_end_reading: null,
+      nutral_current_test: null,
+      nutral_creep_test: null,
+      nutral_dail_test: null,
+      nutral_error_percentage: null,
+
+      error_from_mode: null,
+      error_percentage_import: null,
+
+      _open: false,
+      ...seed
     };
   }
-
   addBatchRow(){ this.batch.rows.push(this.emptyRow()); }
   removeRow(i: number){ this.batch.rows.splice(i,1); if (!this.batch.rows.length) this.addBatchRow(); }
 
@@ -455,36 +509,82 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
   }
   trackRow(i:number, r:DeviceRow){ return `${r.assignment_id||0}_${r.device_id||0}_${r.serial||''}_${i}`; }
 
-  // ---------- Utils ----------
+  // ===== utils & calcs
   private toYMD(d: Date){ const dt = new Date(d.getTime() - d.getTimezoneOffset()*60000); return dt.toISOString().slice(0,10); }
-  private isoOn(dateStr?: string){ const d = dateStr? new Date(dateStr+'T10:00:00') : new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString(); }
-  private numOrNull(v: any): number | null { const n = Number(v); return (isFinite(n) && v !== '' && v !== null && v !== undefined) ? n : null; }
-  private parseAmount(val?: string): number | null {
-    if (!val) return null;
-    const m = val.replace(/,/g,'').match(/(\d+(\.\d+)?)/);
-    return m ? Number(m[1]) : null;
+  private isoOn(dateStr?: string){
+    const d = dateStr? new Date(dateStr+'T10:00:00') : new Date();
+    return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString();
   }
-  private joinNonEmpty(parts: Array<string | undefined | null>, sep = ' - ') {
-    return parts.filter(Boolean).join(sep);
+  private numOrNull(v: any): number | null { const n = Number(v); return (isFinite(n) && v !== '' && v !== null && v !== undefined) ? n : null; }
+
+  private computeError(before?: number | null, after?: number | null, refStart?: number | null, refEnd?: number | null): number | null {
+    const b = Number(before);
+    const a = Number(after);
+    const s = Number(refStart);
+    const e = Number(refEnd);
+    if (!Number.isFinite(b) || !Number.isFinite(a) || !Number.isFinite(s) || !Number.isFinite(e)) return null;
+    const refDiff = e - s;
+    if (!refDiff) return null;
+    const pct = ((a - b) - refDiff) / refDiff * 100;
+    return Math.round(pct * 100) / 100;
   }
 
-  // ---------- Build payload ----------
+  calcShunt(i: number) {
+    const r = this.batch.rows[i];
+    r.shunt_error_percentage = this.computeError(
+      r.shunt_reading_before_test, r.shunt_reading_after_test,
+      r.shunt_ref_start_reading, r.shunt_ref_end_reading
+    );
+    if (r.error_from_mode === 'SHUNT') {
+      r.error_percentage_import = r.shunt_error_percentage ?? null;
+    }
+  }
+  calcNutral(i: number) {
+    const r = this.batch.rows[i];
+    r.nutral_error_percentage = this.computeError(
+      r.nutral_reading_before_test, r.nutral_reading_after_test,
+      r.nutral_ref_start_reading, r.nutral_ref_end_reading
+    );
+    if (r.error_from_mode === 'NUTRAL') {
+      r.error_percentage_import = r.nutral_error_percentage ?? null;
+    }
+  }
+  calculateErrorPct(i: number) {
+    const r = this.batch.rows[i];
+    if (r.error_from_mode === 'SHUNT') {
+      if (r.shunt_error_percentage == null) this.calcShunt(i);
+      r.error_percentage_import = r.shunt_error_percentage ?? null;
+    } else if (r.error_from_mode === 'NUTRAL') {
+      if (r.nutral_error_percentage == null) this.calcNutral(i);
+      r.error_percentage_import = r.nutral_error_percentage ?? null;
+    } else if (r.error_from_mode === 'BOTH') {
+      this.calcNutral(i);
+      this.calcShunt(i);
+      const sh = r.shunt_error_percentage;
+      const nu = r.nutral_error_percentage;
+      r.error_percentage_import = (sh != null && nu != null)
+        ? Math.round(((sh + nu) / 2) * 100) / 100
+        : null;
+    } else {
+      r.error_percentage_import = null;
+    }
+  }
+
+  // ===== payload
   private buildPayload(): any[] {
     const whenISO = this.isoOn(this.batch.header.date);
 
     return (this.batch.rows || [])
       .filter(r => (r.serial || '').trim())
       .map(r => {
-        const start = this.numOrNull(r.reading_before_test);
-        const end   = this.numOrNull(r.reading_after_test);
-        const diff  = (start != null && end != null) ? (end - start) : null;
-
         return {
-          device_id: r.device_id ?? 0,
           assignment_id: r.assignment_id ?? 0,
+          device_id: r.device_id ?? 0,
+          report_type: this.report_type || 'CONTESTED',
           start_datetime: whenISO,
           end_datetime: whenISO,
 
+          // device condition
           physical_condition_of_device: r.physical_condition_of_device || null,
           seal_status: r.seal_status || null,
           meter_glass_cover: r.meter_glass_cover || null,
@@ -493,19 +593,37 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
           other: r.other || null,
           is_burned: !!r.is_burned,
 
-          reading_before_test: this.numOrNull(r.reading_before_test),
-          reading_after_test: this.numOrNull(r.reading_after_test),
-          ref_start_reading: this.numOrNull(r.ref_start_reading),
-          ref_end_reading: this.numOrNull(r.ref_end_reading),
-          error_percentage: this.numOrNull(r.error_percentage),
+          // SHUNT readings
+          shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
+          shunt_reading_after_test:  this.numOrNull(r.shunt_reading_after_test),
+          shunt_ref_start_reading:   this.numOrNull(r.shunt_ref_start_reading),
+          shunt_ref_end_reading:     this.numOrNull(r.shunt_ref_end_reading),
+          shunt_current_test:        (r.shunt_current_test || null),
+          shunt_creep_test:          (r.shunt_creep_test || null),
+          shunt_dail_test:           (r.shunt_dail_test || null),
+          shunt_error_percentage:    this.numOrNull(r.shunt_error_percentage),
 
+          // NUTRAL readings
+          nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
+          nutral_reading_after_test:  this.numOrNull(r.nutral_reading_after_test),
+          nutral_ref_start_reading:   this.numOrNull(r.nutral_ref_start_reading),
+          nutral_ref_end_reading:     this.numOrNull(r.nutral_ref_end_reading),
+          nutral_current_test:        (r.nutral_current_test || null),
+          nutral_creep_test:          (r.nutral_creep_test || null),
+          nutral_dail_test:           (r.nutral_dail_test || null),
+          nutral_error_percentage:    this.numOrNull(r.nutral_error_percentage),
+
+          // combined error
+          error_percentage_import: this.numOrNull(r.error_percentage_import),
+
+          // results/meta
           details: r.remark || null,
-
+          final_remarks: r.remark || null,
           test_result: (r.test_result as string) || null,
           test_method: this.testMethod || null,
           test_status: this.testStatus || null,
 
-          // Contested extras
+          // contested extras mapped
           consumer_name: r.consumer_name || null,
           consumer_address: r.address || null,
           testing_fees: this.parseAmount(r.payment_particulars),
@@ -513,29 +631,21 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
           fees_mr_date: r.receipt_date || null,
           ref_no: r.account_no_ivrs || null,
 
-          start_reading: this.numOrNull(r.reading_before_test),
-          final_reading: this.numOrNull(r.reading_after_test),
-          difference: diff,
-
           test_requester_name: r.contested_by || null,
           meter_removaltime_reading: this.numOrNull(r.removal_reading),
           any_other_remarkny_zone: r.condition_at_removal || null,
-
-          dail_test_kwh_rsm: this.numOrNull(r.rsm_kwh),
-          recorderedbymeter_kwh: this.numOrNull(r.meter_kwh),
-          final_remarks: r.remark || null,
-
           p4_metercodition: r.condition_at_removal || null,
 
           approver_id: this.approverId ?? null,
-          report_type: this.report_type || 'CONTESTED',
 
-          created_by: String(this.currentUserId || '')
+          // audit
+          created_by: String(this.currentUserId || ''),
+          updated_by: String(this.currentUserId || '')
         };
       });
   }
 
-  // ---------- Submit & PDF ----------
+  // ===== submit + PDF
   private async generatePdfNow(): Promise<void> {
     const header: ContestedReportHeader = {
       date: this.batch.header.date || this.toYMD(new Date()),
@@ -543,14 +653,17 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
       location_code: this.batch.header.location_code || '',
       location_name: this.batch.header.location_name || '',
       zone: this.joinNonEmpty([this.batch.header.location_code, this.batch.header.location_name], ' - '),
-      testerName: localStorage.getItem('currentUserName') || '',
+
+      testerName: this.batch.header.testing_user || '',
       testing_bench: this.batch.header.testing_bench || '-',
-      testing_user: this.batch.header.testing_user || (localStorage.getItem('currentUserName') || ''),
+      testing_user: this.batch.header.testing_user || '',
       approving_user: this.batch.header.approving_user || '-',
+
       lab_name: this.labInfo?.lab_name,
       lab_address: this.labInfo?.address,
       lab_email: this.labInfo?.email,
       lab_phone: this.labInfo?.phone,
+
       leftLogoUrl: '/assets/icons/wzlogo.png',
       rightLogoUrl: '/assets/icons/wzlogo.png'
     };
@@ -562,7 +675,6 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
         make: r.make,
         capacity: r.capacity,
         removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
-
         consumer_name: r.consumer_name,
         account_no_ivrs: r.account_no_ivrs,
         address: r.address,
@@ -570,7 +682,6 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
         payment_particulars: r.payment_particulars,
         receipt_no: r.receipt_no,
         receipt_date: r.receipt_date,
-
         testing_date: r.testing_date || this.batch.header.date,
         physical_condition_of_device: r.physical_condition_of_device,
         is_burned: !!r.is_burned,
@@ -580,15 +691,24 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
         meter_body: r.meter_body,
         other: r.other,
 
-        reading_before_test: this.numOrNull(r.reading_before_test) ?? undefined,
-        reading_after_test: this.numOrNull(r.reading_after_test) ?? undefined,
-
-        rsm_kwh: this.numOrNull(r.rsm_kwh) ?? undefined,
-        meter_kwh: this.numOrNull(r.meter_kwh) ?? undefined,
-        error_percentage: this.numOrNull(r.error_percentage) ?? undefined,
-
-        starting_current_test: r.starting_current_test || undefined,
-        creep_test: r.creep_test || undefined,
+        // present SHUNT/NUTRAL & combined percentages if available
+        shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test) ?? undefined,
+        shunt_reading_after_test: this.numOrNull(r.shunt_reading_after_test) ?? undefined,
+        shunt_ref_start_reading: this.numOrNull(r.shunt_ref_start_reading) ?? undefined,
+        shunt_ref_end_reading: this.numOrNull(r.shunt_ref_end_reading) ?? undefined,
+        shunt_current_test: r.shunt_current_test || undefined,
+        shunt_creep_test: r.shunt_creep_test || undefined,
+        shunt_dail_test: r.shunt_dail_test || undefined,
+        nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test) ?? undefined,
+        nutral_reading_after_test: this.numOrNull(r.nutral_reading_after_test) ?? undefined,
+        nutral_ref_start_reading: this.numOrNull(r.nutral_ref_start_reading) ?? undefined,
+        nutral_ref_end_reading: this.numOrNull(r.nutral_ref_end_reading) ?? undefined,
+        nutral_current_test: r.nutral_current_test || undefined,
+        nutral_creep_test: r.nutral_creep_test || undefined,
+        nutral_dail_test: r.nutral_dail_test || undefined,
+        shunt_error_percentage: this.numOrNull(r.shunt_error_percentage) ?? undefined,
+        nutral_error_percentage: this.numOrNull(r.nutral_error_percentage) ?? undefined,
+        error_percentage_import: this.numOrNull(r.error_percentage_import) ?? undefined,
 
         remark: r.remark || undefined
       }));
@@ -607,7 +727,6 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
       next: async () => {
         this.submitting = false;
 
-        // PDF now
         try {
           await this.generatePdfNow();
           this.alertSuccess = 'Batch Report submitted and PDF downloaded successfully!';
@@ -616,9 +735,8 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
           this.alertError = 'PDF generation failed.';
         }
 
-        // reset rows
         this.batch.rows = [this.emptyRow()];
-        setTimeout(()=>this.closeModal(), 800);
+        setTimeout(()=>this.closeModal(), 600);
       },
       error: (e) => {
         this.submitting=false; this.alertSuccess=null; this.alertError='Error submitting report.'; console.error(e);
@@ -626,7 +744,7 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
     });
   }
 
-  // ---------- Modal ----------
+  // ===== modal
   openConfirm(action: ModalState['action']){
     if (action!=='submit'){ this.alertSuccess=null; this.alertError=null; }
 
@@ -653,8 +771,17 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
   closeModal(){ this.modal.open=false; this.modal.action=null; this.modal.payload=undefined; }
   confirmModal(){
     const a=this.modal.action;
-    if(a!=='submit') this.closeModal();
-    if(a==='clear') { this.batch.rows = []; this.addBatchRow(); }
-    if(a==='submit') this.doSubmitBatch();
+    if(a==='clear'){ this.batch.rows = []; this.addBatchRow(); this.closeModal(); return; }
+    if(a==='submit'){ this.doSubmitBatch(); }
+  }
+
+  // helpers
+  private joinNonEmpty(parts: Array<string | undefined | null>, sep = ' - ') {
+    return parts.filter(Boolean).join(sep);
+  }
+  private parseAmount(val?: string): number | null {
+    if (!val) return null;
+    const m = val.replace(/,/g,'').match(/(\d+(\.\d+)?)/);
+    return m ? Number(m[1]) : null;
   }
 }

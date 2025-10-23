@@ -1,143 +1,140 @@
+<!-- src/app/wzlab/rmtl-testing/rmtl-add-testreport/rmtl-add-testreport-p4vig/rmtl-add-testreport-p4vig.component.html -->
 <div class="container-fluid mt-4">
   <div class="card shadow border-0">
-    <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
+    <!-- Header -->
+    <div
+      class="card-header text-white d-flex flex-wrap gap-2 justify-content-between align-items-center"
+      style="background:#151433"
+    >
       <h5 class="mb-0">RMTL — P4 (VIG) Meter Report</h5>
-      <div class="d-flex gap-2">
-        <span class="badge bg-secondary">Rows {{ rows.length }}</span>
-        <span class="badge bg-success">Known {{ matchedCount }}</span>
-        <span class="badge bg-danger">Unknown {{ unknownCount }}</span>
+      <div class="d-flex flex-wrap gap-2">
+        <span class="badge bg-secondary" aria-label="Total rows">Total {{ rows.length }}</span>
+        <span class="badge bg-success" aria-label="Known rows">Matched {{ matchedCount }}</span>
+        <span class="badge bg-danger" aria-label="Unknown rows">Unknown {{ unknownCount }}</span>
       </div>
     </div>
 
     <div class="card-body">
-      <!-- Page-level message (non-modal) -->
-        <div *ngIf="pageMessage">
-          <div class="alert" [ngClass]="{
-            'alert-success': pageMessage.type === 'success',
-            'alert-danger': pageMessage.type === 'error',
-            'alert-warning': pageMessage.type === 'warning',
-            'alert-info': pageMessage.type === 'info'
-          }" role="alert">
-            {{ pageMessage.text }}
-             </div>
-        </div>
+      <!-- Inline alerts -->
+      <div class="mb-3 d-print-none">
+        <small *ngIf="alertSuccess" class="alert alert-success d-block" role="status">{{ alertSuccess }}</small>
+        <small *ngIf="alertError" class="alert alert-danger d-block" role="alert">{{ alertError }}</small>
+        <small *ngIf="pageMessage" class="alert"
+               [ngClass]="{'alert-success': pageMessage.type==='success', 'alert-danger': pageMessage.type==='error',
+                          'alert-warning': pageMessage.type==='warning','alert-info': pageMessage.type==='info'}">
+          {{ pageMessage.text }}
+        </small>
+      </div>
 
       <!-- Toolbar -->
-      <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
-        <button type="button" class="btn btn-outline-danger" (click)="openDevicePicker()">⟳ Reload Assigned</button>
-        <div class="ms-auto d-flex gap-2">
-          <input class="form-control" style="min-width:280px" [(ngModel)]="filterText" name="filterText"
-                 placeholder="Filter: serial / make / capacity / consumer">
+      <div class="d-flex flex-wrap gap-2 mb-3 d-print-none align-items-center">
+        <button type="button" class="btn btn-outline-danger" (click)="openDevicePicker()">⟳ Select Assigned</button>
+
+        <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
+          <div class="input-group input-group-sm" style="min-width:260px; max-width: 320px;">
+            <span class="input-group-text">Filter</span>
+            <input
+              class="form-control"
+              [(ngModel)]="filterText"
+              name="filterText"
+              autocomplete="off"
+              placeholder="Serial / Make / Capacity / Consumer"
+            />
+          </div>
         </div>
       </div>
 
-      <!-- SOURCE -->
-      <form #sourceForm="ngForm" class="mb-4">
-        <div class="rounded-4 border p-3 p-md-4 bg-light-subtle">
-          <div class="row g-3 align-items-end">
-            <div class="col-md-4">
-              <div class="form-floating">
-                <select class="form-select" [(ngModel)]="selectedSourceType" name="source_type"
-                        (change)="onSourceTypeChange()" required>
-                  <option [ngValue]="''" disabled>Select...</option>
-                  <option *ngFor="let type of office_types" [value]="type">{{ type }}</option>
-                </select>
-                <label class="fw-semibold">Source Type</label>
-              </div>
-            </div>
-
-            <div class="col-md-5">
-              <div class="input-group input-group-lg">
-                <div class="form-floating flex-grow-1">
-                  <input type="text" class="form-control" [(ngModel)]="selectedSourceName"
-                         name="source_name" placeholder="Code" required (keydown.enter)="fetchButtonData()">
-                  <label class="fw-semibold">Location / Store / Vendor Code</label>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-3 d-grid">
-              <button type="button" class="btn btn-success py-3" (click)="fetchButtonData()">
-                <i class="bi bi-search"></i> Search Office/Store/Vendor
-              </button>
-            </div>
-          </div>
-        </div>
-      </form>
-
-      <!-- Batch Header (Zone/DC & Method/Status + Bench/User) -->
+      <!-- Batch header -->
       <div class="card shadow-sm mb-3">
         <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Zone/DC Code</label>
-              <input class="form-control" [(ngModel)]="header.location_code" name="loc_code" readonly disabled>
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-3">
+              <label class="form-label fw-bold">Zone / DC</label>
+              <input
+                class="form-control"
+                [value]="(header.location_code ? header.location_code + ' - ' : '') + (header.location_name || '')"
+                readonly
+                disabled
+                aria-readonly="true"
+              />
+              <small *ngIf="!header.location_code || !header.location_name" class="text-danger">
+                Auto-filled from assignments.
+              </small>
             </div>
-            <div class="col-md-5">
-              <label class="form-label fw-bold">Zone/DC Name</label>
-              <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" readonly disabled>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label fw-bold">Testing Bench</label>
+              <input class="form-control" [(ngModel)]="header.testing_bench" name="testing_bench" readonly disabled />
             </div>
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Test Method</label>
-              <select class="form-select" [(ngModel)]="testMethod" name="test_method">
+
+            <div class="col-12 col-md-3">
+              <label class="form-label fw-bold">Testing User</label>
+              <input class="form-control" [(ngModel)]="header.testing_user" name="testing_user" readonly disabled />
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label fw-bold">Approving User</label>
+              <input class="form-control" [(ngModel)]="header.approving_user" name="approving_user" readonly disabled />
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label fw-bold">Phase</label>
+              <input class="form-control" [(ngModel)]="header.phase" name="phase" readonly disabled />
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label fw-bold">Test Method <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="testMethod" name="test_method" required>
+                <option [ngValue]="null">-- choose --</option>
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
               </select>
+              <small *ngIf="!testMethod" class="text-danger">Select a Test Method.</small>
             </div>
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Test Status</label>
-              <select class="form-select" [(ngModel)]="testStatus" name="test_status">
+
+            <div class="col-12 col-md-3">
+              <label class="form-label fw-bold">Test Status <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="testStatus" name="test_status" required>
+                <option [ngValue]="null">-- choose --</option>
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
-            </div>
-          </div>
-
-          <div class="row g-3 mt-1">
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Testing Bench</label>
-              <input class="form-control" [(ngModel)]="header.testing_bench" name="testing_bench" readonly disabled>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Testing User</label>
-              <input class="form-control" [(ngModel)]="header.testing_user" name="testing_user" readonly disabled>
-            </div>
-
-            <!-- Added to match template usage & validation -->
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Phase</label>
-              <input class="form-control" [(ngModel)]="header.phase" name="phase" readonly disabled>
-            </div>
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Approving User</label>
-              <input class="form-control" [(ngModel)]="header.approving_user" name="approving_user" readonly disabled>
+              <small *ngIf="!testStatus" class="text-danger">Select a Test Status.</small>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Main Table -->
+      <!-- Main table -->
       <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-          <thead class="table-light text-center sticky-top" style="top:0; z-index:1;">
+        <table class="table table-hover table-bordered align-middle table-sm">
+          <thead class="position-sticky top-0 bg-light text-center" style="z-index:2;">
             <tr>
-              <th>#</th>
-              <th>Meter No.</th>
-              <th>Make</th>
-              <th>Capacity</th>
-              <th>Reading (Removal Time)</th>
-              <th>Test Report Remark</th>
-              <th>Working</th>
-              <th class="d-print-none">Details</th>
-              <th class="d-print-none">Action</th>
+              <th scope="col" style="width:48px">#</th>
+              <th scope="col">Meter No. <span class="text-danger">*</span></th>
+              <th scope="col">Make</th>
+              <th scope="col">Capacity</th>
+              <th scope="col">Reading (Removal)</th>
+              <th scope="col">Test Result <span class="text-danger">*</span></th>
+              <th scope="col">Test Report Remark</th>
+              <th scope="col" class="d-print-none">Details</th>
+              <th scope="col" class="d-print-none">Action</th>
             </tr>
           </thead>
+
           <tbody>
             <ng-container *ngFor="let r of displayRows(); let i = index; trackBy: trackByRow">
               <tr [ngClass]="{'table-danger': r.notFound}">
                 <td class="text-center"><span class="badge bg-secondary">{{ i + 1 }}</span></td>
 
                 <td style="min-width:160px">
-                  <input class="form-control form-control-sm" [(ngModel)]="r.serial" [name]="'b_serial_'+i"
-                         (ngModelChange)="onSerialChanged(i, r.serial)" required >
+                  <input
+                    class="form-control form-control-sm"
+                    [(ngModel)]="r.serial"
+                    [name]="'b_serial_'+i"
+                    (ngModelChange)="onSerialChanged(i, r.serial)"
+                    required
+                    autocomplete="off"
+                    [attr.aria-invalid]="r.notFound ? 'true' : 'false'"
+                  />
                   <div *ngIf="r.notFound" class="small text-danger">Not in assigned list</div>
                 </td>
 
@@ -146,29 +143,32 @@
                 </td>
 
                 <td style="min-width:140px">
-                  <input class="form-control form-control-sm" [(ngModel)]="r.capacity" [name]="'b_capacity_'+i" placeholder="e.g., 5-30A / 3x10-100A" readonly>
+                  <input class="form-control form-control-sm" [(ngModel)]="r.capacity" [name]="'b_capacity_'+i" readonly>
                 </td>
 
                 <td style="min-width:140px">
                   <input type="number" class="form-control form-control-sm" [(ngModel)]="r.removal_reading" [name]="'b_read_rm_'+i" step="0.001">
                 </td>
 
-                <td style="min-width:140px">
+                <td style="min-width:160px">
+                  <select class="form-select form-select-sm" [(ngModel)]="r.test_result" [name]="'b_result_'+i" required>
+                    <option [ngValue]="undefined">-- choose --</option>
+                    <option *ngFor="let tr of testResults" [value]="tr">{{ tr }}</option>
+                  </select>
+                  <small *ngIf="!r.test_result && (r.serial || '').trim()" class="text-danger">Test result is required.</small>
+                </td>
+
+                <td style="min-width:200px">
                   <select class="form-select form-select-sm mb-1" [(ngModel)]="r.remark" [name]="'b_remark_'+i">
                     <option value="">--</option>
                     <option *ngFor="let option of commentby_testers" [value]="option">{{ option }}</option>
                   </select>
                 </td>
 
-                <td style="min-width:140px">
-                  <select class="form-select form-select-sm" [(ngModel)]="r.test_result" [name]="'b_result_'+i">
-                    <option [ngValue]="undefined">--</option>
-                    <option *ngFor="let tr of testResults" [value]="tr">{{ tr }}</option>
-                  </select>
-                </td>
-
                 <td class="text-center d-print-none">
-                  <button class="btn btn-sm btn-outline-primary" (click)="r._open=!r._open">{{ r._open ? 'Hide' : 'Edit' }}</button>
+                  <button class="btn btn-sm btn-outline-primary" (click)="r._open=!r._open" [attr.aria-expanded]="r._open">
+                    {{ r._open ? 'Hide' : 'Edit' }}
+                  </button>
                 </td>
 
                 <td class="text-center d-print-none">
@@ -176,40 +176,47 @@
                 </td>
               </tr>
 
-              <!-- Expanded details editor -->
+              <!-- Expanded editor -->
               <tr *ngIf="r._open">
-                <td colspan="9" style="background-color: #c1d6be;">
+                <td class="table-secondary p-3" colspan="9">
                   <div class="row g-3">
-                    <div class="col-md-6">
-                      <label class="form-label small fw-bold mb-0">Name of Consumer</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.consumer_name" [name]="'b_consumer_'+i">
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label small fw-bold mb-0">Address</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.address" [name]="'b_address_'+i">
-                    </div>
-                    <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Account Number</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.account_number" [name]="'b_acc_'+i">
-                    </div>
-                    <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Name of Division / Zone</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.division_zone" [name]="'b_division_'+i">
-                    </div>
-                    <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Panchanama No. & Date</label>
-                      <div class="d-flex gap-2">
-                        <input class="form-control form-control-sm" [(ngModel)]="r.panchanama_no" [name]="'b_pan_no_'+i" placeholder="No">
-                        <input type="date" class="form-control form-control-sm" [(ngModel)]="r.panchanama_date" [name]="'b_pan_dt_'+i">
+
+                    <!-- Consumer & P4 slip -->
+                    <div class="col-12">
+                      <div class="fw-bold small mb-2 p-2 bg-secondary text-white">Consumer & P4 Details</div>
+                      <div class="row g-2">
+                        <div class="col-md-4">
+                          <label class="form-label small fw-bold mb-0">Name of Consumer</label>
+                          <input class="form-control form-control-sm" [(ngModel)]="r.consumer_name" [name]="'b_consumer_'+i">
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label small fw-bold mb-0">Account Number</label>
+                          <input class="form-control form-control-sm" [(ngModel)]="r.account_number" [name]="'b_acc_'+i">
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label small fw-bold mb-0">Address</label>
+                          <input class="form-control form-control-sm" [(ngModel)]="r.address" [name]="'b_address_'+i">
+                        </div>
+
+                        <div class="col-md-4">
+                          <label class="form-label small fw-bold mb-0">Name of Division / Zone</label>
+                          <input class="form-control form-control-sm" [(ngModel)]="r.division_zone" [name]="'b_division_'+i">
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label small fw-bold mb-0">Panchanama No. & Date</label>
+                          <div class="d-flex gap-2">
+                            <input class="form-control form-control-sm" [(ngModel)]="r.panchanama_no" [name]="'b_pan_no_'+i" placeholder="No">
+                            <input type="date" class="form-control form-control-sm" [(ngModel)]="r.panchanama_date" [name]="'b_pan_dt_'+i">
+                          </div>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label small fw-bold mb-0">Meter condition at removal</label>
+                          <input class="form-control form-control-sm" [(ngModel)]="r.condition_at_removal" [name]="'b_cond_'+i">
+                        </div>
                       </div>
                     </div>
 
-                    <div class="col-12">
-                      <label class="form-label small fw-bold mb-0">Meter condition as noted at the time of removal</label>
-                      <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.condition_at_removal" [name]="'b_cond_'+i"></textarea>
-                    </div>
-
-                    <!-- Details of meter -->
+                    <!-- Duplicate meter details for confirmation -->
                     <div class="col-12">
                       <div class="row g-2">
                         <div class="col-md-3">
@@ -225,105 +232,199 @@
                           <input class="form-control form-control-sm" [(ngModel)]="r.capacity" [name]="'b_c_dup_'+i">
                         </div>
                         <div class="col-md-3">
-                          <label class="form-label small fw-bold mb-0">Reading at the time of removal</label>
+                          <label class="form-label small fw-bold mb-0">Reading at removal</label>
                           <input type="number" class="form-control form-control-sm" [(ngModel)]="r.removal_reading" [name]="'b_rr_dup_'+i" step="0.001">
                         </div>
                       </div>
                     </div>
 
-                    <!-- RMTL section -->
-                    <div class="col-12 mt-2">
-                      <div class="text-center fw-bold">TO BE FILLED BY TESTING SECTION LABORATORY (RMTL)</div>
-                    </div>
-
-                    <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Date of Testing</label>
-                      <input type="date" class="form-control form-control-sm" [(ngModel)]="r.testing_date" [name]="'b_tdate_'+i">
-                    </div>
-
-                    <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Whether Found Burnt</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.is_burned" [name]="'b_burn_'+i">
-                        <option [ngValue]="false">No</option>
-                        <option [ngValue]="true">Yes</option>
-                      </select>
-                    </div>
-                    <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Meter Body Seal</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.seal_status" [name]="'b_seal_'+i">
-                        <option value="">--</option>
-                        <option *ngFor="let s of seal_statuses" [value]="s">{{ s }}</option>
-                      </select>
-                    </div>
-
-                    <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Meter Glass</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.meter_glass_cover" [name]="'b_glass_'+i">
-                        <option value="">--</option>
-                        <option *ngFor="let g of glass_covers" [value]="g">{{ g }}</option>
-                      </select>
-                    </div>
-                    <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Terminal Block</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.terminal_block" [name]="'b_term_'+i">
-                        <option value="">--</option>
-                        <option *ngFor="let t of terminal_blocks" [value]="t">{{ t }}</option>
-                      </select>
-                    </div>
-                    <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Meter Body Cover</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.meter_body" [name]="'b_body_'+i">
-                        <option value="">--</option>
-                        <option *ngFor="let b of meter_bodies" [value]="b">{{ b }}</option>
-                      </select>
-                    </div>
-
+                    <!-- RMTL lab (physical) -->
                     <div class="col-12">
-                      <label class="form-label small fw-bold mb-0">Any Other</label>
-                      <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.other" [name]="'b_other_'+i"></textarea>
-                    </div>
-                    <hr>
-                    <div class="col-md-3">
-                          <label class="form-label small fw-bold mb-0">Meter Testing Mechnism</label>
-                          <select class="form-select form-select-sm" [(ngModel)]="r.dial_testby" [name]="'b_dtest_'+i">
+                      <div class="fw-bold small mb-2 p-2 bg-secondary text-white">To be filled by Testing Lab (RMTL/LTMT)</div>
+                      <div class="row g-2">
+                        <div class="col-md-3">
+                          <label class="form-label small fw-bold mb-0">Date of Testing</label>
+                          <input type="date" class="form-control form-control-sm" [(ngModel)]="r.testing_date" [name]="'b_tdate_'+i">
+                        </div>
+
+                        <div class="col-md-3">
+                          <label class="form-label small fw-bold mb-0">Physical Condition of Meter</label>
+                          <select class="form-select form-select-sm" [(ngModel)]="r.physical_condition_of_device" [name]="'b_pcond_'+i">
                             <option value="">--</option>
-                            <option *ngFor="let t of ternal_testing_types" [value]="t">{{ t }}</option>
+                            <option *ngFor="let pc of physical_conditions" [value]="pc">{{ pc }}</option>
                           </select>
                         </div>
-                    <!-- Readings -->
-                    <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Reading (Before Test)</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.reading_before_test" [name]="'b_rb_'+i" step="0.001">
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Reading (After Test)</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.reading_after_test" [name]="'b_ra_'+i" step="0.001">
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">KWH by RSS/RSM</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.rsm_kwh" [name]="'b_rsm_'+i" step="0.001">
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">KWH Recorded by Meter</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.meter_kwh" [name]="'b_mkwh_'+i" step="0.001">
+                        <div class="col-md-3">
+                          <label class="form-label small fw-bold mb-0">Whether Found Burnt</label>
+                          <select class="form-select form-select-sm" [(ngModel)]="r.is_burned" [name]="'b_burn_'+i">
+                            <option [ngValue]="false">No</option>
+                            <option [ngValue]="true">Yes</option>
+                          </select>
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label small fw-bold mb-0">Meter Body Seal</label>
+                          <select class="form-select form-select-sm" [(ngModel)]="r.seal_status" [name]="'b_seal_'+i">
+                            <option value="">--</option>
+                            <option *ngFor="let s of seal_statuses" [value]="s">{{ s }}</option>
+                          </select>
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label small fw-bold mb-0">Meter Glass Cover</label>
+                          <select class="form-select form-select-sm" [(ngModel)]="r.meter_glass_cover" [name]="'b_glass_'+i">
+                            <option value="">--</option>
+                            <option *ngFor="let g of glass_covers" [value]="g">{{ g }}</option>
+                          </select>
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label small fw-bold mb-0">Terminal Block</label>
+                          <select class="form-select form-select-sm" [(ngModel)]="r.terminal_block" [name]="'b_term_'+i">
+                            <option value="">--</option>
+                            <option *ngFor="let t of terminal_blocks" [value]="t">{{ t }}</option>
+                          </select>
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label small fw-bold mb-0">Meter Body</label>
+                          <select class="form-select form-select-sm" [(ngModel)]="r.meter_body" [name]="'b_body_'+i">
+                            <option value="">--</option>
+                            <option *ngFor="let b of meter_bodies" [value]="b">{{ b }}</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
 
-                    <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">% Error</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.error_percentage" [name]="'b_err_'+i" step="0.001">
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Starting Current Test</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.starting_current_test" [name]="'b_sct_'+i" placeholder="OK / FAIL / NA">
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label small fw-bold mb-0">Creep Test</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.creep_test" [name]="'b_creep_'+i" placeholder="OK / FAIL / NA">
+                    <!-- View mode per row -->
+                    <div class="col-md-4">
+                      <label class="form-label small fw-bold mb-0">Meter Testing Mechanism</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="r.view_mode" [name]="'view_mode_'+i">
+                        <option value="">Select Testing Type</option>
+                        <option *ngFor="let t of ternal_testing_types" [value]="t">{{ t }}</option>
+                      </select>
                     </div>
 
+                    <!-- SHUNT readings -->
+                    <div class="col-12" *ngIf="(r.view_mode || 'BOTH') !== 'NUTRAL'">
+                      <div class="p-3 border rounded bg-secondary bg-opacity-10">
+                        <div class="fw-bold small mb-2 p-2 bg-secondary text-white">Shunt Readings</div>
+                        <div class="row g-3">
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Reading Before Test</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_reading_before_test" [name]="'sh_b_'+i" step="0.01">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Reading After Test</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_reading_after_test" [name]="'sh_a_'+i" step="0.01">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Ref Start</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_ref_start_reading" [name]="'sh_rs_'+i" step="0.01">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Ref End</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_ref_end_reading" [name]="'sh_re_'+i" step="0.01">
+                          </div>
+
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Starting Current Test</label>
+                            <select class="form-select form-select-sm" [(ngModel)]="r.shunt_current_test" [name]="'sh_ct_'+i">
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Creep Test</label>
+                            <select class="form-select form-select-sm" [(ngModel)]="r.shunt_creep_test" [name]="'sh_cp_'+i">
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Dial Test</label>
+                            <select class="form-select form-select-sm" [(ngModel)]="r.shunt_dail_test" [name]="'sh_dt_'+i">
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
+                          </div>
+                          <div class="col-md-2">
+                            <label class="form-label small fw-bold mb-0">Error % (Shunt)</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_error_percentage" [name]="'sh_err_'+i" step="0.01" readonly>
+                          </div>
+                          <div class="col-md-2 d-flex align-items-end">
+                            <button class="btn btn-sm btn-success w-100" type="button" (click)="calcShunt(i)">Calculate Shunt</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- NUTRAL readings -->
+                    <div class="col-12" *ngIf="(r.view_mode || 'BOTH') !== 'SHUNT'">
+                      <div class="p-3 border rounded bg-secondary bg-opacity-10">
+                        <div class="fw-bold small mb-2 p-2 bg-secondary text-white">Nutral Readings</div>
+                        <div class="row g-3">
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Reading Before Test</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_reading_before_test" [name]="'nu_b_'+i" step="0.01">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Reading After Test</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_reading_after_test" [name]="'nu_a_'+i" step="0.01">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Ref Start</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_ref_start_reading" [name]="'nu_rs_'+i" step="0.01">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Ref End</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_ref_end_reading" [name]="'nu_re_'+i" step="0.01">
+                          </div>
+
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Starting Current Test</label>
+                            <select class="form-select form-select-sm" [(ngModel)]="r.nutral_current_test" [name]="'nu_ct_'+i">
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Creep Test</label>
+                            <select class="form-select form-select-sm" [(ngModel)]="r.nutral_creep_test" [name]="'nu_cp_'+i">
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Dial Test</label>
+                            <select class="form-select form-select-sm" [(ngModel)]="r.nutral_dail_test" [name]="'nu_dt_'+i">
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
+                          </div>
+                          <div class="col-md-2">
+                            <label class="form-label small fw-bold mb-0">Error % (Nutral)</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_error_percentage" [name]="'nu_err_'+i" step="0.01" readonly>
+                          </div>
+                          <div class="col-md-2 d-flex align-items-end">
+                            <button class="btn btn-sm btn-success w-100" type="button" (click)="calcNutral(i)">Calculate Nutral</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Combined error -->
+                    <div class="col-md-4">
+                      <label class="form-label small fw-bold mb-0">Error % from</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="r.error_from_mode" [name]="'err_from_'+i" (ngModelChange)="onErrorFromModeChanged(i)">
+                        <option value="">Select Testing Type</option>
+                        <option *ngFor="let t of ternal_testing_types" [value]="t">{{ t }}</option>
+                      </select>
+                    </div>
+                    <div class="col-md-5">
+                      <label class="form-label small fw-bold mb-0">Finally Error % (Import)</label>
+                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.error_percentage_import" [name]="'b_errimp_'+i" step="0.01" readonly>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                      <button class="btn btn-sm btn-success w-100" type="button" (click)="calculateErrorPct(i)">
+                        Final Calculate Error %
+                      </button>
+                    </div>
+
+                    <!-- Remarks -->
                     <div class="col-12">
-                      <label class="form-label small fw-bold mb-0">Remarks</label>
-                      <textarea rows="3" class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'b_remark_'+i"></textarea>
+                      <label class="form-label small fw-bold mb-0">Any Remarks</label>
+                      <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'b_r_remark_'+i"></textarea>
                     </div>
                   </div>
                 </td>
@@ -333,21 +434,28 @@
         </table>
       </div>
 
-      <button type="button" class="btn btn-outline-primary mt-2 me-2" (click)="addRow()">➕ Add Row</button>
-      <div class="d-flex justify-content-end">
-        <button type="button" class="btn btn-primary mt-2 me-2" [disabled]="!rows.length"
-                (click)="openConfirmSubmit()">
-          {{ submitting ? 'Submitting…' : 'Validate & Submit' }}
-        </button>
+      <!-- Actions -->
+      <div class="d-flex gap-2 mt-3 d-print-none">
+        <button type="button" class="btn btn-outline-primary" (click)="addRow()">➕ Add Row</button>
+        <div class="ms-auto d-flex gap-2">
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="submitting || !rows.length || !testMethod || !testStatus"
+            (click)="openConfirmSubmit()"
+          >
+            {{ submitting ? 'Submitting…' : 'Validate & Submit' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Overlay -->
+  <!-- Loading overlay -->
   <div *ngIf="loading" class="position-fixed top-0 start-0 w-100 h-100"
        style="background:rgba(0,0,0,0.15); z-index:1080;">
     <div class="d-flex h-100 align-items-center justify-content-center">
-      <div class="spinner-border"></div>
+      <div class="spinner-border" role="status" aria-live="polite"></div>
       <span class="ms-2 fw-semibold">Loading…</span>
     </div>
   </div>
@@ -356,13 +464,13 @@
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modal.open}" *ngIf="modal.open">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header border-0"style="background:#151433; color:#fff;">
+        <div class="modal-header" style="background:#151433; color:#fff;">
           <h5 class="modal-title">{{ modal.title }}</h5>
-          <button type="button" class="btn-close" (click)="closeModal()"></button>
+          <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
         </div>
 
         <div class="modal-body">
-          <div class="row">
+          <div class="row gy-2">
             <div class="col-md-4"><strong>Zone/DC:</strong> {{ header.location_code ? (header.location_code + ' - ') : '' }}{{ header.location_name || '-' }}</div>
             <div class="col-md-2"><strong>Method:</strong> {{ testMethod || '-' }}</div>
             <div class="col-md-2"><strong>Status:</strong> {{ testStatus || '-' }}</div>
@@ -405,44 +513,46 @@
   </div>
 
   <!-- Device Picker Modal -->
-  <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': devicePicker.open}" *ngIf="devicePicker.open">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+  <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': devicePicker.open}" *ngIf="devicePicker.open" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header border-0"style="background:#151433; color:#fff;">
-          <h5 class="modal-title">Select Assigned Devices</h5>
-          <button type="button" class="btn-close" (click)="closeDevicePicker()"></button>
+        <div class="modal-header" style="background:#151433; color:#fff;">
+          <h5 class="modal-title">Select Assigned Devices for Testing</h5>
+          <button type="button" class="btn-close btn-close-white" (click)="closeDevicePicker()"></button>
         </div>
+
         <div class="modal-body">
           <div *ngIf="devicePicker.loading" class="d-flex align-items-center">
             <div class="spinner-border me-2"></div> Loading assigned devices…
           </div>
+
           <div *ngIf="!devicePicker.loading">
-            <div class="row g-2 align-items-center mb-2">
-              <div class="col-auto">
-                <div class="form-check mb-2">
-                  <input class="form-check-input" type="checkbox" id="selAll" [checked]="devicePicker.selectAll" (change)="toggleSelectAll()">
-                  <label class="form-check-label" for="selAll">Select All</label>
-                </div>
-              </div>
-              <div class="col">
-                <input class="form-control form-control-sm" [(ngModel)]="devicePicker.search" name="picker_search" placeholder="Search by serial…">
+            <div class="d-flex gap-2 mb-2">
+              <input class="form-control" style="max-width: 360px;"
+                     [(ngModel)]="devicePicker.search" name="picker_search"
+                     placeholder="Search serial / make / capacity">
+              <div class="ms-auto d-flex align-items-center gap-2">
+                <label class="small text-muted">Select All (visible)</label>
+                <input type="checkbox" [checked]="devicePicker.selectAll" (change)="toggleSelectAll()">
               </div>
             </div>
-            <div class="table-responsive" style="max-height: 55vh; overflow:auto;">
-              <table class="table table-sm table-hover align-middle">
+
+            <div class="table-responsive" style="max-height:60vh; overflow:auto">
+              <table class="table table-sm table-bordered align-middle">
                 <thead class="table-light">
                   <tr>
                     <th style="width:40px;"></th>
                     <th>Meter No.</th>
-                    <th>Make ▲</th>
+                    <th>Make</th>
                     <th>Capacity</th>
                     <th>Zone/DC</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr *ngFor="let a of devicePickerDisplayItems()">
-                    <td>
-                      <input type="checkbox" class="form-check-input"
+                    <td class="text-center">
+                      <input type="checkbox"
+                             class="form-check-input"
                              [checked]="devicePicker.selected.has(a.id)"
                              (change)="toggleSelectOne(a.id)">
                     </td>
@@ -451,21 +561,25 @@
                     <td>{{ a.device?.capacity || '—' }}</td>
                     <td>{{ (a.device?.location_code || '') + (a.device?.location_name ? ' - ' + a.device?.location_name : '') }}</td>
                   </tr>
+                  <tr *ngIf="!devicePickerDisplayItems().length">
+                    <td colspan="5" class="text-center text-muted">No assigned devices found.</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
-            <small class="text-muted">Selected: {{ devicePicker.selected.size }}</small>
+            <small class="text-muted">Tip: Sorted by make; search filters by serial / make / capacity.</small>
           </div>
         </div>
+
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeDevicePicker()">Close</button>
-          <button class="btn btn-primary" (click)="addSelectedDevices()">Add Selected</button>
+          <button type="button" class="btn btn-secondary" (click)="closeDevicePicker()">Cancel</button>
+          <button type="button" class="btn btn-primary" (click)="addSelectedDevices()">Add Selected</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Alert Modal -->
+  <!-- Alert Modal (reused by TS helpers) -->
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': alert.open}" *ngIf="alert.open">
     <div class="modal-dialog modal-sm modal-dialog-centered">
       <div class="modal-content">

@@ -27,20 +27,21 @@ export interface SmartMeta {
   testStatus?: string;
   testing_bench?: string;
   testing_user?: string;
-  approving_user?: string;  
-  lab?: SmartLabInfo;
+  approving_user?: string;
+  // kept for compatibility if you want to show somewhere later
   approver_remarks?: string | null;
+  lab?: SmartLabInfo;
 }
 export interface PdfLogos {
-  leftLogoUrl?: string;
-  rightLogoUrl?: string;
+  leftLogoUrl?: string;   // e.g. '/assets/icons/wzlogo.png'
+  rightLogoUrl?: string;  // optional; if omitted we reuse left
 }
 
 @Injectable({ providedIn: 'root' })
 export class SmartAgainstMeterReportPdfService {
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
-  private logoCache = new Map<string,string>();
+  private logoCache = new Map<string, string>();
 
   private resolveUrl(url: string): string {
     try {
@@ -68,10 +69,10 @@ export class SmartAgainstMeterReportPdfService {
     const blob = await res.blob();
 
     const dataUrl = await new Promise<string>((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result as string);
-      r.onerror = reject;
-      r.readAsDataURL(blob);
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
 
     this.logoCache.set(resolved, dataUrl);
@@ -103,11 +104,12 @@ export class SmartAgainstMeterReportPdfService {
     hasRight: boolean;
     pageWidth: number;
     contentWidth: number;
-  }): Content {
+  }) {
     const addr = (meta.addressLine || '').trim();
     const email = (meta.email || '').trim();
     const phone = (meta.phone || '').trim();
-    const contact =
+
+    const contactLine =
       (email || phone)
         ? `Email: ${email || '-'}${email && phone ? '   •   ' : ''}Phone: ${phone || '-'}`
         : '';
@@ -126,10 +128,10 @@ export class SmartAgainstMeterReportPdfService {
             {
               width: '*',
               stack: [
-                { text: meta.orgLine, alignment: 'center', bold: true, fontSize: 12, margin: [0, 0, 0, 0] },
+                { text: meta.orgLine, alignment: 'center', bold: true, fontSize: 12 },
                 { text: meta.labLine, alignment: 'center', bold: true, fontSize: 11, margin: [0, 2, 0, 0] },
                 ...(addr ? [{ text: addr, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0], noWrap: false }] : []),
-                ...(contact ? [{ text: contact, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] }] : []),
+                ...(contactLine ? [{ text: contactLine, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] }] : []),
               ]
             },
             meta.hasRight ? { image: 'rightLogo', width: meta.logoWidth, height: meta.logoHeight } : { width: meta.logoWidth, text: '' }
@@ -150,24 +152,46 @@ export class SmartAgainstMeterReportPdfService {
     const okCount = rows.filter(r => this.isOk(r)).length;
     const defCount = total - okCount;
 
-    const labName  = (meta.lab?.lab_name || '—').toString().trim() || '—';
-    const address1 = (meta.lab?.address_line || '').toString().trim();
-    const email    = (meta.lab?.email || '').toString().trim() || undefined;
-    const phone    = (meta.lab?.phone || '').toString().trim() || undefined;
+    const labName  = (meta.lab?.lab_name || '').trim();
+    const address1 = (meta.lab?.address_line || '').trim();
+    const email    = (meta.lab?.email || '').trim() || undefined;
+    const phone    = (meta.lab?.phone || '').trim() || undefined;
 
-    const contentWidth = 595.28 - 28 - 28;
-    const makeHeader = () => this.headerBar({
-      orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
-      labLine: labName,
-      addressLine: address1 || undefined,
-      email, phone,
-      logoWidth: 36, logoHeight: 36,
-      hasLeft: !!imagesDict['leftLogo'],
-      hasRight: !!imagesDict['rightLogo'],
-      pageWidth: 595.28, contentWidth
+    // Data table
+    const tableBody: TableCell[][] = [[
+      { text: 'S.No', style: 'th', alignment: 'center' },
+      { text: 'METER NUMBER', style: 'th' },
+      { text: 'MAKE', style: 'th' },
+      { text: 'CAPACITY', style: 'th' },
+      { text: 'TEST RESULT', style: 'th' },
+    ]];
+    rows.forEach((r, i) => {
+      tableBody.push([
+        { text: String(i + 1), alignment: 'center' },
+        { text: r.serial || '-' },
+        { text: r.make || '-' },
+        { text: r.capacity || '-' },
+        { text: this.resultText(r) },
+      ]);
     });
 
-    // Info table
+    const contentWidth = 595.28 - 28 - 28; // A4 width - margins
+
+    const makeHeader = () => this.headerBar({
+      orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
+      labLine: labName || '—',
+      addressLine: address1 || undefined,
+      email,
+      phone,
+      logoWidth: 36,
+      logoHeight: 36,
+      hasLeft: !!imagesDict['leftLogo'],
+      hasRight: !!imagesDict['rightLogo'],
+      pageWidth: 595.28,
+      contentWidth,
+    });
+
+    // Info table (style parity with StopDefective)
     const infoTable: Content = {
       layout: {
         fillColor: (_row: number, col: number) => (col % 2 === 0 ? '#f6f8fa' : undefined),
@@ -198,24 +222,6 @@ export class SmartAgainstMeterReportPdfService {
       }
     };
 
-    // Data table
-    const tableBody: TableCell[][] = [[
-      { text: 'S.No', style: 'th', alignment: 'center' },
-      { text: 'METER NUMBER', style: 'th' },
-      { text: 'MAKE', style: 'th' },
-      { text: 'CAPACITY', style: 'th' },
-      { text: 'TEST RESULT', style: 'th' },
-    ]];
-    rows.forEach((r, i) => {
-      tableBody.push([
-        { text: String(i + 1), alignment: 'center' },
-        { text: r.serial || '-' },
-        { text: r.make || '-' },
-        { text: r.capacity || '-' },
-        { text: this.resultText(r) },
-      ]);
-    });
-
     return {
       pageSize: 'A4',
       pageMargins: [28, 92, 28, 28],
@@ -225,12 +231,15 @@ export class SmartAgainstMeterReportPdfService {
       styles: {
         th: { bold: true },
         kv: { bold: true, fontSize: 10, color: '#111827' },
+        badge: { bold: true, fontSize: 10 },
         sectionTitle: { bold: true, fontSize: 13, alignment: 'center' }
       },
       header: makeHeader as any,
       content: [
         { text: 'SMART AGAINST METER TEST REPORT', style: 'sectionTitle', margin: [0, 0, 0, 8] },
+
         infoTable,
+
         {
           layout: {
             fillColor: (rowIndex: number) => (rowIndex > 0 && rowIndex % 2 ? '#fafafa' : undefined),
@@ -240,6 +249,7 @@ export class SmartAgainstMeterReportPdfService {
           table: { headerRows: 1, widths: ['auto','*','*','*','*'], body: tableBody },
           margin: [0, 10, 0, 0]
         },
+
         { text: `\nTOTAL: ${total}   •   OK: ${okCount}   •   DEF: ${defCount}`, alignment: 'right', margin: [0, 2, 0, 0] },
 
         { text: '\n' },
@@ -251,7 +261,8 @@ export class SmartAgainstMeterReportPdfService {
               stack: [
                 { text: '\n\nTested by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                { text: 'TESTING ASSISTANT (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+                { text: (meta.testing_user || ''), alignment: 'center', color: '#444' },
+                { text: 'TESTING ASSISTANT', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
             {
@@ -259,7 +270,7 @@ export class SmartAgainstMeterReportPdfService {
               stack: [
                 { text: '\n\nVerified by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                { text: 'JUNIOR ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+                { text: 'JUNIOR ENGINEER', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
             {
@@ -267,7 +278,8 @@ export class SmartAgainstMeterReportPdfService {
               stack: [
                 { text: '\n\nApproved by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                { text: 'ASSISTANT ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+                { text: (meta.approving_user || ''), alignment: 'center', color: '#444' },
+                { text: 'ASSISTANT ENGINEER', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
           ],
@@ -284,19 +296,16 @@ export class SmartAgainstMeterReportPdfService {
     };
   }
 
-  // Public API
   async download(rows: SmartRow[], meta: SmartMeta, logos?: PdfLogos): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
 
     const imagesDict: Record<string, string> = {};
     try {
       if (logos?.leftLogoUrl) imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
-      if (logos?.rightLogoUrl) {
-        imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
-      } else if (imagesDict['leftLogo']) {
-        imagesDict['rightLogo'] = imagesDict['leftLogo'];
-      }
+      if (logos?.rightLogoUrl) imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
+      else if (imagesDict['leftLogo']) imagesDict['rightLogo'] = imagesDict['leftLogo'];
     } catch (e) {
+      // If one logo fails, continue gracefully without logos
       delete imagesDict['leftLogo'];
       delete imagesDict['rightLogo'];
       console.warn('Logo load failed:', e);

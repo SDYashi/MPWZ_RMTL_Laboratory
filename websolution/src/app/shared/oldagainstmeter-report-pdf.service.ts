@@ -1,4 +1,6 @@
-import { Injectable } from '@angular/core';
+// src/app/shared/oldagainstmeter-report-pdf.service.ts
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import type { TDocumentDefinitions, Content, TableCell } from 'pdfmake/interfaces';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
@@ -29,36 +31,117 @@ export interface OldAgainstMeta {
   lab?: OldLabInfo;
 }
 export interface PdfLogos {
-  leftLogoUrl?: string;
-  rightLogoUrl?: string;
+  leftLogoUrl?: string;   // e.g. '/assets/icons/wzlogo.png'
+  rightLogoUrl?: string;  // optional; if omitted we reuse left
 }
 
 @Injectable({ providedIn: 'root' })
 export class OldAgainstMeterReportPdfService {
-  // Convert asset URL to dataURL
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+
+  private logoCache = new Map<string, string>();
+
+  // Resolve relative/absolute/data URLs safely (browser only)
+  private resolveUrl(url: string): string {
+    try {
+      if (!url) return url;
+      if (url.startsWith('data:')) return url;
+      if (/^https?:\/\//i.test(url)) return new URL(url).toString();
+      if (!isPlatformBrowser(this.platformId)) return url;
+      return new URL(url, (document?.baseURI || '/')).toString();
+    } catch {
+      return url;
+    }
+  }
+
+  // Convert asset URL to dataURL with caching (browser only)
   private async urlToDataUrl(url: string): Promise<string> {
-    const absolute = new URL(url, document.baseURI).toString();
-    const res = await fetch(absolute);
+    if (!url) throw new Error('Empty URL');
+    if (!isPlatformBrowser(this.platformId)) throw new Error('Not in browser');
+    if (url.startsWith('data:')) return url;
+
+    const resolved = this.resolveUrl(url);
+    const cached = this.logoCache.get(resolved);
+    if (cached) return cached;
+
+    const res = await fetch(resolved, { credentials: 'same-origin' });
     if (!res.ok) throw new Error(`fetch failed: ${res.status} ${res.statusText}`);
     const blob = await res.blob();
-    return await new Promise<string>((resolve, reject) => {
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
+
+    this.logoCache.set(resolved, dataUrl);
+    return dataUrl;
   }
 
   private isOk(row: OldAgainstRow): boolean {
     const t = `${row.test_result ?? ''} ${row.remark ?? ''}`.toLowerCase();
     return /\bok\b|\bpass\b/.test(t);
   }
+
   private resultText(row: OldAgainstRow): string {
     const t = (row.test_result || '').trim();
     const m = (row.remark || '').trim();
     if (t && m && t.toUpperCase() !== 'OK') return `${t} — ${m}`;
     if (t && (!m || t.toUpperCase() === 'OK')) return t;
     return m || '-';
+  }
+
+  // Shared header (same layout as Stop/Defective)
+  private headerBar(meta: {
+    orgLine: string;
+    labLine: string;
+    addressLine?: string;
+    email?: string;
+    phone?: string;
+    logoWidth: number;
+    logoHeight: number;
+    hasLeft: boolean;
+    hasRight: boolean;
+    pageWidth: number;
+    contentWidth: number;
+  }): Content {
+    const addr = (meta.addressLine || '').trim();
+    const email = (meta.email || '').trim();
+    const phone = (meta.phone || '').trim();
+
+    const contactLine =
+      (email || phone)
+        ? `Email: ${email || '-'}${email && phone ? '   •   ' : ''}Phone: ${phone || '-'}`
+        : '';
+
+    const sepLine: Content = {
+      canvas: [{ type: 'line', x1: 0, y1: 0, x2: meta.contentWidth, y2: 0, lineWidth: 1 }],
+      margin: [0, 6, 0, 0]
+    } as Content;
+
+    return {
+      margin: [28, 8, 28, 6],
+      stack: [
+        {
+          columns: [
+            meta.hasLeft ? { image: 'leftLogo', width: meta.logoWidth, height: meta.logoHeight } : { width: meta.logoWidth, text: '' },
+            {
+              width: '*',
+              stack: [
+                { text: meta.orgLine, alignment: 'center', bold: true, fontSize: 12 },
+                { text: meta.labLine, alignment: 'center', bold: true, fontSize: 11, margin: [0, 2, 0, 0] },
+                ...(addr ? [{ text: addr, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0], noWrap: false }] : []),
+                ...(contactLine ? [{ text: contactLine, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] }] : []),
+              ]
+            },
+            meta.hasRight ? { image: 'rightLogo', width: meta.logoWidth, height: meta.logoHeight } : { width: meta.logoWidth, text: '' }
+          ],
+          columnGap: 10
+        },
+        sepLine
+      ]
+    } as Content;
   }
 
   private buildDoc(
@@ -70,26 +153,39 @@ export class OldAgainstMeterReportPdfService {
     const okCount = rows.filter(r => this.isOk(r)).length;
     const defCount = total - okCount;
 
-    const labName  = meta.lab?.lab_name || 'REMOTE METERING TESTING LABORATORY INDORE';
-    const address1 = meta.lab?.address_line || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003';
-    const email    = meta.lab?.email || 'testinglabwzind@gmail.com';
-    const phone    = meta.lab?.phone || '0731-2997802';
+    const labName  = (meta.lab?.lab_name || 'REMOTE METERING TESTING LABORATORY INDORE').trim();
+    const address1 = (meta.lab?.address_line || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003').trim();
+    const email    = (meta.lab?.email || 'testinglabwzind@gmail.com').trim() || undefined;
+    const phone    = (meta.lab?.phone || '0731-2997802').trim() || undefined;
 
-    const headerRow: Content = {
-      columns: [
-        imagesDict['leftLogo'] ? { image: 'leftLogo', width: 30 } : { text: '' },
-        {
-          width: '*',
-          stack: [
-            { text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED', alignment: 'center', bold: true, fontSize: 13 },
-            { text: labName, alignment: 'center', color: '#666', margin: [0, 2, 0, 0], fontSize: 12 },
-            { text: `${address1}\nEmail: ${email} • Phone: ${phone}`, alignment: 'center', color: '#666', margin: [0, 2, 0, 0], fontSize: 10 }
-          ]
-        },
-        imagesDict['rightLogo'] ? { image: 'rightLogo', width: 30, alignment: 'right' } : { text: '' }
-      ],
-      margin: [0,0,0,2]
-    };
+    const tableBody: TableCell[][] = [[
+      { text: 'S.No', style: 'th', alignment: 'center' },
+      { text: 'METER NUMBER', style: 'th' },
+      { text: 'MAKE', style: 'th' },
+      { text: 'CAPACITY', style: 'th' },
+      { text: 'TEST RESULT', style: 'th' },
+    ]];
+    rows.forEach((r, i) => {
+      tableBody.push([
+        { text: String(i + 1), alignment: 'center' },
+        { text: r.serial || '-' },
+        { text: r.make || '-' },
+        { text: r.capacity || '-' },
+        { text: this.resultText(r) },
+      ]);
+    });
+
+    const contentWidth = 595.28 - 28 - 28; // A4 width - margins
+    const makeHeader = () => this.headerBar({
+      orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
+      labLine: labName || '—',
+      addressLine: address1 || undefined,
+      email, phone,
+      logoWidth: 36, logoHeight: 36,
+      hasLeft: !!imagesDict['leftLogo'],
+      hasRight: !!imagesDict['rightLogo'],
+      pageWidth: 595.28, contentWidth
+    });
 
     const infoTable: Content = {
       layout: {
@@ -98,8 +194,10 @@ export class OldAgainstMeterReportPdfService {
         vLineWidth: () => 0.4,
         hLineColor: () => '#e5e7eb',
         vLineColor: () => '#e5e7eb',
-        padding: [2, 4, 2, 4],
-        minHeight: 25,
+        paddingLeft: () => 4,
+        paddingRight: () => 4,
+        paddingTop: () => 4,
+        paddingBottom: () => 4,
       } as any,
       table: {
         widths: ['auto','*','auto','*'],
@@ -119,37 +217,20 @@ export class OldAgainstMeterReportPdfService {
       }
     };
 
-    const tableBody: TableCell[][] = [[
-      { text: 'S.No', style: 'th', alignment: 'center' },
-      { text: 'METER NUMBER', style: 'th' },
-      { text: 'MAKE', style: 'th' },
-      { text: 'CAPACITY', style: 'th' },
-      { text: 'TEST RESULT', style: 'th' },
-    ]];
-    rows.forEach((r, i) => {
-      tableBody.push([
-        { text: String(i + 1), alignment: 'center' },
-        { text: r.serial || '-' },
-        { text: r.make || '-' },
-        { text: r.capacity || '-' },
-        { text: this.resultText(r) },
-      ]);
-    });
-
     return {
       pageSize: 'A4',
-      pageMargins: [28, 28, 28, 34],
+      pageMargins: [28, 92, 28, 28], // matches Stop/Defective (space for header)
       defaultStyle: { fontSize: 10 },
       info: { title: `AGAINST_OLD_METER_${meta.date}` },
       images: imagesDict,
       styles: {
         th: { bold: true },
         kv: { bold: true, fontSize: 10, color: '#111827' },
-        sectionTitle: { bold: true, fontSize: 14, alignment: 'center' }
+        badge: { bold: true, fontSize: 10 },
+        sectionTitle: { bold: true, fontSize: 13, alignment: 'center' }
       },
+      header: makeHeader as any,
       content: [
-        headerRow,
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 540, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
         { text: 'AGAINST OLD METER TEST REPORT', style: 'sectionTitle', margin: [0, 0, 0, 8] },
 
         infoTable,
@@ -160,7 +241,8 @@ export class OldAgainstMeterReportPdfService {
             hLineColor: () => '#e5e7eb',
             vLineColor: () => '#e5e7eb',
           } as any,
-          table: { headerRows: 1, widths: ['auto','*','*','*','*'], body: tableBody }
+          table: { headerRows: 1, widths: ['auto','*','*','*','*'], body: tableBody },
+          margin: [0, 10, 0, 0]
         },
 
         { text: `\nTOTAL: ${total}   •   OK: ${okCount}   •   DEF: ${defCount}`, alignment: 'right', margin: [0, 2, 0, 0] },
@@ -172,28 +254,26 @@ export class OldAgainstMeterReportPdfService {
             {
               width: '*',
               stack: [
-                { text: 'Tested by', alignment: 'center', bold: true },
+                { text: '\n\nTested by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                // { text: (meta.testing_user || ''), alignment: 'center', color: '#444' },
-                { text: 'TESTING ASSISTANT (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
-              ],
+                {text:meta.testing_user || '____________________________', alignment: 'center' },
+                { text: 'TESTING ASSISTANT', alignment: 'center', color: '#444', fontSize: 9 },
+                 ],
             },
             {
               width: '*',
               stack: [
-                { text: 'Verified by', alignment: 'center', bold: true },
+                { text: '\n\nVerified by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                // { text: (meta.testing_user || ''), alignment: 'center', color: '#444' },
-                { text: 'JUNIOR ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
-              ],
+                 ],
             },
             {
               width: '*',
               stack: [
-                { text: 'Approved by', alignment: 'center', bold: true },
+                { text: '\n\nApproved by', alignment: 'center', bold: true },
                 { text: '\n\n____________________________', alignment: 'center' },
-                // { text: (meta.approving_user || ''), alignment: 'center', color: '#444' },
-                { text: 'ASSISTANT ENGINEER (RMTL)', alignment: 'center', color: '#444', fontSize: 9 },
+                {text:meta.approving_user || '____________________________', alignment: 'center' },
+                { text: 'ASSISTANT ENGINEER', alignment: 'center', color: '#444', fontSize: 9 },
               ],
             },
           ],
@@ -210,17 +290,16 @@ export class OldAgainstMeterReportPdfService {
     };
   }
 
-  // Public API
   async download(rows: OldAgainstRow[], meta: OldAgainstMeta, logos?: PdfLogos): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+
     const imagesDict: Record<string, string> = {};
     try {
       if (logos?.leftLogoUrl) imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
-      if (logos?.rightLogoUrl) {
-        imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
-      } else if (imagesDict['leftLogo']) {
-        imagesDict['rightLogo'] = imagesDict['leftLogo'];
-      }
+      if (logos?.rightLogoUrl) imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
+      else if (imagesDict['leftLogo']) imagesDict['rightLogo'] = imagesDict['leftLogo'];
     } catch (e) {
+      // If one logo fails, continue gracefully without logos
       delete imagesDict['leftLogo'];
       delete imagesDict['rightLogo'];
       console.warn('Logo load failed:', e);
@@ -229,7 +308,24 @@ export class OldAgainstMeterReportPdfService {
     const doc = this.buildDoc(rows, meta, imagesDict);
     const fname = `AGAINST_OLD_METER_${meta.date}.pdf`;
     return new Promise<void>((resolve) => {
-      pdfMake.createPdf(doc).download(fname, () => resolve());
+      try {
+        pdfMake.createPdf(doc).download(fname);
+      } finally {
+        resolve();
+      }
     });
+  }
+
+  async open(rows: OldAgainstRow[], meta: OldAgainstMeta, logos?: PdfLogos): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    const imagesDict: Record<string, string> = {};
+    try {
+      if (logos?.leftLogoUrl) imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
+      if (logos?.rightLogoUrl) imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
+      else if (imagesDict['leftLogo']) imagesDict['rightLogo'] = imagesDict['leftLogo'];
+    } catch {}
+    const doc = this.buildDoc(rows, meta, imagesDict);
+    pdfMake.createPdf(doc).open();
   }
 }

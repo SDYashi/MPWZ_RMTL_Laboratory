@@ -286,11 +286,11 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
           this.fillHeaderFromAssignment(first);
 
           this.loading = false;
-          this.inlineInfo =  `Total ${list.length} assigned device(s) loaded for the selected Test Report Type.`;
+          this.inlineInfo =  `Total ${list.length} assigned device(s) loaded for Stop Defective.`;
         },
         error: () => {
           this.loading = false;
-          this.inlineError = 'No assigned devices found for the selected Test Report Type.';
+          this.inlineError = 'No assigned devices found for Stop Defective.';
         }
       });
   }

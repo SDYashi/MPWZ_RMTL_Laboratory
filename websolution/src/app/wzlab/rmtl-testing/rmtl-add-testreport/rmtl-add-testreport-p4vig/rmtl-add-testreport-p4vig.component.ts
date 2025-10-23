@@ -3,16 +3,59 @@ import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 import { P4VigReportPdfService, VigHeader, VigRow } from 'src/app/shared/p4vig-report-pdf.service';
 
-interface MeterDevice { id: number; serial_number: string; make?: string; capacity?: string; location_code?: string | null; location_name?: string | null; }
+type ViewMode = 'SHUNT' | 'NUTRAL' | 'BOTH' | '';
+type ErrorFromMode = 'SHUNT' | 'NUTRAL' | '';
+
+interface MeterDevice { id: number; serial_number: string; make?: string; capacity?: string; phase?: string; location_code?: string | null; location_name?: string | null; }
 interface AssignmentItem { id: number; device_id: number; device?: MeterDevice | null; testing_bench?: { bench_name?: string } | null; bench_name?: string; user_assigned?: { username?: string } | null; assigned_by_user?: { username?: string } | null; username?: string; }
 
 interface Row {
-  serial: string; make: string; capacity: string; removal_reading?: number; test_result?: string;
+  // identity
+  serial: string; make: string; capacity: string; notFound?: boolean;
+  removal_reading?: number; test_result?: string;
+  // quick remark list + free text
+  remark?: string;
+
+  // consumer/zone slip
   consumer_name?: string; address?: string; account_number?: string; division_zone?: string;
   panchanama_no?: string; panchanama_date?: string; condition_at_removal?: string;
-  testing_date?: string; is_burned: boolean; seal_status: string; meter_glass_cover: string; terminal_block: string; meter_body: string; other: string;
-  reading_before_test?: number; reading_after_test?: number; rsm_kwh?: number; meter_kwh?: number; error_percentage?: number; starting_current_test?: string; creep_test?: string;
-  remark?: string; assignment_id?: number; device_id?: number; notFound?: boolean; dial_testby?: string; _open?: boolean;
+
+  // testing meta
+  testing_date?: string;
+
+  // physical condition set
+  physical_condition_of_device?: string | null;
+  is_burned: boolean; seal_status: string; meter_glass_cover: string; terminal_block: string; meter_body: string; other: string;
+
+  // SHUNT set
+  shunt_reading_before_test?: number | null;
+  shunt_reading_after_test?: number | null;
+  shunt_ref_start_reading?: number | null;
+  shunt_ref_end_reading?: number | null;
+  shunt_current_test?: string | null;
+  shunt_creep_test?: string | null;
+  shunt_dail_test?: string | null;
+  shunt_error_percentage?: number | null;
+
+  // NUTRAL set
+  nutral_reading_before_test?: number | null;
+  nutral_reading_after_test?: number | null;
+  nutral_ref_start_reading?: number | null;
+  nutral_ref_end_reading?: number | null;
+  nutral_current_test?: string | null;
+  nutral_creep_test?: string | null;
+  nutral_dail_test?: string | null;
+  nutral_error_percentage?: number | null;
+
+  // Combined import error
+  error_from_mode: ErrorFromMode;
+  error_percentage_import?: number | null;
+
+  // mapping ids
+  assignment_id?: number; device_id?: number;
+
+  // UI
+  view_mode?: ViewMode; _open?: boolean;
 }
 
 type ModalAction = 'submit' | null;
@@ -25,7 +68,7 @@ interface ModalState { open: boolean; title: string; message?: string; action: M
 })
 export class RmtlAddTestreportP4vigComponent implements OnInit {
 
-  // ===== batch header (added phase, approving_user to match template) =====
+  // ===== batch header =====
   header: {
     location_code: string;
     location_name: string;
@@ -35,49 +78,54 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     approving_user?: string;
   } = { location_code: '', location_name: '', testing_bench: '', testing_user: '', phase: '', approving_user: '' };
 
+  // methods/status
   test_methods: any[] = [];
   test_statuses: any[] = [];
   testMethod: string | null = null;
   testStatus: string | null = null;
 
-  // ===== enums =====
+  // enums
+  physical_conditions: any[] = [];
   seal_statuses: any[] = [];
   glass_covers: any[] = [];
   terminal_blocks: any[] = [];
   meter_bodies: any[] = [];
+  testResults: any;
+  commentby_testers: any;
 
-  // ===== assignment / lab =====
+  // testing type & badges
+  ternal_testing_types: ('SHUNT'|'NUTRAL'|'BOTH')[] = ['SHUNT','NUTRAL','BOTH'];
+  test_dail_current_cheaps: any[] = [];
+
+  // assignment / lab
   device_status: 'ASSIGNED' = 'ASSIGNED';
   currentUserId:any;
   currentLabId :any;
-  private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; }> = {};
+  private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; phase?: string; }> = {};
   loading = false;
 
-  // lab info for PDF header
   labInfo: {
     lab_name?: string; address?: string; email?: string; phone?: string;
     logo_left_url?: string; logo_right_url?: string;
   } | null = null;
 
-  // ===== table =====
+  // table
   filterText = '';
   rows: Row[] = [ this.emptyRow() ];
 
-  // ===== source lookup =====
+  // source
   office_types: any;
   selectedSourceType: any;
   selectedSourceName: string = '';
   filteredSources: any;
 
-  // ===== submit + modal state =====
+  // submit + modal state
   submitting = false;
   modal: ModalState = { open: false, title: '', action: null };
   alertSuccess: string | null = null;
   alertError: string | null = null;
-  testResults: any;
-  commentby_testers: any;
 
-  // ===== alert modal (kept for preview/submit) =====
+  // alert modal
   alert = {
     open: false,
     type: 'info' as 'success' | 'error' | 'warning' | 'info',
@@ -87,34 +135,29 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     _t: 0 as any
   };
 
-  // ===== device picker modal =====
+  // device picker modal
   devicePicker = {
     open: false,
     items: [] as AssignmentItem[],
     selected: new Set<number>(),
     loading: false,
     selectAll: false,
-    search: '' as string, // search by serial
+    search: '' as string,
   };
 
   report_type: any;
   device_testing_purpose: any;
   device_type: any;
 
-  // ===== page-level message (non-modal) =====
+  // page-level message
   pageMessage: { type: 'success'|'error'|'warning'|'info', text: string } | null = null;
-  test_dail_current_cheaps: any;
   fees_mtr_cts: any;
-  ternal_testing_types: any;
 
-  constructor(private api: ApiServicesService,
-     private pdfSvc: P4VigReportPdfService,
-     private authService: AuthService) {}
-
-  private safeNumber(val: any): number {
-    const n = Number(val);
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  }
+  constructor(
+    private api: ApiServicesService,
+    private pdfSvc: P4VigReportPdfService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     this.currentUserId = this.authService.getuseridfromtoken();
@@ -125,6 +168,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       next: (d) => {
         this.test_methods   = d?.test_methods || [];
         this.test_statuses  = d?.test_statuses || [];
+        this.physical_conditions = d?.physical_conditions || [];
         this.seal_statuses  = d?.seal_statuses || [];
         this.glass_covers   = d?.glass_covers || [];
         this.terminal_blocks= d?.terminal_blocks || [];
@@ -132,15 +176,14 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         this.office_types   = d?.office_types || [];
         this.testResults    = d?.test_results || [];
         this.commentby_testers = d?.commentby_testers || [];
+        this.ternal_testing_types = d?.ternal_testing_types || this.ternal_testing_types;
+        this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
+        this.fees_mtr_cts= d?.fees_mtr_cts || [];
 
         this.report_type = d?.test_report_types?.VIGILENCE_CHECKING || 'VIGILENCE_CHECKING';
         this.device_testing_purpose = d?.test_report_types?.VIGILENCE_CHECKING || 'VIGILENCE_CHECKING';
-        this.device_type = d?.device_types?.METER || 'METER';    
-        this.ternal_testing_types = d?.ternal_testing_types || [];
-        this.fees_mtr_cts= d?.fees_mtr_cts || [];
-        this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
+        this.device_type = d?.device_types?.METER || 'METER';
 
-        // build serial index w/o pushing rows
         this.loadAssignedIndexOnly();
       }
     });
@@ -158,14 +201,13 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         };
       },
       error: (e) => {
-        // show a subtle page message instead of modal alert
         this.setPageMessage('warning', 'Could not fetch lab info.');
         console.error('Labinfo load error', e);
       }
     });
   }
 
-  // ---------- Source fetch ----------
+  // ---------- source fetch ----------
   fetchButtonData(): void {
     if (!this.selectedSourceType || !this.selectedSourceName) {
       this.setPageMessage('warning', 'Select a source type and enter code.');
@@ -198,8 +240,14 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   private emptyRow(seed?: Partial<Row>): Row {
     return {
       serial: '', make: '', capacity: '',
-      is_burned: false, seal_status: '', meter_glass_cover: '', terminal_block: '', meter_body: '',
-      other: '', _open: false, ...seed
+      is_burned: false, seal_status: '', meter_glass_cover: '', terminal_block: '', meter_body: '', other: '',
+      view_mode: 'BOTH', error_from_mode: '', error_percentage_import: null,
+      shunt_reading_before_test:null, shunt_reading_after_test:null, shunt_ref_start_reading:null, shunt_ref_end_reading:null,
+      shunt_current_test:null, shunt_creep_test:null, shunt_dail_test:null, shunt_error_percentage:null,
+      nutral_reading_before_test:null, nutral_reading_after_test:null, nutral_ref_start_reading:null, nutral_ref_end_reading:null,
+      nutral_current_test:null, nutral_creep_test:null, nutral_dail_test:null, nutral_error_percentage:null,
+      _open: false,
+      ...seed
     } as Row;
   }
   addRow(){ this.rows.push(this.emptyRow({ _open: true })); }
@@ -233,6 +281,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         capacity: d?.capacity || '',
         device_id: d?.id ?? a.device_id ?? 0,
         assignment_id: a?.id ?? 0,
+        phase: d?.phase || ''
       };
     }
   }
@@ -248,10 +297,10 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       this.setPageMessage('warning', 'Current lab is not set. Please select a lab (currentLabId).');
       return false;
     }
-    if (!this.header.testing_user) this.header.testing_user ;
-    if (!this.header.testing_bench) this.header.testing_bench ;
-    if (!this.header.approving_user) this.header.approving_user;
-    if (!this.header.phase) this.header.phase = '';
+    if (!this.header.testing_user) this.header.testing_user = this.authService.getUserNameFromToken() || '-';
+    if (!this.header.testing_bench) this.header.testing_bench = this.header.testing_bench || '-';
+    if (!this.header.approving_user) this.header.approving_user = this.header.approving_user || '-';
+    if (!this.header.phase) this.header.phase = this.header.phase || '';
     return true;
   }
 
@@ -274,16 +323,19 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         if (first?.device){
           this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
           this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
+          this.header.testing_bench = this.header.testing_bench || (first.testing_bench?.bench_name ?? '');
+          this.header.testing_user  = this.header.testing_user || (first.user_assigned?.username ?? '');
+          this.header.approving_user = this.header.approving_user || (first.assigned_by_user?.username ?? '');
+          if (!this.header.phase && first.device.phase) this.header.phase = first.device.phase.toUpperCase();
         }
         this.loading = false;
-        // don't show modal alerts here — show subtle page message instead
         this.setPageMessage('info', `Loaded ${asg.length} assigned devices.`);
       },
       error: (err)=>{ this.loading=false; console.error('Assigned load failed', err); this.setPageMessage('error','Could not load assigned devices.'); }
     });
   }
 
-  // ===== open device picker (with search + sort) =====
+  // ===== device picker =====
   openDevicePicker(){
     if (!this.ensureParamsReady()) return;
     this.devicePicker.loading = true;
@@ -311,6 +363,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
           if (!this.header.testing_bench) this.header.testing_bench = first.testing_bench?.bench_name ?? '';
           if (!this.header.testing_user) this.header.testing_user = first.user_assigned?.username ?? '';
           if (!this.header.approving_user) this.header.approving_user ??= first.assigned_by_user?.username ?? '';
+          if (!this.header.phase && first.device.phase) this.header.phase = (first.device.phase || '').toUpperCase();
         }
         this.devicePicker.open = true;
         this.devicePicker.loading = false;
@@ -383,6 +436,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       row.device_id = hit.device_id || 0;
       row.assignment_id = hit.assignment_id || 0;
       row.notFound = false;
+      if (!this.header.phase && hit.phase) this.header.phase = (hit.phase || '').toUpperCase();
       this.clearPageMessage();
     } else {
       row.make = ''; row.capacity = ''; row.device_id = 0; row.assignment_id = 0; row.notFound = key.length>0;
@@ -395,7 +449,42 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     const d = dateStr? new Date(dateStr+'T10:00:00') : new Date();
     return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString();
   }
-  private numOrNull(v:any){ const n = Number(v); return isFinite(n) ? n : null; }
+  private numOrNull(v:any){ const n = Number(v); return (isFinite(n) && v!=='' && v!==null && v!==undefined) ? n : null; }
+
+  // ===== shunt/nutral math =====
+  private round2(v: number | null): number | null { if (v==null || !isFinite(v)) return null; return Math.round(v*100)/100; }
+  private diff(a?: number|null, b?: number|null): number | null { if (a==null || b==null) return null; return b - a; }
+  private pctError(meterDiff: number|null, refDiff: number|null): number | null {
+    if (meterDiff==null || refDiff==null) return null;
+    if (refDiff === 0) return null;
+    return ((meterDiff - refDiff) / refDiff) * 100;
+  }
+
+  calcShunt(i: number): void {
+    const r = this.rows[i];
+    const meter = this.diff(r.shunt_reading_before_test, r.shunt_reading_after_test);
+    const ref   = this.diff(r.shunt_ref_start_reading, r.shunt_ref_end_reading);
+    r.shunt_error_percentage = this.round2(this.pctError(meter, ref));
+    this.calculateErrorPct(i);
+  }
+  calcNutral(i: number): void {
+    const r = this.rows[i];
+    const meter = this.diff(r.nutral_reading_before_test, r.nutral_reading_after_test);
+    const ref   = this.diff(r.nutral_ref_start_reading, r.nutral_ref_end_reading);
+    r.nutral_error_percentage = this.round2(this.pctError(meter, ref));
+    this.calculateErrorPct(i);
+  }
+  onErrorFromModeChanged(i:number){ this.calculateErrorPct(i); }
+  calculateErrorPct(i:number): void {
+    const r = this.rows[i];
+    let source: number | null = null;
+    switch(r.error_from_mode){
+      case 'SHUNT':  source = r.shunt_error_percentage ?? null; break;
+      case 'NUTRAL': source = r.nutral_error_percentage ?? null; break;
+      default: source = r.shunt_error_percentage ?? r.nutral_error_percentage ?? null;
+    }
+    r.error_percentage_import = this.round2(source);
+  }
 
   // ===== validation =====
   private validate(): boolean {
@@ -405,18 +494,9 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       this.setPageMessage('warning', 'Please fill Zone/DC code and name.');
       return false;
     }
-    if (!this.header.approving_user) {
-      this.setPageMessage('warning', 'Please enter Approving User.');
-      return false;
-    }
-    if (!this.header.testing_user) {
-      this.setPageMessage('warning', 'Please enter Testing User.');
-      return false;
-    }
-    if (!this.header.testing_bench) {
-      this.setPageMessage('warning', 'Please enter Testing Bench.');
-      return false;
-    }
+    if (!this.header.approving_user) { this.setPageMessage('warning', 'Please enter Approving User.'); return false; }
+    if (!this.header.testing_user)   { this.setPageMessage('warning', 'Please enter Testing User.'); return false; }
+    if (!this.header.testing_bench)  { this.setPageMessage('warning', 'Please enter Testing Bench.'); return false; }
 
     if (!this.rows.length || !this.rows.some(r => (r.serial || '').trim())) {
       this.setPageMessage('warning', 'Please add at least one meter row.');
@@ -425,7 +505,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
 
     const missingResultIdx = this.rows.findIndex(r => (r.serial||'').trim() && (!r.test_result));
     if (missingResultIdx !== -1){
-      this.setPageMessage('warning', `Row #${missingResultIdx+1} is missing Test Result (OK/DEF/PASS/FAIL).`);
+      this.setPageMessage('warning', `Row #${missingResultIdx+1} is missing Test Result.`);
       return false;
     }
 
@@ -433,27 +513,22 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   }
 
   private buildPayload(): any[] {
-    if (!this.header.testing_user) this.header.testing_user = 'TestingUser';
-    if (!this.header.testing_bench) this.header.testing_bench = 'DefaultBench';
-    if (!this.header.approving_user) this.header.approving_user = 'Approver';
-
     const approverId = this.currentUserId || 0;
     const createdById = this.currentUserId || 0;
 
     return (this.rows||[])
       .filter(r => (r.serial||'').trim())
       .map(r => {
-        const start = this.numOrNull(r.reading_before_test);
-        const end   = this.numOrNull(r.reading_after_test);
-        const diff  = (start != null && end != null) ? (end - start) : null;
+        const whenISO = this.isoOn(r.testing_date);
 
         return {
           device_id: r.device_id ?? 0,
           assignment_id: r.assignment_id ?? 0,
-          start_datetime: this.isoOn(r.testing_date),
-          end_datetime: this.isoOn(r.testing_date),
+          start_datetime: whenISO,
+          end_datetime: whenISO,
 
-          physical_condition_of_device: null,
+          // physicals
+          physical_condition_of_device: r.physical_condition_of_device || null,
           seal_status: r.seal_status || null,
           meter_glass_cover: r.meter_glass_cover || null,
           terminal_block: r.terminal_block || null,
@@ -461,46 +536,49 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
           other: r.other || null,
           is_burned: !!r.is_burned,
 
-          reading_before_test: this.numOrNull(r.reading_before_test),
-          reading_after_test: this.numOrNull(r.reading_after_test),
-          ref_start_reading: null,
-          ref_end_reading: null,
-          error_percentage: this.numOrNull(r.error_percentage),
+          // SHUNT
+          shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
+          shunt_reading_after_test:  this.numOrNull(r.shunt_reading_after_test),
+          shunt_ref_start_reading:   this.numOrNull(r.shunt_ref_start_reading),
+          shunt_ref_end_reading:     this.numOrNull(r.shunt_ref_end_reading),
+          shunt_current_test:        (r.shunt_current_test || null),
+          shunt_creep_test:          (r.shunt_creep_test || null),
+          shunt_dail_test:           (r.shunt_dail_test || null),
+          shunt_error_percentage:    this.numOrNull(r.shunt_error_percentage),
 
+          // NUTRAL
+          nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
+          nutral_reading_after_test:  this.numOrNull(r.nutral_reading_after_test),
+          nutral_ref_start_reading:   this.numOrNull(r.nutral_ref_start_reading),
+          nutral_ref_end_reading:     this.numOrNull(r.nutral_ref_end_reading),
+          nutral_current_test:        (r.nutral_current_test || null),
+          nutral_creep_test:          (r.nutral_creep_test || null),
+          nutral_dail_test:           (r.nutral_dail_test || null),
+          nutral_error_percentage:    this.numOrNull(r.nutral_error_percentage),
+
+          // combined import error
+          error_percentage_import: this.numOrNull(r.error_percentage_import),
+
+          // details & results
           details: r.remark || null,
           test_result: r.test_result || null,
           test_method: this.testMethod || null,
           test_status: this.testStatus || null,
 
+          // consumer/fees-ish (VIG)
           consumer_name: r.consumer_name || null,
           consumer_address: r.address || null,
-          certificate_number: null,
-          testing_fees: null,
-          fees_mr_no: null,
-          fees_mr_date: null,
           ref_no: r.account_number || null,
 
-          start_reading: this.numOrNull(r.reading_before_test),
-          final_reading: this.numOrNull(r.reading_after_test),
-          final_reading_export: null,
-          difference: diff,
-
-          test_requester_name: r.division_zone || null,
+          // removal / P4 VIG fields
           meter_removaltime_reading: this.numOrNull(r.removal_reading),
-          meter_removaltime_metercondition: null,
           any_other_remarkny_zone: r.condition_at_removal || null,
-
-          dail_test_kwh_rsm: this.numOrNull(r.rsm_kwh),
-          recorderedbymeter_kwh: this.numOrNull(r.meter_kwh),
-          starting_current_test: null,
-          creep_test: null,
-          dail_test: null,
-          final_remarks: r.remark || null,
-
+          p4_metercodition: r.condition_at_removal || null,
           p4_division: r.division_zone || null,
           p4_no: r.panchanama_no || null,
           p4_date: r.panchanama_date || null,
-          p4_metercodition: r.condition_at_removal || null,
+
+          // approvals & audit
           approver_id: approverId || null,
           created_by_id: createdById || null,
           report_id: null,
@@ -509,7 +587,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       });
   }
 
-  // ===== submit modal (only for preview/submit) =====
+  // ===== submit modal =====
   openConfirmSubmit(){
     this.alertSuccess = null;
     this.alertError = null;
@@ -529,7 +607,6 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     }
   }
 
-  // public: template calls this directly as well (if you have a direct button)
   async doSubmit(){
     const payload = this.buildPayload();
     if (!payload.length){
@@ -541,7 +618,6 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     this.submitting = true;
     this.alertSuccess = null;
     this.alertError = null;
-    // keep submit alert behaviour (user requested preview+submit alerts)
     this.openAlert('info', 'Submitting…', 'Saving data to server.');
 
     this.api.postTestReports(payload).subscribe({
@@ -565,6 +641,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
           rightLogoUrl: this.labInfo?.logo_right_url || '/assets/icons/wzlogo.png'
         };
 
+        // Map to VigRow – keep compat (if your PDF expects old fields, it will just ignore undefined)
         const rows: VigRow[] = (this.rows || []).filter(r => (r.serial||'').trim()).map(r => ({
           serial: r.serial,
           make: r.make,
@@ -588,24 +665,21 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
           meter_body: r.meter_body,
           other: r.other,
 
-          reading_before_test: this.numOrNull(r.reading_before_test) ?? undefined,
-          reading_after_test: this.numOrNull(r.reading_after_test) ?? undefined,
-          rsm_kwh: this.numOrNull(r.rsm_kwh) ?? undefined,
-          meter_kwh: this.numOrNull(r.meter_kwh) ?? undefined,
-          error_percentage: this.numOrNull(r.error_percentage) ?? undefined,
-          starting_current_test: r.starting_current_test,
-          creep_test: r.creep_test,
+          // legacy fields left undefined (rsm_kwh/meter_kwh)
+          reading_before_test: undefined,
+          reading_after_test: undefined,
+          rsm_kwh: undefined,
+          meter_kwh: undefined,
+          error_percentage: this.numOrNull(r.error_percentage_import) ?? undefined, // show combined error on PDF
+          starting_current_test: undefined,
+          creep_test: undefined,
 
           remark: r.remark
         }));
 
-        // Alert before PDF generation (kept)
         this.openAlert('success', 'Saved', 'Data saved. Generating PDF…', 1200);
-
-        // Download PDF via service (await to ensure completion)
         await this.pdfSvc.download(header, rows);
 
-        // Alert after PDF download (kept)
         this.alertSuccess = 'Batch submitted and PDF downloaded successfully!';
         this.openAlert('success', 'Completed', 'PDF downloaded to your device.', 1600);
 
@@ -621,7 +695,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     });
   }
 
-  // ===== alert helpers (modal-based alerts still available for submit/preview) =====
+  // ===== alert helpers =====
   openAlert(type: 'success'|'error'|'warning'|'info', title: string, message: string, autoCloseMs: number = 0){
     if (this.alert._t){ clearTimeout(this.alert._t as any); }
     this.alert = { open: true, type, title, message, autoCloseMs, _t: 0 };
@@ -634,7 +708,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     this.alert.open = false;
   }
 
-  // ===== page-level message helpers =====
+  // ===== page-level message =====
   setPageMessage(type: 'success'|'error'|'warning'|'info', text: string){
     this.pageMessage = { type, text };
   }
