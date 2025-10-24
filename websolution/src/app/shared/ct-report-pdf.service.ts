@@ -35,6 +35,7 @@ export interface CtHeader {
   // meta / lab info / logos
   testing_bench?: string | null;
   testing_user?: string | null;
+  approving_user?: string | null;
   date?: string | null;
 
   lab_name?: string | null;
@@ -92,7 +93,9 @@ export class CtReportPdfService {
     if (!images['rightLogo'] && images['leftLogo']) images['rightLogo'] = images['leftLogo'];
 
     return this.buildDoc(header, rows, images);
-  }
+  }  
+
+  
 
   private buildDoc(header: CtHeader, rows: CtPdfRow[], images: Record<string, string>): TDocumentDefinitions {
     const meta = {
@@ -103,8 +106,8 @@ export class CtReportPdfService {
       user: header.testing_user || '-',
       date: header.date || header.date_of_testing || this.today(),
 
-      lab_name: header.lab_name || 'REGIONAL METERING TESTING LABORATORY, INDORE',
-      lab_address: header.lab_address || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003',
+      lab_name: header.lab_name || '-',
+      lab_address: header.lab_address || '-',
       lab_email: header.lab_email || '-',
       lab_phone: header.lab_phone || '-',
     };
@@ -123,7 +126,8 @@ export class CtReportPdfService {
       images,
       content: [
         this.headerBar(meta, images, m),
-        { text: 'CT TESTING TEST REPORT', alignment: 'center', margin: [0, 6, 0, 10], fontSize: 12, bold: true },
+        { text: '', margin: [0, 6, 0, 0] },
+          { text: 'CT TESTING TEST REPORT', alignment: 'center', margin: [0, 6, 0, 10], fontSize: 12, bold: true },
 
         // --- Meta table (as requested: metaBand in table) ---
         this.metaTable(meta, m),
@@ -165,7 +169,8 @@ export class CtReportPdfService {
             { text: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED', alignment: 'center', bold: true, fontSize: 12 },
             { text: meta.lab_name, alignment: 'center', bold: true, fontSize: 11, margin: [0, 2, 0, 0] },
             { text: meta.lab_address, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0], color: '#555' },
-            { text: `Email: ${meta.lab_email} • Phone: ${meta.lab_phone}`, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0], color: '#555' }
+            { text: `Email: ${meta.lab_email} • Phone: ${meta.lab_phone}`, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0], color: '#555' },
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 495, y2: 0, lineWidth: 1 }], alignment: 'center' },
           ]
         },
         images['rightLogo'] ? { image: 'rightLogo', width: 32, margin: [8, 0, 0, 0] } : { width: 32, text: '' }
@@ -178,7 +183,7 @@ export class CtReportPdfService {
     const K = (t: string) => ({ text: t, style: 'kvKey' });
     return {
       margin: [m, 0, m, 10],
-      layout: 'lightHorizontalLines',
+     layout: 'tightGrid',
       table: {
         widths: ['auto', '*', 'auto', '*', 'auto', '*'],
         body: [
@@ -194,7 +199,7 @@ export class CtReportPdfService {
     const K = (t: string) => ({ text: t, style: 'kvKey' });
     return {
       margin: [m, 0, m, 10],
-      layout: 'lightHorizontalLines',
+      layout: 'tightGrid',
       table: {
         widths: ['auto', '*', 'auto', '*'],
         body: [
@@ -236,7 +241,7 @@ export class CtReportPdfService {
     return {
       margin: [m, 0, m, 8],
       style: 'tableTight',
-      layout: 'lightHorizontalLines',
+      layout: 'tightGrid',
       table: {
         headerRows: 1,
         widths: ['auto', '*', '*', 'auto', 'auto', 'auto', '*'],
@@ -256,7 +261,8 @@ export class CtReportPdfService {
             stack: [
               { text: '\n\nTested by' },
               { text: '\n____________________________', alignment: 'center' },
-              { text: 'TESTING ASSISTANT (RMTL)', style: 'tiny' },
+              { text: h.testing_user || '', style: 'tiny' },
+              { text: 'TESTING ASSISTANT', style: 'tiny' },
             ],
           },
           {
@@ -264,7 +270,7 @@ export class CtReportPdfService {
             stack: [
               { text: '\n\nVerified by' },
               { text: '\n____________________________', alignment: 'center' },
-              { text: 'JUNIOR ENGINEER (RMTL)', style: 'tiny' },
+              { text: 'JUNIOR ENGINEER ', style: 'tiny' },
             ],
           },
           {
@@ -272,7 +278,8 @@ export class CtReportPdfService {
             stack: [
               { text: '\n\nApproved by' },
               { text: '\n____________________________', alignment: 'center' },
-              { text: 'ASSISTANT ENGINEER (RMTL)', style: 'tiny' },
+              {text:h.approving_user || '' , style: 'tiny' },
+                  { text: 'ASSISTANT ENGINEER ', style: 'tiny' },
             ],
           },
         ],

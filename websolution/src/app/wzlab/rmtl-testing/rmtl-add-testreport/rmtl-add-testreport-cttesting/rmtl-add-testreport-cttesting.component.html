@@ -11,7 +11,7 @@
       <!-- Toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none align-items-center">
           <button class="btn btn-outline-danger" (click)="openAssignPicker()">
-            <i class="bi bi-arrow-repeat"></i> Load Assigned CTs
+            <i class="bi bi-arrow-repeat"></i> Select/Pick Assigned CTs for Testing
           </button>
       </div>
       <!-- Batch header -->
@@ -26,29 +26,29 @@
             </div>
 
             <div class="col-md-4">
-              <label class="form-label fw-bold">Testing Bench</label>
+              <label class="form-label fw-bold">Selected Testing Bench</label>
               <input class="form-control" [(ngModel)]="testing_bench" name="testing_bench" readonly disabled>
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-bold">Testing User</label>
+              <label class="form-label fw-bold">Selected Testing User</label>
               <input class="form-control" [(ngModel)]="testing_user" name="testing_user" readonly disabled>
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-bold">Approver User</label>
+              <label class="form-label fw-bold">Selected Approver User</label>
               <input class="form-control" [(ngModel)]="approving_user" name="approving_user" readonly disabled>
             </div>
             
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Test Method</label>
+           <div class="col-md-4">
+              <label class="form-label fw-bold">Select Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method">
-                <option [ngValue]="null" disabled>Method</option>
+                <option [ngValue]="null" disabled>Select Testing Method</option>
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
               </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Test Status</label>
+           <div class="col-md-4">
+              <label class="form-label fw-bold">Select Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status">
-                <option [ngValue]="null" disabled>Status</option>
+                <option [ngValue]="null" disabled>Select Testing Status</option>
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
             </div>
@@ -65,11 +65,11 @@
               <input type="date" class="form-control" [(ngModel)]="header.date_of_testing" name="date_of_testing">
                </div>
             <div class="col-md-3">
-                <label class="form-label fw-bold">Name of Consumer</label>
+                <label class="form-label fw-bold">Enter Name of Consumer</label>
                 <input class="form-control" [(ngModel)]="header.consumer_name" name="consumer_name" placeholder="Name">
                   </div>
          <div class="col-md-3">
-                <label class="form-label fw-bold">Full Address</label>
+                <label class="form-label fw-bold">Enter Full Address</label>
                 <input class="form-control" [(ngModel)]="header.address" name="address" placeholder="Address">
                     </div>
 
@@ -145,27 +145,27 @@
             <tr *ngFor="let r of displayRows(); let i = index; trackBy: trackByCtRow" [ngClass]="{'table-danger': r.notFound}">
               <td class="text-center"><span class="badge bg-secondary">{{ i + 1 }}</span></td>
               <td>
-                <input class="form-control form-control-sm" [(ngModel)]="r.ct_no" [name]="'ctno_'+i" (ngModelChange)="onCtNoChanged(i, r.ct_no)" placeholder="CT Serial">
-                <div *ngIf="r.notFound" class="small text-danger">Not in assigned list</div>
+                <input class="form-control " [(ngModel)]="r.ct_no" [name]="'ctno_'+i" (ngModelChange)="onCtNoChanged(i, r.ct_no)" placeholder="CT Serial">
+                <div *ngIf="r.notFound" class=" text-danger">Not in assigned list</div>
               </td>
-              <td><input class="form-control form-control-sm" [(ngModel)]="r.make" [name]="'make_'+i" placeholder="Make"></td>
+              <td><input class="form-control " [(ngModel)]="r.make" [name]="'make_'+i" placeholder="Make"></td>
 
               <td>
-                <select class="form-select form-select-sm" [(ngModel)]="r.ratio" [name]="'ratio_'+i">
+                <select class="form-select " [(ngModel)]="r.ratio" [name]="'ratio_'+i">
                   <option [ngValue]="''" disabled>Select</option>
                   <option *ngFor="let opt of ratioOptions" [ngValue]="opt">{{ opt }}</option>
                 </select>
               </td>
-              <td><input class="form-control form-control-sm" [(ngModel)]="r.polarity" [name]="'pol_'+i" placeholder="OK / value"></td>
+              <td><input class="form-control " [(ngModel)]="r.polarity" [name]="'pol_'+i" placeholder="OK / value"></td>
 
               <td>
-                <select class="form-select form-select-sm" [(ngModel)]="r.working" [name]="'working_'+i">
+                <select class="form-select " [(ngModel)]="r.working" [name]="'working_'+i">
                   <option [ngValue]="undefined" disabled>Select</option>
                   <option *ngFor="let w of workingOptions" [ngValue]="w">{{ w }}</option>
                 </select>
               </td>
 
-              <td><input class="form-control form-control-sm" [(ngModel)]="r.remark" [name]="'rem_'+i" placeholder="OK / DEF …"></td>
+              <td><input class="form-control " [(ngModel)]="r.remark" [name]="'rem_'+i" placeholder="OK / DEF …"></td>
               <td class="text-center d-print-none">
                 <button class="btn btn-sm btn-outline-danger" (click)="removeCtRow(i)" title="Remove">
                   <i class="bi bi-x-lg"></i>
@@ -266,7 +266,7 @@
         </div>
         <div class="modal-body">
           <ng-container *ngIf="modal.action==='submit'">
-            <div class="row small gy-1">
+            <div class="row  gy-1">
               <div class="col-md-4"><strong>Zone/DC:</strong> {{ header.location_code }} - {{ header.location_name }}</div>
               <div class="col-md-4"><strong>Method:</strong> {{ testMethod || '-' }}</div>
               <div class="col-md-4"><strong>Status:</strong> {{ testStatus || '-' }}</div>

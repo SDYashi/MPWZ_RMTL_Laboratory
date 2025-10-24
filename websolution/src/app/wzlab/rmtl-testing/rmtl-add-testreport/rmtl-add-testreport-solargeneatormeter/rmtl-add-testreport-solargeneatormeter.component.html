@@ -1,10 +1,25 @@
 <div class="container-fluid mt-4">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
-      <h5 class="mb-0">RMTL — Solar Net Meter Generation Form</h5>
+      <h5 class="mb-0">RMTL — Solar Generator Meter TestReport Form</h5>
     </div>
 
     <div class="card-body">
+      <!-- Inline banner -->
+      <div *ngIf="banner.show"
+           class="alert d-print-none"
+           [ngClass]="{
+             'alert-success': banner.type==='success',
+             'alert-danger' : banner.type==='error',
+             'alert-warning': banner.type==='warning',
+             'alert-info'   : banner.type==='info'
+           }">
+        <div class="d-flex justify-content-between align-items-center">
+          <span>{{ banner.message }}</span>
+          <button type="button" class="btn-close" (click)="clearBanner()"></button>
+        </div>
+      </div>
+
       <!-- Top toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
         <button type="button" class="btn btn-outline-danger" (click)="openAssignedPicker()">⟳ Load Assigned (Select)</button>
@@ -14,26 +29,27 @@
         </div>
       </div>
       
-      <!-- Batch header (aligned to Stop/Defective look) -->
+      <!-- Batch header -->
       <div class="card shadow-sm mb-3">
         <div class="card-body">
           <div class="row g-3">
-             <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Zone/DC Name</label>
               <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" readonly disabled>
             </div>
             <div class="col-md-3">
-              <label class="form-label fw-bold mt-2">Testing Bench</label>
-              <input class="form-control" [(ngModel)]="testing_bench" name="testing_bench" placeholder="e.g., zera_one" readonly disabled>
+              <label class="form-label fw-bold">Testing Bench</label>
+              <input class="form-control" [(ngModel)]="testing_bench" name="testing_bench" readonly disabled>
             </div>
             <div class="col-md-3">
-              <label class="form-label fw-bold mt-2">Testing User</label>
-              <input class="form-control" [(ngModel)]="testing_user" name="testing_user" placeholder="e.g., Admin" readonly disabled>
+              <label class="form-label fw-bold">Testing User</label>
+              <input class="form-control" [(ngModel)]="testing_user" name="testing_user" readonly disabled>
             </div>
             <div class="col-md-3">
-              <label class="form-label fw-bold mt-2">Approver</label>
-              <input class="form-control" [(ngModel)]="approver_user" name="approver_user" placeholder="e.g., JE / AE" readonly disabled>
+              <label class="form-label fw-bold">Approver</label>
+              <input class="form-control" [(ngModel)]="approver_user" name="approver_user" readonly disabled>
             </div>
+
             <div class="col-md-3">
               <label class="form-label fw-bold">Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method">
@@ -44,6 +60,15 @@
               <label class="form-label fw-bold">Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status">
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Testing Mechanism</label>
+              <select class="form-select" [(ngModel)]="channelView" name="channelView">
+                <option value="SHUNT">SHUNT</option>
+                <option value="NUTRAL">NUTRAL</option>
+                <option value="BOTH">BOTH</option>
               </select>
             </div>
           </div>
@@ -106,7 +131,7 @@
 
                 <td class="text-center d-print-none">
                   <button type="button" class="btn btn-sm btn-outline-primary" (click)="r._open=!r._open">
-                    {{ r._open ? 'Edit' : 'Hide' }}
+                    {{ r._open ? 'Hide' : 'Edit' }}
                   </button>
                 </td>
 
@@ -151,72 +176,93 @@
                       <input class="form-control form-control-sm" [(ngModel)]="r.ref_no" [name]="'ref_'+i">
                     </div>
 
-                    <!-- IMPORT group -->
-                    <div class="col-12">
+                    <!-- SHUNT section -->
+                    <div class="col-12" *ngIf="channelView==='SHUNT' || channelView==='BOTH'">
                       <div class="p-3 border rounded bg-secondary bg-opacity-10">
-                        <div class="fw-bold small mb-2 p-2 bg-secondary text-white">Import (kWh)</div>
+                        <div class="fw-bold small mb-2 p-2 bg-secondary text-white">SHUNT Readings</div>
                         <div class="row g-3">
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Start</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   [(ngModel)]="r.start_reading_import" (ngModelChange)="recompute(i)" [name]="'imp_s_'+i" step="0.0001">
+                            <label class="form-label small fw-bold mb-0">Meter Start</label>
+                            <input type="number" step="0.0001" class="form-control form-control-sm"
+                                   [(ngModel)]="r.shunt_reading_before_test" [name]="'sh_m_start_'+i" (ngModelChange)="recomputeChannel(i)">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Final</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   [(ngModel)]="r.final_reading_import" (ngModelChange)="recompute(i)" [name]="'imp_f_'+i" step="0.0001">
+                            <label class="form-label small fw-bold mb-0">Meter Final</label>
+                            <input type="number" step="0.0001" class="form-control form-control-sm"
+                                   [(ngModel)]="r.shunt_reading_after_test" [name]="'sh_m_final_'+i" (ngModelChange)="recomputeChannel(i)">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Difference (F − S)</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   [(ngModel)]="r.difference_import" [name]="'imp_d_'+i" step="0.0001" readonly>
+                            <label class="form-label small fw-bold mb-0">Ref Start</label>
+                            <input type="number" step="0.0001" class="form-control form-control-sm"
+                                   [(ngModel)]="r.shunt_ref_start_reading" [name]="'sh_r_start_'+i" (ngModelChange)="recomputeChannel(i)">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Error % (Import)</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   [(ngModel)]="r.error_percentage_import" [name]="'imp_err_'+i" step="0.01">
+                            <label class="form-label small fw-bold mb-0">Ref Final</label>
+                            <input type="number" step="0.0001" class="form-control form-control-sm"
+                                   [(ngModel)]="r.shunt_ref_end_reading" [name]="'sh_r_final_'+i" (ngModelChange)="recomputeChannel(i)">
+                          </div>
+
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Δ Meter</label>
+                            <input class="form-control form-control-sm" [value]="r._shunt_delta_meter ?? ''" readonly>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Δ Ref</label>
+                            <input class="form-control form-control-sm" [value]="r._shunt_delta_ref ?? ''" readonly>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Error %</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm"
+                                   [(ngModel)]="r.shunt_error_percentage" [name]="'sh_err_'+i" readonly>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <!-- EXPORT group -->
-                    <div class="col-12">
+                    <!-- NUTRAL section -->
+                    <div class="col-12" *ngIf="channelView==='NUTRAL' || channelView==='BOTH'">
                       <div class="p-3 border rounded bg-secondary bg-opacity-10">
-                        <div class="fw-bold small mb-2 p-2 bg-secondary text-white">Export (kWh)</div>
+                        <div class="fw-bold small mb-2 p-2 bg-secondary text-white">NUTRAL Readings</div>
                         <div class="row g-3">
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Start</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   [(ngModel)]="r.start_reading_export" (ngModelChange)="recompute(i)" [name]="'exp_s_'+i" step="0.0001">
+                            <label class="form-label small fw-bold mb-0">Meter Start</label>
+                            <input type="number" step="0.0001" class="form-control form-control-sm"
+                                   [(ngModel)]="r.nutral_reading_before_test" [name]="'nu_m_start_'+i" (ngModelChange)="recomputeChannel(i)">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Final</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   [(ngModel)]="r.final_reading_export" (ngModelChange)="recompute(i)" [name]="'exp_f_'+i" step="0.0001">
+                            <label class="form-label small fw-bold mb-0">Meter Final</label>
+                            <input type="number" step="0.0001" class="form-control form-control-sm"
+                                   [(ngModel)]="r.nutral_reading_after_test" [name]="'nu_m_final_'+i" (ngModelChange)="recomputeChannel(i)">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Difference (F − S)</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   [(ngModel)]="r.difference_export" [name]="'exp_d_'+i" step="0.0001" readonly>
+                            <label class="form-label small fw-bold mb-0">Ref Start</label>
+                            <input type="number" step="0.0001" class="form-control form-control-sm"
+                                   [(ngModel)]="r.nutral_ref_start_reading" [name]="'nu_r_start_'+i" (ngModelChange)="recomputeChannel(i)">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Error % (Export)</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   [(ngModel)]="r.error_percentage_export" [name]="'exp_err_'+i" step="0.01">
+                            <label class="form-label small fw-bold mb-0">Ref Final</label>
+                            <input type="number" step="0.0001" class="form-control form-control-sm"
+                                   [(ngModel)]="r.nutral_ref_end_reading" [name]="'nu_r_final_'+i" (ngModelChange)="recomputeChannel(i)">
+                          </div>
+
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Δ Meter</label>
+                            <input class="form-control form-control-sm" [value]="r._nutral_delta_meter ?? ''" readonly>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Δ Ref</label>
+                            <input class="form-control form-control-sm" [value]="r._nutral_delta_ref ?? ''" readonly>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-bold mb-0">Error %</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm"
+                                   [(ngModel)]="r.nutral_error_percentage" [name]="'nu_err_'+i" readonly>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <!-- Combined -->
-                    <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Final Meter Difference (Imp − Exp)</label>
-                      <input type="number" class="form-control form-control-sm"
-                             [(ngModel)]="r.final_Meter_Difference" [name]="'final_diff_'+i" step="0.0001" readonly>
-                    </div>
-
-                    <!-- Tests -->
+                    <!-- Qualitative tests -->
                     <div class="col-md-3">
                       <label class="form-label small fw-bold mb-0">Starting Current Test</label>
                       <select class="form-select form-select-sm" [(ngModel)]="r.starting_current_test" [name]="'sct_'+i">
@@ -300,11 +346,12 @@
                   <th>Cap.</th>
                   <th>Consumer</th>
                   <th>Date</th>
-                  <th>Imp Δ</th>
-                  <th>Exp Δ</th>
-                  <th>Final Δ</th>
-                  <th>Err% Imp</th>
-                  <th>Err% Exp</th>
+                  <th *ngIf="channelView!=='NUTRAL'">SH ΔM</th>
+                  <th *ngIf="channelView!=='NUTRAL'">SH ΔR</th>
+                  <th *ngIf="channelView!=='NUTRAL'">SH Err%</th>
+                  <th *ngIf="channelView!=='SHUNT'">NU ΔM</th>
+                  <th *ngIf="channelView!=='SHUNT'">NU ΔR</th>
+                  <th *ngIf="channelView!=='SHUNT'">NU Err%</th>
                 </tr>
               </thead>
               <tbody>
@@ -315,11 +362,12 @@
                   <td>{{ r.meter_capacity }}</td>
                   <td>{{ r.consumer_name }}</td>
                   <td>{{ r.date_of_testing || '—' }}</td>
-                  <td>{{ r.difference_import ?? '—' }}</td>
-                  <td>{{ r.difference_export ?? '—' }}</td>
-                  <td>{{ r.final_Meter_Difference ?? '—' }}</td>
-                  <td>{{ r.error_percentage_import ?? '—' }}</td>
-                  <td>{{ r.error_percentage_export ?? '—' }}</td>
+                  <td *ngIf="channelView!=='NUTRAL'">{{ r._shunt_delta_meter ?? '—' }}</td>
+                  <td *ngIf="channelView!=='NUTRAL'">{{ r._shunt_delta_ref ?? '—' }}</td>
+                  <td *ngIf="channelView!=='NUTRAL'">{{ r.shunt_error_percentage ?? '—' }}</td>
+                  <td *ngIf="channelView!=='SHUNT'">{{ r._nutral_delta_meter ?? '—' }}</td>
+                  <td *ngIf="channelView!=='SHUNT'">{{ r._nutral_delta_ref ?? '—' }}</td>
+                  <td *ngIf="channelView!=='SHUNT'">{{ r.nutral_error_percentage ?? '—' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -390,26 +438,6 @@
           <button class="btn btn-secondary" (click)="closeAssignedPicker()">Cancel</button>
           <button class="btn btn-primary" (click)="confirmAssignedSelection()">Add Selected</button>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Alert Modal -->
-  <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': alert.open}" *ngIf="alert.open">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header"
-             [ngClass]="{
-                'bg-success text-white': alert.type==='success',
-                'bg-danger text-white': alert.type==='error',
-                'bg-warning text-dark': alert.type==='warning',
-                'bg-info text-white': alert.type==='info'
-              }">
-          <h6 class="modal-title">{{ alert.title }}</h6>
-          <button type="button" class="btn-close" (click)="closeAlert()"></button>
-        </div>
-        <div class="modal-body"><p class="mb-0">{{ alert.message }}</p></div>
-        <div class="modal-footer"><button class="btn btn-primary btn-sm" (click)="closeAlert()">OK</button></div>
       </div>
     </div>
   </div>

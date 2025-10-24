@@ -24,6 +24,7 @@ export type SolarHeader = {
 };
 
 export type SolarRow = {
+  // Core identity
   certificate_no?: string;
   consumer_name?: string;
   address?: string;
@@ -34,22 +35,61 @@ export type SolarRow = {
 
   date_of_testing?: string | null;
 
+  // Fees
   testing_fees?: number | null;
   mr_no?: string | null;
   mr_date?: string | null;
   ref_no?: string | null;
 
+  // Legacy single-track (kept for compatibility)
   starting_reading?: number | null;
   final_reading_r?: number | null;
   final_reading_e?: number | null;
   difference?: number | null;
 
+  // NEW: Import readings + reference + error
+  start_reading_import?: number | null;
+  final_reading__import?: number | null;      // backend name preserved
+  difference__import?: number | null;
+
+  import_ref_start_reading?: number | null;
+  import_ref_end_reading?: number | null;
+  error_percentage_import?: number | null;
+
+  // NEW: Export readings + reference + error
+  start_reading_export?: number | null;
+  final_reading_export?: number | null;
+  difference_export?: number | null;
+
+  export_ref_start_reading?: number | null;
+  export_ref_end_reading?: number | null;
+  error_percentage_export?: number | null;
+
+  // NEW: Final difference (I − E)
+  final_Meter_Difference?: number | null;
+
+  // NEW: SHUNT channel (meter vs reference)
+  shunt_reading_before_test?: number | null;
+  shunt_reading_after_test?: number | null;
+  shunt_ref_start_reading?: number | null;
+  shunt_ref_end_reading?: number | null;
+  shunt_error_percentage?: number | null;
+
+  // NEW: NUTRAL channel (meter vs reference)
+  nutral_reading_before_test?: number | null;
+  nutral_reading_after_test?: number | null;
+  nutral_ref_start_reading?: number | null;
+  nutral_ref_end_reading?: number | null;
+  nutral_error_percentage?: number | null;
+
+  // Qualitative tests + result/remarks
   starting_current_test?: string | null;
   creep_test?: string | null;
   dial_test?: string | null;
 
   test_result?: string | null;
   remark?: string | null;
+  final_remark?: string | null;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -68,11 +108,7 @@ export class SolarNetMeterCertificatePdfService {
     pdfMake.createPdf(doc).print();
   }
 
-  // ---------- bulk helpers added (generate separate or merged PDFs) ----------
-  /**
-   * Generate and download multiple PDFs (one file per report).
-   * Input: array of { header, rows, fileName? }
-   */
+  // ---------- bulk helpers ----------
   async generateAllSeparate(reports: { header: SolarHeader; rows: SolarRow[]; fileName?: string }[]) {
     for (const r of reports) {
       try {
@@ -90,10 +126,6 @@ export class SolarNetMeterCertificatePdfService {
     }
   }
 
-  /**
-   * Merge pages of multiple reports into a single PDF and download it.
-   * This builds each report (to resolve logos) then concatenates their `content` arrays.
-   */
   async mergeAndDownloadAll(
     reports: { header: SolarHeader; rows: SolarRow[] }[],
     fileName = 'ALL_SOLAR_NETMETER_CERTIFICATES.pdf'
@@ -108,17 +140,13 @@ export class SolarNetMeterCertificatePdfService {
       }
     }
 
-    if (!builtDocs.length) {
-      throw new Error('No documents could be built');
-    }
+    if (!builtDocs.length) throw new Error('No documents could be built');
 
     const mergedImages: Record<string,string> = {};
     const mergedContent: any[] = [];
 
     builtDocs.forEach((d, idx) => {
-      // merge images; later docs overwrite earlier keys on collisions (practical and simple)
       Object.assign(mergedImages, d.images || {});
-
       if (Array.isArray(d.content)) {
         d.content.forEach((block: any) => mergedContent.push(block));
         if (idx < builtDocs.length - 1) mergedContent.push({ text: '', pageBreak: 'after' });
@@ -154,6 +182,12 @@ export class SolarNetMeterCertificatePdfService {
     if (Number.isNaN(v as number)) return String(n);
     return (v as number).toFixed(digits).replace(/\.?0+$/,'');
   }
+  private fmtNum2(n: number | string | null | undefined) {
+    if (n === null || n === undefined || n === '') return '';
+    const v = typeof n === 'string' ? Number(n) : n;
+    if (Number.isNaN(v as number)) return String(n);
+    return (v as number).toFixed(2).replace(/\.00$/,'');
+  }
   private fmtMoney(n: number | string | null | undefined) {
     if (n === null || n === undefined || n === '') return '';
     const v = typeof n === 'string' ? Number(n) : n;
@@ -164,8 +198,8 @@ export class SolarNetMeterCertificatePdfService {
     if (!s) return '';
     const d = new Date(s);
     if (Number.isNaN(d.getTime())) return s as string;
-    const dd = d.getDate();
-    const mm = d.getMonth() + 1;
+    const dd = d.getDate().toString().padStart(2,'0');
+    const mm = (d.getMonth() + 1).toString().padStart(2,'0');
     const yy = String(d.getFullYear()).slice(-2);
     return `${dd}/${mm}/${yy}`;
   }
@@ -198,7 +232,7 @@ export class SolarNetMeterCertificatePdfService {
     return this.buildDoc(header, rows, images);
   }
 
-  // ---------- header block (fixed: now uses meta + images) ----------
+  // ---------- header blocks ----------
   private titleBar(meta: any, images: Record<string,string>) {
     const logoSize = 30;
     const labName = (meta.lab_name || '').toUpperCase();
@@ -237,6 +271,27 @@ export class SolarNetMeterCertificatePdfService {
 
   private rowLabel(t: string){ return { text: t, bold: true }; }
 
+  private metaRow(meta: any) {
+    const lbl = { bold: true, fillColor: '#f5f5f5' };
+    return {
+      layout: this.gridLayout,
+      margin: [28, 0, 28, 8],
+      table: {
+        widths: ['auto','*','auto','*','auto','*'],
+        body: [[
+          { text: 'DC/Zone', ...lbl }, { text: meta.zone || '-' },
+          { text: 'Method',  ...lbl }, { text: meta.method || '-' },
+          { text: 'Status',  ...lbl }, { text: meta.status || '-' },
+        ], [
+          { text: 'Bench',   ...lbl }, { text: meta.bench || '-' },
+          { text: 'User',    ...lbl }, { text: meta.user || '-' },
+          { text: 'Date',    ...lbl }, { text: this.fmtDateShort(meta.date) || '-' },
+        ]]
+      }
+    };
+  }
+
+  // ---------- certificate table ----------
   private certTable(r: SolarRow) {
     const W = [160, '*', 160, '*'] as any;
 
@@ -248,34 +303,127 @@ export class SolarNetMeterCertificatePdfService {
       return no || dt;
     })();
 
+    const body: any[] = [
+      [ this.rowLabel('Name of consumer'), { text: this.fmtTxt(r.consumer_name), colSpan: 3 }, {}, {} ],
+      [ this.rowLabel('Address'),          { text: this.fmtTxt(r.address),       colSpan: 3 }, {}, {} ],
+      [ this.rowLabel('Meter Make'),       { text: this.fmtTxt(r.meter_make),    colSpan: 3 }, {}, {} ],
+      [ this.rowLabel('Meter Sr. No.'),    { text: this.fmtTxt(r.meter_sr_no),   colSpan: 3 }, {}, {} ],
+      [ this.rowLabel('Meter Capacity'),   { text: this.fmtTxt(r.meter_capacity),colSpan: 3 }, {}, {} ],
+      [ this.rowLabel('Testing Fees Rs.'), { text: this.fmtMoney(r.testing_fees), colSpan: 3 }, {}, {} ],
+      [ this.rowLabel('M.R. No & Date'),   { text: mrText, colSpan: 3 }, {}, {} ],
+      [ this.rowLabel('Ref.'),             { text: this.fmtTxt(r.ref_no), colSpan: 3 }, {}, {} ],
+      [ this.rowLabel('Date of Testing'),  { text: this.fmtDateShort(r.date_of_testing), colSpan: 3 }, {}, {} ],
+    ];
+
+    // --- Legacy single track (optional)
+    if (r.starting_reading!=null || r.final_reading_r!=null || r.final_reading_e!=null || r.difference!=null) {
+      body.push(
+        [ this.rowLabel('Starting Reading'), { text: this.fmtNum(r.starting_reading), colSpan: 3 }, {}, {} ],
+        [
+          this.rowLabel('Final Reading'),
+          { text: `I - ${this.fmtNum(r.final_reading_r)}`, alignment: 'left' },
+          { text: 'E -', alignment: 'right' },
+          { text: this.fmtNum(r.final_reading_e), alignment: 'left' }
+        ],
+        [ this.rowLabel('Difference'), { text: this.fmtNum(r.difference), colSpan: 3 }, {}, {} ],
+      );
+    }
+
+    // --- IMPORT block (Meter Δ, Ref start/final, Error%)
+    if (
+      r.difference__import!=null || r.start_reading_import!=null || r.final_reading__import!=null ||
+      r.import_ref_start_reading!=null || r.import_ref_end_reading!=null || r.error_percentage_import!=null
+    ) {
+      body.push(
+        [{ text:'', colSpan:4, fillColor:'#f8fafc' }, {}, {}, {}],
+        [ this.rowLabel('Import — Meter Start/Final'),
+          { text: `${this.fmtNum(r.start_reading_import)} / ${this.fmtNum(r.final_reading__import)}`, colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('Import Δ (Meter)'), { text: this.fmtNum(r.difference__import), colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('Import — Ref Start/Final'),
+          { text: `${this.fmtNum(r.import_ref_start_reading)} / ${this.fmtNum(r.import_ref_end_reading)}`, colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('Import Error %'), { text: this.fmtNum2(r.error_percentage_import), colSpan: 3 }, {}, {} ],
+      );
+    }
+
+    // --- EXPORT block (Meter Δ, Ref start/final, Error%)
+    if (
+      r.difference_export!=null || r.start_reading_export!=null || r.final_reading_export!=null ||
+      r.export_ref_start_reading!=null || r.export_ref_end_reading!=null || r.error_percentage_export!=null
+    ) {
+      body.push(
+        [{ text:'', colSpan:4, fillColor:'#f8fafc' }, {}, {}, {}],
+        [ this.rowLabel('Export — Meter Start/Final'),
+          { text: `${this.fmtNum(r.start_reading_export)} / ${this.fmtNum(r.final_reading_export)}`, colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('Export Δ (Meter)'), { text: this.fmtNum(r.difference_export), colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('Export — Ref Start/Final'),
+          { text: `${this.fmtNum(r.export_ref_start_reading)} / ${this.fmtNum(r.export_ref_end_reading)}`, colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('Export Error %'), { text: this.fmtNum2(r.error_percentage_export), colSpan: 3 }, {}, {} ],
+      );
+    }
+
+    // --- Final Δ I − E
+    if (r.final_Meter_Difference!=null) {
+      body.push([ this.rowLabel('Final Difference (I − E)'), { text: this.fmtNum(r.final_Meter_Difference), colSpan: 3 }, {}, {} ]);
+    }
+
+    // --- SHUNT (optional)
+    const shMeterStart = r.shunt_reading_before_test;
+    const shMeterFinal = r.shunt_reading_after_test;
+    const shRefStart   = r.shunt_ref_start_reading;
+    const shRefFinal   = r.shunt_ref_end_reading;
+    const shMeterDelta = (shMeterStart!=null && shMeterFinal!=null) ? (Number(shMeterFinal) - Number(shMeterStart)) : null;
+    const shRefDelta   = (shRefStart!=null && shRefFinal!=null) ? (Number(shRefFinal) - Number(shRefStart)) : null;
+
+    if (shMeterStart!=null || shMeterFinal!=null || shRefStart!=null || shRefFinal!=null || r.shunt_error_percentage!=null) {
+      body.push(
+        [{ text:'', colSpan:4, fillColor:'#f8fafc' }, {}, {}, {}],
+        [ this.rowLabel('SHUNT — Meter Start/Final'),
+          { text: `${this.fmtNum(shMeterStart)} / ${this.fmtNum(shMeterFinal)}`, colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('SHUNT Δ (Meter)'),
+          { text: this.fmtNum(shMeterDelta), colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('SHUNT — Ref Start/Final'),
+          { text: `${this.fmtNum(shRefStart)} / ${this.fmtNum(shRefFinal)}`, colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('SHUNT Δ (Ref)'),
+          { text: this.fmtNum(shRefDelta), colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('SHUNT Error %'), { text: this.fmtNum2(r.shunt_error_percentage), colSpan: 3 }, {}, {} ],
+      );
+    }
+
+    // --- NUTRAL (optional)
+    const nuMeterStart = r.nutral_reading_before_test;
+    const nuMeterFinal = r.nutral_reading_after_test;
+    const nuRefStart   = r.nutral_ref_start_reading;
+    const nuRefFinal   = r.nutral_ref_end_reading;
+    const nuMeterDelta = (nuMeterStart!=null && nuMeterFinal!=null) ? (Number(nuMeterFinal) - Number(nuMeterStart)) : null;
+    const nuRefDelta   = (nuRefStart!=null && nuRefFinal!=null) ? (Number(nuRefFinal) - Number(nuRefStart)) : null;
+
+    if (nuMeterStart!=null || nuMeterFinal!=null || nuRefStart!=null || nuRefFinal!=null || r.nutral_error_percentage!=null) {
+      body.push(
+        [{ text:'', colSpan:4, fillColor:'#f8fafc' }, {}, {}, {}],
+        [ this.rowLabel('NUTRAL — Meter Start/Final'),
+          { text: `${this.fmtNum(nuMeterStart)} / ${this.fmtNum(nuMeterFinal)}`, colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('NUTRAL Δ (Meter)'),
+          { text: this.fmtNum(nuMeterDelta), colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('NUTRAL — Ref Start/Final'),
+          { text: `${this.fmtNum(nuRefStart)} / ${this.fmtNum(nuRefFinal)}`, colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('NUTRAL Δ (Ref)'),
+          { text: this.fmtNum(nuRefDelta), colSpan: 3 }, {}, {} ],
+        [ this.rowLabel('NUTRAL Error %'), { text: this.fmtNum2(r.nutral_error_percentage), colSpan: 3 }, {}, {} ],
+      );
+    }
+
+    // qualitative & remark
+    body.push(
+      [ this.rowLabel('Starting Current Test'), { text: this.fmtTxt(r.starting_current_test), colSpan: 3 }, {}, {} ],
+      [ this.rowLabel('Creep Test'),            { text: this.fmtTxt(r.creep_test),          colSpan: 3 }, {}, {} ],
+      [ this.rowLabel('Dial Test'),             { text: this.fmtTxt(r.dial_test),           colSpan: 3 }, {}, {} ],
+      [ this.rowLabel('Remark'), { text: this.fmtTxt(r.remark ?? r.final_remark), colSpan: 3, margin: [0,12,0,12] }, {}, {} ],
+      [ this.rowLabel('Test Result'), { text: this.fmtTxt(r.test_result), colSpan: 3 }, {}, {} ],
+    );
+
     return {
       layout: this.gridLayout,
-      table: {
-        widths: W,
-        body: [
-          [ this.rowLabel('Name of consumer'), { text: this.fmtTxt(r.consumer_name), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Address'),          { text: this.fmtTxt(r.address),       colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Meter Make'),       { text: this.fmtTxt(r.meter_make),    colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Meter Sr. No.'),    { text: this.fmtTxt(r.meter_sr_no),   colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Meter Capacity'),   { text: this.fmtTxt(r.meter_capacity),colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Testing Fees Rs.'), { text: this.fmtMoney(r.testing_fees), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('M.R. No & Date'),   { text: mrText, colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Ref.'),             { text: this.fmtTxt(r.ref_no), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Date of Testing'),  { text: this.fmtDateShort(r.date_of_testing), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Starting Reading'), { text: this.fmtNum(r.starting_reading), colSpan: 3 }, {}, {} ],
-          [
-            this.rowLabel('Final Reading'),
-            { text: `I - ${this.fmtNum(r.final_reading_r)}`, alignment: 'left' },
-            { text: 'E -', alignment: 'right' },
-            { text: this.fmtNum(r.final_reading_e), alignment: 'left' }
-          ],
-          [ this.rowLabel('Difference'), { text: this.fmtNum(r.difference), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Starting Current Test'), { text: this.fmtTxt(r.starting_current_test), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Creep Test'),            { text: this.fmtTxt(r.creep_test), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Dial Test'),             { text: this.fmtTxt(r.dial_test), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Remark'), { text: this.fmtTxt(r.remark), colSpan: 3, margin: [0,12,0,12] }, {}, {} ],
-        ]
-      }
+      table: { widths: W, body }
     };
   }
 
@@ -310,45 +458,18 @@ export class SolarNetMeterCertificatePdfService {
       margin: [0, 12, 0, 0]
     };
   }
-  private metaRow(meta: any) {
-    const lbl = { bold: true, fillColor: '#f5f5f5' };
-    return {
-       layout: this.gridLayout,
-      margin: [28, 0, 28, 8],
-      table: {
-        widths: ['auto','*','auto','*','auto','*'],
-        body: [[
-          { text: 'DC/Zone', ...lbl }, { text: meta.zone || '-' },
-          { text: 'Method',  ...lbl }, { text: meta.method || '-' },
-          { text: 'Status',  ...lbl }, { text: meta.status || '-' },
-        ], [
-          { text: 'Bench',   ...lbl }, { text: meta.bench || '-' },
-          { text: 'User',    ...lbl }, { text: meta.user || '-' },
-          { text: 'Date',    ...lbl }, { text: meta.date || '-' },
-        ]]
-      }
-    };
-  }
 
   private page(r: SolarRow, meta: any, images: Record<string,string>) {
     const blocks: any[] = [];
     blocks.push(this.titleBar(meta, images));
-
-    if (r.certificate_no) {
-      blocks.push(
-        { text: 'SOLAR NET METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0, 0, 0, 6] },
-        { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', bold: true, fontSize: 11, margin: [0, 0, 0, 6] },
-        { text: `Certificate No: ${r.certificate_no}`, alignment: 'right', margin: [28, 0, 28, 6], bold: true });
-    }
-    blocks.push(   
-        { text: 'SOLAR NET METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0, 0, 0, 6] },
-        { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', bold: true, fontSize: 11, margin: [0, 0, 0, 6] },
-        { text: `Certificate No: ${r.certificate_no}`, alignment: 'right', margin: [28, 0, 28, 6], bold: true },
-        this.metaRow(meta),
-        { margin: [28, 4, 28, 0], stack: [ this.certTable(r) ] },
+    blocks.push(
+      { text: 'SOLAR NET METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0, 0, 0, 6] },
+      { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', bold: true, fontSize: 11, margin: [0, 0, 0, 6] },
+      { text: `Certificate No: ${r.certificate_no || '-'}`, alignment: 'right', margin: [28, 0, 28, 6], bold: true },
+      this.metaRow(meta),
+      { margin: [28, 4, 28, 0], stack: [ this.certTable(r) ] },
       { margin: [28, 0, 28, 0], stack: [ this.signatureBlock() ] }
     );
-    
     return blocks;
   }
 

@@ -28,7 +28,7 @@ interface CtRow {
   ct_no: string;
   make: string;
   cap: string;
-  ratio: CTRatio | string;
+ratio: string;  
   polarity: string;
   remark: string;
   working?: Working;
@@ -105,7 +105,20 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   device_type: any;
   loading = false;
 
-  private serialIndex: Record<string, { make?: string; capacity?: string; device_id: number; assignment_id: number; }> = {};
+private serialIndex: Record<string, {
+  make?: string; capacity?: string; ratio?: string; device_id: number; assignment_id: number;
+}> = {};
+
+private pickRatio(dev?: Partial<DeviceLite> | null): string {
+  if (!dev) return '';
+  const direct = (dev as any).ratio ?? (dev as any).ct_ratio ?? (dev as any).ctRatio ?? (dev as any).ctratio;
+  if (direct != null) return String(direct);
+  const p = (dev as any).primary_current ?? this.header.primary_current;
+  const s = (dev as any).secondary_current ?? this.header.secondary_current;
+  return (p && s) ? `${p}/${s}` : '';
+}
+
+
 
   // rows
   ctRows: CtRow[] = [this.emptyCtRow()];
@@ -131,6 +144,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   assignedPicker = {
     open: false,
     items: [] as Array<{
+      ratio: string;
       id: number;
       device_id: number;
       serial_number: string;
@@ -263,6 +277,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           this.serialIndex[key] = {
             make: d?.make || '',
             capacity: d?.capacity || '',
+               ratio: this.pickRatio(d),   
             device_id: d?.id ?? a.device_id ?? 0,
             assignment_id: a?.id ?? 0
           };
@@ -299,9 +314,10 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   }
 
   // ===== Helpers =====
-  emptyCtRow(seed?: Partial<CtRow>): CtRow {
-    return { ct_no: '', make: '', cap: '', ratio: '', polarity: '', remark: '', working: undefined, ...seed };
-  }
+emptyCtRow(seed?: Partial<CtRow>): CtRow {
+  return { ct_no: '', make: '', cap: '', ratio: '', polarity: '', remark: '', working: undefined, ...seed };
+}
+
 
   addCtRow() { this.ctRows.push(this.emptyCtRow()); }
 
@@ -354,6 +370,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
               this.serialIndex[key] = {
                 make: d?.make || '',
                 capacity: d?.capacity || '',
+                   ratio: this.pickRatio(d),   
                 device_id: d?.id ?? a.device_id ?? 0,
                 assignment_id: a?.id ?? 0
               };
@@ -364,6 +381,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
               serial_number: d.serial_number || '',
               make: d.make || '',
               capacity: d.capacity || '',
+               ratio: this.pickRatio(d),     
               selected: false,
               testing_bench: a.testing_bench ?? null,
               testing_user: a.user_assigned ?? null,
@@ -418,6 +436,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
         ct_no: ctno,
         make: c.make || '',
         cap: c.capacity || '',
+         ratio: c.ratio || '',  
         device_id: c.device_id || 0,
         assignment_id: c.id || 0,
         notFound: false
@@ -460,12 +479,14 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       row.make = hit.make || '';
       row.cap = hit.capacity || '';
       row.device_id = hit.device_id || 0;
+        row.ratio = hit.ratio || '';     
       row.assignment_id = hit.assignment_id || 0;
       row.notFound = false;
     } else {
       row.make = '';
       row.cap = '';
       row.device_id = 0;
+       row.ratio = '';  
       row.assignment_id = 0;
       row.notFound = key.length > 0;
     }
