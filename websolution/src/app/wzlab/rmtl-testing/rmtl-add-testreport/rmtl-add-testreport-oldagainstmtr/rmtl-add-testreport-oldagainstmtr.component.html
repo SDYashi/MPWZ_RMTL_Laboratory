@@ -12,70 +12,59 @@
       <!-- Top toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none align-items-center">
         <button type="button" class="btn btn-outline-danger" (click)="openAssignedPicker()">
-          ⟳ Select Assigned Devices
+        Select/Pick Assigned Meters for Testing
         </button>
-
-        <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
-          <div class="input-group input-group-sm" style="max-width: 260px;">
-            <span class="input-group-text">Filter</span>
-            <input type="search" class="form-control" [(ngModel)]="filterText" placeholder="Serial / Make / Capacity / Name" />
-          </div>
-        </div>
       </div>
 
       <!-- Batch header -->
       <div class="card shadow-sm mb-3">
         <div class="card-body">
           <div class="row g-3 align-items-end">
-            <div class="col-12 col-md-4 col-lg-3">
-              <label class="form-label fw-bold">Zone/DC <span class="text-danger">*</span></label>
+           <div class="col-md-3">
+              <label class="form-label fw-bold">Name of Zone/DC <span class="text-danger">*</span></label>
               <input type="text" class="form-control"
                      [value]="(header.location_code ? header.location_code + ' - ' : '') + (header.location_name || '')"
                      readonly disabled aria-readonly="true">
-              <small *ngIf="!header.location_code || !header.location_name" class="text-danger">Auto-filled from assignments.</small>
-            </div>
+              </div>
 
-            <div class="col-6 col-md-2">
-              <label class="form-label fw-bold">Phase</label>
+          <div class="col-md-3">
+              <label class="form-label fw-bold">Selected Phase</label>
               <input type="text" class="form-control" [(ngModel)]="header.phase" name="b_phase" readonly disabled aria-readonly="true">
             </div>
 
-            <div class="col-6 col-md-2">
-              <label class="form-label fw-bold">Testing Bench</label>
+           <div class="col-md-3">
+              <label class="form-label fw-bold">Selected Testing Bench</label>
               <input class="form-control" [(ngModel)]="header.testing_bench" name="b_testing_bench" readonly disabled aria-readonly="true">
             </div>
-            <div class="col-12 col-md-2">
-              <label class="form-label fw-bold">Testing User</label>
+          <div class="col-md-3">
+              <label class="form-label fw-bold">Selected Testing User</label>
               <input class="form-control" [(ngModel)]="header.testing_user" name="b_testing_user" readonly disabled aria-readonly="true">
             </div>
-            <div class="col-12 col-md-3">
-              <label class="form-label fw-bold">Approving User</label>
+          <div class="col-md-3">
+              <label class="form-label fw-bold">Selected Approving User</label>
               <input class="form-control" [(ngModel)]="header.approving_user" name="b_approving_user" readonly disabled aria-readonly="true">
             </div>
 
-            <div class="col-12 col-md-3">
-              <label class="form-label fw-bold">Testing Date <span class="text-danger">*</span></label>
+          <div class="col-md-3">
+              <label class="form-label fw-bold">Select Testing Date <span class="text-danger">*</span></label>
               <input type="date" class="form-control" [(ngModel)]="batchDate" name="batch_date" required>
-              <small *ngIf="!batchDate" class="text-danger">Date is required.</small>
-            </div>
+               </div>
 
-            <div class="col-6 col-md-3">
-              <label class="form-label fw-bold">Test Method <span class="text-danger">*</span></label>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Select Test Method <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method" required>
-                <option [ngValue]="null">-- choose --</option>
+                <option [ngValue]="null" disabled>-- Select Test Method --</option>
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
               </select>
-              <small *ngIf="!testMethod" class="text-danger">Select a Test Method.</small>
-            </div>
+                   </div>
 
-            <div class="col-6 col-md-3">
-              <label class="form-label fw-bold">Test Status <span class="text-danger">*</span></label>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Select Test Status <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status" required>
-                <option [ngValue]="null">-- choose --</option>
+               <option [ngValue]="null" disabled>-- Select Test Status --</option>
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
-              <small *ngIf="!testStatus" class="text-danger">Select a Test Status.</small>
-            </div>
+                  </div>
           </div>
         </div>
       </div>
@@ -104,38 +93,37 @@
                 <td class="text-center"><span class="badge bg-secondary">{{ i + 1 }}</span></td>
 
                 <td style="min-width:160px">
-                  <input class="form-control form-control-sm" [(ngModel)]="r.meter_sr_no" [name]="'b_serial_'+i"
+                  <input class="form-control " [(ngModel)]="r.meter_sr_no" [name]="'b_serial_'+i"
                          (ngModelChange)="onSerialChanged(i, r.meter_sr_no)" required inputmode="text" autocomplete="off"
                          [attr.aria-invalid]="r.notFound ? 'true' : 'false'">
                   <div *ngIf="r.notFound" class="small text-danger">Not in assigned list</div>
                 </td>
 
                 <td style="min-width:140px">
-                  <input class="form-control form-control-sm" [(ngModel)]="r.meter_make" [name]="'b_make_'+i" readonly aria-readonly="true">
+                  <input class="form-control " [(ngModel)]="r.meter_make" [name]="'b_make_'+i" readonly aria-readonly="true">
                 </td>
 
                 <td style="min-width:140px">
-                  <input class="form-control form-control-sm" [(ngModel)]="r.meter_capacity" [name]="'b_capacity_'+i" readonly aria-readonly="true">
+                  <input class="form-control " [(ngModel)]="r.meter_capacity" [name]="'b_capacity_'+i" readonly aria-readonly="true">
                 </td>
 
                 <!-- Comment by tester -->
                 <td style="min-width:200px">
-                  <select class="form-select form-select-sm mb-1" [(ngModel)]="r.remark" [name]="'b_remark_'+i">
+                  <select class="form-select  mb-1" [(ngModel)]="r.remark" [name]="'b_remark_'+i">
                     <option value="">--</option>
                     <option *ngFor="let option of commentby_testers" [value]="option">{{ option }}</option>
                   </select>
                 </td>
 
                 <td style="min-width:160px">
-                  <select class="form-select form-select-sm" [(ngModel)]="r.test_result" [name]="'b_test_result_'+i" required>
-                    <option [ngValue]="undefined">-- choose --</option>
+                  <select class="form-select " [(ngModel)]="r.test_result" [name]="'b_test_result_'+i" required>
+                    <option [ngValue]="null">-- Select Result --</option>
                     <option *ngFor="let tr of test_results" [ngValue]="tr">{{ tr }}</option>
                   </select>
-                  <small *ngIf="!r.test_result && (r.meter_sr_no || '').trim()" class="text-danger">Test result is required.</small>
-                </td>
+                    </td>
 
                 <td style="min-width:220px">
-                  <input class="form-control form-control-sm" [(ngModel)]="r.consumer_name" [name]="'cons_'+i" placeholder="Consumer name">
+                  <input class="form-control " [(ngModel)]="r.consumer_name" [name]="'cons_'+i" placeholder="Consumer name">
                 </td>
 
                 <td class="text-center d-print-none">
@@ -156,66 +144,66 @@
                     <!-- Address / cert / fees -->
                     <div class="col-md-4 col-lg-3">
                       <label class="form-label small fw-bold mb-0">Full Address</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.consumer_address" [name]="'addr_'+i">
+                      <input class="form-control " [(ngModel)]="r.consumer_address" [name]="'addr_'+i">
                     </div>
                     <div class="col-md-4 col-lg-3">
                       <label class="form-label small fw-bold mb-0">Certificate No (optional)</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.certificate_number" [name]="'cert_'+i">
+                      <input class="form-control " [(ngModel)]="r.certificate_number" [name]="'cert_'+i">
                     </div>
                     <div class="col-md-4 col-lg-3">
                       <label class="form-label small fw-bold mb-0">Testing Fees (₹)</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.testing_fees" [name]="'fees_'+i">
+                      <select class="form-select " [(ngModel)]="r.testing_fees" [name]="'fees_'+i">
                         <option [ngValue]="null">--</option>
                         <option *ngFor="let fee of fees_mtr_cts" [ngValue]="fee">{{ fee }}</option>
                       </select>
                     </div>
                     <div class="col-md-4 col-lg-3">
-                      <label class="form-label small fw-bold mb-0">M.R. No</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.fees_mr_no" [name]="'mr_'+i" placeholder="Receipt / Online Txn No">
+                      <label class="form-label small fw-bold mb-0">M.R. No / Online Transaction No</label>
+                      <input class="form-control " [(ngModel)]="r.fees_mr_no" [name]="'mr_'+i" placeholder="Receipt / Online Txn No">
                     </div>
                     <div class="col-md-4 col-lg-3">
-                      <label class="form-label small fw-bold mb-0">M.R. Date</label>
-                      <input type="date" class="form-control form-control-sm" [(ngModel)]="r.fees_mr_date" [name]="'mrd_'+i">
+                      <label class="form-label small fw-bold mb-0">M.R./Payment  Date</label>
+                      <input type="date" class="form-control " [(ngModel)]="r.fees_mr_date" [name]="'mrd_'+i">
                     </div>
                     <div class="col-md-4 col-lg-3">
                       <label class="form-label small fw-bold mb-0">Additional Reference</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="r.ref_no" [name]="'ref_'+i">
+                      <input class="form-control " [(ngModel)]="r.ref_no" [name]="'ref_'+i">
                     </div>
 
                     <!-- Device condition -->
                     <div class="col-md-4 col-lg-3">
                       <label class="form-label small fw-bold mb-0">Physical Condition</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.physical_condition_of_device" [name]="'b_pcond_'+i">
+                      <select class="form-select " [(ngModel)]="r.physical_condition_of_device" [name]="'b_pcond_'+i">
                         <option *ngFor="let pc of physical_conditions" [value]="pc">{{ pc }}</option>
                       </select>
                     </div>
                     <div class="col-md-4 col-lg-3">
                       <label class="form-label small fw-bold mb-0">Seal Status</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.seal_status" [name]="'b_seal_'+i">
+                      <select class="form-select " [(ngModel)]="r.seal_status" [name]="'b_seal_'+i">
                         <option *ngFor="let seal of seal_statuses" [value]="seal">{{ seal }}</option>
                       </select>
                     </div>
                     <div class="col-md-4 col-lg-3">
                       <label class="form-label small fw-bold mb-0">Glass Cover</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.meter_glass_cover" [name]="'b_glass_'+i">
+                      <select class="form-select " [(ngModel)]="r.meter_glass_cover" [name]="'b_glass_'+i">
                         <option *ngFor="let gc of glass_covers" [value]="gc">{{ gc }}</option>
                       </select>
                     </div>
                     <div class="col-md-4 col-lg-3">
                       <label class="form-label small fw-bold mb-0">Terminal Block</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.terminal_block" [name]="'b_term_'+i">
+                      <select class="form-select " [(ngModel)]="r.terminal_block" [name]="'b_term_'+i">
                         <option *ngFor="let tb of terminal_blocks" [value]="tb">{{ tb }}</option>
                       </select>
                     </div>
                     <div class="col-md-4 col-lg-3">
                       <label class="form-label small fw-bold mb-0">Meter Body</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.meter_body" [name]="'b_body_'+i">
+                      <select class="form-select " [(ngModel)]="r.meter_body" [name]="'b_body_'+i">
                         <option *ngFor="let mb of meter_bodies" [value]="mb">{{ mb }}</option>
                       </select>
                     </div>
                     <div class="col-md-4 col-lg-3">
                       <label class="form-label small fw-bold mb-0">Burned?</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.is_burned" [name]="'b_burn_'+i">
+                      <select class="form-select " [(ngModel)]="r.is_burned" [name]="'b_burn_'+i">
                         <option [ngValue]="false">No</option>
                         <option [ngValue]="true">Yes</option>
                       </select>
@@ -224,7 +212,7 @@
                     <!-- View mode per row -->
                     <div class="col-md-4 col-lg-3">
                       <label class="form-label small fw-bold mb-0">Meter Testing Mechanism</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.view_mode" [name]="'view_mode_'+i">
+                      <select class="form-select " [(ngModel)]="r.view_mode" [name]="'view_mode_'+i">
                         <option value="">Select Testing Type</option>
                         <option *ngFor="let t of ternal_testing_types" [value]="t">{{ t }}</option>
                       </select>
@@ -236,43 +224,43 @@
                         <div class="fw-bold small mb-2 p-2 bg-secondary text-white">Shunt Readings (all required)</div>
                         <div class="row g-3">
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Reading Before Test</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_reading_before_test" [name]="'sh_b_'+i" step="0.01">
+                            <label class="form-label small fw-bold mb-0">Meter Starting Reading</label>
+                            <input type="number" class="form-control " [(ngModel)]="r.shunt_reading_before_test" [name]="'sh_b_'+i" step="0.01">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Reading After Test</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_reading_after_test" [name]="'sh_a_'+i" step="0.01">
+                            <label class="form-label small fw-bold mb-0">Meter Final Reading</label>
+                            <input type="number" class="form-control " [(ngModel)]="r.shunt_reading_after_test" [name]="'sh_a_'+i" step="0.01">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Ref Start</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_ref_start_reading" [name]="'sh_rs_'+i" step="0.01">
+                            <label class="form-label small fw-bold mb-0">Reference Meter Starting Reading</label>
+                            <input type="number" class="form-control " [(ngModel)]="r.shunt_ref_start_reading" [name]="'sh_rs_'+i" step="0.01">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Ref End</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_ref_end_reading" [name]="'sh_re_'+i" step="0.01">
+                            <label class="form-label small fw-bold mb-0">Reference Meter Final Reading</label>
+                            <input type="number" class="form-control " [(ngModel)]="r.shunt_ref_end_reading" [name]="'sh_re_'+i" step="0.01">
                           </div>
 
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Starting Current Test</label>
-                            <select class="form-select form-select-sm" [(ngModel)]="r.shunt_current_test" [name]="'sh_ct_'+i">
+                            <label class="form-label small fw-bold mb-0">Select Starting CurrentTest</label>
+                            <select class="form-select " [(ngModel)]="r.shunt_current_test" [name]="'sh_ct_'+i">
                               <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
                             </select>
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Creep Test</label>
-                            <select class="form-select form-select-sm" [(ngModel)]="r.shunt_creep_test" [name]="'sh_cp_'+i">
+                            <label class="form-label small fw-bold mb-0">Select Creep Test</label>
+                            <select class="form-select " [(ngModel)]="r.shunt_creep_test" [name]="'sh_cp_'+i">
                               <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
                             </select>
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Dial Test</label>
-                            <select class="form-select form-select-sm" [(ngModel)]="r.shunt_dail_test" [name]="'sh_dt_'+i">
+                            <label class="form-label small fw-bold mb-0">Select Dial Test</label>
+                            <select class="form-select " [(ngModel)]="r.shunt_dail_test" [name]="'sh_dt_'+i">
                               <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
                             </select>
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Error % (Shunt)</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_error_percentage" [name]="'sh_err_'+i" step="0.01" readonly>
+                            <input type="number" class="form-control " [(ngModel)]="r.shunt_error_percentage" [name]="'sh_err_'+i" step="0.01" readonly>
                           </div>
                           <div class="col-md-3">
                             <button class="btn btn-sm btn-success w-100 mt-3" type="button" (click)="calcShunt(i)">Calculate Shunt</button>
@@ -287,42 +275,42 @@
                         <div class="fw-bold small mb-2 p-2 bg-secondary text-white">Nutral Readings (all required)</div>
                         <div class="row g-3">
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Reading Before Test</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_reading_before_test" [name]="'nu_b_'+i" step="0.01">
+                            <label class="form-label small fw-bold mb-0">Meter Starting Reading</label>
+                            <input type="number" class="form-control " [(ngModel)]="r.nutral_reading_before_test" [name]="'nu_b_'+i" step="0.01">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Reading After Test</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_reading_after_test" [name]="'nu_a_'+i" step="0.01">
+                            <label class="form-label small fw-bold mb-0">Meter Final Reading </label>
+                            <input type="number" class="form-control " [(ngModel)]="r.nutral_reading_after_test" [name]="'nu_a_'+i" step="0.01">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Ref Start</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_ref_start_reading" [name]="'nu_rs_'+i" step="0.01">
+                            <label class="form-label small fw-bold mb-0">Reference Meter Starting Reading </label>
+                            <input type="number" class="form-control " [(ngModel)]="r.nutral_ref_start_reading" [name]="'nu_rs_'+i" step="0.01">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Ref End</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_ref_end_reading" [name]="'nu_re_'+i" step="0.01">
+                            <label class="form-label small fw-bold mb-0">Reference Meter Final Reading</label>
+                            <input type="number" class="form-control " [(ngModel)]="r.nutral_ref_end_reading" [name]="'nu_re_'+i" step="0.01">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Starting Current Test</label>
-                            <select class="form-select form-select-sm" [(ngModel)]="r.nutral_current_test" [name]="'nu_ct_'+i">
+                            <label class="form-label small fw-bold mb-0">Select Starting CurrentTest</label>
+                            <select class="form-select " [(ngModel)]="r.nutral_current_test" [name]="'nu_ct_'+i">
                               <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
                             </select>
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Creep Test</label>
-                            <select class="form-select form-select-sm" [(ngModel)]="r.nutral_creep_test" [name]="'nu_cp_'+i">
+                            <label class="form-label small fw-bold mb-0">Select Creep Test</label>
+                            <select class="form-select " [(ngModel)]="r.nutral_creep_test" [name]="'nu_cp_'+i">
                               <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
                             </select>
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label small fw-bold mb-0">Dial Test</label>
-                            <select class="form-select form-select-sm" [(ngModel)]="r.nutral_dail_test" [name]="'nu_dt_'+i">
+                            <label class="form-label small fw-bold mb-0">Select Dial Test</label>
+                            <select class="form-select " [(ngModel)]="r.nutral_dail_test" [name]="'nu_dt_'+i">
                               <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
                             </select>
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Error % (Nutral)</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_error_percentage" [name]="'nu_err_'+i" step="0.01" readonly>
+                            <input type="number" class="form-control " [(ngModel)]="r.nutral_error_percentage" [name]="'nu_err_'+i" step="0.01" readonly>
                           </div>
                           <div class="col-md-3">
                             <button class="btn btn-sm btn-success w-100 mt-3" type="button" (click)="calcNutral(i)">Calculate Nutral</button>
@@ -334,7 +322,7 @@
                     <!-- Optional combined error -->
                     <div class="col-md-4">
                       <label class="form-label small fw-bold mb-0">Error % (Combined)</label>
-                      <select class="form-select form-select-sm"
+                      <select class="form-select "
                               [(ngModel)]="r.error_from_mode"
                               (ngModelChange)="onErrorFromModeChanged(i)"
                               [name]="'err_from_'+i">
@@ -344,7 +332,7 @@
                     </div>
                     <div class="col-md-5">
                       <label class="form-label small fw-bold mb-0">Finally Error %</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.error_percentage_import" [name]="'b_err_'+i" step="0.01" readonly>
+                      <input type="number" class="form-control " [(ngModel)]="r.error_percentage_import" [name]="'b_err_'+i" step="0.01" readonly>
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
                       <button class="btn btn-sm btn-success w-100" type="button" (click)="calculateErrorPct(i)" [disabled]="!r.error_from_mode">
@@ -355,7 +343,7 @@
                     <!-- comment -->
                     <div class="col-12">
                       <label class="form-label small fw-bold mb-0">Any Remarks</label>
-                      <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.final_remarks" [name]="'final_remarks_'+i"></textarea>
+                      <textarea rows="2" class="form-control " [(ngModel)]="r.final_remarks" [name]="'final_remarks_'+i"></textarea>
                     </div>
                   </div>
                 </td>

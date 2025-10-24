@@ -36,7 +36,7 @@ interface CertRow {
   certificate_no?: string;
   date_of_testing?: string;
 
-  testing_fees?: number;
+  testing_fees?: any;
   mr_no?: string;
   mr_date?: string;
   ref_no?: string;
@@ -71,7 +71,14 @@ interface CertRow {
   error_percentage_import?: number | null;
   error_percentage_export?: number | null;
 
-  // SHUNT channel
+  // ---------- PHYSICAL CONDITION FIELDS (new in UI)
+  physical_condition_of_device?: string | null;
+  seal_status?: string | null;
+  meter_glass_cover?: string | null;
+  terminal_block?: string | null;
+  meter_body?: string | null;
+
+  // ---------- SHUNT channel
   shunt_reading_before_test?: number | null;
   shunt_reading_after_test?: number | null;
   shunt_ref_start_reading?: number | null;
@@ -80,7 +87,11 @@ interface CertRow {
   _shunt_delta_meter?: number | null;
   _shunt_delta_ref?: number | null;
 
-  // NUTRAL channel
+  shunt_current_test?: string | null;
+  shunt_creep_test?: string | null;
+  shunt_dail_test?: string | null;
+
+  // ---------- NUTRAL channel
   nutral_reading_before_test?: number | null;
   nutral_reading_after_test?: number | null;
   nutral_ref_start_reading?: number | null;
@@ -89,13 +100,13 @@ interface CertRow {
   _nutral_delta_meter?: number | null;
   _nutral_delta_ref?: number | null;
 
-  // qualitative & summary
-  starting_current_test?: string;
-  creep_test?: string;
-  dial_test?: string;
+  nutral_current_test?: string | null;
+  nutral_creep_test?: string | null;
+  nutral_dail_test?: string | null;
 
-  remark?: string;
+  // qualitative & summary
   final_remarks?: string;
+  remark?: string;
   test_result?: string;
 }
 
@@ -146,7 +157,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   submitting = false;
   modal: ModalState = { open: false, title: '', action: null };
 
-  // Banner (replaces alert modal)
+  // Banner
   banner: { show: boolean; type: 'success'|'error'|'warning'|'info'; message: string; _t?: any } = {
     show: false, type: 'info', message: ''
   };
@@ -188,7 +199,15 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   device_type: any;
   testing_request_types: any;
   fees_mtr_cts: any;
-  test_dail_current_cheaps: any;
+  test_dail_current_cheaps: any; // we'll still reuse this for shunt/nutral test dropdowns
+  physical_conditions: any;
+  seal_statuses: any;
+  glass_covers: any;
+  terminal_blocks: any;
+  meter_bodies: any;
+  makes: any;
+  capacities: any;
+  approving_user: string = '-';
 
   constructor(
     private api: ApiServicesService,
@@ -214,12 +233,19 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         this.office_types  = d?.office_types || [];
         this.commentby_testers = d?.commentby_testers || [];
         this.test_results = d?.test_results || [];
-
+        this.physical_conditions = d?.physical_conditions || [];
+        this.seal_statuses = d?.seal_statuses || [];
+        this.glass_covers = d?.glass_covers || [];
+        this.terminal_blocks = d?.terminal_blocks || [];
+        this.meter_bodies = d?.meter_bodies || [];
+        this.makes = d?.makes || [];
+        this.capacities = d?.capacities || [];
         this.device_testing_purpose =
           d?.test_report_types?.SOLAR_NETMETER ??
           d?.test_report_types?.SOLAR_NET_METER ??
           d?.test_report_types?.SOLAR_NET_MEER ??
           'SOLAR_NETMETER';
+
         this.device_type = d?.device_types?.METER ?? 'METER';
         this.testing_request_types = d?.testing_request_types || [];
         this.fees_mtr_cts = d?.fees_mtr_cts || [];
@@ -319,6 +345,13 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       meter_sr_no: '',
       meter_capacity: '',
       test_result: '',
+
+      // fees / receipt
+      testing_fees: '',
+      mr_no: '',
+      mr_date: '',
+      ref_no: '',
+
       // Import/Export defaults
       start_reading_import: null,
       final_reading__import: null,
@@ -327,6 +360,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       final_reading_export: null,
       difference_export: null,
       final_Meter_Difference: null,
+
       // Import/Export reference defaults
       import_ref_start_reading: null,
       import_ref_end_reading: null,
@@ -336,6 +370,14 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       _export_delta_ref: null,
       error_percentage_import: null,
       error_percentage_export: null,
+
+      // PHYSICAL condition defaults
+      physical_condition_of_device: null,
+      seal_status: null,
+      meter_glass_cover: null,
+      terminal_block: null,
+      meter_body: null,
+
       // SHUNT defaults
       shunt_reading_before_test: null,
       shunt_reading_after_test: null,
@@ -344,6 +386,10 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       shunt_error_percentage: null,
       _shunt_delta_meter: null,
       _shunt_delta_ref: null,
+      shunt_current_test: null,
+      shunt_creep_test: null,
+      shunt_dail_test: null,
+
       // NUTRAL defaults
       nutral_reading_before_test: null,
       nutral_reading_after_test: null,
@@ -352,6 +398,13 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       nutral_error_percentage: null,
       _nutral_delta_meter: null,
       _nutral_delta_ref: null,
+      nutral_current_test: null,
+      nutral_creep_test: null,
+      nutral_dail_test: null,
+
+      final_remarks: '',
+      remark: '',
+
       ...seed
     };
   }
@@ -406,11 +459,21 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
           this.testing_bench = this.header.testing_bench;
           this.testing_user  = this.header.testing_user;
+          this.approving_user  = this.header.approving_user;
+          // Testing bench
+          this.header.testing_bench = first.testing_bench?.bench_name || '-';
+          // Testing user (prefer full name, then username)
+          this.header.testing_user =
+            first.user_assigned?.name ||
+            first.user_assigned?.username ||
+            '-';
+          // Approving user (prefer full name, then username)
+          this.header.approving_user =
+            first.assigned_by_user?.name ||
+            first.assigned_by_user?.username ||
+            '-';
         }
-
-        if (replaceRows) {
-          // keep as-is; user controls rows via picker
-        }
+        
 
         this.asgPicker.list = asg;
         this.loading = false;
@@ -578,15 +641,16 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         start_datetime: this.isoOn(r.date_of_testing),
         end_datetime:   this.isoOn(r.date_of_testing),
 
-        physical_condition_of_device: null,
-        seal_status: null,
-        meter_glass_cover: null,
-        terminal_block: null,
-        meter_body: null,
+        // ✅ NEW physical condition fields
+        physical_condition_of_device: r.physical_condition_of_device || null,
+        seal_status: r.seal_status || null,
+        meter_glass_cover: r.meter_glass_cover || null,
+        terminal_block: r.terminal_block || null,
+        meter_body: r.meter_body || null,
         other: null,
         is_burned: false,
 
-        // legacy single track (left null; we now use I/E)
+        // legacy single track (kept but basically unused)
         reading_before_test: this.numOrNull(r.starting_reading),
         reading_after_test:  this.numOrNull(r.final_reading_r),
         ref_start_reading: null,
@@ -612,18 +676,27 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         error_percentage_import: this.numOrNull(r.error_percentage_import),
         error_percentage_export: this.numOrNull(r.error_percentage_export),
 
-        // SHUNT/NUTRAL channel payload
+        // SHUNT channel payload
         shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
         shunt_reading_after_test: this.numOrNull(r.shunt_reading_after_test),
         shunt_ref_start_reading: this.numOrNull(r.shunt_ref_start_reading),
         shunt_ref_end_reading: this.numOrNull(r.shunt_ref_end_reading),
         shunt_error_percentage: this.numOrNull(r.shunt_error_percentage),
 
+        shunt_current_test: r.shunt_current_test || null,
+        shunt_creep_test: r.shunt_creep_test || null,
+        shunt_dail_test: r.shunt_dail_test || null,
+
+        // NUTRAL channel payload
         nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
         nutral_reading_after_test: this.numOrNull(r.nutral_reading_after_test),
         nutral_ref_start_reading: this.numOrNull(r.nutral_ref_start_reading),
         nutral_ref_end_reading: this.numOrNull(r.nutral_ref_end_reading),
         nutral_error_percentage: this.numOrNull(r.nutral_error_percentage),
+
+        nutral_current_test: r.nutral_current_test || null,
+        nutral_creep_test: r.nutral_creep_test || null,
+        nutral_dail_test: r.nutral_dail_test || null,
 
         details: r.remark || null,
         test_result: r.test_result || null,
@@ -633,7 +706,10 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         consumer_name: r.consumer_name || null,
         consumer_address: r.address || null,
         certificate_number: r.certificate_no || null,
-        testing_fees: this.numOrNull(r.testing_fees),
+
+        // ✅ testing_fees must be STRING, do NOT convert to number
+        testing_fees: r.testing_fees ?? null,
+
         fees_mr_no: r.mr_no || null,
         fees_mr_date: r.mr_date || null,
         ref_no: r.ref_no || null,
@@ -645,9 +721,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
         dail_test_kwh_rsm: null,
         recorderedbymeter_kwh: null,
-        starting_current_test: r.starting_current_test || null,
-        creep_test: r.creep_test || null,
-        dail_test: r.dial_test || null,
+
         final_remarks: r.final_remarks || null,
 
         p4_division: null,
@@ -795,7 +869,8 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
             meter_capacity: r.meter_capacity,
             date_of_testing: r.date_of_testing || null,
 
-            testing_fees: this.numOrNull(r.testing_fees),
+            // string now, but pdfSvc can just display
+            testing_fees: r.testing_fees ?? undefined,
             mr_no: r.mr_no || null,
             mr_date: r.mr_date || null,
             ref_no: r.ref_no || null,
@@ -827,9 +902,10 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
             nutral_ref_end_reading: this.numOrNull(r.nutral_ref_end_reading) ?? undefined,
             nutral_error_percentage: this.numOrNull(r.nutral_error_percentage) ?? undefined,
 
-            starting_current_test: r.starting_current_test || null,
-            creep_test: r.creep_test || null,
-            dial_test: r.dial_test || null,
+            // show test outcomes also in PDF if you want, you can extend SolarRow later:
+            // shunt_current_test: r.shunt_current_test,
+            // ...
+
             test_result: r.test_result || null,
             remark: r.remark || null
           }));

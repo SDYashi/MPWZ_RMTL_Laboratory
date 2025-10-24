@@ -569,5 +569,9 @@ downloadTestreports_byreportidwithReportTypes(report_id: string, report_type: st
   return this.http.get(`${this.baseUrl}/testing/reportfor_pdf/${report_id}/${report_type}`);
 } 
 
+getDivisions() {
+  return this.http.get<any>(`${this.baseUrl}/reports/divisions/`);  
+}
+
 
 }

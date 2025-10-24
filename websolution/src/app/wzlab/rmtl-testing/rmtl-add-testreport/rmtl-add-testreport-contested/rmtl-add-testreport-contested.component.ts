@@ -68,6 +68,7 @@ interface DeviceRow {
   meter_body?: string;
   other?: string;
   is_burned?: boolean;
+  final_remarks?: string;
 
 
   // View & readings (SHUNT / NUTRAL)
@@ -618,7 +619,7 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
 
           // results/meta
           details: r.remark || null,
-          final_remarks: r.remark || null,
+          final_remarks: r.final_remarks || null,
           test_result: (r.test_result as string) || null,
           test_method: this.testMethod || null,
           test_status: this.testStatus || null,

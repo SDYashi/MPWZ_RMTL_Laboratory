@@ -35,12 +35,19 @@ interface CertRow {
   certificate_no?: string;
   date_of_testing?: string;
 
-  testing_fees?: number | null;
+  testing_fees?: string | null; // <-- string for DB now
   mr_no?: string | null;
   mr_date?: string | null;
   ref_no?: string | null;
 
-  // SHUNT fields
+  // physical condition / enclosure info
+  physical_condition_of_device?: string | null;
+  seal_status?: string | null;
+  meter_glass_cover?: string | null;
+  terminal_block?: string | null;
+  meter_body?: string | null;
+
+  // SHUNT readings
   shunt_reading_before_test?: number | null;
   shunt_reading_after_test?: number | null;
   shunt_ref_start_reading?: number | null;
@@ -49,7 +56,7 @@ interface CertRow {
   _shunt_delta_ref?: number | null;
   shunt_error_percentage?: number | null;
 
-  // NUTRAL fields
+  // NUTRAL readings
   nutral_reading_before_test?: number | null;
   nutral_reading_after_test?: number | null;
   nutral_ref_start_reading?: number | null;
@@ -58,12 +65,16 @@ interface CertRow {
   _nutral_delta_ref?: number | null;
   nutral_error_percentage?: number | null;
 
-  // qualitative tests
-  starting_current_test?: string | null;
-  creep_test?: string | null;
-  dial_test?: string | null;
+  // Qualitative tests PER CHANNEL (DB columns)
+  shunt_current_test?: string | null;
+  shunt_creep_test?: string | null;
+  shunt_dail_test?: string | null;
+  nutral_current_test?: string | null;
+  nutral_creep_test?: string | null;
+  nutral_dail_test?: string | null;
 
   remark?: string | null;
+  final_remarks?: string | null;
   test_result?: string | null;
 }
 
@@ -88,7 +99,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   };
 
   // ===== header on form
-  header = { location_code: '', location_name: '' };
+  header = { location_code: '', location_name: '' , testing_bench: '', testing_user: '', approving_user: ''};
   test_methods: any[] = [];
   test_statuses: any[] = [];
   testMethod: string | null = null;
@@ -157,7 +168,12 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   } | null = null;
 
   fees_mtr_cts: any;
-  test_dail_current_cheaps: any;
+  test_dail_current_cheaps: any; // we still reuse this as dropdown values for shunt*/nutral* tests
+  physical_conditions: any;
+  seal_statuses: any;
+  glass_covers: any;
+  terminal_blocks: any;
+  meter_bodies: any;
 
   constructor(
     private api: ApiServicesService,
@@ -187,6 +203,11 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         this.test_results = d?.test_results || [];
         this.fees_mtr_cts= d?.fees_mtr_cts || [];
         this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
+        this.physical_conditions = d?.physical_conditions || [];
+        this.seal_statuses = d?.seal_statuses || [];
+        this.glass_covers = d?.glass_covers || [];
+        this.terminal_blocks = d?.terminal_blocks || [];
+        this.meter_bodies = d?.meter_bodies || [];
 
         this.device_testing_purpose =
           d?.test_report_types?.SOLAR_GENERATION_METER || 'SOLAR_GENERATION_METER';
@@ -274,10 +295,18 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
       meter_make: '',
       meter_sr_no: '',
       meter_capacity: '',
+      certificate_no: '',
+      date_of_testing: '',
       testing_fees: null,
       mr_no: null,
       mr_date: null,
       ref_no: null,
+
+      physical_condition_of_device: null,
+      seal_status: null,
+      meter_glass_cover: null,
+      terminal_block: null,
+      meter_body: null,
 
       // SHUNT defaults
       shunt_reading_before_test: null,
@@ -288,6 +317,10 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
       _shunt_delta_ref: null,
       shunt_error_percentage: null,
 
+      shunt_current_test: null,
+      shunt_creep_test: null,
+      shunt_dail_test: null,
+
       // NUTRAL defaults
       nutral_reading_before_test: null,
       nutral_reading_after_test: null,
@@ -297,9 +330,10 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
       _nutral_delta_ref: null,
       nutral_error_percentage: null,
 
-      starting_current_test: null,
-      creep_test: null,
-      dial_test: null,
+      nutral_current_test: null,
+      nutral_creep_test: null,
+      nutral_dail_test: null,
+
       remark: null,
       test_result: null,
       ...seed
@@ -345,8 +379,21 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
           this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
           this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
           this.testing_bench = (this.testing_bench && this.testing_bench !== '-') ? this.testing_bench : (first.testing_bench?.bench_name ?? '-');
-          this.testing_user  = (this.testing_user  && this.testing_user  !== '-') ? this.testing_user  : (first.user_assigned?.name || first.user_assigned?.username || '-');
-          this.approver_user = (this.approver_user && this.approver_user !== '-') ? this.approver_user : (first.assigned_by_user?.name || first.assigned_by_user?.username || '-');
+          this.testing_user  = (this.testing_user  && this.testing_user  !== '-') ? this.testing_user  : (first.user_assigned?.name  || '-');
+          this.approver_user = (this.approver_user && this.approver_user !== '-') ? this.approver_user : (first.assigned_by_user?.name  || '-');
+          
+          // Testing bench
+          this.header.testing_bench = first.testing_bench?.bench_name || '-';
+          // Testing user (prefer full name, then username)
+          this.header.testing_user =
+            first.user_assigned?.name ||
+            first.user_assigned?.username ||
+            '-';
+          // Approving user (prefer full name, then username)
+          this.header.approving_user =
+            first.assigned_by_user?.name ||
+            first.assigned_by_user?.username ||
+            '-';
         }
 
         if (replaceRows) {
@@ -516,14 +563,28 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   private round2(v:number){ return +v.toFixed(2); }
   private isoOn(dateStr?: string){ const d = dateStr? new Date(dateStr+'T10:00:00') : new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString(); }
 
+  /**
+   * Best-effort derived PASS/FAIL.
+   * We now look at shunt_current_test / shunt_creep_test / shunt_dail_test
+   * and nutral_* variants. If any includes "fail", mark FAIL.
+   */
   private inferredTestResult(r: CertRow): string | undefined {
-    const vals = [r.starting_current_test, r.creep_test, r.dial_test].map(v => (v || '').toString().toLowerCase());
+    const vals = [
+      r.shunt_current_test,
+      r.shunt_creep_test,
+      r.shunt_dail_test,
+      r.nutral_current_test,
+      r.nutral_creep_test,
+      r.nutral_dail_test
+    ]
+    .map(v => (v || '').toString().toLowerCase());
+
     if (!vals.some(v => v)) return r.test_result || undefined;
     if (vals.some(v => v.includes('fail'))) return 'FAIL';
     return r.test_result || 'PASS';
   }
 
-  // Build API payload (SHUNT/NUTRAL only)
+  // Build API payload with DB column names
   private buildPayload(): any[] {
     const requester = this.header.location_name || this.filteredSources?.name || null;
 
@@ -536,35 +597,54 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         start_datetime: this.isoOn(r.date_of_testing),
         end_datetime:   this.isoOn(r.date_of_testing),
 
-        // No legacy scalar readings
+        // Physical / sealing / body condition
+        physical_condition_of_device: r.physical_condition_of_device || null,
+        seal_status: r.seal_status || null,
+        meter_glass_cover: r.meter_glass_cover || null,
+        terminal_block: r.terminal_block || null,
+        meter_body: r.meter_body || null,
+
+        // legacy scalar fields not used here
         reading_before_test: null,
         reading_after_test:  null,
         ref_start_reading:   null,
         ref_end_reading:     null,
         error_percentage:    null,
 
-        // SHUNT/NUTRAL payload
+        // SHUNT readings
         shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
         shunt_reading_after_test:  this.numOrNull(r.shunt_reading_after_test),
         shunt_ref_start_reading:   this.numOrNull(r.shunt_ref_start_reading),
         shunt_ref_end_reading:     this.numOrNull(r.shunt_ref_end_reading),
         shunt_error_percentage:    this.numOrNull(r.shunt_error_percentage),
 
+        // NUTRAL readings
         nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
         nutral_reading_after_test:  this.numOrNull(r.nutral_reading_after_test),
         nutral_ref_start_reading:   this.numOrNull(r.nutral_ref_start_reading),
         nutral_ref_end_reading:     this.numOrNull(r.nutral_ref_end_reading),
         nutral_error_percentage:    this.numOrNull(r.nutral_error_percentage),
 
+        // Per-channel qualitative results
+        shunt_current_test: r.shunt_current_test || null,
+        shunt_creep_test: r.shunt_creep_test || null,
+        shunt_dail_test: r.shunt_dail_test || null,
+        nutral_current_test: r.nutral_current_test || null,
+        nutral_creep_test: r.nutral_creep_test || null,
+        nutral_dail_test: r.nutral_dail_test || null,
+
         details: r.remark || null,
         test_result: this.inferredTestResult(r) || null,
         test_method: this.testMethod || null,
         test_status: this.testStatus || null,
-
+        final_remarks: r.final_remarks || null,
         consumer_name: r.consumer_name || null,
         consumer_address: r.address || null,
         certificate_number: r.certificate_no || null,
-        testing_fees: this.numOrNull(r.testing_fees),
+
+        // NOTE: DB column is Optional[str], so DO NOT convert to number here
+        testing_fees: (r.testing_fees ?? null) === '' ? null : (r.testing_fees ?? null),
+
         fees_mr_no: r.mr_no || null,
         fees_mr_date: r.mr_date || null,
         ref_no: r.ref_no || null,
@@ -643,12 +723,18 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
             meter_sr_no: r.meter_sr_no || null,
             meter_capacity: r.meter_capacity || null,
             date_of_testing: r.date_of_testing || null,
-            testing_fees: this.numOrNull(r.testing_fees),
+
+            // PDF layer: convert fees string -> number | null
+            testing_fees:
+              r.testing_fees != null && r.testing_fees !== ''
+                ? Number(r.testing_fees)
+                : null,
+
             mr_no: r.mr_no || null,
             mr_date: r.mr_date || null,
             ref_no: r.ref_no || null,
 
-            // Include SHUNT/NUTRAL for PDF (service may choose what to render)
+            // Include SHUNT/NUTRAL readings for PDF
             shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test) ?? undefined,
             shunt_reading_after_test:  this.numOrNull(r.shunt_reading_after_test) ?? undefined,
             shunt_ref_start_reading:   this.numOrNull(r.shunt_ref_start_reading) ?? undefined,
@@ -661,9 +747,21 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
             nutral_ref_end_reading:     this.numOrNull(r.nutral_ref_end_reading) ?? undefined,
             nutral_error_percentage:    this.numOrNull(r.nutral_error_percentage) ?? undefined,
 
-            starting_current_test: r.starting_current_test || null,
-            creep_test: r.creep_test || null,
-            dial_test: r.dial_test || null,
+            // per-channel qualitative results (optional for PDF service)
+            shunt_current_test: r.shunt_current_test || null,
+            shunt_creep_test:   r.shunt_creep_test || null,
+            shunt_dail_test:    r.shunt_dail_test || null,
+            nutral_current_test: r.nutral_current_test || null,
+            nutral_creep_test:   r.nutral_creep_test || null,
+            nutral_dail_test:    r.nutral_dail_test || null,
+
+            // physical condition (optional for PDF)
+            physical_condition_of_device: r.physical_condition_of_device || null,
+            seal_status: r.seal_status || null,
+            meter_glass_cover: r.meter_glass_cover || null,
+            terminal_block: r.terminal_block || null,
+            meter_body: r.meter_body || null,
+
             test_result: r.test_result || this.inferredTestResult(r) || null,
             remark: r.remark || null
           }));

@@ -1,4 +1,3 @@
-<!-- src/app/wzlab/rmtl-testing/rmtl-add-testreport-solarnetmeer/rmtl-add-testreport-solarnetmeer.component.html -->
 <div class="container-fluid mt-4">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#151433">
@@ -38,14 +37,14 @@
             <div class="col-md-4">
               <label class="form-label fw-bold mt-2">Select Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method">
-                <option [ngValue]="null" disabled>Select Testing Method</option>
+                 <option [ngValue]="null" disabled>-- Select Test Method --</option>
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
               </select>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold mt-2">Select Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status">
-                <option [ngValue]="null" disabled>Select Testing Status</option>
+                  <option [ngValue]="null" disabled>-- Select Test Status --</option>
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
             </div>
@@ -141,7 +140,7 @@
                     <div class="col-md-4">
                       <label class="form-label fw-bold mb-0">Select Testing Fees (₹)</label>
                       <select class="form-select" [(ngModel)]="r.testing_fees" [name]="'fees_'+i">
-                        <option [ngValue]="null" disabled>Select Testing Fees</option>
+                          <option value="null" disabled>Select Testing Fees</option>
                         <option *ngFor="let fee of fees_mtr_cts" [ngValue]="fee">{{ fee }}</option>
                       </select>
                     </div>
@@ -154,7 +153,7 @@
                       <input type="date" class="form-control" [(ngModel)]="r.mr_date" [name]="'mrd_'+i">
                     </div>
                     <div class="col-md-8">
-                      <label class="form-label fw-bold mb-0">Payment Reference Details(if any).</label>
+                      <label class="form-label fw-bold mb-0">Payment Reference Details (if any)</label>
                       <input class="form-control" [(ngModel)]="r.ref_no" [name]="'ref_'+i">
                     </div>
 
@@ -166,6 +165,54 @@
                         <option value="NUTRAL">NUTRAL</option>
                         <option value="BOTH">BOTH</option>
                       </select>
+                    </div>
+
+                    <!-- Device physical condition block -->
+                    <div class="col-12">
+                      <div class="p-3 border rounded bg-secondary bg-opacity-10">
+                        <div class="fw-bold mb-2 p-2 bg-secondary text-white">Physical Condition / Visual Checks</div>
+                        <div class="row g-3 p-2">
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Physical Condition of Device</label>
+                            <select class="form-select" [(ngModel)]="r.physical_condition_of_device" [name]="'phys_'+i">
+                              <option value="null" disabled>Select Physical Condition</option>
+                              <option *ngFor="let pc of physical_conditions" [value]="pc">{{ pc }}</option>
+                            </select>
+                          </div>
+
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Seal Status</label>
+                            <select class="form-select" [(ngModel)]="r.seal_status" [name]="'seal_'+i">
+                              <option value="null" disabled>Select Seal Status</option>
+                              <option *ngFor="let seal of seal_statuses" [value]="seal">{{ seal }}</option>
+                            </select>
+                          </div>
+
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Meter Glass Cover</label>
+                            <select class="form-select" [(ngModel)]="r.meter_glass_cover" [name]="'glass_'+i">
+                              <option value="null" disabled>Select Glass Cover</option>
+                              <option *ngFor="let gc of glass_covers" [value]="gc">{{ gc }}</option>
+                            </select>
+                          </div>
+
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Terminal Block</label>
+                            <select class="form-select" [(ngModel)]="r.terminal_block" [name]="'term_block_'+i">
+                              <option value="null" disabled>Select Terminal Block</option>
+                              <option *ngFor="let tb of terminal_blocks" [value]="tb">{{ tb }}</option>
+                            </select>
+                          </div>
+
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Meter Body</label>
+                            <select class="form-select" [(ngModel)]="r.meter_body" [name]="'meter_body_'+i">
+                              <option value="null" disabled>Select Meter Body</option>
+                              <option *ngFor="let mb of meter_bodies" [value]="mb">{{ mb }}</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <!-- Import section -->
@@ -207,7 +254,7 @@
                                    (ngModelChange)="recomputeIE(i)">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label fw-bold mb-0">Reference Difference  (Import)</label>
+                            <label class="form-label fw-bold mb-0">Reference Difference (Import)</label>
                             <input type="number" class="form-control"
                                    [value]="r._import_delta_ref ?? ''" step="0.0001" readonly>
                           </div>
@@ -240,7 +287,7 @@
                                    (ngModelChange)="recomputeIE(i)">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label fw-bold mb-0">Difference  (Export)</label>
+                            <label class="form-label fw-bold mb-0">Difference (Export)</label>
                             <input type="number" class="form-control"
                                    [(ngModel)]="r.difference_export" [name]="'exp_diff_'+i" step="0.0001" readonly>
                           </div>
@@ -260,13 +307,13 @@
                                    (ngModelChange)="recomputeIE(i)">
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label fw-bold mb-0">Reference Difference(Export)</label>
+                            <label class="form-label fw-bold mb-0">Reference Difference (Export)</label>
                             <input type="number" class="form-control"
                                    [value]="r._export_delta_ref ?? ''" step="0.0001" readonly>
                           </div>
 
                           <div class="col-md-3">
-                            <label class="form-label fw-bold mb-0">Reference Error % (Export)</label>
+                            <label class="form-label fw-bold mb-0">Error % (Export)</label>
                             <input type="number" class="form-control"
                                    [(ngModel)]="r.error_percentage_export" [name]="'exp_err_'+i" step="0.01" readonly>
                           </div>
@@ -274,7 +321,7 @@
                       </div>
                     </div>
 
-                    <!-- SHUNT / NUTRAL sections -->
+                    <!-- SHUNT / NUTRAL readings sections -->
                     <div class="col-12" *ngIf="channelView==='SHUNT' || channelView==='BOTH'">
                       <div class="p-3 border rounded bg-secondary bg-opacity-10">
                         <div class="fw-bold mb-2 p-2 bg-secondary text-white">SHUNT Readings</div>
@@ -297,7 +344,7 @@
                           </div>
 
                           <div class="col-md-3">
-                            <label class="form-label fw-bold mb-0">Meter Difference </label>
+                            <label class="form-label fw-bold mb-0">Meter Difference</label>
                             <input type="number" class="form-control" [value]="r._shunt_delta_meter ?? ''" readonly>
                           </div>
                           <div class="col-md-3">
@@ -307,6 +354,31 @@
                           <div class="col-md-3">
                             <label class="form-label fw-bold mb-0">Error %</label>
                             <input type="number" class="form-control" [(ngModel)]="r.shunt_error_percentage" [name]="'sh_err_'+i" step="0.01" readonly>
+                          </div>
+                        </div>
+
+                        <!-- SHUNT qualitative test results -->
+                        <div class="row g-3 p-2">
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Shunt Current Test Result</label>
+                            <select class="form-select" [(ngModel)]="r.shunt_current_test" [name]="'shunt_current_'+i">
+                              <option [ngValue]="null" disabled>Select</option>
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Shunt Creep Test Result</label>
+                            <select class="form-select" [(ngModel)]="r.shunt_creep_test" [name]="'shunt_creep_'+i">
+                              <option [ngValue]="null" disabled>Select</option>
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Shunt Dial Test Result</label>
+                            <select class="form-select" [(ngModel)]="r.shunt_dail_test" [name]="'shunt_dial_'+i">
+                              <option [ngValue]="null" disabled>Select</option>
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
                           </div>
                         </div>
                       </div>
@@ -346,39 +418,43 @@
                             <input type="number" class="form-control" [(ngModel)]="r.nutral_error_percentage" [name]="'nu_err_'+i" step="0.01" readonly>
                           </div>
                         </div>
+
+                        <!-- NUTRAL qualitative test results -->
+                        <div class="row g-3 p-2">
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Nutral Current Test Result</label>
+                            <select class="form-select" [(ngModel)]="r.nutral_current_test" [name]="'nutral_current_'+i">
+                              <option [ngValue]="null" disabled>Select</option>
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Nutral Creep Test Result</label>
+                            <select class="form-select" [(ngModel)]="r.nutral_creep_test" [name]="'nutral_creep_'+i">
+                              <option [ngValue]="null" disabled>Select</option>
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Nutral Dial Test Result</label>
+                            <select class="form-select" [(ngModel)]="r.nutral_dail_test" [name]="'nutral_dial_'+i">
+                              <option [ngValue]="null" disabled>Select</option>
+                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
+                            </select>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <!-- Final remarks / tests -->
+                    <!-- Final summary -->
                     <div class="col-md-3">
                       <label class="form-label fw-bold mb-0">Final Difference (I − E)</label>
                       <input type="number" class="form-control"
                              [(ngModel)]="r.final_Meter_Difference" [name]="'final_diff_'+i" step="0.0001" readonly>
                     </div>
-                    <div class="col-md-3">
-                      <label class="form-label fw-bold mb-0">Starting Current Test Results</label>
-                      <select class="form-select" [(ngModel)]="r.starting_current_test" [name]="'sct_'+i">
-                        <option value="null" disabled>Select Starting Current Test</option>
-                        <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
-                      </select>
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label fw-bold mb-0">Select Creep Test Results</label>
-                      <select class="form-select" [(ngModel)]="r.creep_test" [name]="'creep_'+i">
-                        <option value="null" disabled>Select Creep Test</option>
-                        <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
-                      </select>
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label fw-bold mb-0">Select Dial Test Results</label>
-                      <select class="form-select" [(ngModel)]="r.dial_test" [name]="'dial_'+i">
-                        <option value="null" disabled>Select Dial Test</option>
-                        <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
-                      </select>
-                    </div>
 
                     <div class="col-12">
-                      <label class="form-label fw-bold mb-0">Final Remark</label>
+                      <label class="form-label fw-bold mb-0">Final Remark / Observation</label>
                       <textarea rows="2" class="form-control" [(ngModel)]="r.final_remarks" [name]="'final_remarks'+i"></textarea>
                     </div>
                   </div>
@@ -391,8 +467,8 @@
 
       <!-- Actions -->
       <div class="d-flex gap-2 mt-3 d-print-none">
-          <button type="button" class="btn btn-outline-primary" (click)="addRow()">➕ Add Row</button>
-          <div class="ms-auto d-flex gap-2">
+        <button type="button" class="btn btn-outline-primary" (click)="addRow()">➕ Add Row</button>
+        <div class="ms-auto d-flex gap-2">
           <button  type="button" class="btn btn-primary" [disabled]="submitting || !rows.length" (click)="openConfirm('submit')">
             {{ submitting ? 'Submitting…' : 'Validate & Preview' }}
           </button>
@@ -400,22 +476,22 @@
       </div>
     </div>
   </div>
-  
 
-      <!-- Inline banner (replaces alert modal) -->
-      <div *ngIf="banner.show"
-           class="alert d-print-none"
-           [ngClass]="{
-             'alert-success': banner.type==='success',
-             'alert-danger' : banner.type==='error',
-             'alert-warning': banner.type==='warning',
-             'alert-info'   : banner.type==='info'
-           }">
-        <div class="d-flex justify-content-between align-items-center">
-          <span>{{ banner.message }}</span>
-          <button type="button" class="btn-close" (click)="clearBanner()"></button>
-        </div>
-      </div>
+
+  <!-- Inline banner -->
+  <div *ngIf="banner.show"
+       class="alert d-print-none"
+       [ngClass]="{
+         'alert-success': banner.type==='success',
+         'alert-danger' : banner.type==='error',
+         'alert-warning': banner.type==='warning',
+         'alert-info'   : banner.type==='info'
+       }">
+    <div class="d-flex justify-content-between align-items-center">
+      <span>{{ banner.message }}</span>
+      <button type="button" class="btn-close" (click)="clearBanner()"></button>
+    </div>
+  </div>
 
   <!-- Overlay -->
   <div *ngIf="loading" class="position-fixed top-0 start-0 w-100 h-100"
@@ -486,7 +562,7 @@
       <div class="modal-content">
         <div class="modal-header" style="background:#151433; color:#fff;">
           <h5 class="modal-title">Select Assigned Devices</h5>
-          <button type="button" class="btn-close btn-close-white" (click)="closeAssignedPicker"></button>
+          <button type="button" class="btn-close btn-close-white" (click)="closeAssignedPicker()"></button>
         </div>
         <div class="modal-body">
           <div class="d-flex gap-2 mb-2">
