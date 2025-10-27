@@ -57,6 +57,32 @@ export type GenRow = {
 
   test_result?: string | null;
   remark?: string | null;
+
+  // optional extras from component:
+  shunt_reading_before_test?: number | null;
+  shunt_reading_after_test?: number | null;
+  shunt_ref_start_reading?: number | null;
+  shunt_ref_end_reading?: number | null;
+  shunt_error_percentage?: number | null;
+
+  nutral_reading_before_test?: number | null;
+  nutral_reading_after_test?: number | null;
+  nutral_ref_start_reading?: number | null;
+  nutral_ref_end_reading?: number | null;
+  nutral_error_percentage?: number | null;
+
+  shunt_current_test?: string | null;
+  shunt_creep_test?: string | null;
+  shunt_dail_test?: string | null;
+  nutral_current_test?: string | null;
+  nutral_creep_test?: string | null;
+  nutral_dail_test?: string | null;
+
+  physical_condition_of_device?: string | null;
+  seal_status?: string | null;
+  meter_glass_cover?: string | null;
+  terminal_block?: string | null;
+  meter_body?: string | null;
 };
 
 export interface StopDefMeta {
@@ -75,29 +101,45 @@ export interface StopDefMeta {
 
 @Injectable({ providedIn: 'root' })
 export class SolarGenMeterCertificatePdfService {
+  // Theme
+  private theme = {
+    grid: '#9aa3ad',
+    subtle: '#6b7280',
+    lightFill: '#f5f5f5'
+  };
 
   // ---------- public API ----------
   async download(header: GenHeader, rows: GenRow[], fileName = 'SOLAR_GENERATIONMETER_CERTIFICATES.pdf') {
     const doc = await this.buildDocWithLogos(header, rows);
-    await new Promise<void>(res => pdfMake.createPdf(doc).download(fileName, () => res()));
+    await new Promise<void>(res =>
+      pdfMake.createPdf(doc).download(fileName, () => res())
+    );
   }
+
   async open(header: GenHeader, rows: GenRow[]) {
     const doc = await this.buildDocWithLogos(header, rows);
     pdfMake.createPdf(doc).open();
   }
+
   async print(header: GenHeader, rows: GenRow[]) {
     const doc = await this.buildDocWithLogos(header, rows);
     pdfMake.createPdf(doc).print();
   }
 
-  // ---------- bulk helpers (added) ----------
+  // ---------- multi-report helpers ----------
   async generateAllSeparate(reports: { header: GenHeader; rows: GenRow[]; fileName?: string }[]) {
     for (const r of reports) {
       try {
         const doc = await this.buildDocWithLogos(r.header, r.rows);
         await new Promise<void>((res, rej) => {
-          try { pdfMake.createPdf(doc).download(r.fileName || 'report.pdf', () => res()); }
-          catch (e) { try { pdfMake.createPdf(doc).open(); res(); } catch (err) { rej(err); } }
+          try {
+            pdfMake.createPdf(doc).download(r.fileName || 'report.pdf', () => res());
+          } catch (e) {
+            try {
+              pdfMake.createPdf(doc).open();
+              res();
+            } catch (err) { rej(err); }
+          }
         });
       } catch (err) {
         console.error('Failed to generate report', err);
@@ -105,12 +147,14 @@ export class SolarGenMeterCertificatePdfService {
     }
   }
 
-  async mergeAndDownloadAll(reports: { header: GenHeader; rows: GenRow[] }[], fileName = 'ALL_SOLAR_GENERATION_CERTIFICATES.pdf') {
+  async mergeAndDownloadAll(
+    reports: { header: GenHeader; rows: GenRow[] }[],
+    fileName = 'ALL_SOLAR_GENERATION_CERTIFICATES.pdf'
+  ) {
     const builtDocs: any[] = [];
     for (const r of reports) {
       try {
-        const doc = await this.buildDocWithLogos(r.header, r.rows);
-        builtDocs.push(doc);
+        builtDocs.push(await this.buildDocWithLogos(r.header, r.rows));
       } catch (err) {
         console.error('Failed to build doc for header', r.header, err);
       }
@@ -125,14 +169,16 @@ export class SolarGenMeterCertificatePdfService {
       Object.assign(mergedImages, d.images || {});
       if (Array.isArray(d.content)) {
         d.content.forEach((block: any) => mergedContent.push(block));
-        if (idx < builtDocs.length - 1) mergedContent.push({ text: '', pageBreak: 'after' });
+        if (idx < builtDocs.length - 1) {
+          mergedContent.push({ text: '', pageBreak: 'after' });
+        }
       }
     });
 
     const mergedDoc: any = {
       pageSize: builtDocs[0].pageSize || 'A4',
       pageMargins: builtDocs[0].pageMargins || [0, 0, 0, 34],
-      defaultStyle: builtDocs[0].defaultStyle || { font: 'Roboto', fontSize: 10 },
+      defaultStyle: builtDocs[0].defaultStyle || { fontSize: 10, color: '#111' },
       images: mergedImages,
       footer: builtDocs[0].footer,
       info: { title: fileName },
@@ -140,26 +186,33 @@ export class SolarGenMeterCertificatePdfService {
     };
 
     return await new Promise<void>((res, rej) => {
-      try { pdfMake.createPdf(mergedDoc).download(fileName, () => res()); }
-      catch (e) { try { pdfMake.createPdf(mergedDoc).open(); res(); } catch (err) { rej(err); } }
+      try {
+        pdfMake.createPdf(mergedDoc).download(fileName, () => res());
+      } catch (e) {
+        try {
+          pdfMake.createPdf(mergedDoc).open();
+          res();
+        } catch (err) { rej(err); }
+      }
     });
   }
 
-  // ---------- helpers ----------
-  private theme = { grid: '#9aa3ad', subtle: '#6b7280' };
-
-  private fmtTxt(v: unknown) { return (v ?? '-') as string; }
+  // ---------- basic formatters ----------
+  private fmtTxt(v: unknown) {
+    if (v === undefined || v === null || v === '') return '';
+    return String(v);
+  }
   private fmtNum(n: number | string | null | undefined, digits = 4) {
     if (n === null || n === undefined || n === '') return '';
     const v = typeof n === 'string' ? Number(n) : n;
     if (Number.isNaN(v as number)) return String(n);
-    return (v as number).toFixed(digits).replace(/\.?0+$/,'');
+    return (v as number).toFixed(digits).replace(/\.?0+$/, '');
   }
   private fmtMoney(n: number | string | null | undefined) {
     if (n === null || n === undefined || n === '') return '';
     const v = typeof n === 'string' ? Number(n) : n;
     if (Number.isNaN(v as number)) return String(n);
-    return `${(v as number).toFixed(2).replace(/\.00$/,'')}/-`;
+    return `${(v as number).toFixed(2).replace(/\.00$/, '')}/-`;
   }
   private fmtDateShort(s?: string | null) {
     if (!s) return '';
@@ -171,9 +224,24 @@ export class SolarGenMeterCertificatePdfService {
     return `${dd}/${mm}/${yy}`;
   }
 
+  // ---------- table layout helper ----------
+  private gridLayout() {
+    return {
+      hLineWidth: () => 0.7,
+      vLineWidth: () => 0.7,
+      hLineColor: () => this.theme.grid,
+      vLineColor: () => this.theme.grid,
+      paddingLeft: () => 6,
+      paddingRight: () => 6,
+      paddingTop: () => 3,
+      paddingBottom: () => 3
+    };
+  }
+
   private async buildDocWithLogos(header: GenHeader, rows: GenRow[]) {
     const images: Record<string,string> = {};
-    const isData = (u?: string | null) => !!u && /^data:image\/[a-zA-Z]+;base64,/.test(u || '');
+    const isData = (u?: string | null) =>
+      !!u && /^data:image\/[a-zA-Z]+;base64,/.test(u || '');
 
     const toDataURL = async (url: string) => {
       const abs = new URL(url, document.baseURI).toString();
@@ -190,69 +258,127 @@ export class SolarGenMeterCertificatePdfService {
 
     const safe = async (key: 'leftLogo'|'rightLogo', url?: string|null) => {
       if (!url) return;
-      try { images[key] = isData(url) ? url : await toDataURL(url); } catch (err) { console.warn('Logo fetch failed for', url, err); }
+      try {
+        images[key] = isData(url) ? url : await toDataURL(url);
+      } catch (err) {
+        console.warn('Logo fetch failed for', url, err);
+      }
     };
-    await Promise.all([safe('leftLogo', header.leftLogoUrl), safe('rightLogo', header.rightLogoUrl)]);
+
+    await Promise.all([
+      safe('leftLogo', header.leftLogoUrl),
+      safe('rightLogo', header.rightLogoUrl)
+    ]);
+
+    // Mirror if only one logo available
     if (!images['leftLogo'] && images['rightLogo']) images['leftLogo'] = images['rightLogo'];
     if (!images['rightLogo'] && images['leftLogo']) images['rightLogo'] = images['leftLogo'];
 
     return this.buildDoc(header, rows, images);
   }
 
-  // ---------- header + meta band ----------
+  // ---------- header band / meta band / body blocks ----------
   private headerBar(meta: any, images: Record<string,string>) {
+    const logoBox = { fit: [32, 32] as [number, number] };
     return {
       margin: [28, 28, 28, 6],
-      columns: [
-        images['leftLogo'] ? { image: 'leftLogo', width: 32, margin: [0, 0, 8, 0] } : { width: 32, text: '' },
+      stack: [
         {
-          width: '*',
-          stack: [
-            { text: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED', alignment: 'center', bold: true, fontSize: 13 },
-            { text: (meta.lab_name || ''), alignment: 'center', bold: true, fontSize: 11, margin: [0, 2, 0, 0] },
-            { text: (meta.lab_address || ''), alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] },
-            { text: `Email: ${meta.lab_email || '-'} • Phone: ${meta.lab_phone || '-'}`, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] }
-          ]
+          columns: [
+            images['leftLogo']
+              ? { image: 'leftLogo', ...logoBox, alignment: 'left' as const, margin: [0, 0, 8, 0] }
+              : { width: 32, text: '' },
+
+            {
+              width: '*',
+              stack: [
+                {
+                  text: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
+                  alignment: 'center' as const,
+                  bold: true,
+                  fontSize: 13
+                },
+                {
+                  text: meta.lab_name || '',
+                  alignment: 'center' as const,
+                  bold: true,
+                  fontSize: 11,
+                  margin: [0, 2, 0, 0]
+                },
+                {
+                  text: meta.lab_address || '',
+                  alignment: 'center' as const,
+                  fontSize: 9,
+                  margin: [0, 2, 0, 0]
+                },
+                {
+                  text: `Email: ${meta.lab_email || '-'} • Phone: ${meta.lab_phone || '-'}`,
+                  alignment: 'center' as const,
+                  fontSize: 9,
+                  margin: [0, 2, 0, 0]
+                }
+              ]
+            },
+
+            images['rightLogo']
+              ? { image: 'rightLogo', ...logoBox, alignment: 'right' as const, margin: [8, 0, 0, 0] }
+              : { width: 32, text: '' }
+          ],
+          columnGap: 8
         },
-        images['rightLogo'] ? { image: 'rightLogo', width: 32, margin: [8, 0, 0, 0] } : { width: 32, text: '' }
+        {
+          canvas: [
+            {
+              type: 'line',
+              x1: 0,
+              y1: 0,
+              x2: 567 - 56, // pageWidth (~567) minus side margins (28*2)
+              y2: 0,
+              lineWidth: 1
+            }
+          ],
+          margin: [0, 6, 0, 6]
+        }
       ]
     };
   }
 
   private metaRow(meta: any) {
-    const lbl = { bold: true, fillColor: '#f5f5f5' };
+    const lbl = { bold: true, fillColor: this.theme.lightFill };
     return {
-       layout: this.gridLayout,
+      layout: this.gridLayout(),
       margin: [28, 0, 28, 8],
       table: {
         widths: ['auto','*','auto','*','auto','*'],
-        body: [[
-          { text: 'DC/Zone', ...lbl }, { text: meta.zone || '-' },
-          { text: 'Method',  ...lbl }, { text: meta.method || '-' },
-          { text: 'Status',  ...lbl }, { text: meta.status || '-' },
-        ], [
-          { text: 'Bench',   ...lbl }, { text: meta.bench || '-' },
-          { text: 'User',    ...lbl }, { text: meta.user || '-' },
-          { text: 'Date',    ...lbl }, { text: meta.date || '-' },
-        ]]
+        body: [
+          [
+            { text: 'DC/Zone', ...lbl },
+            { text: meta.zone || '-' },
+            { text: 'Method',  ...lbl },
+            { text: meta.method || '-' },
+            { text: 'Status',  ...lbl },
+            { text: meta.status || '-' }
+          ],
+          [
+            { text: 'Bench',   ...lbl },
+            { text: meta.bench || '-' },
+            { text: 'User',    ...lbl },
+            { text: meta.user || '-' },
+            { text: 'Date',    ...lbl },
+            { text: meta.date || '-' }
+          ]
+        ]
       }
     };
   }
 
-  private gridLayout = {
-    hLineWidth: () => 0.7,
-    vLineWidth: () => 0.7,
-    hLineColor: () => this.theme.grid,
-    vLineColor: () => this.theme.grid,
-    paddingLeft: () => 6,
-    paddingRight: () => 6,
-    paddingTop: () => 3,
-    paddingBottom: () => 3,
-  };
-  private rowLabel(t: string){ return { text: t, bold: true }; }
+  private rowLabel(t: string) {
+    return { text: t, bold: true };
+  }
 
   private certTable(r: GenRow) {
     const W = [160, '*', 160, '*'] as any;
+
     const mrText = (() => {
       const no = r.mr_no ?? '';
       const dt = this.fmtDateShort(r.mr_date);
@@ -263,31 +389,129 @@ export class SolarGenMeterCertificatePdfService {
 
     return {
       margin: [28, 0, 28, 0],
-      layout: this.gridLayout,
+      layout: this.gridLayout(),
       table: {
         widths: W,
         body: [
-          [ this.rowLabel('Name of consumer'), { text: this.fmtTxt(r.consumer_name), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Address'),          { text: this.fmtTxt(r.address),       colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Meter Make'),       { text: this.fmtTxt(r.meter_make),    colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Meter Sr. No.'),    { text: this.fmtTxt(r.meter_sr_no),   colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Meter Capacity'),   { text: this.fmtTxt(r.meter_capacity),colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Testing Fees Rs.'), { text: this.fmtMoney(r.testing_fees), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('M.R. No & Date'),   { text: mrText, colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Ref.'),             { text: this.fmtTxt(r.ref_no), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Date of Testing'),  { text: this.fmtDateShort(r.date_of_testing), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Starting Reading'), { text: this.fmtNum(r.starting_reading), colSpan: 3 }, {}, {} ],
+          [
+            this.rowLabel('Name of consumer'),
+            { text: this.fmtTxt(r.consumer_name), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Address'),
+            { text: this.fmtTxt(r.address), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Meter Make'),
+            { text: this.fmtTxt(r.meter_make), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Meter Sr. No.'),
+            { text: this.fmtTxt(r.meter_sr_no), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Meter Capacity'),
+            { text: this.fmtTxt(r.meter_capacity), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Testing Fees Rs.'),
+            { text: this.fmtMoney(r.testing_fees), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('M.R. No & Date'),
+            { text: mrText, colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Ref.'),
+            { text: this.fmtTxt(r.ref_no), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Date of Testing'),
+            { text: this.fmtDateShort(r.date_of_testing), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Starting Reading'),
+            { text: this.fmtNum(r.starting_reading), colSpan: 3 },
+            {},
+            {}
+          ],
           [
             this.rowLabel('Final Reading'),
-            { text: `I - ${this.fmtNum(r.final_reading_r)}`, alignment: 'left' },
-            { text: 'E -', alignment: 'right' },
-            { text: this.fmtNum(r.final_reading_e), alignment: 'left' }
+            {
+              text: `I - ${this.fmtNum(r.final_reading_r)}`,
+              alignment: 'left' as const
+            },
+            {
+              text: 'E -',
+              alignment: 'right' as const
+            },
+            {
+              text: this.fmtNum(r.final_reading_e),
+              alignment: 'left' as const
+            }
           ],
-          [ this.rowLabel('Difference'), { text: this.fmtNum(r.difference), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Starting Current Test'), { text: this.fmtTxt(r.starting_current_test), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Creep Test'),            { text: this.fmtTxt(r.creep_test), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Dial Test'),             { text: this.fmtTxt(r.dial_test), colSpan: 3 }, {}, {} ],
-          [ this.rowLabel('Remark'), { text: this.fmtTxt(r.remark), colSpan: 3, margin: [0,12,0,12] }, {}, {} ],
+          [
+            this.rowLabel('Difference'),
+            { text: this.fmtNum(r.difference), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Starting Current Test'),
+            { text: this.fmtTxt(r.starting_current_test ?? r.shunt_current_test), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Creep Test'),
+            { text: this.fmtTxt(r.creep_test ?? r.shunt_creep_test), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Dial Test'),
+            { text: this.fmtTxt(r.dial_test ?? r.shunt_dail_test), colSpan: 3 },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Remark'),
+            {
+              text: this.fmtTxt(r.remark),
+              colSpan: 3,
+              margin: [0, 12, 0, 12]
+            },
+            {},
+            {}
+          ],
+          [
+            this.rowLabel('Test Result'),
+            {
+              text: this.fmtTxt(r.test_result),
+              bold: true,
+              colSpan: 3
+            },
+            {},
+            {}
+          ]
         ]
       }
     };
@@ -295,89 +519,147 @@ export class SolarGenMeterCertificatePdfService {
 
   private signatureBlock() {
     return {
-      margin: [28, 4, 28, 0],
+      margin: [28, 14, 28, 0],
       columns: [
         {
           width: '*',
           stack: [
-            { text: '\n\n Tested by', alignment: 'center', bold: true },
-            { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'TESTING ASSISTANT ', alignment: 'center', color: '#444', fontSize: 9 },
-          ],
+            { text: 'Tested by', alignment: 'center' as const, bold: true },
+            { text: '____________________________', alignment: 'center' as const, margin: [0, 8, 0, 0] },
+            {
+              text: 'TESTING ASSISTANT ',
+              alignment: 'center' as const,
+              color: this.theme.subtle,
+              fontSize: 9
+            }
+          ]
         },
         {
           width: '*',
           stack: [
-            { text: '\n\n Verified by', alignment: 'center', bold: true },
-            { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'JUNIOR ENGINEER ', alignment: 'center', color: '#444', fontSize: 9 },
-          ],
+            { text: 'Verified by', alignment: 'center' as const, bold: true },
+            { text: '____________________________', alignment: 'center' as const, margin: [0, 8, 0, 0] },
+            {
+              text: 'JUNIOR ENGINEER ',
+              alignment: 'center' as const,
+              color: this.theme.subtle,
+              fontSize: 9
+            }
+          ]
         },
         {
           width: '*',
           stack: [
-            { text: '\n\n Approved by', alignment: 'center', bold: true },
-            { text: '\n\n____________________________', alignment: 'center' },
-            { text: 'ASSISTANT ENGINEER ', alignment: 'center', color: '#444', fontSize: 9 },
-          ],
-        },
+            { text: 'Approved by', alignment: 'center' as const, bold: true },
+            { text: '____________________________', alignment: 'center' as const, margin: [0, 8, 0, 0] },
+            {
+              text: 'ASSISTANT ENGINEER ',
+              alignment: 'center' as const,
+              color: this.theme.subtle,
+              fontSize: 9
+            }
+          ]
+        }
       ]
     };
   }
 
   private page(r: GenRow, meta: any, images: Record<string,string>) {
     const blocks: any[] = [];
+
     blocks.push(this.headerBar(meta, images));
+
     blocks.push(
-      { canvas: [{ type: 'line', x1: 28, y1: 0, x2: 567-28, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
-        { text: 'SOLAR GENERATION METER TEST REPORT', alignment: 'center', bold: true, fontSize: 14, margin: [0, 0, 0, 6] },
-        { text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER', alignment: 'center', bold: true, fontSize: 11, margin: [0, 0, 0, 6] },
-        ...(r.certificate_no ? [{ text: `Certificate No: ${r.certificate_no}`, alignment: 'right', bold: true, margin: [28, 0, 28, 8] }] : [])
+      {
+        text: 'SOLAR GENERATION METER TEST REPORT',
+        alignment: 'center' as const,
+        bold: true,
+        fontSize: 14,
+        margin: [0, 0, 0, 4]
+      },
+      {
+        text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER',
+        alignment: 'center' as const,
+        bold: true,
+        fontSize: 11,
+        margin: [0, 0, 0, 6]
+      },
+      ...(r.certificate_no
+        ? [{
+            text: `Certificate No: ${r.certificate_no}`,
+            alignment: 'right' as const,
+            bold: true,
+            margin: [28, 0, 28, 8]
+          }]
+        : [])
     );
+
     blocks.push(this.metaRow(meta));
     blocks.push(this.certTable(r));
     blocks.push(this.signatureBlock());
+
     return blocks;
   }
 
+  // ---------- build full doc ----------
   private buildDoc(header: GenHeader, rows: GenRow[], images: Record<string, string>) {
     const meta = {
-      zone: (header.location_code ? header.location_code + ' - ' : '') + (header.location_name || ''),
+      zone:
+        (header.location_code ? header.location_code + ' - ' : '') +
+        (header.location_name || ''),
       method: header.testMethod || '-',
       status: header.testStatus || '-',
       bench: header.testing_bench || '-',
       user: header.testing_user || '-',
-      date: header.date || new Date().toLocaleDateString(),
+      date: header.date || new Date().toISOString().slice(0, 10),
 
-      lab_name: header.lab_name || null,
-      lab_address: header.lab_address || null,
-      lab_email: header.lab_email || null,
-      lab_phone: header.lab_phone || null
+      lab_name: header.lab_name || '',
+      lab_address: header.lab_address || '',
+      lab_email: header.lab_email || '',
+      lab_phone: header.lab_phone || ''
     };
 
-    const data = (rows || []).filter(r => !!(r?.meter_sr_no && String(r.meter_sr_no).trim()));
-    const content: any[] = [];
+    const data = (rows || []).filter(
+      r => !!(r?.meter_sr_no && String(r.meter_sr_no).trim())
+    );
 
+    const content: any[] = [];
     if (!data.length) {
       content.push(...this.page({} as GenRow, meta, images));
     } else {
       data.forEach((r, i) => {
         content.push(...this.page(r, meta, images));
-        if (i < data.length - 1) content.push({ text: '', pageBreak: 'after' });
+        if (i < data.length - 1) {
+          content.push({ text: '', pageBreak: 'after' });
+        }
       });
     }
 
     return {
       pageSize: 'A4',
-      // ZERO top margin so the header sits flush to the page top
+      // top margin = 0 so headerBar starts near top
       pageMargins: [0, 0, 0, 34],
-      defaultStyle: { font: 'Roboto', fontSize: 10 },
+      defaultStyle: {
+        fontSize: 10,
+        color: '#111',
+        lineHeight: 1.15
+      },
       images,
       footer: (current: number, total: number) => ({
         margin: [28, 0, 28, 8],
         columns: [
-          { text: `Page ${current} of ${total}`, alignment: 'left', fontSize: 9, color: '#666' },
-          { text: 'MPPKVVCL • RMTL Indore', alignment: 'right', fontSize: 9, color: '#666' }
+          {
+            text: `Page ${current} of ${total}`,
+            alignment: 'left' as const,
+            fontSize: 9,
+            color: '#666'
+          },
+          {
+            text: 'MPPKVVCL • RMTL Indore',
+            alignment: 'right' as const,
+            fontSize: 9,
+            color: '#666'
+          }
         ]
       }),
       info: { title: 'Solar_GenerationMeter_Certificates' },

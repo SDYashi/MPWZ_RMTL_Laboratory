@@ -13,7 +13,6 @@ interface DeviceLite {
   capacity?: string;
   location_code?: string | null;
   location_name?: string | null;
-  // CT devices might also carry ratio / primary_current / secondary_current dynamically from backend
   [key: string]: any;
 }
 
@@ -30,8 +29,8 @@ interface CtRow {
   ct_no: string;
   make: string;
   cap: string;
-  ratio: string;        // e.g. '100/5'
-  polarity: string;     // e.g. 'OK', '+/- correct', etc.
+  ratio: string;
+  polarity: string;
   remark: string;
   working?: Working;
   assignment_id?: number;
@@ -54,41 +53,37 @@ interface ModalState {
 })
 export class RmtlAddTestreportCttestingComponent implements OnInit {
 
-  // ===== Header / main form state =====
   header = {
     location_code: '',
     location_name: '',
     consumer_name: '',
     address: '',
     no_of_ct: '',
-    city_class: '',          // maps to ct_class
+    city_class: '',
     ref_no: '',
     ct_make: '',
     mr_no: '',
     mr_date: '',
-    amount_deposited: '',    // maps to testing_fees
+    amount_deposited: '',
     date_of_testing: '',
-    primary_current: '',     // maps to ct_primary_current
-    secondary_current: '',   // maps to ct_secondary_current
+    primary_current: '',
+    secondary_current: '',
     testing_user: '',
     approving_user: '',
     testing_bench: ''
   };
 
-  // bench / tester / approver displayed at top
   testing_bench: any = '';
   testing_user: any = '';
   approving_user: any = '';
 
   pdf_date: string = '';
 
-  // Lab info for PDF header
   lab_name: string = '';
   lab_address: string = '';
   lab_email: string = '';
   lab_phone: string = '';
 
-  // enums / dropdowns fed from API
   test_methods: any[] = [];
   test_statuses: any[] = [];
   testMethod: string | null = null;
@@ -99,11 +94,9 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   makes: any;
   ct_classes: any;
 
-  // static dropdowns
   workingOptions: Working[] = ['OK', 'FAST', 'SLOW', 'NOT WORKING'];
   ratioOptions: CTRatio[] = ['100/5', '200/5', '300/5', '400/5', '600/5'];
 
-  // context / auth
   device_status: 'ASSIGNED' = 'ASSIGNED';
   currentUserId: any;
   currentLabId: any;
@@ -112,7 +105,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   device_type: any;
   loading = false;
 
-  // quick lookup by CT serial_number for autofill
   private serialIndex: Record<string, {
     make?: string;
     capacity?: string;
@@ -121,15 +113,12 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     assignment_id: number;
   }> = {};
 
-  // table rows (CT list)
   ctRows: CtRow[] = [this.emptyCtRow()];
   filterText = '';
 
-  // modal + submit state
   modal: ModalState = { open: false, title: '', message: '', action: null };
   submitting = false;
 
-  // alert/toast state
   alert = {
     open: false,
     type: 'success' as 'success' | 'error' | 'warning' | 'info',
@@ -141,7 +130,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
 
   approverId: number | null = null;
 
-  // Assigned CT picker modal
   assignedPicker = {
     open: false,
     items: [] as Array<{
@@ -160,7 +148,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     query: ''
   };
 
-  // extra enum-ish data from backend
   capacities: any;
   fees_mtr_cts: any;
   test_dail_current_cheaps: any;
@@ -171,9 +158,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     private authService: AuthService
   ) {}
 
-  // ========== lifecycle ==========
   ngOnInit(): void {
-    // fixed context for CT Testing
     this.device_type = 'CT';
     this.device_testing_purpose = 'CT_TESTING';
 
@@ -189,7 +174,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       this.header.testing_user = userName;
     }
 
-    // enums & lab data
     this.api.getEnums().subscribe({
       next: (d) => {
         this.test_methods              = d?.test_methods || [];
@@ -212,11 +196,8 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     this.loadAssignedPrefill();
   }
 
-  // ========== helpers / derived values ==========
-
   private pickRatio(dev?: Partial<DeviceLite> | null): string {
     if (!dev) return '';
-    // try common fields our device might expose
     const direct =
       (dev as any).ratio ??
       (dev as any).ct_ratio ??
@@ -253,7 +234,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       return { ok: false, reason: 'Add at least one CT row.' };
     }
 
-    // normalize bench / tester / approver
+    // normalize tester info before submit/pdf
     this.testing_bench   = String(this.testing_bench ?? '').trim()   || '-';
     this.testing_user    = String(this.testing_user ?? '').trim()    || '-';
     this.approving_user  = String(this.approving_user ?? '').trim()  || '-';
@@ -262,7 +243,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     this.header.testing_user    = this.testing_user;
     this.header.approving_user  = this.approving_user;
 
-    // sync CT summary info
+    // derive summary
     this.header.no_of_ct = validRows.length.toString();
     if (!this.header.ct_make && validRows[0]) {
       this.header.ct_make = validRows[0].make || '';
@@ -275,10 +256,10 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     if (!this.currentLabId) return;
     this.api.getLabInfo?.(this.currentLabId)?.subscribe?.({
       next: (lab: any) => {
-        this.lab_name    = lab?.lab_pdfheader_name || lab?.name || lab?.lab_name || this.lab_name;
-        this.lab_address = lab?.address || lab?.lab_address || this.lab_address;
-        this.lab_email   = lab?.email || lab?.lab_email || this.lab_email;
-        this.lab_phone   = lab?.phone || lab?.lab_phone || this.lab_phone;
+        this.lab_name    = lab?.lab_pdfheader_name || lab?.lab_name || this.lab_name;
+        this.lab_address = lab?.lab_pdfheader_address || lab?.lab_location || this.lab_address;
+        this.lab_email   = lab?.lab_pdfheader_email || lab?.lab_pdfheader_contact_no || this.lab_email;
+        this.lab_phone   = lab?.lab_pdfheader_contact_no || this.lab_phone;
       },
       error: () => { /* ignore */ }
     });
@@ -300,7 +281,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           ? data
           : (Array.isArray(data?.results) ? data.results : []);
 
-        // serial lookup map
         this.serialIndex = {};
         for (const a of asg) {
           const d = a.device as DeviceLite | undefined;
@@ -315,7 +295,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           };
         }
 
-        // prefill header from first assigned CT
         const first = asg[0];
         if (first) {
           const dev = first.device as DeviceLite | undefined;
@@ -323,20 +302,17 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           const userAssigned = first.user_assigned;
           const assignedBy   = first.assigned_by_user;
 
-          // Zone / DC
           this.header.location_code = dev?.location_code || this.header.location_code;
           this.header.location_name = dev?.location_name || this.header.location_name;
 
-          // bench / tester / approver
-          this.testing_bench   = this.testing_bench   || bench?.bench_name   || '-';
-          this.testing_user    = this.testing_user    || userAssigned?.name  || '-';
-          this.approving_user  = this.approving_user  || assignedBy?.name    || '-';
+          this.testing_bench   = this.testing_bench   || bench?.bench_name  || '-';
+          this.testing_user    = this.testing_user    || userAssigned?.name || '-';
+          this.approving_user  = this.approving_user  || assignedBy?.name   || '-';
 
           this.header.testing_bench   = this.testing_bench;
           this.header.testing_user    = this.testing_user;
           this.header.approving_user  = this.approving_user;
 
-          // hint CT make
           if (!this.header.ct_make) this.header.ct_make = dev?.make || '';
         }
       },
@@ -366,7 +342,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       this.ctRows.splice(i, 1);
       if (!this.ctRows.length) this.addCtRow();
 
-      // maintain summaries
       this.header.no_of_ct = (
         this.ctRows.filter(r => (r.ct_no || '').trim()).length || 1
       ).toString();
@@ -395,7 +370,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     );
   }
 
-  // ========== Assigned picker modal ==========
   openAssignPicker() {
     const v = this.validateContext();
     if (!v.ok) {
@@ -418,7 +392,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
             ? data.results
             : [];
 
-        // build modal item list + refresh serialIndex
         this.serialIndex = {};
         const items = asg
           .map(a => {
@@ -490,7 +463,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       return;
     }
 
-    // reuse the single blank row case
+    // reuse single-blank-row logic
     const onlyOneEmpty =
       this.ctRows.length === 1 &&
       !Object.values(this.ctRows[0]).some(v => (v ?? '').toString().trim());
@@ -521,7 +494,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
 
     if (!this.ctRows.length) this.ctRows.push(this.emptyCtRow());
 
-    // set header defaults from first chosen
     const first = chosen[0];
     const dev = first.device;
     if (dev) {
@@ -550,7 +522,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     this.assignedPicker.open = false;
   }
 
-  // ========== per-row edit events ==========
   onCtNoChanged(i: number, value: string) {
     const key = (value || '').toUpperCase().trim();
     const row = this.ctRows[i];
@@ -582,7 +553,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     }
   }
 
-  // ========== util funcs ==========
   private isoOn(dateStr?: string) {
     const d = dateStr ? new Date(dateStr + 'T10:00:00') : new Date();
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString();
@@ -600,7 +570,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   }
 
   private parseRatioFloat(ratioStr: string): number | null {
-    // try "100/5" -> 100 / 5 = 20
     if (!ratioStr) return null;
     const parts = ratioStr.split('/');
     if (parts.length !== 2) return null;
@@ -616,11 +585,9 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     return isFinite(n) ? n : null;
   }
 
-  // ========== PAYLOAD BUILDER (SYNC WITH MODEL) ==========
   private buildPayload(): any[] {
     const when = this.isoOn(this.header.date_of_testing);
 
-    // Zone/DC combined string → test_requester_name
     const zone_dc =
       (this.header.location_code ? this.header.location_code + ' - ' : '') +
       (this.header.location_name || '');
@@ -628,7 +595,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     return (this.ctRows || [])
       .filter(r => (r.ct_no || '').trim())
       .map(r => {
-        // snapshot for PDF/audit
         const detailsObj = {
           consumer_name: this.header.consumer_name || '',
           address: this.header.address || '',
@@ -650,53 +616,44 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           remark: r.remark || ''
         };
 
-        // working result
         const working: Working =
           r.working ||
           this.inferWorkingFromRemark(r.remark) ||
           'OK';
 
-        // try to derive numeric ratio for ct_ratio column
         const ct_ratio_val = this.parseRatioFloat(r.ratio);
 
         return {
-          // --- FKs ---
           device_id: r.device_id ?? 0,
           assignment_id: r.assignment_id ?? 0,
 
-          // --- timestamps ---
           start_datetime: when,
           end_datetime: when,
 
-          // --- physical condition / visual inspection ---
           physical_condition_of_device: '-',
           seal_status: '-',
           meter_glass_cover: '-',
           terminal_block: '-',
           meter_body: '-',
-          other: r.remark || '-',      // maps to `other`
+          other: r.remark || '-',
           is_burned: false,
 
-          // --- top-level consumer / money / reference info ---
           consumer_name: this.header.consumer_name || null,
           consumer_address: this.header.address || null,
-          certificate_number: null, // not captured in CT UI yet
+          certificate_number: null,
           testing_fees: this.header.amount_deposited || null,
           fees_mr_no: this.header.mr_no || null,
           fees_mr_date: this.header.mr_date || null,
           ref_no: this.header.ref_no || null,
 
-          // --- CT specific columns added in your new model ---
-          ct_class: this.header.city_class || null, // accuracy/class
+          ct_class: this.header.city_class || null,
           ct_primary_current: this.parseFloatOrNull(this.header.primary_current),
           ct_secondary_current: this.parseFloatOrNull(this.header.secondary_current),
           ct_ratio: ct_ratio_val,
           ct_polarity: r.polarity || null,
 
-          // --- requester / zone ---
           test_requester_name: zone_dc || null,
 
-          // --- shunt / nutral channel data (not in CT UI now, set null) ---
           shunt_reading_before_test: null,
           shunt_reading_after_test: null,
           shunt_ref_start_reading: null,
@@ -716,7 +673,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           nutral_creep_test: null,
           nutral_dail_test: null,
 
-          // --- energy import/export fields (not used for CT but present in model) ---
           start_reading_import: null,
           final_reading__import: null,
           difference__import: null,
@@ -738,25 +694,21 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           p4_date: null,
           p4_metercodition: null,
 
-          // --- status / workflow ---
-          test_result: working,          // enum Working
-          test_method: this.testMethod,  // enum TestMethod on backend
-          test_status: this.testStatus,  // enum TestStatus on backend
+          test_result: working,
+          test_method: this.testMethod,
+          test_status: this.testStatus,
 
           approver_id: this.approverId ?? null,
           approver_remark: null,
 
-          // --- snapshot JSON (full detail for PDF/etc) ---
           details: JSON.stringify(detailsObj),
 
-          // --- report metadata ---
-          report_type: this.report_type,          // 'CT_TESTING'
+          report_type: this.report_type,
           created_by: String(this.currentUserId || '')
         };
       });
   }
 
-  // ========== submit flow ==========
   openConfirm(action: ModalState['action'], payload?: any) {
     this.modal.action = action;
     this.modal.payload = payload;
@@ -820,7 +772,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           this.openAlert('warning', 'PDF error', 'Saved, but PDF could not be generated.');
         }
 
-        // reset UI for next batch
         this.ctRows = [this.emptyCtRow()];
         this.header.no_of_ct = '1';
         setTimeout(() => this.closeModal(), 600);
@@ -833,7 +784,8 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     });
   }
 
-  // ========== PDF helpers ==========
+  // PDF helpers
+
   private toCtHeader(): CtHeader {
     return {
       location_code: this.header.location_code,
@@ -850,15 +802,21 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       date_of_testing: this.header.date_of_testing,
       primary_current: this.header.primary_current,
       secondary_current: this.header.secondary_current,
+
       testMethod: this.testMethod,
       testStatus: this.testStatus,
+
+      // include bench/user/approver/date so it prints in meta + signature
       testing_bench: this.testing_bench || '-',
       testing_user: this.testing_user || '-',
+      approving_user: this.approving_user || '-',
       date: this.pdf_date || this.header.date_of_testing || null,
+
       lab_name: this.lab_name || null,
       lab_address: this.lab_address || null,
       lab_email: this.lab_email || null,
       lab_phone: this.lab_phone || null,
+
       leftLogoUrl: '/assets/icons/wzlogo.png',
       rightLogoUrl: '/assets/icons/wzlogo.png'
     };
@@ -897,7 +855,6 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     );
   }
 
-  // ========== alert helpers ==========
   openAlert(
     type: 'success' | 'error' | 'warning' | 'info',
     title: string,

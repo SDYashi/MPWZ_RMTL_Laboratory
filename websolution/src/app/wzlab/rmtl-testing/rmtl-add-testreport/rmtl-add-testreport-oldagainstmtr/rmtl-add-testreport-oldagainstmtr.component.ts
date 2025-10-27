@@ -238,11 +238,11 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
       this.api.getLabInfo(this.currentLabId).subscribe({
         next: (info: any) => {
           this.labInfo = {
-            lab_name: String(info?.lab_pdfheader_name || info?.lab_name || '').trim(),
-            address_line: String(info?.address || info?.address_line || '').trim(),
-            email: String(info?.email || info?.contact_email || info?.lab_email || info?.support_email || '').trim(),
-            phone: String(info?.phone || info?.phone_no || info?.contact_phone || info?.mobile || info?.tel || '').trim()
-          };
+            lab_name: info?.lab_pdfheader_name || info?.lab_name,
+            address_line: info?.lab_pdfheader_address || info?.lab_location,
+            email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no,
+            phone: info?.lab_pdfheader_contact_no || info?.lab_location
+         };
           this.benches = Array.isArray(info?.benches) ? info.benches : [];
         }
       });
@@ -702,14 +702,25 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
 
   // ===== PDF helpers
   private buildPdfInputs(): {
-    rows: Array<{serial:string; make?:string; capacity?:string; remark?:string; test_result?:string}>;
+    rows: Array<{
+      serial: string;
+      make?: string;
+      capacity?: string;
+      remark?: string;
+      test_result?: string;
+    }>;
     meta: {
-      zone?: string; phase?: string; date: string;
-      testMethod?: string; testStatus?: string;
-      testing_bench?: string; testing_user?: string; approving_user?: string;
+      zone?: string;
+      phase?: string;
+      date: string;
+      testMethod?: string;
+      testStatus?: string;
+      testing_bench?: string;
+      testing_user?: string;
+      approving_user?: string;
       lab?: OldLabInfo;
     };
-    logos?: { leftLogoUrl?: string; rightLogoUrl?: string; }
+    logos?: { leftLogoUrl?: string; rightLogoUrl?: string };
   } {
     const rows = this.rows
       .filter(r => (r.meter_sr_no || '').trim())
@@ -721,21 +732,30 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
         test_result: r.test_result || '-'
       }));
 
+    // zone/DC formatting "CODE - NAME"
+    const zone = [
+      this.header.location_code || '',
+      this.header.location_name || ''
+    ]
+      .filter(Boolean)
+      .join(' - ')
+      .trim() || '-';
+
     const meta = {
-      zone: `${this.header.location_code || ''} ${this.header.location_name || ''}`.trim() || '-',
+      zone,
       phase: this.header.phase || '-',
       date: this.batchDate,
-      testMethod: this.testMethod || undefined,
-      testStatus: this.testStatus || undefined,
-      testing_bench: this.header.testing_bench || undefined,
-      testing_user: this.header.testing_user || undefined,
-      approving_user: this.header.approving_user || undefined,
+      testMethod: this.testMethod || '-',
+      testStatus: this.testStatus || '-',
+      testing_bench: this.header.testing_bench || '-',
+      testing_user: this.header.testing_user || '-',
+      approving_user: this.header.approving_user || '-',
       lab: this.labInfo || undefined
     };
 
     const logos = {
       leftLogoUrl: '/assets/icons/wzlogo.png',
-      rightLogoUrl: '/assets/icons/wzlogo.png',
+      rightLogoUrl: '/assets/icons/wzlogo.png'
     };
 
     return { rows, meta, logos };

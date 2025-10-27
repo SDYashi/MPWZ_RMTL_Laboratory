@@ -243,10 +243,10 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
       this.api.getLabInfo(this.currentLabId).subscribe({
         next: (info: any) => {
           this.labInfo = {
-            lab_name: String(info?.lab_pdfheader_name || info?.lab_name || '').trim(),
-            address_line: String(info?.address || info?.address_line || '').trim(),
-            email: String(info?.email || info?.contact_email || info?.lab_email || info?.support_email || '').trim(),
-            phone: String(info?.phone || info?.phone_no || info?.contact_phone || info?.mobile || info?.tel || '').trim()
+                       lab_name: info?.lab_pdfheader_name || info?.lab_name,
+            address_line: info?.lab_pdfheader_address || info?.lab_location,
+            email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no,
+            phone: info?.lab_pdfheader_contact_no || info?.lab_location
           };
           this.benches = Array.isArray(info?.benches) ? info.benches : [];
         }

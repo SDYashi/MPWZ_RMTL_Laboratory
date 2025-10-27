@@ -257,10 +257,10 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     this.api.getLabInfo(this.currentLabId || 0).subscribe({
       next: (info: any) => {
         this.labInfo = {
-          lab_name: info?.lab_pdfheader_name || info?.lab_name,
-          address: info?.address || info?.address_line,
-          email: info?.email,
-          phone: info?.phone,
+            lab_name: info?.lab_pdfheader_name || info?.lab_name,
+            address: info?.lab_pdfheader_address || info?.lab_location,
+            email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no,
+            phone: info?.lab_pdfheader_contact_no || info?.lab_location,
           logo_left_url: info?.logo_left_url,
           logo_right_url: info?.logo_right_url
         };
@@ -854,107 +854,170 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     }
   }
 
-  async doSubmit() {
-    const payload = this.buildPayload();
-    if (!payload.length) {
-      this.alertError = 'No valid rows to submit.';
-      this.openAlert(
-        'warning',
-        'Nothing to submit',
-        'Please add at least one valid row.'
-      );
-      return;
-    }
-
-    this.submitting = true;
-    this.alertSuccess = null;
-    this.alertError = null;
-    this.openAlert('info', 'Submitting…', 'Saving data to server.');
-
-    this.api.postTestReports(payload).subscribe({
-      next: async () => {
-        this.submitting = false;
-
-        const header: VigHeader = {
-          location_code: this.header.location_code || '',
-          location_name: this.header.location_name || '',
-          testMethod: this.testMethod || '',
-          testStatus: this.testStatus || '',
-          date: new Date().toISOString().slice(0, 10),
-          testing_bench: this.header.testing_bench || 'DefaultBench',
-          testing_user: this.header.testing_user || 'TestingUser',
-
-          lab_name: this.labInfo?.lab_name || null,
-          lab_address: this.labInfo?.address || null,
-          lab_email: this.labInfo?.email || null,
-          lab_phone: this.labInfo?.phone || null,
-          leftLogoUrl: this.labInfo?.logo_left_url || '/assets/icons/wzlogo.png',
-          rightLogoUrl: this.labInfo?.logo_right_url || '/assets/icons/wzlogo.png'
-        };
-
-        const rows: VigRow[] = (this.rows || [])
-          .filter(r => (r.serial || '').trim())
-          .map(r => ({
-            serial: r.serial,
-            make: r.make,
-            capacity: r.capacity,
-            removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
-            test_result: r.test_result,
-
-            consumer_name: r.consumer_name,
-            address: r.address,
-            account_number: r.account_number,
-            division_zone: r.division_zone,
-            panchanama_no: r.panchanama_no,
-            panchanama_date: r.panchanama_date,
-            condition_at_removal: r.condition_at_removal,
-
-            testing_date: r.testing_date,
-            is_burned: r.is_burned,
-            seal_status: r.seal_status,
-            meter_glass_cover: r.meter_glass_cover,
-            terminal_block: r.terminal_block,
-            meter_body: r.meter_body,
-            other: r.other,
-
-            reading_before_test: undefined,
-            reading_after_test: undefined,
-            rsm_kwh: undefined,
-            meter_kwh: undefined,
-
-            error_percentage: this.numOrNull(r.error_percentage_import) ?? undefined,
-            starting_current_test: undefined,
-            creep_test: undefined,
-
-            remark: r.remark
-          }));
-
-        this.openAlert('success', 'Saved', 'Data saved. Generating PDF…', 1200);
-        await this.pdfSvc.download(header, rows);
-
-        this.alertSuccess = 'Batch submitted and PDF downloaded successfully!';
-        this.openAlert(
-          'success',
-          'Completed',
-          'PDF downloaded to your device.',
-          1600
-        );
-
-        this.rows = [this.emptyRow()];
-        setTimeout(() => this.closeModal(), 1000);
-      },
-      error: (e) => {
-        console.error(e);
-        this.submitting = false;
-        this.alertError = 'Error submitting batch.';
-        this.openAlert(
-          'error',
-          'Submission failed',
-          'Something went wrong while submitting the batch.'
-        );
-      }
-    });
+async doSubmit() {
+  const payload = this.buildPayload();
+  if (!payload.length) {
+    this.alertError = 'No valid rows to submit.';
+    this.openAlert(
+      'warning',
+      'Nothing to submit',
+      'Please add at least one valid row.'
+    );
+    return;
   }
+
+  this.submitting = true;
+  this.alertSuccess = null;
+  this.alertError = null;
+  this.openAlert('info', 'Submitting…', 'Saving data to server.');
+
+  this.api.postTestReports(payload).subscribe({
+    next: async () => {
+      this.submitting = false;
+
+      const header: VigHeader = {
+        location_code: this.header.location_code || '',
+        location_name: this.header.location_name || '',
+        testMethod: this.testMethod || '',
+        testStatus: this.testStatus || '',
+        date: new Date().toISOString().slice(0, 10),
+        testing_bench: this.header.testing_bench || '-',
+        testing_user: this.header.testing_user || '-',
+
+        lab_name: this.labInfo?.lab_name || null,
+        lab_address: this.labInfo?.address || null,
+        lab_email: this.labInfo?.email || null,
+        lab_phone: this.labInfo?.phone || null,
+        leftLogoUrl: this.labInfo?.logo_left_url || '/assets/icons/wzlogo.png',
+        rightLogoUrl: this.labInfo?.logo_right_url || '/assets/icons/wzlogo.png'
+      };
+
+      // build full PDF rows for the contested (VIG) report
+      const rows: VigRow[] = (this.rows || [])
+        .filter(r => (r.serial || '').trim())
+        .map(r => ({
+          serial: r.serial,
+          make: r.make,
+          capacity: r.capacity,
+          removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
+          test_result: r.test_result,
+
+          // Consumer / seizure info
+          consumer_name: r.consumer_name,
+          address: r.address,
+          account_number: r.account_number,
+          division_zone: r.division_zone,
+          panchanama_no: r.panchanama_no,
+          panchanama_date: r.panchanama_date,
+          condition_at_removal: r.condition_at_removal,
+
+          // Physical condition
+          testing_date: r.testing_date,
+          is_burned: !!r.is_burned,
+          seal_status: r.seal_status,
+          meter_glass_cover: r.meter_glass_cover,
+          terminal_block: r.terminal_block,
+          meter_body: r.meter_body,
+          other: r.other,
+
+          // Test/meter type selections
+          test_type: r.view_mode === 'BOTH'
+            ? 'BOTH'
+            : (r.view_mode === 'SHUNT'
+                ? 'SHUNT'
+                : (r.view_mode === 'NUTRAL'
+                    ? 'NEUTRAL'
+                    : undefined)),
+          // if you actually collect meter type somewhere in UI, map it here;
+          // leaving undefined won't break PDF
+          meter_type: undefined,
+
+          // Shunt set
+          shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
+          shunt_reading_after_test: this.numOrNull(r.shunt_reading_after_test),
+          shunt_ref_start_reading: this.numOrNull(r.shunt_ref_start_reading),
+          shunt_ref_end_reading: this.numOrNull(r.shunt_ref_end_reading),
+          shunt_error_percentage: this.numOrNull(r.shunt_error_percentage),
+          shunt_current_test: r.shunt_current_test || null,
+          shunt_creep_test: r.shunt_creep_test || null,
+          shunt_dail_test: r.shunt_dail_test || null,
+
+          // Neutral set
+          nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
+          nutral_reading_after_test: this.numOrNull(r.nutral_reading_after_test),
+          nutral_ref_start_reading: this.numOrNull(r.nutral_ref_start_reading),
+          nutral_ref_end_reading: this.numOrNull(r.nutral_ref_end_reading),
+          nutral_error_percentage: this.numOrNull(r.nutral_error_percentage),
+          nutral_current_test: r.nutral_current_test || null,
+          nutral_creep_test: r.nutral_creep_test || null,
+          nutral_dail_test: r.nutral_dail_test || null,
+
+          // Import / Export / calc
+          start_reading_import: null,
+          final_reading_import: null,
+          difference_import: null,
+          start_reading_export: null,
+          final_reading_export: null,
+          difference_export: null,
+          final_Meter_Difference: null,
+          error_percentage_import: this.numOrNull(r.error_percentage_import),
+          error_percentage_export: null,
+
+          // Lab / accounting / misc
+          certificate_number: undefined,
+          testing_fees: undefined,
+          fees_mr_no: undefined,
+          fees_mr_date: undefined,
+          ref_no: r.account_number,
+          test_requester_name: this.testing_requester_name || r.test_requester_name || '',
+          meter_removaltime_metercondition: null,
+          any_other_remarkny_zone: r.condition_at_removal,
+          dail_test_kwh_rsm: null,
+          recorderedbymeter_kwh: null,
+
+          // P4 section-ish
+          p4_division: r.division_zone,
+          p4_no: r.panchanama_no,
+          p4_date: r.panchanama_date,
+          p4_metercodition: r.condition_at_removal,
+
+          // Remarks
+          final_remarks: r.final_remarks || '',
+          approver_remark: undefined,
+          dial_testby: undefined,
+
+          remark: r.remark || ''
+        }));
+
+      this.openAlert('success', 'Saved', 'Data saved. Generating PDF…', 1200);
+
+      await this.pdfSvc.download(header, rows);
+
+      this.alertSuccess = 'Batch submitted and PDF downloaded successfully!';
+      this.openAlert(
+        'success',
+        'Completed',
+        'PDF downloaded to your device.',
+        1600
+      );
+
+      // reset for next batch
+      this.rows = [this.emptyRow()];
+      setTimeout(() => this.closeModal(), 1000);
+    },
+    error: (e) => {
+      console.error(e);
+      this.submitting = false;
+      this.alertError = 'Error submitting batch.';
+      this.openAlert(
+        'error',
+        'Submission failed',
+        'Something went wrong while submitting the batch.'
+      );
+    }
+  });
+}
+
 
   // ===== alert helpers =====
   openAlert(

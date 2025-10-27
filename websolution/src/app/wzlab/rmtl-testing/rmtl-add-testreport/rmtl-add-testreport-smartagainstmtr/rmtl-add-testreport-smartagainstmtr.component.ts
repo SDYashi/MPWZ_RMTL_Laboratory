@@ -242,10 +242,10 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
       this.api.getLabInfo(this.currentLabId).subscribe({
         next: (info: any) => {
           this.labInfo = {
-            lab_name: String(info?.lab_pdfheader_name || info?.lab_name || '').trim(),
-            address_line: String(info?.address || info?.address_line || '').trim(),
-            email: String(info?.email || info?.contact_email || info?.lab_email || info?.support_email || '').trim(),
-            phone: String(info?.phone || info?.phone_no || info?.contact_phone || info?.mobile || info?.tel || '').trim()
+            lab_name: info?.lab_pdfheader_name || info?.lab_name,
+            address_line: info?.lab_pdfheader_address || info?.lab_location,
+            email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no,
+            phone: info?.lab_pdfheader_contact_no || info?.lab_location
           };
           this.benches = Array.isArray(info?.benches) ? info.benches : [];
         }
@@ -663,6 +663,43 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
   }
 
   // ===== PDF helpers (reusing Stop/Defective PDF definition)
+  // private buildPdfInputs(): { rows: SmartRow[]; meta: SmartMeta; logos?: PdfLogos } {
+  //   const rows: SmartRow[] = this.rows
+  //     .filter(r => (r.meter_sr_no || '').trim())
+  //     .map(r => ({
+  //       serial: r.meter_sr_no,
+  //       make: r.meter_make || '-',
+  //       capacity: r.meter_capacity || '-',
+  //       remark: r.remark || '-',
+  //       test_result: r.test_result || '-'
+  //     }));
+
+  //   const meta: SmartMeta = {
+  //     zone: `${this.header.location_code || ''} ${this.header.location_name || ''}`.trim() || '-',
+  //     phase: this.header.phase || '-',
+  //     date: this.batchDate,
+  //     testMethod: this.testMethod || undefined,
+  //     testStatus: this.testStatus || undefined,
+  //     testing_bench: this.header.testing_bench || undefined,
+  //     testing_user: this.header.testing_user || undefined,
+  //     approving_user: this.header.approving_user || undefined,
+  //     lab: {
+  //       lab_name: this.labInfo?.lab_name || '',
+  //       address_line: this.labInfo?.address_line || '',
+  //       email: this.labInfo?.email || '',
+  //       phone: this.labInfo?.phone || ''
+  //     }
+  //   };
+
+  //   const logos: PdfLogos | undefined = {
+  //     leftLogoUrl: '/assets/icons/wzlogo.png',
+  //     rightLogoUrl: '/assets/icons/wzlogo.png',
+  //   };
+
+  //   return { rows, meta, logos };
+  // }
+
+    // ===== PDF helpers
   private buildPdfInputs(): { rows: SmartRow[]; meta: SmartMeta; logos?: PdfLogos } {
     const rows: SmartRow[] = this.rows
       .filter(r => (r.meter_sr_no || '').trim())
@@ -674,15 +711,24 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
         test_result: r.test_result || '-'
       }));
 
+    // "CODE - NAME" for Zone/DC, consistent with CT + Old Against Meter
+    const zone = [
+      this.header.location_code || '',
+      this.header.location_name || ''
+    ]
+      .filter(Boolean)
+      .join(' - ')
+      .trim() || '-';
+
     const meta: SmartMeta = {
-      zone: `${this.header.location_code || ''} ${this.header.location_name || ''}`.trim() || '-',
+      zone,
       phase: this.header.phase || '-',
       date: this.batchDate,
-      testMethod: this.testMethod || undefined,
-      testStatus: this.testStatus || undefined,
-      testing_bench: this.header.testing_bench || undefined,
-      testing_user: this.header.testing_user || undefined,
-      approving_user: this.header.approving_user || undefined,
+      testMethod: this.testMethod || '-',
+      testStatus: this.testStatus || '-',
+      testing_bench: this.header.testing_bench || '-',
+      testing_user: this.header.testing_user || '-',
+      approving_user: this.header.approving_user || '-',
       lab: {
         lab_name: this.labInfo?.lab_name || '',
         address_line: this.labInfo?.address_line || '',
@@ -691,13 +737,14 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
       }
     };
 
-    const logos: PdfLogos | undefined = {
+    const logos: PdfLogos = {
       leftLogoUrl: '/assets/icons/wzlogo.png',
-      rightLogoUrl: '/assets/icons/wzlogo.png',
+      rightLogoUrl: '/assets/icons/wzlogo.png'
     };
 
     return { rows, meta, logos };
   }
+
 
   async previewPdf() {
     try {

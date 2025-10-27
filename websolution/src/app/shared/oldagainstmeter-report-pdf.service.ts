@@ -12,6 +12,7 @@ export interface OldLabInfo {
   email?: string;
   phone?: string;
 }
+
 export interface OldAgainstRow {
   serial: string;
   make?: string;
@@ -19,20 +20,25 @@ export interface OldAgainstRow {
   remark?: string;
   test_result?: string;
 }
+
 export interface OldAgainstMeta {
   zone?: string;
   phase?: string;
   date: string;               // YYYY-MM-DD
+
   testMethod?: string;
   testStatus?: string;
+
   testing_bench?: string;
   testing_user?: string;
   approving_user?: string;
+
   lab?: OldLabInfo;
 }
+
 export interface PdfLogos {
-  leftLogoUrl?: string;   // e.g. '/assets/icons/wzlogo.png'
-  rightLogoUrl?: string;  // optional; if omitted we reuse left
+  leftLogoUrl?: string;
+  rightLogoUrl?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -41,7 +47,13 @@ export class OldAgainstMeterReportPdfService {
 
   private logoCache = new Map<string, string>();
 
-  // Resolve relative/absolute/data URLs safely (browser only)
+  // ---------- small helpers ----------
+  private theme = {
+    grid: '#e6e9ef',
+    subtleText: '#5d6b7a',
+    labelBg: '#f8f9fc'
+  };
+
   private resolveUrl(url: string): string {
     try {
       if (!url) return url;
@@ -54,7 +66,6 @@ export class OldAgainstMeterReportPdfService {
     }
   }
 
-  // Convert asset URL to dataURL with caching (browser only)
   private async urlToDataUrl(url: string): Promise<string> {
     if (!url) throw new Error('Empty URL');
     if (!isPlatformBrowser(this.platformId)) throw new Error('Not in browser');
@@ -92,214 +103,362 @@ export class OldAgainstMeterReportPdfService {
     return m || '-';
   }
 
-  // Shared header (same layout as Stop/Defective)
+  // ---------- HEADER BAR (same vibe as CT service) ----------
   private headerBar(meta: {
-    orgLine: string;
-    labLine: string;
+    companyLine: string;
+    labName: string;
     addressLine?: string;
     email?: string;
     phone?: string;
-    logoWidth: number;
-    logoHeight: number;
-    hasLeft: boolean;
-    hasRight: boolean;
-    pageWidth: number;
-    contentWidth: number;
+    images: Record<string, string>;
   }): Content {
-    const addr = (meta.addressLine || '').trim();
-    const email = (meta.email || '').trim();
-    const phone = (meta.phone || '').trim();
-
-    const contactLine =
-      (email || phone)
-        ? `Email: ${email || '-'}${email && phone ? '   •   ' : ''}Phone: ${phone || '-'}`
-        : '';
-
-    const sepLine: Content = {
-      canvas: [{ type: 'line', x1: 0, y1: 0, x2: meta.contentWidth, y2: 0, lineWidth: 1 }],
-      margin: [0, 6, 0, 0]
-    } as Content;
+    const contactBits: string[] = [];
+    if (meta.email) contactBits.push(`Email: ${meta.email}`);
+    if (meta.phone) contactBits.push(`Phone: ${meta.phone}`);
+    const contactLine = contactBits.join('    ');
 
     return {
-      margin: [28, 8, 28, 6],
+      margin: [18, 10, 18, 8],
+      columnGap: 8,
       stack: [
         {
           columns: [
-            meta.hasLeft ? { image: 'leftLogo', width: meta.logoWidth, height: meta.logoHeight } : { width: meta.logoWidth, text: '' },
+            meta.images['leftLogo']
+              ? { image: 'leftLogo', width: 32, alignment: 'left' }
+              : { width: 32, text: '' },
+
             {
               width: '*',
               stack: [
-                { text: meta.orgLine, alignment: 'center', bold: true, fontSize: 12 },
-                { text: meta.labLine, alignment: 'center', bold: true, fontSize: 11, margin: [0, 2, 0, 0] },
-                ...(addr ? [{ text: addr, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0], noWrap: false }] : []),
-                ...(contactLine ? [{ text: contactLine, alignment: 'center', fontSize: 9, margin: [0, 2, 0, 0] }] : []),
+                {
+                  text: meta.companyLine,
+                  alignment: 'center',
+                  bold: true,
+                  fontSize: 12
+                },
+                {
+                  text: meta.labName || '-',
+                  alignment: 'center',
+                  bold: true,
+                  fontSize: 11,
+                  margin: [0, 2, 0, 0],
+                  color: '#333'
+                },
+                ...(meta.addressLine
+                  ? [{
+                      text: meta.addressLine,
+                      alignment: 'center',
+                      fontSize: 9,
+                      margin: [0, 2, 0, 0],
+                      color: '#555'
+                    }]
+                  : []),
+                ...(contactLine
+                  ? [{
+                      text: contactLine,
+                      alignment: 'center',
+                      fontSize: 9,
+                      margin: [0, 2, 0, 0],
+                      color: '#555'
+                    }]
+                  : [])
               ]
             },
-            meta.hasRight ? { image: 'rightLogo', width: meta.logoWidth, height: meta.logoHeight } : { width: meta.logoWidth, text: '' }
-          ],
-          columnGap: 10
+
+            meta.images['rightLogo']
+              ? { image: 'rightLogo', width: 32, alignment: 'right' }
+              : { width: 32, text: '' }
+          ]
         },
-        sepLine
+        {
+          canvas: [
+            {
+              type: 'line',
+              x1: 0,
+              y1: 0,
+              x2: 559, // ~A4 inner width after margins
+              y2: 0,
+              lineWidth: 1
+            }
+          ],
+          margin: [0, 6, 0, 0]
+        }
       ]
     } as Content;
   }
 
-  private buildDoc(
-    rows: OldAgainstRow[],
-    meta: OldAgainstMeta,
-    imagesDict: Record<string, string> = {}
-  ): TDocumentDefinitions {
-    const total = rows.length;
-    const okCount = rows.filter(r => this.isOk(r)).length;
-    const defCount = total - okCount;
+  // ---------- META + TEST DETAILS TABLE (merged, like CT metaAndInfoTable) ----------
+  private metaDetailsTable(meta: OldAgainstMeta): Content {
+    const K = (t: string) => ({
+      text: t,
+      bold: true,
+      fillColor: this.theme.labelBg
+    });
 
-    const labName  = (meta.lab?.lab_name || 'REMOTE METERING TESTING LABORATORY INDORE').trim();
-    const address1 = (meta.lab?.address_line || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003').trim();
-    const email    = (meta.lab?.email || 'testinglabwzind@gmail.com').trim() || undefined;
-    const phone    = (meta.lab?.phone || '0731-2997802').trim() || undefined;
+    return {
+      margin: [28, 0, 28, 10],
+      layout: {
+        hLineWidth: () => 0.5,
+        vLineWidth: () => 0.5,
+        hLineColor: () => this.theme.grid,
+        vLineColor: () => this.theme.grid,
+        paddingLeft: () => 4,
+        paddingRight: () => 4,
+        paddingTop: () => 3,
+        paddingBottom: () => 3
+      } as any,
+      table: {
+        widths: ['auto', '*', 'auto', '*'],
+        body: [
+          [
+            K('Zone / DC'),
+            meta.zone || '-',
+            K('Phase'),
+            meta.phase || '-'
+          ],
+          [
+            K('Testing Date'),
+            meta.date || '-',
+            K('Test Method'),
+            meta.testMethod || '-'
+          ],
+          [
+            K('Test Status'),
+            meta.testStatus || '-',
+            K('Testing Bench'),
+            meta.testing_bench || '-'
+          ],
+          [
+            K('Testing User'),
+            meta.testing_user || '-',
+            K('Approving User'),
+            meta.approving_user || '-'
+          ]
+        ]
+      }
+    };
+  }
 
+  // ---------- DEVICE TABLE ----------
+  private detailsTable(rows: OldAgainstRow[]): Content {
     const tableBody: TableCell[][] = [[
-      { text: 'S.No', style: 'th', alignment: 'center' },
-      { text: 'METER NUMBER', style: 'th' },
-      { text: 'MAKE', style: 'th' },
-      { text: 'CAPACITY', style: 'th' },
-      { text: 'TEST RESULT', style: 'th' },
+      { text: '#', bold: true, fillColor: this.theme.labelBg, alignment: 'center' },
+      { text: 'Meter Number', bold: true, fillColor: this.theme.labelBg },
+      { text: 'Make', bold: true, fillColor: this.theme.labelBg },
+      { text: 'Capacity', bold: true, fillColor: this.theme.labelBg },
+      { text: 'Test Result / Remark', bold: true, fillColor: this.theme.labelBg }
     ]];
+
     rows.forEach((r, i) => {
       tableBody.push([
         { text: String(i + 1), alignment: 'center' },
         { text: r.serial || '-' },
         { text: r.make || '-' },
         { text: r.capacity || '-' },
-        { text: this.resultText(r) },
+        { text: this.resultText(r) }
       ]);
     });
 
-    const contentWidth = 595.28 - 28 - 28; // A4 width - margins
-    const makeHeader = () => this.headerBar({
-      orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
-      labLine: labName || '—',
-      addressLine: address1 || undefined,
-      email, phone,
-      logoWidth: 36, logoHeight: 36,
-      hasLeft: !!imagesDict['leftLogo'],
-      hasRight: !!imagesDict['rightLogo'],
-      pageWidth: 595.28, contentWidth
-    });
-
-    const infoTable: Content = {
+    return {
+      margin: [28, 0, 28, 6],
       layout: {
-        fillColor: (_row: number, col: number) => (col % 2 === 0 ? '#f6f8fa' : undefined),
-        hLineWidth: () => 0.4,
-        vLineWidth: () => 0.4,
-        hLineColor: () => '#e5e7eb',
-        vLineColor: () => '#e5e7eb',
+        fillColor: (rowIndex: number) =>
+          rowIndex > 0 && rowIndex % 2 ? '#fafafa' : undefined,
+        hLineWidth: () => 0.5,
+        vLineWidth: () => 0.5,
+        hLineColor: () => this.theme.grid,
+        vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
         paddingRight: () => 4,
-        paddingTop: () => 4,
-        paddingBottom: () => 4,
+        paddingTop: () => 3,
+        paddingBottom: () => 3
       } as any,
       table: {
-        widths: ['auto','*','auto','*'],
-        body: [
-          [{ text: 'ZONE/DC', style: 'kv' }, (meta.zone || '-') as any,
-           { text: 'PHASE', style: 'kv' }, (meta.phase || '-') as any],
-
-          [{ text: 'TESTING DATE', style: 'kv' }, meta.date,
-           { text: 'TEST METHOD', style: 'kv' }, (meta.testMethod || '-') as any],
-
-          [{ text: 'TEST STATUS', style: 'kv' }, (meta.testStatus || '-') as any,
-           { text: 'APPROVING USER', style: 'kv' }, (meta.approving_user || '-') as any ],
-
-          [{ text: 'TESTING BENCH', style: 'kv' }, (meta.testing_bench || '-') as any,
-           { text: 'TESTING USER', style: 'kv' }, (meta.testing_user || '-') as any],
-        ]
+        headerRows: 1,
+        widths: ['auto', '*', '*', 'auto', '*'],
+        body: tableBody,
+        dontBreakRows: true
       }
-    };
-
-    return {
-      pageSize: 'A4',
-      pageMargins: [28, 92, 28, 28], // matches Stop/Defective (space for header)
-      defaultStyle: { fontSize: 10 },
-      info: { title: `AGAINST_OLD_METER_${meta.date}` },
-      images: imagesDict,
-      styles: {
-        th: { bold: true },
-        kv: { bold: true, fontSize: 10, color: '#111827' },
-        badge: { bold: true, fontSize: 10 },
-        sectionTitle: { bold: true, fontSize: 13, alignment: 'center' }
-      },
-      header: makeHeader as any,
-      content: [
-        { text: 'AGAINST OLD METER TEST REPORT', style: 'sectionTitle', margin: [0, 0, 0, 8] },
-
-        infoTable,
-
-        {
-          layout: {
-            fillColor: (rowIndex: number) => (rowIndex > 0 && rowIndex % 2 ? '#fafafa' : undefined),
-            hLineColor: () => '#e5e7eb',
-            vLineColor: () => '#e5e7eb',
-          } as any,
-          table: { headerRows: 1, widths: ['auto','*','*','*','*'], body: tableBody },
-          margin: [0, 10, 0, 0]
-        },
-
-        { text: `\nTOTAL: ${total}   •   OK: ${okCount}   •   DEF: ${defCount}`, alignment: 'right', margin: [0, 2, 0, 0] },
-
-        { text: '\n' },
-
-        {
-          columns: [
-            {
-              width: '*',
-              stack: [
-                { text: '\n\nTested by', alignment: 'center', bold: true },
-                { text: '\n\n____________________________', alignment: 'center' },
-                {text:meta.testing_user || '____________________________', alignment: 'center' },
-                { text: 'TESTING ASSISTANT', alignment: 'center', color: '#444', fontSize: 9 },
-                 ],
-            },
-            {
-              width: '*',
-              stack: [
-                { text: '\n\nVerified by', alignment: 'center', bold: true },
-                { text: '\n\n____________________________', alignment: 'center' },
-                 ],
-            },
-            {
-              width: '*',
-              stack: [
-                { text: '\n\nApproved by', alignment: 'center', bold: true },
-                { text: '\n\n____________________________', alignment: 'center' },
-                {text:meta.approving_user || '____________________________', alignment: 'center' },
-                { text: 'ASSISTANT ENGINEER', alignment: 'center', color: '#444', fontSize: 9 },
-              ],
-            },
-          ],
-          margin: [0, 8, 0, 0]
-        },
-      ],
-      footer: (currentPage, pageCount) => ({
-        columns: [
-          { text: `Page ${currentPage} of ${pageCount}`, alignment: 'left', margin: [28, 0, 0, 0] },
-          { text: 'M.P.P.K.V.V. CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 28, 0] },
-        ],
-        fontSize: 8
-      })
     };
   }
 
+  // ---------- TOTAL SUMMARY ----------
+  private totalsRow(rows: OldAgainstRow[]): Content {
+    const total = rows.length;
+    const okCount = rows.filter(r => this.isOk(r)).length;
+    const defCount = total - okCount;
+
+    return {
+      margin: [28, 0, 28, 10],
+      text: `TOTAL: ${total}    •    OK: ${okCount}    •    DEF: ${defCount}`,
+      alignment: 'right',
+      fontSize: 9,
+      color: this.theme.subtleText
+    };
+  }
+
+  // ---------- SIGNATURES ----------
+  private signatureBlock(meta: OldAgainstMeta): Content {
+    return {
+      margin: [28, 0, 28, 0],
+      columns: [
+        {
+          width: '*',
+          alignment: 'center',
+          stack: [
+            { text: '\n\nTested by', bold: true },
+            { text: '\n____________________________', alignment: 'center' },
+            {
+              text: (meta.testing_user || '-').toUpperCase(),
+              fontSize: 8.5,
+              color: this.theme.subtleText,
+              alignment: 'center'
+            },
+            {
+              text: 'TESTING ASSISTANT',
+              fontSize: 8.5,
+              color: this.theme.subtleText,
+              alignment: 'center'
+            }
+          ]
+        },
+        {
+          width: '*',
+          alignment: 'center',
+          stack: [
+            { text: '\n\nVerified by', bold: true },
+            { text: '\n____________________________', alignment: 'center' },
+            {
+              text: '-',
+              fontSize: 8.5,
+              color: this.theme.subtleText,
+              alignment: 'center'
+            },
+            {
+              text: 'JUNIOR ENGINEER',
+              fontSize: 8.5,
+              color: this.theme.subtleText,
+              alignment: 'center'
+            }
+          ]
+        },
+        {
+          width: '*',
+          alignment: 'center',
+          stack: [
+            { text: '\n\nApproved by', bold: true },
+            { text: '\n____________________________', alignment: 'center' },
+            {
+              text: (meta.approving_user || '-').toUpperCase(),
+              fontSize: 8.5,
+              color: this.theme.subtleText,
+              alignment: 'center'
+            },
+            {
+              text: 'ASSISTANT ENGINEER',
+              fontSize: 8.5,
+              color: this.theme.subtleText,
+              alignment: 'center'
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  // ---------- MAIN DOC BUILDER ----------
+  private buildDoc(
+    rows: OldAgainstRow[],
+    metaInput: OldAgainstMeta,
+    imagesDict: Record<string, string> = {}
+  ): TDocumentDefinitions {
+    const labName =
+      metaInput.lab?.lab_name?.trim() ||'';
+
+    const addr =
+      metaInput.lab?.address_line?.trim() || '';
+
+    const email = metaInput.lab?.email?.trim() || '';
+    const phone = metaInput.lab?.phone?.trim() || '';
+
+    const headerBlock = this.headerBar({
+      companyLine:
+        'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
+      labName: labName,
+      addressLine: addr,
+      email,
+      phone,
+      images: imagesDict
+    });
+
+    return {
+      pageSize: 'A4',
+      pageMargins: [18, 92, 18, 28], // leave space for headerBar stack
+      defaultStyle: { fontSize: 9, color: '#111', lineHeight: 1.1 },
+      images: imagesDict,
+      info: { title: `AGAINST_OLD_METER_${metaInput.date}` },
+      styles: {
+        sectionTitle: {
+          bold: true,
+          fontSize: 12,
+          alignment: 'center',
+          margin: [0, 0, 0, 10],
+          color: '#0b2237'
+        }
+      },
+      header: headerBlock as any,
+      footer: (currentPage: number, pageCount: number) => ({
+        columns: [
+          {
+            text: `Page ${currentPage} of ${pageCount}`,
+            alignment: 'left',
+            margin: [28, 0, 0, 0],
+            fontSize: 8,
+            color: this.theme.subtleText
+          },
+          {
+            text: 'M.P.P.K.V.V. CO. LTD., INDORE',
+            alignment: 'right',
+            margin: [0, 0, 28, 0],
+            fontSize: 8,
+            color: this.theme.subtleText
+          }
+        ]
+      }),
+      content: [
+        { text: 'AGAINST OLD METER TEST REPORT', style: 'sectionTitle' },
+
+        // merged meta table
+        this.metaDetailsTable(metaInput),
+
+        // meters table
+        this.detailsTable(rows),
+
+        // totals
+        this.totalsRow(rows),
+
+        // signatures
+        this.signatureBlock(metaInput)
+      ]
+    };
+  }
+
+  // ---------- PUBLIC METHODS ----------
   async download(rows: OldAgainstRow[], meta: OldAgainstMeta, logos?: PdfLogos): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
 
     const imagesDict: Record<string, string> = {};
     try {
-      if (logos?.leftLogoUrl) imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
-      if (logos?.rightLogoUrl) imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
-      else if (imagesDict['leftLogo']) imagesDict['rightLogo'] = imagesDict['leftLogo'];
+      if (logos?.leftLogoUrl) {
+        imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
+      }
+      if (logos?.rightLogoUrl) {
+        imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
+      } else if (imagesDict['leftLogo']) {
+        imagesDict['rightLogo'] = imagesDict['leftLogo'];
+      }
     } catch (e) {
-      // If one logo fails, continue gracefully without logos
+      // graceful fallback to no logos
       delete imagesDict['leftLogo'];
       delete imagesDict['rightLogo'];
       console.warn('Logo load failed:', e);
@@ -307,6 +466,7 @@ export class OldAgainstMeterReportPdfService {
 
     const doc = this.buildDoc(rows, meta, imagesDict);
     const fname = `AGAINST_OLD_METER_${meta.date}.pdf`;
+
     return new Promise<void>((resolve) => {
       try {
         pdfMake.createPdf(doc).download(fname);
@@ -321,9 +481,14 @@ export class OldAgainstMeterReportPdfService {
 
     const imagesDict: Record<string, string> = {};
     try {
-      if (logos?.leftLogoUrl) imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
-      if (logos?.rightLogoUrl) imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
-      else if (imagesDict['leftLogo']) imagesDict['rightLogo'] = imagesDict['leftLogo'];
+      if (logos?.leftLogoUrl) {
+        imagesDict['leftLogo'] = await this.urlToDataUrl(logos.leftLogoUrl);
+      }
+      if (logos?.rightLogoUrl) {
+        imagesDict['rightLogo'] = await this.urlToDataUrl(logos.rightLogoUrl);
+      } else if (imagesDict['leftLogo']) {
+        imagesDict['rightLogo'] = imagesDict['leftLogo'];
+      }
     } catch {}
     const doc = this.buildDoc(rows, meta, imagesDict);
     pdfMake.createPdf(doc).open();
