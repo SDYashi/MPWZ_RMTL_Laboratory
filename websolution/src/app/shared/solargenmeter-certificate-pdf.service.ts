@@ -282,7 +282,7 @@ export class SolarGenMeterCertificatePdfService {
   private headerBar(meta: any, images: Record<string,string>) {
     return {
       margin: [18, 10, 18,10],
-      columnGap: 8,
+      columnGap: 6,
       columns: [
         images['leftLogo']
           ? { image: 'leftLogo', width: 32, alignment: 'left' }

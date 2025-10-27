@@ -288,11 +288,10 @@ private gridLayout() {
 
   // ---- header / meta / cert / signature blocks ----
 private headerBar(meta: any, images: Record<string,string>) {
-  const logoBox = { fit: [28, 28] as [number, number] };
 
  return {
       margin: [18, 10, 18, 8],
-      columnGap: 8,
+      columnGap: 6,
       columns: [
         images['leftLogo']
           ? { image: 'leftLogo', width: 32, alignment: 'left' }
