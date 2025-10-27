@@ -119,7 +119,7 @@ export class StopDefectiveReportPdfService {
         : '';
 
     return {
-      margin: [18, 10, 18, 8],
+       margin: [18, 10, 18, 8],
       stack: [
         {
           columns: [

@@ -414,23 +414,10 @@ export class P4onmReportPdfService {
           width: 'auto',
           stack: [
             {
-              text: `Zone/DC: ${meta.zone || '-'}`,
+              text: `Name of Zone/DC: ${meta.zone || '-'}`,
               color: this.theme.subtleText,
               fontSize: 9,
               alignment: 'right' as const
-            },
-            {
-              text: `Report ID: ${meta.report_id}`,
-              color: this.theme.subtleText,
-              fontSize: 9,
-              alignment: 'right' as const,
-              margin: [0, 2, 0, 0]
-            },
-            {
-              qr: `${meta.report_id}|${r.serial}`,
-              fit: 56,
-              alignment: 'right' as const,
-              margin: [0, 4, 0, 0]
             }
           ]
         }
@@ -772,7 +759,7 @@ export class P4onmReportPdfService {
     };
 
     const blocks: any[] = [
-      topRule,
+      // topRule,
       metaTopLine,
       reportTitle,
       infoTable,

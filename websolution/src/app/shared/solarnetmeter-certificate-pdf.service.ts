@@ -290,74 +290,53 @@ private gridLayout() {
 private headerBar(meta: any, images: Record<string,string>) {
   const logoBox = { fit: [28, 28] as [number, number] };
 
-  return {
-    margin: [28, 16, 28, 4], // was [28,28,28,6]
-    stack: [
-      {
-        columns: [
-          images['leftLogo']
-            ? { image: 'leftLogo', ...logoBox, alignment: 'left' as const, margin: [0, 0, 6, 0] }
-            : { width: 28, text: '' },
+ return {
+      margin: [18, 10, 18, 8],
+      columnGap: 8,
+      columns: [
+        images['leftLogo']
+          ? { image: 'leftLogo', width: 32, alignment: 'left' }
+          : { width: 32, text: '' },
 
-          {
-            width: '*',
-            stack: [
-              {
-                text: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
-                alignment: 'center' as const,
-                bold: true,
-                fontSize: 12, // was 13
-                lineHeight: 1.1
-              },
-              {
-                text: (meta.lab_name || '').toUpperCase(),
-                alignment: 'center' as const,
-                bold: true,
-                fontSize: 10, // was 11
-                margin: [0, 1, 0, 0],
-                color: '#444',
-                lineHeight: 1.1
-              },
-              {
-                text: (meta.lab_address || '').toUpperCase(),
-                alignment: 'center' as const,
-                fontSize: 8.5, // was 9
-                margin: [0, 1, 0, 0],
-                color: '#666',
-                lineHeight: 1.1
-              },
-              {
-                text: `Email: ${(meta.lab_email || '-').toUpperCase()} • Phone: ${(meta.lab_phone || '-').toUpperCase()}`,
-                alignment: 'center' as const,
-                fontSize: 8.5, // was 9
-                margin: [0, 1, 0, 0],
-                color: '#666',
-                lineHeight: 1.1
-              }
-            ]
-          },
+        {
+          width: '*',
+          stack: [
+            {
+              text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED',
+              alignment: 'center',
+              bold: true,
+              fontSize: 12
+            },
+            {
+              text: meta.lab_name || '',
+              alignment: 'center',
+              color: '#333',
+              margin: [0, 2, 0, 0],
+              fontSize: 11
+            },
+            {
+              text: meta.lab_address || '',
+              alignment: 'center',
+              color: '#555',
+              margin: [0, 2, 0, 0],
+              fontSize: 9
+            },
+            {
+              text: `Email: ${meta.lab_email}    Phone: ${meta.lab_phone}`,
+              alignment: 'center',
+              color: '#555',
+              margin: [0, 2, 0, 0],
+              fontSize: 9
+            },
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 1 ,  margin: [0, 4, 0, 0], }] },
+          ]
+        },
 
-          images['rightLogo']
-            ? { image: 'rightLogo', ...logoBox, alignment: 'right' as const, margin: [6, 0, 0, 0] }
-            : { width: 28, text: '' }
-        ],
-        columnGap: 6
-      },
-      {
-        canvas: [
-          {
-            type: 'line',
-            x1: 0,
-            y1: 0,
-            x2: 567 - 56,
-            y2: 0,
-            lineWidth: 0.8
-          }
-        ],
-        margin: [0, 4, 0, 4] // smaller divider spacing
-      }
-    ]
-  };
+        images['rightLogo']
+          ? { image: 'rightLogo', width: 32, alignment: 'right' }
+          : { width: 32, text: '' }
+      ]
+    };
 }
 
 
@@ -749,7 +728,7 @@ private buildDoc(header: SolarHeader, rows: SolarRow[], images: Record<string, s
 
   return {
     pageSize: 'A4',
-    pageMargins: [0, 0, 0, 24], // was [0,0,0,34], smaller bottom
+    pageMargins: [8, 8, 8, 24], 
     defaultStyle: {
       fontSize: 9,     // was 10
       color: '#111',

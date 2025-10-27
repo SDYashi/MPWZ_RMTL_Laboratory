@@ -124,7 +124,7 @@ export class SmartAgainstMeterReportPdfService {
 
     // cast as any at the end to satisfy pdfMake typings for nested columns/stack/canvas
     return {
-      margin: [18, 10, 18, 8],
+     margin: [18, 10, 18, 8],
       stack: [
         {
           columns: [

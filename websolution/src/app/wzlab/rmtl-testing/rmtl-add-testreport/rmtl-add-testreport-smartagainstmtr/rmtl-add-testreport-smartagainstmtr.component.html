@@ -360,8 +360,6 @@
         <button type="button" class="btn btn-success" (click)="addBatchRow()">➕ Add Row</button>
         <button type="button" class="btn btn-danger" (click)="openConfirm('clear')">Clear</button>
         <div class="ms-auto d-flex gap-2">
-          <button type="button" class="btn btn-outline-secondary" (click)="previewPdf()"
-                  [disabled]="!rows.length">Preview PDF</button>
           <button type="button" class="btn btn-primary" [disabled]="submitting || !rows.length" (click)="openConfirm('submit')">
             {{ submitting ? 'Submitting…' : 'Validate & Submit' }}
           </button>

@@ -12,6 +12,7 @@ export type GenHeader = {
   // extra for PDF header/meta
   testing_bench?: string | null;
   testing_user?: string | null;
+  approving_user?: string | null;
   date?: string | null;
 
   // lab info + logos
@@ -279,66 +280,63 @@ export class SolarGenMeterCertificatePdfService {
 
   // ---------- header band / meta band / body blocks ----------
   private headerBar(meta: any, images: Record<string,string>) {
-    const logoBox = { fit: [32, 32] as [number, number] };
     return {
-      margin: [28, 28, 28, 6],
-      stack: [
-        {
-          columns: [
-            images['leftLogo']
-              ? { image: 'leftLogo', ...logoBox, alignment: 'left' as const, margin: [0, 0, 8, 0] }
-              : { width: 32, text: '' },
+      margin: [18, 10, 18,10],
+      columnGap: 8,
+      columns: [
+        images['leftLogo']
+          ? { image: 'leftLogo', width: 32, alignment: 'left' }
+          : { width: 32, text: '' },
 
+        {
+          width: '*',
+          stack: [
             {
-              width: '*',
-              stack: [
-                {
-                  text: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
-                  alignment: 'center' as const,
-                  bold: true,
-                  fontSize: 13
-                },
-                {
-                  text: meta.lab_name || '',
-                  alignment: 'center' as const,
-                  bold: true,
-                  fontSize: 11,
-                  margin: [0, 2, 0, 0]
-                },
-                {
-                  text: meta.lab_address || '',
-                  alignment: 'center' as const,
-                  fontSize: 9,
-                  margin: [0, 2, 0, 0]
-                },
-                {
-                  text: `Email: ${meta.lab_email || '-'} • Phone: ${meta.lab_phone || '-'}`,
-                  alignment: 'center' as const,
-                  fontSize: 9,
-                  margin: [0, 2, 0, 0]
-                }
-              ]
+              text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED',
+              alignment: 'center',
+              bold: true,
+              fontSize: 12
             },
-
-            images['rightLogo']
-              ? { image: 'rightLogo', ...logoBox, alignment: 'right' as const, margin: [8, 0, 0, 0] }
-              : { width: 32, text: '' }
-          ],
-          columnGap: 8
-        },
-        {
-          canvas: [
             {
-              type: 'line',
-              x1: 0,
-              y1: 0,
-              x2: 567 - 56, // pageWidth (~567) minus side margins (28*2)
-              y2: 0,
-              lineWidth: 1
+              text: meta.lab_name || '',
+              alignment: 'center',
+              color: '#333',
+              margin: [0, 2, 0, 0],
+              fontSize: 11
+            },
+            {
+              text: meta.lab_address || '',
+              alignment: 'center',
+              color: '#555',
+              margin: [0, 2, 0, 0],
+              fontSize: 9
+            },
+            {
+              text: `Email: ${meta.lab_email}    Phone: ${meta.lab_phone}`,
+              alignment: 'center',
+              color: '#555',
+              margin: [0, 2, 0, 0],
+              fontSize: 9
+            },
+            {
+              canvas: [
+                {
+                  type: 'line',
+                  x1: 0,
+                  y1: 0,
+                  x2: 500,
+                  y2: 0,
+                  lineWidth: 1
+                }
+              ],
+              margin: [0, 4, 0, 0]
             }
-          ],
-          margin: [0, 6, 0, 6]
-        }
+          ]
+        },
+
+        images['rightLogo']
+          ? { image: 'rightLogo', width: 32, alignment: 'right' }
+          : { width: 32, text: '' }
       ]
     };
   }
@@ -457,15 +455,15 @@ export class SolarGenMeterCertificatePdfService {
             this.rowLabel('Final Reading'),
             {
               text: `I - ${this.fmtNum(r.final_reading_r)}`,
-              alignment: 'left' as const
+              alignment: 'left'
             },
             {
               text: 'E -',
-              alignment: 'right' as const
+              alignment: 'right'
             },
             {
               text: this.fmtNum(r.final_reading_e),
-              alignment: 'left' as const
+              alignment: 'left'
             }
           ],
           [
@@ -517,18 +515,23 @@ export class SolarGenMeterCertificatePdfService {
     };
   }
 
-  private signatureBlock() {
+  // UPDATED: now takes meta so we can show testing_user and approving_user
+  private signatureBlock(meta: any) {
+    const testerNameDisplay = (meta.testing_user || '').toString().toUpperCase();
+    const approverNameDisplay = (meta.approving_user || '').toString().toUpperCase();
+
     return {
       margin: [28, 14, 28, 0],
       columns: [
         {
           width: '*',
           stack: [
-            { text: 'Tested by', alignment: 'center' as const, bold: true },
-            { text: '____________________________', alignment: 'center' as const, margin: [0, 8, 0, 0] },
+            { text: 'Tested by', alignment: 'center', bold: true },
+            { text: '____________________________', alignment: 'center', margin: [0, 8, 0, 0] },
+            { text: testerNameDisplay, alignment: 'center', fontSize: 10, color: '#000' },
             {
               text: 'TESTING ASSISTANT ',
-              alignment: 'center' as const,
+              alignment: 'center',
               color: this.theme.subtle,
               fontSize: 9
             }
@@ -537,11 +540,11 @@ export class SolarGenMeterCertificatePdfService {
         {
           width: '*',
           stack: [
-            { text: 'Verified by', alignment: 'center' as const, bold: true },
-            { text: '____________________________', alignment: 'center' as const, margin: [0, 8, 0, 0] },
+            { text: 'Verified by', alignment: 'center', bold: true },
+            { text: '____________________________', alignment: 'center', margin: [0, 8, 0, 0] },
             {
               text: 'JUNIOR ENGINEER ',
-              alignment: 'center' as const,
+              alignment: 'center',
               color: this.theme.subtle,
               fontSize: 9
             }
@@ -550,11 +553,12 @@ export class SolarGenMeterCertificatePdfService {
         {
           width: '*',
           stack: [
-            { text: 'Approved by', alignment: 'center' as const, bold: true },
-            { text: '____________________________', alignment: 'center' as const, margin: [0, 8, 0, 0] },
+            { text: 'Approved by', alignment: 'center', bold: true },
+            { text: '____________________________', alignment: 'center', margin: [0, 8, 0, 0] },
+            { text: approverNameDisplay, alignment: 'center', fontSize: 10, color: '#000' },
             {
               text: 'ASSISTANT ENGINEER ',
-              alignment: 'center' as const,
+              alignment: 'center',
               color: this.theme.subtle,
               fontSize: 9
             }
@@ -572,14 +576,14 @@ export class SolarGenMeterCertificatePdfService {
     blocks.push(
       {
         text: 'SOLAR GENERATION METER TEST REPORT',
-        alignment: 'center' as const,
+        alignment: 'center',
         bold: true,
         fontSize: 14,
         margin: [0, 0, 0, 4]
       },
       {
         text: 'CERTIFICATE FOR A.C. SINGLE/THREE PHASE METER',
-        alignment: 'center' as const,
+        alignment: 'center',
         bold: true,
         fontSize: 11,
         margin: [0, 0, 0, 6]
@@ -587,7 +591,7 @@ export class SolarGenMeterCertificatePdfService {
       ...(r.certificate_no
         ? [{
             text: `Certificate No: ${r.certificate_no}`,
-            alignment: 'right' as const,
+            alignment: 'right',
             bold: true,
             margin: [28, 0, 28, 8]
           }]
@@ -596,7 +600,9 @@ export class SolarGenMeterCertificatePdfService {
 
     blocks.push(this.metaRow(meta));
     blocks.push(this.certTable(r));
-    blocks.push(this.signatureBlock());
+
+    // pass meta in here so we can print testing_user/approving_user
+    blocks.push(this.signatureBlock(meta));
 
     return blocks;
   }
@@ -616,7 +622,11 @@ export class SolarGenMeterCertificatePdfService {
       lab_name: header.lab_name || '',
       lab_address: header.lab_address || '',
       lab_email: header.lab_email || '',
-      lab_phone: header.lab_phone || ''
+      lab_phone: header.lab_phone || '',
+
+      // NEW: include names for signatureBlock
+      testing_user: header.testing_user || '',
+      approving_user: header.approving_user || ''
     };
 
     const data = (rows || []).filter(
@@ -637,7 +647,6 @@ export class SolarGenMeterCertificatePdfService {
 
     return {
       pageSize: 'A4',
-      // top margin = 0 so headerBar starts near top
       pageMargins: [0, 0, 0, 34],
       defaultStyle: {
         fontSize: 10,
@@ -650,13 +659,13 @@ export class SolarGenMeterCertificatePdfService {
         columns: [
           {
             text: `Page ${current} of ${total}`,
-            alignment: 'left' as const,
+            alignment: 'left',
             fontSize: 9,
             color: '#666'
           },
           {
             text: 'MPPKVVCL • RMTL Indore',
-            alignment: 'right' as const,
+            alignment: 'right',
             fontSize: 9,
             color: '#666'
           }

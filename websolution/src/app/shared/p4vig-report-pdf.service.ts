@@ -209,7 +209,7 @@ export class P4VigReportPdfService {
     const logoBox = [42, 42] as [number, number];
 
     return {
-      margin: [18, 12, 18, 10],
+       margin: [18, 10, 18, 8],
       stack: [
         {
           columns: [
@@ -227,7 +227,7 @@ export class P4VigReportPdfService {
                   fontSize: 13
                 },
                 {
-                  text: (meta.lab_name || 'REGIONAL METER TESTING LABORATORY').toUpperCase(),
+                  text: (meta.lab_name || '').toUpperCase(),
                   alignment: 'center' as const,
                   color: '#333',
                   margin: [0, 2, 0, 0],

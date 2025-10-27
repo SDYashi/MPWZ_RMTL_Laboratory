@@ -460,7 +460,6 @@
                   <th>Make <small class="text-muted">(A→Z)</small></th>
                   <th>Capacity</th>
                   <th>Phase</th>
-                  <th>Location</th>
                 </tr>
               </thead>
               <tbody>
@@ -473,8 +472,7 @@
                   <td>{{ a.device?.make || '—' }}</td>
                   <td>{{ a.device?.capacity || '—' }}</td>
                   <td>{{ a.device?.phase || '—' }}</td>
-                  <td>{{ a.device?.location_code || '—' }} <span *ngIf="a.device?.location_name">- {{ a.device?.location_name }}</span></td>
-                </tr>
+                      </tr>
                 <tr *ngIf="!filteredAssigned.length">
                   <td colspan="7" class="text-center text-muted">No assigned devices found.</td>
                 </tr>

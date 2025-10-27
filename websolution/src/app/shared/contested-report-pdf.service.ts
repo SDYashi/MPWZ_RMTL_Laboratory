@@ -285,6 +285,7 @@ export class ContestedReportPdfService {
         }
       },
       content: [
+        { text: 'Contested Meter Testing Report', style: 'sectionTitle', alignment: 'center', noWrap: true,   fontSize: 14, margin: [0, 4, 0, 8] },
         { text: 'Consumer Details', style: 'sectionTitle', noWrap: true },
         consumerSection,
 
@@ -349,15 +350,7 @@ export class ContestedReportPdfService {
               margin: [0, 2, 0, 0],
               fontSize: 9
             },
-            {
-              text: `Report ID: ${meta.report_id}`,
-              alignment: 'center',
-              color: '#000',
-              margin: [0, 4, 0, 0],
-              fontSize: 9,
-              bold: true
-            },
-            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 1 }] },
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 1 ,  margin: [0, 2, 0, 0], }] },
           ]
         },
 
