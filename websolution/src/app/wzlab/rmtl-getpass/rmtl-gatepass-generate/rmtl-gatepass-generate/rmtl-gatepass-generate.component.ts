@@ -146,11 +146,11 @@ export class RmtlGatepassGenerateComponent implements OnInit {
 
     this.api.getLab(this.currentLabId).subscribe({
       next: (info: any) => {
-        this.labInfo = {
-          lab_name: info?.lab_pdfheader_name,
-          address_line: info?.address || info?.address_line,
-          email: info?.email,
-          phone: info?.phone
+        this.labInfo = {         
+            lab_name: info?.lab_pdfheader_name || info?.lab_name,
+            address_line: info?.lab_pdfheader_address || info?.lab_location,
+            email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no,
+            phone: info?.lab_pdfheader_contact_no || info?.lab_location
         };
       },
       error: (e) => { console.error('Lab info error', e); }

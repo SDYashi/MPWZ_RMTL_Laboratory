@@ -119,23 +119,29 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   quick = { serial: '' };
   ctQuick = { serial: '' };
   impkwhs: any;
+  currentUserId: any;
+  currentLabId: any;
+  api: any;
+  labInfo: { lab_name: any; address: any; email: any; phone: any; } | undefined;
 
   constructor(
     private deviceService: ApiServicesService,
-    private inwardPdf: InwardReceiptPdfService
+    private inwardPdf: InwardReceiptPdfService,
+    private authService: ApiServicesService
   ) {}
 
   // ---------- Reusable PDF header (matches your branding/screenshot) ----------
-  private readonly pdfHeader = {
+  private  pdfHeader = {
     orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
-    labLine: 'REGINAL METERING TESTING LABORATORY INDORE',
-    addressLine: 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003',
-    email: 'testinglabwzind@gmail.com',
-    phone: '0731-2997802',
+    labLine: '',
+    addressLine: '',
+    email: '',
+    phone: '',
     leftLogoUrl: '/assets/icons/wzlogo.png',
     rightLogoUrl: '/assets/icons/wzlogo.png',
     logoWidth: 36,
-    logoHeight: 36
+    logoHeight: 36,
+    date: new Date()
   };
 
   // ---------- Lifecycle ----------
@@ -224,6 +230,38 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       },
       error: () => this.showAlert('Error', 'Failed to load dropdown data.')
     });
+
+    this.pdfHeader.date = this.toYMD(new Date());
+    // ids from token
+    this.currentUserId = this.authService.getuseridfromtoken();
+    this.currentLabId = this.authService.getlabidfromtoken();
+
+    // Lab info for PDF header
+    if (this.currentLabId) {
+      this.api.getLabInfo(this.currentLabId).subscribe({
+        next: (info: any) => {
+          this.labInfo = {
+            lab_name: info?.lab_pdfheader_name || info?.lab_name,
+            address: info?.lab_pdfheader_address || info?.lab_location,
+            email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no,
+            phone: info?.lab_pdfheader_contact_no || info?.lab_location
+          };
+          this.pdfHeader.labLine = this.labInfo?.lab_name || '';
+          this.pdfHeader.addressLine = this.labInfo?.address || '';
+          this.pdfHeader.email = this.labInfo?.email || '';
+          this.pdfHeader.phone = this.labInfo?.phone || '';
+        }
+      });
+
+    }
+
+
+
+
+
+  }
+  toYMD(arg0: Date): Date {
+    throw new Error('Method not implemented.');
   }
 
   onDefaultsConnectionTypeChange(): void {

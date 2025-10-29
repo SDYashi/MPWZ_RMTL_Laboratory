@@ -2,9 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
-// import autoTable from 'jspdf-autotable';
 import { ApiServicesService } from 'src/app/services/api-services.service';
-import { GatepassPdfService, GatepassData, GatepassDeviceRow } from 'src/app/shared/gatepass-pdf.service';
+import {
+  GatepassPdfService,
+  GatepassData,
+  GatepassDeviceRow,
+  GatepassHeaderInfo
+} from 'src/app/shared/gatepass-pdf.service';
 
 type ISODateString = string;
 
@@ -14,10 +18,10 @@ interface Gatepass {
   receiver_mobile: string;
   created_at: ISODateString;
   updated_at: ISODateString;
-  serial_numbers: string;    // e.g. "1070, 1046, 1191"
-  report_ids: string;        // e.g. "20250826-5481"
+  serial_numbers: string;
+  report_ids: string;
   receiver_designation: string;
-  dispatch_number: string;   // e.g. "270825-934030"
+  dispatch_number: string;
   dispatch_to: string;
   vehicle: string;
   created_by: number;
@@ -59,9 +63,22 @@ export class RmtlGatepassListComponent implements OnInit {
   pageSize = 25;
   pageSizeOptions = [10, 25, 50, 100];
 
+  currentUserId: any;
+  currentLabId: any;
+
+  labInfo:
+    | {
+        lab_name: string;
+        address: string;
+        email: string;
+        phone: string;
+      }
+    | undefined;
+
   constructor(
     private apiService: ApiServicesService,
-    private gpPdf: GatepassPdfService
+    private gpPdf: GatepassPdfService,
+    private authService: ApiServicesService
   ) {}
 
   ngOnInit(): void {
@@ -73,6 +90,25 @@ export class RmtlGatepassListComponent implements OnInit {
     this.endDate   = lastDay.toISOString().slice(0,10);
 
     this.loadData();
+    this.currentUserId = this.authService.getuseridfromtoken();
+    this.currentLabId = this.authService.getlabidfromtoken();
+
+    // Preload labInfo (best effort)
+    if (this.currentLabId) {
+      this.apiService.getLabInfo(this.currentLabId).subscribe({
+        next: (info: any) => {
+          this.labInfo = {
+            lab_name: info?.lab_pdfheader_name || info?.lab_name || '',
+            address: info?.lab_pdfheader_address || info?.lab_location || '',
+            email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no || '',
+            phone: info?.lab_pdfheader_contact_no || info?.lab_location || ''
+          };
+        },
+        error: () => {
+          // silently ignore, we'll refetch on demand
+        }
+      });
+    }
   }
 
   // ---------- Derived pagination values ----------
@@ -183,7 +219,7 @@ export class RmtlGatepassListComponent implements OnInit {
       }
     }
 
-    // Newest first by date, then dispatch, then serial
+    // sort newest first
     rows.sort((a, b) => {
       if (a.created_date > b.created_date) return -1;
       if (a.created_date < b.created_date) return 1;
@@ -192,7 +228,7 @@ export class RmtlGatepassListComponent implements OnInit {
       return a.serial_no.localeCompare(b.serial_no);
     });
 
-    // re-number after sort
+    // re-number
     this.rows = rows.map((r, idx) => ({ ...r, sl: idx + 1 }));
     this.page = 1;
   }
@@ -201,7 +237,6 @@ export class RmtlGatepassListComponent implements OnInit {
   exportToExcel(): void {
     if (!this.rows.length) return;
 
-    // Export all filtered rows (use this.pagedRows() to export current page only)
     const worksheet = XLSX.utils.json_to_sheet(this.rows);
     const workbook: XLSX.WorkBook = {
       Sheets: { 'Gatepass Dispatch' : worksheet },
@@ -214,26 +249,61 @@ export class RmtlGatepassListComponent implements OnInit {
     saveAs(blob, `Gatepass_Dispatch_${new Date().toISOString().slice(0,10)}.xlsx`);
   }
 
-  // Example PDF export (optional)
-  // exportToPDF(): void {
-  //   if (!this.rows.length) return;
-  //   const doc = new jsPDF();
-  //   // autoTable(doc, { html: '#printSection table' });
-  //   doc.save(`Gatepass_Dispatch_${new Date().toISOString().slice(0,10)}.pdf`);
-  // }
-
-  // ---------- Regenerate Gatepass PDF by dispatch number ----------
+  // ---------- Gatepass PDF download (public click handler) ----------
   downloadGatepassByDispatch(dispatchNo: string): void {
-    const g = this.allGatepasses.find(x => x.dispatch_number === dispatchNo);
-    if (!g) {
+    const gpRow = this.allGatepasses.find(x => x.dispatch_number === dispatchNo);
+    if (!gpRow) {
       alert('Gatepass not found for this dispatch number.');
       return;
     }
 
-    // Build serials list (flat) for the PDF service
-    const serialsFlat = this.parseSerialList(g.serial_numbers).join(', ');
-    // Optional device table (serials only; make not available in this API)
-    const devices: GatepassDeviceRow[] = this.parseSerialList(g.serial_numbers).map(sn => ({ serial_number: sn }));
+    // ensure lab info is loaded before we actually render pdf
+    this.getLabInfoSyncThenDownload(gpRow);
+  }
+
+  /**
+   * Ensures this.labInfo exists (fetch on-demand if needed)
+   * then builds header + calls gpPdf.download
+   */
+  private getLabInfoSyncThenDownload(gpRow: Gatepass): void {
+    if (this.labInfo || !this.currentLabId) {
+      this.buildAndDownloadPdf(gpRow);
+      return;
+    }
+
+    // if labInfo wasn't ready from ngOnInit, fetch now and then continue
+    this.apiService.getLabInfo(this.currentLabId).subscribe({
+      next: (info: any) => {
+        this.labInfo = {
+          lab_name: info?.lab_pdfheader_name || info?.lab_name || '',
+          address: info?.lab_pdfheader_address || info?.lab_location || '',
+          email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no || '',
+          phone: info?.lab_pdfheader_contact_no || info?.lab_location || ''
+        };
+        this.buildAndDownloadPdf(gpRow);
+      },
+      error: () => {
+        // still attempt with whatever we have
+        this.buildAndDownloadPdf(gpRow);
+      }
+    });
+  }
+
+  /**
+   * Actually assemble GatepassData, HeaderInfo, and call PDF service
+   */
+  private buildAndDownloadPdf(g: Gatepass): void {
+    const serialsArray = this.parseSerialList(g.serial_numbers);
+    const serialsFlat = serialsArray.join(', ');
+
+    const devices: GatepassDeviceRow[] = serialsArray.map(sn => ({ serial_number: sn }));
+
+    // absolute logo URL so fetch() succeeds inside service
+    const base = window.location.origin; // e.g. http://localhost:4200 OR http://myserver/rmtl (nginx may rewrite)
+    // if your app is served under sub-path like /rmtl/, and assets are under /rmtl/assets,
+    // change below to match that sub-path.
+    const leftLogoAbs = `${base}/assets/icons/wzlogo.png`;
+    const rightLogoAbs = `${base}/assets/icons/wzlogo.png`;
 
     const data: GatepassData = {
       id: g.id,
@@ -247,15 +317,35 @@ export class RmtlGatepassListComponent implements OnInit {
       created_by: String(g.created_by),
       created_at: g.created_at,
       serial_numbers: serialsFlat,
-      leftLogoUrl: '/assets/icons/wzlogo.png',
-      rightLogoUrl: '/assets/icons/wzlogo.png',
 
+      lab_name: this.labInfo?.lab_name || undefined,
+      lab_address: this.labInfo?.address || undefined,
+      lab_email: this.labInfo?.email || undefined,
+      lab_phone: this.labInfo?.phone || undefined,
+
+      leftLogoUrl: leftLogoAbs,
+      rightLogoUrl: rightLogoAbs
+    };
+
+    const headerInfo: GatepassHeaderInfo = {
+      orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
+      labLine: this.labInfo?.lab_name || undefined,
+      addressLine: this.labInfo?.address || undefined,
+      email: this.labInfo?.email || undefined,
+      phone: this.labInfo?.phone || undefined,
+      leftLogoUrl: leftLogoAbs,
+      rightLogoUrl: rightLogoAbs,
+      logoWidth: 36,
+      logoHeight: 36,
     };
 
     this.gpPdf.download(data, {
       columns: 3,
       deviceTable: true,
-      devices
+      devices,
+      header: headerInfo,
+      generatedBy: this.currentUserId ? `User ID ${this.currentUserId}` : undefined,
+      showFooterMeta: true,
     });
   }
 }

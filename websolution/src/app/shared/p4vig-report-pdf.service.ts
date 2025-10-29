@@ -215,7 +215,7 @@ export class P4VigReportPdfService {
     const logoSize: [number, number] = [40, 40];
 
     return {
-      margin: [18, 16, 18, 8],
+      margin: [18, 10, 18, 8],
       stack: [
         {
           // top row: logos + center stack
@@ -332,7 +332,7 @@ export class P4VigReportPdfService {
 
   private sectionHeading(text: string): Content {
     return {
-      margin: [0, 10, 0, 4],
+      margin: [0, 5, 0, 4],
       table: {
         widths: ['*'],
         body: [[{
@@ -340,8 +340,9 @@ export class P4VigReportPdfService {
           bold: true,
           color: this.theme.heading,
           fillColor: this.theme.sectionBg,
-          fontSize: 10,
-          margin: [4, 3, 4, 3]
+          fontSize: 13,
+          margin: [4, 3, 4, 3],
+          alignment: 'center'
         }]]
       },
       layout: {
@@ -481,7 +482,7 @@ export class P4VigReportPdfService {
             { text: meta.bench || '-' }
           ]]
         },
-        margin: [0,0,0,4]
+        margin: [0,0,0,2]
       },
       {
         layout: this.tableLayout(),
@@ -691,7 +692,7 @@ export class P4VigReportPdfService {
 
     if (shuntBlock) blocks.push(shuntBlock);
     if (neutralBlock) blocks.push(neutralBlock);
-    if (impExpBlock) blocks.push(impExpBlock);
+    // if (impExpBlock) blocks.push(impExpBlock);
     if (techBlock) blocks.push(techBlock);
     if (addlBlock) blocks.push(addlBlock);
     if (p4Block) blocks.push(p4Block);

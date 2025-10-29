@@ -430,11 +430,16 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
     this.picking = false;
 
     if (added) {
-      this.alertSuccess = `${added} device(s) added to the batch.`;
-      this.alertError = null;
+        this.alertError = null;
     } else {
       this.alertError = 'No new devices were added (duplicates or none selected).';
       this.alertSuccess = null;
+    }   
+
+    // delete empty row if exists
+    const emptyRowIndex = this.batch.rows.findIndex(r => !r.serial);
+    if (emptyRowIndex !== -1) {
+      this.batch.rows.splice(emptyRowIndex, 1);
     }
   }
 

@@ -169,8 +169,8 @@ export class GatepassPdfService {
 
     const metaForHeader = {
       orgLine: (header?.orgLine || 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED').toUpperCase(),
-      labLine: (header?.labLine || gp.lab_name || 'REGIONAL METERING TESTING LABORATORY INDORE').toUpperCase(),
-      addressLine: header?.addressLine || gp.lab_address || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003',
+      labLine: (header?.labLine || gp.lab_name || '-').toUpperCase(),
+      addressLine: header?.addressLine || gp.lab_address || '-',
       email: header?.email || gp.lab_email || '-',
       phone: header?.phone || gp.lab_phone || '-',
       logoWidth: header?.logoWidth ?? 36,

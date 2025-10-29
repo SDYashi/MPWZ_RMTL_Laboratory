@@ -285,7 +285,7 @@ export class ContestedReportPdfService {
         }
       },
       content: [
-        { text: 'Contested Meter Testing Report', style: 'sectionTitle', alignment: 'center', noWrap: true,   fontSize: 14, margin: [0, 4, 0, 8] },
+        { text: 'Contested Meter Testing Report', style: 'sectionTitle', alignment: 'center', noWrap: true,   fontSize: 14, margin: [0, 0, 0, 6] },
         { text: 'Consumer Details', style: 'sectionTitle', noWrap: true },
         consumerSection,
 
@@ -313,8 +313,10 @@ export class ContestedReportPdfService {
     const phone   = meta.lab_phone  || '';
 
     return {
-      margin: [18, 10, 18, 8],
+      margin: [18, 14, 18, 10],
       columnGap: 8,
+            stack: [
+        {
       columns: [
         images['leftLogo']
           ? { image: 'leftLogo', width: 32, alignment: 'left' }
@@ -347,7 +349,7 @@ export class ContestedReportPdfService {
               text: `Email: ${mail}    Phone: ${phone}`,
               alignment: 'center',
               color: '#555',
-              margin: [0, 2, 0, 0],
+              margin: [0, 2, 2, 0],
               fontSize: 9
             },
             { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 1 ,  margin: [0, 2, 0, 0], }] },
@@ -357,6 +359,9 @@ export class ContestedReportPdfService {
         images['rightLogo']
           ? { image: 'rightLogo', width: 32, alignment: 'right' }
           : { width: 32, text: '' }
+      ]
+    
+        }
       ]
     };
   }

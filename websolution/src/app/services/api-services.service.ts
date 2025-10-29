@@ -14,6 +14,12 @@ export type DeviceType = 'METER' | 'CT';
   providedIn: 'root'
 })
 export class ApiServicesService {
+getuseridfromtoken(): any {
+  throw new Error('Method not implemented.');
+}
+getlabidfromtoken(): any {
+  throw new Error('Method not implemented.');
+}
 
 getTestReportsForApproval(status: string, arg1: string | null, arg2: string | null, currentLabId: number) {
   throw new Error('Method not implemented.');

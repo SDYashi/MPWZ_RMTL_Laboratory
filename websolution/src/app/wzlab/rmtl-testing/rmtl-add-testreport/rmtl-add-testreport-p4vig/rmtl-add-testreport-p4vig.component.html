@@ -81,10 +81,9 @@
               <th scope="col" style="width:48px">#</th>
               <th scope="col">Meter No. <span class="text-danger">*</span></th>
               <th scope="col">Make</th>
-              <th scope="col">Capacity</th>
-              <th scope="col">Reading (Removal)</th>
-              <th scope="col">Test Result <span class="text-danger">*</span></th>
-              <th scope="col">Test Report Remark</th>
+              <th scope="col">Capacity</th>              
+              <th scope="col">Comments by Tester</th>
+              <th scope="col">Working <span class="text-danger">*</span></th>
               <th scope="col" class="d-print-none">Details</th>
               <th scope="col" class="d-print-none">Action</th>
             </tr>
@@ -115,9 +114,13 @@
                 <td style="min-width:140px">
                   <input class="form-control " [(ngModel)]="r.capacity" [name]="'b_capacity_'+i" readonly>
                 </td>
+                
 
-                <td style="min-width:140px">
-                  <input type="number" class="form-control " [(ngModel)]="r.removal_reading" [name]="'b_read_rm_'+i" step="0.001">
+                <td style="min-width:200px">
+                  <select class="form-select  mb-1" [(ngModel)]="r.remark" [name]="'b_remark_'+i">
+                    <option value="">--</option>
+                    <option *ngFor="let option of commentby_testers" [value]="option">{{ option }}</option>
+                  </select>
                 </td>
 
                 <td style="min-width:160px">
@@ -126,13 +129,6 @@
                     <option *ngFor="let tr of testResults" [value]="tr">{{ tr }}</option>
                   </select>
                   <small *ngIf="!r.test_result && (r.serial || '').trim()" class="text-danger">Test result is required.</small>
-                </td>
-
-                <td style="min-width:200px">
-                  <select class="form-select  mb-1" [(ngModel)]="r.remark" [name]="'b_remark_'+i">
-                    <option value="">--</option>
-                    <option *ngFor="let option of commentby_testers" [value]="option">{{ option }}</option>
-                  </select>
                 </td>
 
                 <td class="text-center d-print-none">

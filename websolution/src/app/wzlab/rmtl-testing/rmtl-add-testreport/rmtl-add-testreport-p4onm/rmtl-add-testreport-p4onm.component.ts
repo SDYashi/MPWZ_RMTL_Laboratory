@@ -357,9 +357,12 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
       existing.add(serial.toUpperCase()); added++;
     });
     if (!this.batch.rows.length) this.addBatchRow();
+    const emptyRowIndex = this.batch.rows.findIndex(r => !r.serial);
+    if (emptyRowIndex !== -1) {
+      this.batch.rows.splice(emptyRowIndex, 1);
+    }
     this.closePicker();
-    this.inlineInfo = added ? `${added} device(s) added to the batch.` : 'No new devices were added.';
-  }
+   }
   trackAssignment(_i:number, a:AssignmentItem){ return a.id; }
 
   // -------------------- rows --------------------
