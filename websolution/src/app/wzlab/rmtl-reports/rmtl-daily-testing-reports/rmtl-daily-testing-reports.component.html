@@ -48,51 +48,7 @@
         </button>
       </div>
 
-      <!-- Summary Cards -->
-      <div class="row row-cols-2 row-cols-lg-5 g-3 mt-3">
-        <div class="col">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-              <div class="small text-muted">Total Tested</div>
-              <div class="display-6 fw-bold">{{ reportFiltered.length }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-              <div class="small text-muted">Passed</div>
-              <div class="display-6 fw-bold text-success">{{ passCount }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-              <div class="small text-muted">Failed</div>
-              <div class="display-6 fw-bold text-danger">{{ failCount }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-              <div class="small text-muted">Pending</div>
-              <div class="display-6 fw-bold text-warning">{{ pendingCount }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-              <div class="small text-muted">Range</div>
-              <div class="fw-bold">
-                {{ filters.from || '—' }} → {{ filters.to || '—' }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       <hr class="my-4">
 

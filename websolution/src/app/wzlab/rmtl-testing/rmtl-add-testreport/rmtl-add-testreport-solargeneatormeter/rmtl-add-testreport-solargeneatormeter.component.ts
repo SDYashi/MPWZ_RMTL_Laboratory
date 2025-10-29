@@ -650,6 +650,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         ref_no: r.ref_no || null,
 
         test_requester_name: requester,
+      
 
         p4_division: null,
         p4_no: null,
@@ -706,6 +707,7 @@ private doSubmitBatch() {
         testStatus: this.testStatus,
         testing_bench: this.testing_bench || '-',
         testing_user: this.testing_user || '-',
+        approving_user: this.approver_user || '-',
         date: new Date().toISOString().slice(0, 10),
 
         lab_name: this.labInfo?.lab_name || null,

@@ -188,21 +188,19 @@ export class P4VigReportPdfService {
 
   private tableLayout(): any {
     return {
-      hLineWidth: () => 0.6,
-      vLineWidth: () => 0.6,
+      hLineWidth: () => 0.5,
+      vLineWidth: () => 0.5,
       hLineColor: () => this.theme.grid,
       vLineColor: () => this.theme.grid,
-      paddingLeft: () => 4,
-      paddingRight: () => 4,
-      paddingTop: () => 2,
-      paddingBottom: () => 2
+      paddingLeft: () => 3,
+      paddingRight: () => 3,
+      paddingTop: () => 1,
+      paddingBottom: () => 1
     };
   }
 
   /**
-   * Compact, attractive header for each page.
-   * We do: logos left/right, then org name, lab name, lab address,
-   * then one row with Email | Phone.
+   * Compact header optimized for A4
    */
   private headerBar(meta: {
     orgTitle: string;
@@ -212,17 +210,16 @@ export class P4VigReportPdfService {
     lab_phone: string;
   }, images: Record<string,string>, pageWidth: number): Content {
 
-    const logoSize: [number, number] = [40, 40];
+    const logoSize: [number, number] = [30, 30]; // Reduced logo size
 
     return {
-      margin: [18, 10, 18, 8],
+      margin: [18, 6, 18, 4], // Reduced vertical margins
       stack: [
         {
-          // top row: logos + center stack
           columns: [
             images['leftLogo']
-              ? { image: 'leftLogo', fit: logoSize, width: 50, alignment: 'left' }
-              : { width: 50, text: '' },
+              ? { image: 'leftLogo', fit: logoSize, width: 40, alignment: 'left' }
+              : { width: 40, text: '' },
 
             {
               width: '*',
@@ -231,24 +228,24 @@ export class P4VigReportPdfService {
                   text: meta.orgTitle,
                   alignment: 'center',
                   bold: true,
-                  fontSize: 11,
+                  fontSize: 10, // Reduced font size
                   color: this.theme.heading,
-                  margin: [0, 0, 0, 2]
+                  margin: [0, 0, 0, 1] // Reduced margin
                 },
                 {
                   text: (meta.lab_name || '').toUpperCase(),
                   alignment: 'center',
                   bold: true,
-                  fontSize: 10,
+                  fontSize: 9, // Reduced font size
                   color: '#333',
-                  margin: [0, 0, 0, 1]
+                  margin: [0, 0, 0, 1] // Reduced margin
                 },
                 {
                   text: meta.lab_address || '',
                   alignment: 'center',
-                  fontSize: 9,
+                  fontSize: 8, // Reduced font size
                   color: '#444',
-                  margin: [0, 0, 0, 2]
+                  margin: [0, 0, 0, 1] // Reduced margin
                 },
                 {
                   columns: [
@@ -256,7 +253,7 @@ export class P4VigReportPdfService {
                       width: '*',
                       text: meta.lab_email ? `Email: ${meta.lab_email}` : '',
                       alignment: 'right',
-                      fontSize: 8,
+                      fontSize: 7, // Reduced font size
                       color: '#444',
                       margin: [0, 0, 4, 0]
                     },
@@ -264,7 +261,7 @@ export class P4VigReportPdfService {
                       width: '*',
                       text: meta.lab_phone ? `Phone: ${meta.lab_phone}` : '',
                       alignment: 'left',
-                      fontSize: 8,
+                      fontSize: 7, // Reduced font size
                       color: '#444',
                       margin: [4, 0, 0, 0]
                     }
@@ -274,10 +271,10 @@ export class P4VigReportPdfService {
             },
 
             images['rightLogo']
-              ? { image: 'rightLogo', fit: logoSize, width: 50, alignment: 'right' }
-              : { width: 50, text: '' }
+              ? { image: 'rightLogo', fit: logoSize, width: 40, alignment: 'right' }
+              : { width: 40, text: '' }
           ],
-          columnGap: 8
+          columnGap: 6 // Reduced gap
         },
 
         // subtle divider under header
@@ -286,12 +283,12 @@ export class P4VigReportPdfService {
             type: 'line',
             x1: 0,
             y1: 0,
-            x2: pageWidth - 36, // width minus left/right page margins
+            x2: pageWidth - 36,
             y2: 0,
-            lineWidth: 1,
+            lineWidth: 0.5, // Thinner line
             lineColor: this.theme.grid
           }],
-          margin: [0, 8, 0, 0]
+          margin: [0, 4, 0, 0] // Reduced margin
         }
       ]
     };
@@ -314,25 +311,25 @@ export class P4VigReportPdfService {
           color: '#fff',
           alignment: 'center',
           bold: true,
-          fontSize: 8
+          fontSize: 7 // Reduced font size
         }]]
       },
       layout: {
         hLineWidth: () => 0,
         vLineWidth: () => 0,
         fillColor: () => color,
-        paddingLeft: () => 3,
-        paddingRight: () => 3,
-        paddingTop: () => 2,
-        paddingBottom: () => 2
+        paddingLeft: () => 2,
+        paddingRight: () => 2,
+        paddingTop: () => 1,
+        paddingBottom: () => 1
       },
-      width: 44
+      width: 40 // Reduced width
     };
   }
 
   private sectionHeading(text: string): Content {
     return {
-      margin: [0, 5, 0, 4],
+      margin: [0, 3, 0, 2], // Reduced margins
       table: {
         widths: ['*'],
         body: [[{
@@ -340,8 +337,8 @@ export class P4VigReportPdfService {
           bold: true,
           color: this.theme.heading,
           fillColor: this.theme.sectionBg,
-          fontSize: 13,
-          margin: [4, 3, 4, 3],
+          fontSize: 11, // Reduced font size
+          margin: [3, 2, 3, 2], // Reduced margin
           alignment: 'center'
         }]]
       },
@@ -362,7 +359,6 @@ export class P4VigReportPdfService {
     images: Record<string, string>
   ): TDocumentDefinitions {
 
-    // build meta block
     const zone =
       (header.location_code ? header.location_code + ' - ' : '') +
       (header.location_name || '');
@@ -382,8 +378,8 @@ export class P4VigReportPdfService {
       lab_phone: header.lab_phone || ''
     };
 
-    const pageWidth = 595.28; // A4 width in pdfmake default units
-    const usableWidth = pageWidth - 36; // left+right margin 18 each
+    const pageWidth = 595.28;
+    const usableWidth = pageWidth - 36;
 
     const content: Content[] = [];
     const data = (rows || []).filter(r => (r.serial || '').trim());
@@ -399,12 +395,12 @@ export class P4VigReportPdfService {
 
     return {
       pageSize: 'A4',
-      // give modest top margin because header() returns a header we render ourselves
-      pageMargins: [18, 100, 18, 40],
+      // Reduced top margin to save space
+      pageMargins: [18, 70, 18, 30],
       defaultStyle: {
-        fontSize: 9,
+        fontSize: 8, // Reduced base font size
         color: '#111',
-        lineHeight: 1.15
+        lineHeight: 1.1 // Reduced line height
       },
       images,
       info: {
@@ -422,19 +418,19 @@ export class P4VigReportPdfService {
         pageWidth
       ) as any,
       footer: (current: number, total: number) => ({
-        margin: [18, 0, 18, 16],
+        margin: [18, 0, 18, 10], // Reduced footer margin
         columns: [
           {
             text: `Page ${current} of ${total}`,
             alignment: 'left',
             color: this.theme.subtle,
-            fontSize: 8
+            fontSize: 7 // Reduced font size
           },
           {
             text: 'MPPKVVCL • RMTL Indore',
             alignment: 'right',
             color: this.theme.subtle,
-            fontSize: 8
+            fontSize: 7 // Reduced font size
           }
         ]
       }),
@@ -456,12 +452,16 @@ export class P4VigReportPdfService {
   ): Content[] {
 
     const bold = { bold: true };
-    const labelCell = (t: string) => ({ text: t, ...bold, fillColor: this.theme.labelBg });
+    const labelCell = (t: string) => ({ 
+      text: t, 
+      ...bold, 
+      fillColor: this.theme.labelBg,
+      fontSize: 8 // Consistent font size
+    });
 
-    // reusable row builder for 2-col "Label / Value"
     const twoCol = (label: string, value: any): any[] => [
       labelCell(label),
-      { text: value != null ? String(value) : '' }
+      { text: value != null ? String(value) : '', fontSize: 8 }
     ];
 
     // === SECTION: Report title + meta summary ===
@@ -473,16 +473,16 @@ export class P4VigReportPdfService {
           widths: ['auto','*','auto','*','auto','*','auto','*'],
           body: [[
             labelCell('Zone / DC'),
-            { text: meta.zone || '-' },
+            { text: meta.zone || '-', fontSize: 8 },
             labelCell('Method'),
-            { text: meta.method || '-' },
+            { text: meta.method || '-', fontSize: 8 },
             labelCell('Status'),
-            { text: meta.status || '-' },
+            { text: meta.status || '-', fontSize: 8 },
             labelCell('Bench'),
-            { text: meta.bench || '-' }
+            { text: meta.bench || '-', fontSize: 8 }
           ]]
         },
-        margin: [0,0,0,2]
+        margin: [0,0,0,1] // Reduced margin
       },
       {
         layout: this.tableLayout(),
@@ -490,11 +490,12 @@ export class P4VigReportPdfService {
           widths: ['auto','*','auto','*'],
           body: [[
             labelCell('Testing User'),
-            { text: meta.user || '-' },
+            { text: meta.user || '-', fontSize: 8 },
             labelCell('Date'),
-            { text: meta.date || '-' }
+            { text: meta.date || '-', fontSize: 8 }
           ]]
-        }
+        },
+        margin: [0,0,0,2] // Reduced margin
       }
     ];
 
@@ -504,7 +505,7 @@ export class P4VigReportPdfService {
       {
         layout: this.tableLayout(),
         table: {
-          widths: [180, '*'],
+          widths: [150, '*'], // Reduced first column width
           body: [
             twoCol('Name of Consumer', r.consumer_name || ''),
             twoCol('Address', r.address || ''),
@@ -542,10 +543,10 @@ export class P4VigReportPdfService {
               labelCell('Reading at Removal')
             ],
             [
-              { text: r.serial || '' },
-              { text: r.make || '' },
-              { text: r.capacity || '' },
-              { text: this.fmtNum(r.removal_reading, 3) }
+              { text: r.serial || '', fontSize: 8 },
+              { text: r.make || '', fontSize: 8 },
+              { text: r.capacity || '', fontSize: 8 },
+              { text: this.fmtNum(r.removal_reading, 3), fontSize: 8 }
             ]
           ]
         }
@@ -558,7 +559,7 @@ export class P4VigReportPdfService {
       {
         layout: this.tableLayout(),
         table: {
-          widths: [180, '*'],
+          widths: [150, '*'], // Reduced first column width
           body: [
             twoCol('Date of Testing', r.testing_date || meta.date),
             twoCol('Whether Found Burnt', r.is_burned ? 'YES' : 'NO'),
@@ -581,107 +582,72 @@ export class P4VigReportPdfService {
           widths: ['auto','*','auto','*'],
           body: [[
             labelCell('Test Type'),
-            { text: r.test_type || 'NOT SPECIFIED' },
+            { text: r.test_type || 'NOT SPECIFIED', fontSize: 8 },
             labelCell('Meter Type'),
-            { text: r.meter_type || 'NOT SPECIFIED' }
+            { text: r.meter_type || 'NOT SPECIFIED', fontSize: 8 }
           ]]
         }
       }
     ];
 
-    // === SECTION: Shunt test readings ===
+    // Get conditional blocks
     const shuntBlock = this.blockShunt(r);
-
-    // === SECTION: Neutral test readings ===
     const neutralBlock = this.blockNeutral(r);
-
-    // === SECTION: Import / Export (netmeter etc.) ===
     const impExpBlock = this.blockImportExport(r);
-
-    // === SECTION: Technical readings ===
     const techBlock = this.blockTechnical(r);
-
-    // === SECTION: Administrative / extra info ===
     const addlBlock = this.blockAdditionalInfo(r);
-
-    // === SECTION: P4 details ===
     const p4Block = this.blockP4(r);
 
     // === TEST RESULT / REMARKS / APPROVAL ===
     const resultAndRemarks: Content[] = [
       this.sectionHeading('5. RESULT & REMARKS'),
       {
-        margin: [0,2,0,0],
+        margin: [0,1,0,0], // Reduced margin
         text: [
           'TEST RESULT: ',
           (r.test_result || this.dotted(15))
         ],
         bold: true,
-        fontSize: 10,
+        fontSize: 9, // Slightly larger but still compact
         color: this.theme.heading
       },
-      r.remark
-        ? {
-            margin: [0,6,0,0],
-            stack: [
-              { text: 'Remarks', bold: true },
-              { text: r.remark || '', margin: [0,2,0,0] }
-            ]
-          }
-        : { text: '' },
-      r.final_remarks
-        ? {
-            margin: [0,6,0,0],
-            stack: [
-              { text: 'Final Remarks', bold: true },
-              { text: r.final_remarks || '', margin: [0,2,0,0] }
-            ]
-          }
-        : { text: '' },
-      r.approver_remark
-        ? {
-            margin: [0,6,0,0],
-            stack: [
-              { text: 'Approver Remarks', bold: true },
-              { text: r.approver_remark || '', margin: [0,2,0,0] }
-            ]
-          }
-        : { text: '' }
+      ...this.buildRemarksSection(r)
     ];
 
-    // signature section, with tester + approver names
+    // signature section - more compact
     const signBlock: Content = {
-      margin: [0, 12, 0, 0],
+      margin: [0, 8, 0, 0], // Reduced margin
       columns: [
         {
           width: '*',
           stack: [
-            { text: 'Tested by', bold: true, alignment: 'center' },
-            { text: '____________________________', alignment: 'center', margin: [0,4,0,2] },
-            { text: meta.user?.toUpperCase() || '', alignment: 'center', fontSize: 9 },
-            { text: 'TESTING ASSISTANT', alignment: 'center', fontSize: 8, color: this.theme.subtle }
+            { text: 'Tested by', bold: true, alignment: 'center', fontSize: 8 },
+            { text: '____________________', alignment: 'center', margin: [0,2,0,1], fontSize: 7 },
+            { text: meta.user?.toUpperCase() || '', alignment: 'center', fontSize: 8 },
+            { text: 'TESTING ASSISTANT', alignment: 'center', fontSize: 7, color: this.theme.subtle }
           ]
         },
         {
           width: '*',
           stack: [
-            { text: 'Verified by', bold: true, alignment: 'center' },
-            { text: '____________________________', alignment: 'center', margin: [0,4,0,2] },
-            { text: 'JUNIOR ENGINEER', alignment: 'center', fontSize: 8, color: this.theme.subtle }
+            { text: 'Verified by', bold: true, alignment: 'center', fontSize: 8 },
+            { text: '____________________', alignment: 'center', margin: [0,2,0,1], fontSize: 7 },
+            { text: 'JUNIOR ENGINEER', alignment: 'center', fontSize: 7, color: this.theme.subtle }
           ]
         },
         {
           width: '*',
           stack: [
-            { text: 'Approved by', bold: true, alignment: 'center' },
-            { text: '____________________________', alignment: 'center', margin: [0,4,0,2] },
-            { text: meta.approver?.toUpperCase() || '', alignment: 'center', fontSize: 9 },
-            { text: 'ASSISTANT ENGINEER', alignment: 'center', fontSize: 8, color: this.theme.subtle }
+            { text: 'Approved by', bold: true, alignment: 'center', fontSize: 8 },
+            { text: '____________________', alignment: 'center', margin: [0,2,0,1], fontSize: 7 },
+            { text: meta.approver?.toUpperCase() || '', alignment: 'center', fontSize: 8 },
+            { text: 'ASSISTANT ENGINEER', alignment: 'center', fontSize: 7, color: this.theme.subtle }
           ]
         }
       ]
     };
 
+    // Build all content blocks
     const blocks: Content[] = [
       ...titleBand,
       ...consumerBlock,
@@ -690,9 +656,9 @@ export class P4VigReportPdfService {
       ...testTypeBlock
     ];
 
+    // Add conditional blocks
     if (shuntBlock) blocks.push(shuntBlock);
     if (neutralBlock) blocks.push(neutralBlock);
-    // if (impExpBlock) blocks.push(impExpBlock);
     if (techBlock) blocks.push(techBlock);
     if (addlBlock) blocks.push(addlBlock);
     if (p4Block) blocks.push(p4Block);
@@ -703,9 +669,45 @@ export class P4VigReportPdfService {
     return blocks;
   }
 
+  private buildRemarksSection(r: VigRow): Content[] {
+    const remarks: Content[] = [];
+    
+    if (r.remark) {
+      remarks.push({
+        margin: [0,4,0,0], // Reduced margin
+        stack: [
+          { text: 'Remarks', bold: true, fontSize: 8 },
+          { text: r.remark || '', margin: [0,1,0,0], fontSize: 8 } // Reduced margin
+        ]
+      });
+    }
+
+    if (r.final_remarks) {
+      remarks.push({
+        margin: [0,3,0,0], // Reduced margin
+        stack: [
+          { text: 'Final Remarks', bold: true, fontSize: 8 },
+          { text: r.final_remarks || '', margin: [0,1,0,0], fontSize: 8 } // Reduced margin
+        ]
+      });
+    }
+
+    if (r.approver_remark) {
+      remarks.push({
+        margin: [0,3,0,0], // Reduced margin
+        stack: [
+          { text: 'Approver Remarks', bold: true, fontSize: 8 },
+          { text: r.approver_remark || '', margin: [0,1,0,0], fontSize: 8 } // Reduced margin
+        ]
+      });
+    }
+
+    return remarks.length > 0 ? remarks : [{ text: '' }];
+  }
+
   // ===== block builders =====
   private blockShunt(r: VigRow): Content | null {
-    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg });
+    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg, fontSize: 8 });
     const show =
       r.test_type === 'SHUNT' ||
       this.hasAny([
@@ -731,19 +733,19 @@ export class P4VigReportPdfService {
             body: [
               [
                 lbl('Before Test'),
-                { text: this.fmtNum(r.shunt_reading_before_test) },
+                { text: this.fmtNum(r.shunt_reading_before_test), fontSize: 8 },
                 lbl('After Test'),
-                { text: this.fmtNum(r.shunt_reading_after_test) }
+                { text: this.fmtNum(r.shunt_reading_after_test), fontSize: 8 }
               ],
               [
                 lbl('Ref Start'),
-                { text: this.fmtNum(r.shunt_ref_start_reading) },
+                { text: this.fmtNum(r.shunt_ref_start_reading), fontSize: 8 },
                 lbl('Ref End'),
-                { text: this.fmtNum(r.shunt_ref_end_reading) }
+                { text: this.fmtNum(r.shunt_ref_end_reading), fontSize: 8 }
               ],
               [
                 lbl('Error % (Shunt)'),
-                { text: this.fmtNum(r.shunt_error_percentage) },
+                { text: this.fmtNum(r.shunt_error_percentage), fontSize: 8 },
                 { text: '', border: [false,false,false,false] },
                 { text: '', border: [false,false,false,false] }
               ],
@@ -767,7 +769,7 @@ export class P4VigReportPdfService {
   }
 
   private blockNeutral(r: VigRow): Content | null {
-    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg });
+    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg, fontSize: 8 });
     const show =
       r.test_type === 'NEUTRAL' ||
       this.hasAny([
@@ -793,19 +795,19 @@ export class P4VigReportPdfService {
             body: [
               [
                 lbl('Before Test'),
-                { text: this.fmtNum(r.nutral_reading_before_test) },
+                { text: this.fmtNum(r.nutral_reading_before_test), fontSize: 8 },
                 lbl('After Test'),
-                { text: this.fmtNum(r.nutral_reading_after_test) }
+                { text: this.fmtNum(r.nutral_reading_after_test), fontSize: 8 }
               ],
               [
                 lbl('Ref Start'),
-                { text: this.fmtNum(r.nutral_ref_start_reading) },
+                { text: this.fmtNum(r.nutral_ref_start_reading), fontSize: 8 },
                 lbl('Ref End'),
-                { text: this.fmtNum(r.nutral_ref_end_reading) }
+                { text: this.fmtNum(r.nutral_ref_end_reading), fontSize: 8 }
               ],
               [
                 lbl('Error % (Neutral)'),
-                { text: this.fmtNum(r.nutral_error_percentage) },
+                { text: this.fmtNum(r.nutral_error_percentage), fontSize: 8 },
                 { text: '', border: [false,false,false,false] },
                 { text: '', border: [false,false,false,false] }
               ],
@@ -829,7 +831,6 @@ export class P4VigReportPdfService {
   }
 
   private blockImportExport(r: VigRow): Content | null {
-    // show if netmeter style data or import style data exists
     const showNet = r.meter_type === 'NETMETER';
     const hasImportLike = this.hasAny([
       r.start_reading_import,
@@ -840,10 +841,9 @@ export class P4VigReportPdfService {
 
     if (!showNet && !hasImportLike) return null;
 
-    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg });
+    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg, fontSize: 8 });
 
     if (showNet) {
-      // full import/export block
       return {
         stack: [
           this.sectionHeading('IMPORT / EXPORT READINGS (NET METER)'),
@@ -855,27 +855,27 @@ export class P4VigReportPdfService {
               body: [
                 [
                   lbl('Import Start'),
-                  { text: this.fmtNum(r.start_reading_import) },
+                  { text: this.fmtNum(r.start_reading_import), fontSize: 8 },
                   lbl('Import Final'),
-                  { text: this.fmtNum(r.final_reading_import) },
+                  { text: this.fmtNum(r.final_reading_import), fontSize: 8 },
                   lbl('Import Error %'),
-                  { text: this.fmtNum(r.error_percentage_import) }
+                  { text: this.fmtNum(r.error_percentage_import), fontSize: 8 }
                 ],
                 [
                   lbl('Export Start'),
-                  { text: this.fmtNum(r.start_reading_export) },
+                  { text: this.fmtNum(r.start_reading_export), fontSize: 8 },
                   lbl('Export Final'),
-                  { text: this.fmtNum(r.final_reading_export) },
+                  { text: this.fmtNum(r.final_reading_export), fontSize: 8 },
                   lbl('Export Error %'),
-                  { text: this.fmtNum(r.error_percentage_export) }
+                  { text: this.fmtNum(r.error_percentage_export), fontSize: 8 }
                 ],
                 [
                   lbl('Import Diff'),
-                  { text: this.fmtNum(r.difference_import) },
+                  { text: this.fmtNum(r.difference_import), fontSize: 8 },
                   lbl('Export Diff'),
-                  { text: this.fmtNum(r.difference_export) },
+                  { text: this.fmtNum(r.difference_export), fontSize: 8 },
                   lbl('Final Diff'),
-                  { text: this.fmtNum(r.final_Meter_Difference) }
+                  { text: this.fmtNum(r.final_Meter_Difference), fontSize: 8 }
                 ]
               ]
             }
@@ -884,7 +884,6 @@ export class P4VigReportPdfService {
       };
     }
 
-    // import-only style
     return {
       stack: [
         this.sectionHeading('IMPORT READINGS'),
@@ -896,15 +895,15 @@ export class P4VigReportPdfService {
             body: [
               [
                 lbl('Start Reading'),
-                { text: this.fmtNum(r.start_reading_import) },
+                { text: this.fmtNum(r.start_reading_import), fontSize: 8 },
                 lbl('Final Reading'),
-                { text: this.fmtNum(r.final_reading_import) }
+                { text: this.fmtNum(r.final_reading_import), fontSize: 8 }
               ],
               [
                 lbl('Difference'),
-                { text: this.fmtNum(r.difference_import) },
+                { text: this.fmtNum(r.difference_import), fontSize: 8 },
                 lbl('Error %'),
-                { text: this.fmtNum(r.error_percentage_import) }
+                { text: this.fmtNum(r.error_percentage_import), fontSize: 8 }
               ]
             ]
           }
@@ -922,7 +921,7 @@ export class P4VigReportPdfService {
     ]);
     if (!show) return null;
 
-    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg });
+    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg, fontSize: 8 });
 
     return {
       stack: [
@@ -934,15 +933,15 @@ export class P4VigReportPdfService {
             body: [
               [
                 lbl('kWh by RSM'),
-                { text: this.fmtNum(r.dail_test_kwh_rsm) },
+                { text: this.fmtNum(r.dail_test_kwh_rsm), fontSize: 8 },
                 lbl('kWh by Meter'),
-                { text: this.fmtNum(r.recorderedbymeter_kwh) }
+                { text: this.fmtNum(r.recorderedbymeter_kwh), fontSize: 8 }
               ],
               [
                 lbl('Testing Mechanism'),
-                { text: r.dial_testby || '' },
+                { text: r.dial_testby || '', fontSize: 8 },
                 lbl('Meter Condition'),
-                { text: this.fmtNum(r.meter_removaltime_metercondition) }
+                { text: this.fmtNum(r.meter_removaltime_metercondition), fontSize: 8 }
               ]
             ]
           }
@@ -963,7 +962,7 @@ export class P4VigReportPdfService {
     ]);
     if (!show) return null;
 
-    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg });
+    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg, fontSize: 8 });
 
     return {
       stack: [
@@ -971,15 +970,15 @@ export class P4VigReportPdfService {
         {
           layout: this.tableLayout(),
           table: {
-            widths: [180, '*'],
+            widths: [140, '*'], // Reduced first column width
             body: [
-              [ lbl('Certificate Number'), { text: r.certificate_number || '' } ],
-              [ lbl('Testing Fees'),       { text: r.testing_fees || '' } ],
-              [ lbl('Fees MR No.'),       { text: r.fees_mr_no || '' } ],
-              [ lbl('Fees MR Date'),      { text: r.fees_mr_date || '' } ],
-              [ lbl('Reference No.'),     { text: r.ref_no || '' } ],
-              [ lbl('Test Requester'),    { text: r.test_requester_name || '' } ],
-              [ lbl('Other Remarks'),     { text: r.any_other_remarkny_zone || '' } ]
+              [ lbl('Certificate Number'), { text: r.certificate_number || '', fontSize: 8 } ],
+              [ lbl('Testing Fees'),       { text: r.testing_fees || '', fontSize: 8 } ],
+              [ lbl('Fees MR No.'),       { text: r.fees_mr_no || '', fontSize: 8 } ],
+              [ lbl('Fees MR Date'),      { text: r.fees_mr_date || '', fontSize: 8 } ],
+              [ lbl('Reference No.'),     { text: r.ref_no || '', fontSize: 8 } ],
+              [ lbl('Test Requester'),    { text: r.test_requester_name || '', fontSize: 8 } ],
+              [ lbl('Other Remarks'),     { text: r.any_other_remarkny_zone || '', fontSize: 8 } ]
             ]
           }
         }
@@ -996,7 +995,7 @@ export class P4VigReportPdfService {
     ]);
     if (!show) return null;
 
-    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg });
+    const lbl = (t: string) => ({ text: t, bold: true, fillColor: this.theme.labelBg, fontSize: 8 });
 
     return {
       stack: [
@@ -1004,12 +1003,12 @@ export class P4VigReportPdfService {
         {
           layout: this.tableLayout(),
           table: {
-            widths: [180, '*'],
+            widths: [140, '*'], // Reduced first column width
             body: [
-              [ lbl('P4 Division'),        { text: r.p4_division || '' } ],
-              [ lbl('P4 Number'),          { text: r.p4_no || '' } ],
-              [ lbl('P4 Date'),            { text: r.p4_date || '' } ],
-              [ lbl('P4 Meter Condition'), { text: r.p4_metercodition || '' } ]
+              [ lbl('P4 Division'),        { text: r.p4_division || '', fontSize: 8 } ],
+              [ lbl('P4 Number'),          { text: r.p4_no || '', fontSize: 8 } ],
+              [ lbl('P4 Date'),            { text: r.p4_date || '', fontSize: 8 } ],
+              [ lbl('P4 Meter Condition'), { text: r.p4_metercodition || '', fontSize: 8 } ]
             ]
           }
         }

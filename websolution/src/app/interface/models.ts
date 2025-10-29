@@ -280,3 +280,51 @@ export interface OfficeReport {
   updated_at: string;
   updated_by: number;
 }
+
+export interface BarChartItem {
+  device_type: string;
+  count: number;
+}
+
+export interface TestingBarChartItem {
+  device_type: string;
+  total: number;
+  completed: number;
+}
+
+export interface AssignmentBarItem {
+  device_type: string;
+  total: number;
+  count: number; // filtered count, e.g. APPROVED / ASSIGNED etc.
+}
+
+export interface AssignmentPercentageItem {
+  device_type: string;
+  total: number;
+  assigned: number;
+  percentage: string; // "85.00%"
+}
+
+export interface LineChartItem {
+  date: string; // ISO date string
+  count: number;
+}
+
+export interface TestingDashboardData {
+  total_devices: number;
+  assigned_devices: number;
+  completed_devices: number;
+  inwarded_devices: number;
+  dispatched_devices: number;
+  approved_devices: number;
+}
+
+export interface AssignmentDashboardData {
+  total_devices: number;
+  assigned_devices: number;
+  approved_devices: number;
+  completed_devices: number;
+  inward_devices: number;
+  dispatched_devices: number;
+  inwarded_devices : number;
+}

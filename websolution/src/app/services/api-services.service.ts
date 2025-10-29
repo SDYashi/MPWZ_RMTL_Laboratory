@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environment/environment';
-import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass, TestReportPayload, TestingStatusAgg, DashboardCounts } from '../interface/models';
+import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass, TestReportPayload, TestingStatusAgg, DashboardCounts, BarChartItem, TestingBarChartItem, AssignmentBarItem, AssignmentPercentageItem, LineChartItem, TestingDashboardData, AssignmentDashboardData } from '../interface/models';
 
 export type DeviceType = 'METER' | 'CT';
 
@@ -579,5 +579,33 @@ getDivisions() {
   return this.http.get<any>(`${this.baseUrl}/reports/divisions/`);  
 }
 
+
+  getBarChart(params?: any): Observable<BarChartItem[]> {
+    return this.http.get<BarChartItem[]>(`${this.baseUrl}/reports/bar-chart/`);
+  }
+
+  getTestingBarChart(params?: any): Observable<TestingBarChartItem[]> {
+    return this.http.get<TestingBarChartItem[]>(`${this.baseUrl}/reports/testing-bar-chart/`);
+  }
+
+  getAssignmentBarChart(params?: any): Observable<AssignmentBarItem[]> {
+    return this.http.get<AssignmentBarItem[]>(`${this.baseUrl}/reports/bar-chart-assignments/`);
+  }
+
+  getAssignmentPercentage(params?: any): Observable<AssignmentPercentageItem[]> {
+    return this.http.get<AssignmentPercentageItem[]>(`${this.baseUrl}/reports/testing-device-users-assignment-percentage/`);
+  }
+
+  getCompletedActivitiesLine(params?: any): Observable<LineChartItem[]> {
+    return this.http.get<LineChartItem[]>(`${this.baseUrl}/reports/line-chart/completed-activities/`);
+  }
+
+  getTestingDashboard(params?: any): Observable<TestingDashboardData> {
+    return this.http.get<TestingDashboardData>(`${this.baseUrl}/reports/testing-dashboard/`);
+  }
+
+  getAssignmentDashboardforcharts(params?: any): Observable<AssignmentDashboardData> {
+    return this.http.get<AssignmentDashboardData>(`${this.baseUrl}/reports/assignment-dashboard/`);
+  }
 
 }
