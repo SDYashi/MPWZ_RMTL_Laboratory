@@ -14,6 +14,7 @@ export interface SmartLabInfo {
 }
 
 export interface SmartRow {
+  // keep serial as the canonical field name
   serial: string;
   make?: string;
   capacity?: string;
@@ -34,6 +35,9 @@ export interface SmartMeta {
 
   approver_remarks?: string | null;
   lab?: SmartLabInfo;
+
+  leftLogoUrl?: string;
+  rightLogoUrl?: string;
 }
 
 export interface PdfLogos {
@@ -121,10 +125,8 @@ export class SmartAgainstMeterReportPdfService {
       (meta.labEmail || meta.labPhone)
         ? `Email: ${meta.labEmail || '-'}    Phone: ${meta.labPhone || '-'}`
         : '';
-
-    // cast as any at the end to satisfy pdfMake typings for nested columns/stack/canvas
     return {
-     margin: [18, 10, 18, 8],
+       margin: [18, 10, 18, 8],
       stack: [
         {
           columns: [
@@ -204,8 +206,9 @@ export class SmartAgainstMeterReportPdfService {
     return {
       margin: [28, 0, 28, 10],
       layout: {
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        // thicker borders like stop/defective
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
@@ -258,7 +261,8 @@ export class SmartAgainstMeterReportPdfService {
     rows.forEach((r, i) => {
       body.push([
         { text: String(i + 1), alignment: 'center' as const },
-        { text: r.serial || '-' },
+        // tolerant: accept serial or serial_number
+        { text: (r as any).serial || (r as any).serial_number || '-' },
         { text: r.make || '-' },
         { text: r.capacity || '-' },
         { text: this.resultText(r) }
@@ -270,8 +274,9 @@ export class SmartAgainstMeterReportPdfService {
       layout: {
         fillColor: (rowIdx: number) =>
           rowIdx > 0 && rowIdx % 2 === 1 ? '#fafafa' : undefined,
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        // thicker borders
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
@@ -361,21 +366,17 @@ export class SmartAgainstMeterReportPdfService {
     const okCount = rows.filter(r => this.isOk(r)).length;
     const defCount = total - okCount;
 
-    const labName =
-      meta.lab?.lab_name ||'';
-    const labAddress =
-      meta.lab?.address_line ||'';
-    const labEmail =
-      meta.lab?.email || '';
-    const labPhone =
-      meta.lab?.phone || '';
+    const labName = meta.lab?.lab_name || '';
+    const labAddress = meta.lab?.address_line || '';
+    const labEmail = meta.lab?.email || '';
+    const labPhone = meta.lab?.phone || '';
 
-    const contentWidth = 595.28 - 18 - 18; // page width minus left/right margins
+    const contentWidth = 595.28 - 18 - 18;
 
     return {
       pageSize: 'A4',
       pageMargins: [18, 92, 18, 34],
-      defaultStyle: { fontSize: 9, lineHeight: 1.1, color: '#111' },
+      defaultStyle: { fontSize: 9, lineHeight: 1.5, color: '#111' },
       info: { title: `SMART_AGAINST_METER_${meta.date}` },
       images: imagesDict,
       styles: {
@@ -415,7 +416,8 @@ export class SmartAgainstMeterReportPdfService {
         fontSize: 8
       }),
       content: [
-        { text: 'SMART AGAINST METER TEST REPORT', style: 'sectionTitle' },
+        {canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }]},
+        { text: 'SMART AGAINST METER TEST REPORT', style: 'sectionTitle', fontSize: 13, color: '#0b2237', margin: [0, 12, 0, 0]},
 
         this.metaTable(meta),
 

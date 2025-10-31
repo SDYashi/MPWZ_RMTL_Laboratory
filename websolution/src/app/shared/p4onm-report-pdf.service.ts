@@ -382,8 +382,8 @@ export class P4onmReportPdfService {
 
     const infoTable = {
       layout: {
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
@@ -427,8 +427,8 @@ export class P4onmReportPdfService {
 
     const slip = {
       layout: {
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
@@ -452,8 +452,8 @@ export class P4onmReportPdfService {
 
     const slipMeter = {
       layout: {
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
@@ -485,8 +485,8 @@ export class P4onmReportPdfService {
 
     const rmtlGrid = {
       layout: {
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
@@ -508,8 +508,8 @@ export class P4onmReportPdfService {
 
     const shuntGrid = this.hasShunt(r) ? {
       layout: {
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
@@ -558,8 +558,8 @@ export class P4onmReportPdfService {
 
     const neutralGrid = this.hasNutral(r) ? {
       layout: {
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
@@ -614,8 +614,8 @@ export class P4onmReportPdfService {
 
     const legacyResults = legacyNeeded ? {
       layout: {
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
@@ -653,8 +653,8 @@ export class P4onmReportPdfService {
     const combinedError = this.present(r.error_percentage_import)
       ? {
           layout: {
-            hLineWidth: () => 0.5,
-            vLineWidth: () => 0.5,
+            hLineWidth: () => 1.5,
+            vLineWidth: () => 1.5,
             hLineColor: () => this.theme.grid,
             vLineColor: () => this.theme.grid,
             paddingLeft: () => 4,
@@ -678,8 +678,8 @@ export class P4onmReportPdfService {
     const remarksBlock = this.present(r.final_remarks)
       ? {
           layout: {
-            hLineWidth: () => 0.5,
-            vLineWidth: () => 0.5,
+            hLineWidth: () => 1.5,
+            vLineWidth: () => 1.5,
             hLineColor: () => this.theme.grid,
             vLineColor: () => this.theme.grid,
             paddingLeft: () => 4,

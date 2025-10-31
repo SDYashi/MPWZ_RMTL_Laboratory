@@ -188,8 +188,8 @@ export class P4VigReportPdfService {
 
   private tableLayout(): any {
     return {
-      hLineWidth: () => 0.5,
-      vLineWidth: () => 0.5,
+      hLineWidth: () => 0.8,
+      vLineWidth: () => 0.8,
       hLineColor: () => this.theme.grid,
       vLineColor: () => this.theme.grid,
       paddingLeft: () => 3,

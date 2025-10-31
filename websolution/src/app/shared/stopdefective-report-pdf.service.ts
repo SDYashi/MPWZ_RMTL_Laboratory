@@ -43,10 +43,12 @@ export class StopDefectiveReportPdfService {
 
   private logoCache = new Map<string, string>();
 
+  // ---------- Theme & helpers ----------
   private theme = {
     grid: '#e6e9ef',
     labelBg: '#f8f9fc',
-    textSubtle: '#5d6b7a'
+    softHeaderBg: '#eef7ff',
+    textSubtle: '#5d6b7a',
   };
 
   // ---- asset helpers ----
@@ -199,8 +201,8 @@ export class StopDefectiveReportPdfService {
     return {
       margin: [28, 0, 28, 10],
       layout: {
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
@@ -265,8 +267,8 @@ export class StopDefectiveReportPdfService {
       layout: {
         fillColor: (rowIdx: number) =>
           rowIdx > 0 && rowIdx % 2 === 1 ? '#fafafa' : undefined,
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        hLineWidth: () => 1,
+        vLineWidth: () => 1,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
@@ -293,9 +295,8 @@ export class StopDefectiveReportPdfService {
           alignment: 'center' as const,
           stack: [
             { text: '\n\nTested by', bold: true, alignment: 'center' as const },
-            { text: '\n____________________________', alignment: 'center' as const },
             {
-              text: (meta.testing_user || '____________________________').toUpperCase(),
+              text: ('\n\n' + meta.testing_user || '-').toUpperCase(),
               fontSize: 8.5,
               color: this.theme.textSubtle,
               alignment: 'center' as const
@@ -313,7 +314,12 @@ export class StopDefectiveReportPdfService {
           alignment: 'center' as const,
           stack: [
             { text: '\n\nVerified by', bold: true, alignment: 'center' as const },
-            { text: '\n____________________________', alignment: 'center' as const },
+            {
+              text: ('\n\n').toUpperCase(),
+              fontSize: 8.5,
+              color: this.theme.textSubtle,
+              alignment: 'center' as const
+            },
             {
               text: 'JUNIOR ENGINEER',
               fontSize: 8.5,
@@ -327,9 +333,8 @@ export class StopDefectiveReportPdfService {
           alignment: 'center' as const,
           stack: [
             { text: '\n\nApproved by', bold: true, alignment: 'center' as const },
-            { text: '\n____________________________', alignment: 'center' as const },
             {
-              text: (meta.approving_user || '____________________________').toUpperCase(),
+              text: ('\n\n' + meta.approving_user || '-').toUpperCase(),
               fontSize: 8.5,
               color: this.theme.textSubtle,
               alignment: 'center' as const
@@ -370,14 +375,14 @@ export class StopDefectiveReportPdfService {
     return {
       pageSize: 'A4',
       pageMargins: [18, 92, 18, 34],
-      defaultStyle: { fontSize: 9, lineHeight: 1.1, color: '#111' },
+      defaultStyle: { fontSize: 9, lineHeight:1.5, color: '#111' },
       info: { title: `STOP_DEFECTIVE_${meta.date}` },
       images: imagesDict,
       styles: {
         sectionTitle: {
           bold: true,
           fontSize: 11,
-          color: '#0b2237',
+          color: '#070707ff',
           alignment: 'center',
           margin: [0, 0, 0, 8]
         }
@@ -410,9 +415,9 @@ export class StopDefectiveReportPdfService {
         fontSize: 8
       }),
       content: [
-        { text: 'STOP / DEFECTIVE TEST REPORT', style: 'sectionTitle' },
-
-        this.metaTable(meta),
+        {canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }] , margin: [0, 0, 0, 8]},
+         { text: 'STOP / DEFECTIVE TEST REPORT', bold: true,fontSize: 14 , alignment: 'center' as const},
+         this.metaTable(meta),
 
         this.detailsTable(rows),
 

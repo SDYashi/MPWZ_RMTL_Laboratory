@@ -34,6 +34,9 @@ export interface OldAgainstMeta {
   approving_user?: string;
 
   lab?: OldLabInfo;
+
+  leftLogoUrl?: string;
+  rightLogoUrl?: string;
 }
 
 export interface PdfLogos {
