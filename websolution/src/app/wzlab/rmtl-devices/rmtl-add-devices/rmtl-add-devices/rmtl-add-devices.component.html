@@ -204,9 +204,10 @@
               <div class="p-4 bg-white rounded-4 shadow-sm border">
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <div class="form-floating">
-                      <input type="text" class="form-control" [(ngModel)]="quick.serial" name="quick_serial" placeholder="Serial" (keyup.enter)="quickAddMeter()">
-                      <label>Serial Number</label>
+                    <div appBarcodeListener (barcodeScanned)="onScan($any($event))">                      
+                       <div class="form-floating">
+                      <input type="text" class="form-control" [(ngModel)]="quick.serial" name="quick_serial" placeholder="Scan or Enter Meter Serial" (keyup.enter)="quickAddMeter()">
+                    </div>
                     </div>
                   </div>
                   <div class="col-md-6 d-grid">
@@ -215,7 +216,7 @@
                     </button>
                   </div>
                 </div>
-                <small class="text-muted d-block mt-2">Uses current defaults above for other fields.</small>
+                <small class="text-muted d-block mt-2 text-primary">Uses current defaults above for other fields.</small>
               </div>
             </div>
           </div>
@@ -408,10 +409,14 @@
     <h6 class="mb-3 text-primary fw-bold">Quick Add CT</h6>
     <div class="row g-3 align-items-end">
       <div class="col-md-6">
+        
+                    <div appBarcodeListener (barcodeScanned)="onScan($any($event))">
         <div class="form-floating">
+
           <input type="text" class="form-control" [(ngModel)]="ctQuick.serial" name="ct_quick_serial" placeholder="Serial" (keyup.enter)="quickAddCT()">
           <label>CT Serial Number</label>
         </div>
+                    </div>
       </div>
       <div class="col-md-6 d-grid">
         <button class="btn btn-outline-success py-3" type="button" (click)="quickAddCT()">

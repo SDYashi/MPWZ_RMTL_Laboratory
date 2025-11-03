@@ -11,6 +11,7 @@ import { AuthInterceptor } from './core/auth-interceptor.interceptor';
 import { LoadingInterceptor } from './core/loading.interceptor';
 import { LoaderComponent } from './shared/loader/loader.component';
 import { AuthService } from './core/auth.service';
+import { BarcodeListenerDirective } from './shared/directives/barcode-listener.directive';
 
 // export function appInitFactory(auth: AuthService) {
 //   return () => auth.loadCurrentUser(); // must return Promise
@@ -25,7 +26,7 @@ import { AuthService } from './core/auth.service';
     BrowserModule,
     AppRoutingModule,
     FormsModule, 
-    HttpClientModule
+    HttpClientModule,
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor,  multi: true  },

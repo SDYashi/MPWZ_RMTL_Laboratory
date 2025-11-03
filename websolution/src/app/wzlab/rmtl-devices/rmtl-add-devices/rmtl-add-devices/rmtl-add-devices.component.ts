@@ -144,6 +144,12 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     date: new Date()
   };
 
+onScan(code: string) {
+  this.quick.serial = code;     // assign scanned value
+  this.quickAddMeter();         // optional: auto process
+}
+
+
   // ---------- Lifecycle ----------
   ngOnInit(): void {
     this.deviceService.getEnums().subscribe({
