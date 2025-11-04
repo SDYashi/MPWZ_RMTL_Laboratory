@@ -207,6 +207,7 @@
                     <div appBarcodeListener (barcodeScanned)="onScan($any($event))">                      
                        <div class="form-floating">
                       <input type="text" class="form-control" [(ngModel)]="quick.serial" name="quick_serial" placeholder="Scan or Enter Meter Serial" (keyup.enter)="quickAddMeter()">
+                      <label for="quick_serial"> Scan or Enter Meter Serial</label>
                     </div>
                     </div>
                   </div>

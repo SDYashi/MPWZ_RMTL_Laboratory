@@ -30,6 +30,7 @@ export class RmtlViewDevicesComponent implements OnInit {
   pageSize = 25;
   pageSizeOptions = [100, 500, 1000, 10000];
   total = 0;
+  
 
   constructor(
     private api: ApiServicesService,
@@ -37,7 +38,7 @@ export class RmtlViewDevicesComponent implements OnInit {
   ) {}
 
   // Reusable PDF header (matches your branding/screenshot)
-  private readonly pdfHeader = {
+  private pdfHeader = {
     orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
     labLine: 'REGINAL METERING TESTING LABORATORY INDORE',
     addressLine: 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003',

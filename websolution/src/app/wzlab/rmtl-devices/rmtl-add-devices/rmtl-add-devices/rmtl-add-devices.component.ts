@@ -3,7 +3,8 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
 import {
   InwardReceiptPdfService,
   InwardReceiptData,
-  InwardReceiptItem
+  InwardReceiptItem,
+  InwardReceiptHeaderInfo
 } from 'src/app/shared/inward-receipt-pdf.service';
 
 declare var bootstrap: any;
@@ -131,27 +132,29 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   ) {}
 
   // ---------- Reusable PDF header (matches your branding/screenshot) ----------
-  private  pdfHeader = {
+  private pdfHeader: InwardReceiptHeaderInfo = {
     orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
-    labLine: '',
-    addressLine: '',
-    email: '',
-    phone: '',
+    labLine: 'REGINAL METERING TESTING LABORATORY INDORE',
+    addressLine: 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003',
+    email: 'testinglabwzind@gmail.com',
+    phone: '0731-2997802',
     leftLogoUrl: '/assets/icons/wzlogo.png',
     rightLogoUrl: '/assets/icons/wzlogo.png',
     logoWidth: 36,
-    logoHeight: 36,
-    date: new Date()
+    logoHeight: 36
   };
 
-onScan(code: string) {
-  this.quick.serial = code;     // assign scanned value
-  this.quickAddMeter();         // optional: auto process
-}
+  onScan(code: string) {
+    this.quick.serial = code;     // assign scanned value
+    this.quickAddMeter();         // optional: auto process
+  }
 
+ 
 
   // ---------- Lifecycle ----------
   ngOnInit(): void {
+
+
     this.deviceService.getEnums().subscribe({
       next: (data) => {
         this.makes = data?.makes || [];
@@ -171,9 +174,15 @@ onScan(code: string) {
         this.initiators = data?.initiators || [];
         this.meterDefaultPurpose = this.device_testing_purpose[0] || 'ROUTINE';
 
-        this.serialRange.connection_type = this.serialRange.connection_type || (this.connection_types[0] || 'LT');
-        this.serialRange.phase = this.coercePhaseForConn(this.serialRange.connection_type, this.serialRange.phase);
+        // Defaults for serialRange
+        this.serialRange.connection_type =
+          this.serialRange.connection_type || (this.connection_types[0] || 'LT');
+        this.serialRange.phase = this.coercePhaseForConn(
+          this.serialRange.connection_type,
+          this.serialRange.phase
+        );
 
+        // Defaults for CT meta
         Object.assign(this.ctMeta, {
           make: this.makes[0] || '',
           ct_class: this.ct_classes[0] || '',
@@ -184,6 +193,7 @@ onScan(code: string) {
           initiator: this.initiators[0] || 'CIS'
         });
 
+        // Defaults for meter serial range
         Object.assign(this.serialRange, {
           connection_type: this.connection_types[0] || 'LT',
           phase: this.phases[0] || 'SINGLE PHASE',
@@ -198,6 +208,7 @@ onScan(code: string) {
           initiator: this.initiators[0] || 'CIS'
         });
 
+        // UI defaults
         this.meterDefaultsUI = [
           { key: 'connection_type',        label: 'Conn. Type',  options: this.connection_types },
           { key: 'phase',                  label: 'Phase',       options: this.phases },
@@ -220,6 +231,7 @@ onScan(code: string) {
           { key: 'initiator',              label: 'Initiator',   options: this.initiators }
         ];
 
+        // lab_id from localStorage / token
         const labIdStr = localStorage.getItem('currentLabId') ?? localStorage.getItem('lab_id');
         if (labIdStr && !isNaN(Number(labIdStr))) {
           this.labId = Number(labIdStr);
@@ -230,21 +242,22 @@ onScan(code: string) {
               const payload = JSON.parse(atob(token.split('.')[1] || ''));
               const raw = payload?.lab_id ?? payload?.labId ?? payload?.user?.lab_id;
               this.labId = (raw !== undefined && !isNaN(Number(raw))) ? Number(raw) : null;
-            } catch { this.labId = null; }
+            } catch {
+              this.labId = null;
+            }
           }
         }
       },
       error: () => this.showAlert('Error', 'Failed to load dropdown data.')
     });
 
-    this.pdfHeader.date = this.toYMD(new Date());
-    // ids from token
+    // IDs from token
     this.currentUserId = this.authService.getuseridfromtoken();
     this.currentLabId = this.authService.getlabidfromtoken();
 
     // Lab info for PDF header
     if (this.currentLabId) {
-      this.api.getLabInfo(this.currentLabId).subscribe({
+      this.deviceService.getLabInfo(this.currentLabId).subscribe({
         next: (info: any) => {
           this.labInfo = {
             lab_name: info?.lab_pdfheader_name || info?.lab_name,
@@ -252,20 +265,24 @@ onScan(code: string) {
             email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no,
             phone: info?.lab_pdfheader_contact_no || info?.lab_location
           };
-          this.pdfHeader.labLine = this.labInfo?.lab_name || '';
-          this.pdfHeader.addressLine = this.labInfo?.address || '';
-          this.pdfHeader.email = this.labInfo?.email || '';
-          this.pdfHeader.phone = this.labInfo?.phone || '';
+
+          // Push into PDF header used by InwardReceiptPdfService
+          this.pdfHeader.labLine = this.labInfo.lab_name || '';
+          this.pdfHeader.addressLine = this.labInfo.address || '';
+          this.pdfHeader.email = this.labInfo.email || '';
+          this.pdfHeader.phone = this.labInfo.phone || '';
+        },
+        error: () => {
+          // Optional: keep header minimal if lab info fails
+          this.pdfHeader.labLine = '';
+          this.pdfHeader.addressLine = '';
+          this.pdfHeader.email = '';
+          this.pdfHeader.phone = '';
         }
       });
-
     }
-
-
-
-
-
   }
+
   toYMD(arg0: Date): Date {
     throw new Error('Method not implemented.');
   }
@@ -274,6 +291,7 @@ onScan(code: string) {
     const conn = this.serialRange.connection_type;
     this.serialRange.phase = this.coercePhaseForConn(conn, this.serialRange.phase);
   }
+
   onRowConnectionTypeChange(device: DeviceRow): void {
     device.phase = this.coercePhaseForConn(device.connection_type, device.phase);
   }
@@ -539,6 +557,16 @@ onScan(code: string) {
     return !v || !list.length || list.includes(v);
   }
 
+  // ---------- Lab header mapping for PDF ----------
+  private buildLabHeaderForReceipt() {
+    return {
+      lab_name: (this.labInfo?.lab_name || this.pdfHeader.labLine || null) as string | null,
+      lab_address: (this.labInfo?.address || this.pdfHeader.addressLine || null) as string | null,
+      lab_email: (this.labInfo?.email || this.pdfHeader.email || null) as string | null,
+      lab_phone: (this.labInfo?.phone || this.pdfHeader.phone || null) as string | null
+    };
+  }
+
   // ---------- Submit: Meters ----------
   submitDevices(): void {
     if (!this.devices.length) {
@@ -634,6 +662,8 @@ onScan(code: string) {
         }));
 
         const receipt: InwardReceiptData = {
+          ...this.buildLabHeaderForReceipt(),   // ✅ lab_name, lab_address, lab_email, lab_phone
+
           lab_id: this.labId ?? undefined,
           office_type: this.selectedSourceType,
           location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
@@ -740,6 +770,8 @@ onScan(code: string) {
         }));
 
         const receipt: InwardReceiptData = {
+          ...this.buildLabHeaderForReceipt(),   // ✅ lab_name, lab_address, lab_email, lab_phone
+
           lab_id: this.labId ?? undefined,
           office_type: this.selectedSourceType,
           location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,

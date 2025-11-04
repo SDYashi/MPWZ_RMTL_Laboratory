@@ -63,7 +63,6 @@
               <th>Capacity</th>
               <th>Test Report Remark</th>
               <th>Test Result</th>
-              <th>Consumer</th>
               <th class="d-print-none">Details</th>
               <th class="d-print-none">Action</th>
             </tr>
@@ -101,10 +100,10 @@
                     <option *ngFor="let tr of test_results" [ngValue]="tr">{{ tr }}</option>
                   </select>
                 </td>
-
+<!-- 
                 <td style="min-width:220px">
                   <input class="form-control" [(ngModel)]="r.consumer_name" [name]="'cons_'+i">
-                </td>
+                </td> -->
 
                 <td class="text-center d-print-none">
                   <button type="button" class="btn btn-sm btn-outline-primary" (click)="r._open=!r._open">
@@ -126,6 +125,10 @@
                     <div class="col-md-4">
                       <label class="form-label fw-bold mb-0">Certificate No (optional)</label>
                       <input class="form-control" [(ngModel)]="r.certificate_no" [name]="'cert_'+i">
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label fw-bold mb-0">Consumer Name</label>
+                       <input class="form-control" [(ngModel)]="r.consumer_name" [name]="'cons_'+i">
                     </div>
                     <div class="col-md-4">
                       <label class="form-label fw-bold mb-0">Select Date of Testing</label>

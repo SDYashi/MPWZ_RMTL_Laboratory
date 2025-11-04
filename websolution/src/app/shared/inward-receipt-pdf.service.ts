@@ -124,84 +124,185 @@ export class InwardReceiptPdfService {
   }
 
   // ---------- Core doc ----------
-  private buildDoc(d: InwardReceiptData, opts: InwardReceiptPdfOptions, images: Record<string, string>): TDocumentDefinition {
-    const {
-      includeNotes = true,
-      notesText = '— Verify items against the list on receipt.\n— Report discrepancies immediately.',
-      showItemsTable,
-      columns,
-      header
-    } = opts;
+  // private buildDoc(d: InwardReceiptData, opts: InwardReceiptPdfOptions, images: Record<string, string>): TDocumentDefinition {
+  //   const {
+  //     includeNotes = true,
+  //     notesText = '— Verify items against the list on receipt.\n— Report discrepancies immediately.',
+  //     showItemsTable,
+  //     columns,
+  //     header
+  //   } = opts;
 
-    const metaForHeader = {
-      orgLine: (header?.orgLine || 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED').toUpperCase(),
-      labLine: (header?.labLine || d.lab_name || '-').toUpperCase(),
-      addressLine: header?.addressLine || d.lab_address || '-',
-      email: header?.email || d.lab_email || '-',
-      phone: header?.phone || d.lab_phone || '-',
-      logoWidth: header?.logoWidth ?? 36,
-      logoHeight: header?.logoHeight ?? 36,
-    };
+  //   const metaForHeader = {
+  //     orgLine: (header?.orgLine || 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED').toUpperCase(),
+  //     labLine: (header?.labLine || d.lab_name || '-').toUpperCase(),
+  //     addressLine: header?.addressLine || d.lab_address || '-',
+  //     email: header?.email || d.lab_email || '-',
+  //     phone: header?.phone || d.lab_phone || '-',
+  //     logoWidth: header?.logoWidth ?? 36,
+  //     logoHeight: header?.logoHeight ?? 36,
+  //   };
 
-    const createdAtStr = new Date().toLocaleString();
-    const total = d.total ?? d.items?.length ?? 0;
-    const serials = this.serialList(d);
-    const bestColCount = columns ?? this.pickSerialColumns(serials.length);
+  //   const createdAtStr = new Date().toLocaleString();
+  //   const total = d.total ?? d.items?.length ?? 0;
+  //   const serials = this.serialList(d);
+  //   const bestColCount = columns ?? this.pickSerialColumns(serials.length);
 
-    const content: any[] = [
-      this.headerBar(metaForHeader, images),
-      { canvas: [{ type: 'line', x1: 28, y1: 0, x2: 567 - 28, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
-      { text: 'INWARD RECEIPT', alignment: 'center', fontSize: 12, bold: true, margin: [0, 0, 0, 6] },
-      this.metaBand({
-        lab_id: d.lab_id ?? '-',
-        office_type: d.office_type ?? '-',
-        date_of_entry: d.date_of_entry ?? '-',
-        location_code: d.location_code ?? '-',
-        location_name: d.location_name ?? '-',
-        device_type: d.device_type ?? '-',
-        total,
-        created_at: createdAtStr,
-        inward_no: d.inward_no ?? '-',
-      }),
-      { text: `Serial Numbers (${serials.length})`, style: 'h3', margin: [28, 4, 28, 4] },
-      this.serialColumns(serials, bestColCount),
-    ];
+  //   const content: any[] = [
+  //     this.headerBar(metaForHeader, images),
+  //     { canvas: [{ type: 'line', x1: 28, y1: 0, x2: 567 - 28, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
+  //     { text: 'INWARD RECEIPT', alignment: 'center', fontSize: 12, bold: true, margin: [0, 0, 0, 6] },
+  //     this.metaBand({
+  //       lab_id: d.lab_id ?? '-',
+  //       office_type: d.office_type ?? '-',
+  //       date_of_entry: d.date_of_entry ?? '-',
+  //       location_code: d.location_code ?? '-',
+  //       location_name: d.location_name ?? '-',
+  //       device_type: d.device_type ?? '-',
+  //       total,
+  //       created_at: createdAtStr,
+  //       inward_no: d.inward_no ?? '-',
+  //     }),
+  //     { text: `Serial Numbers (${serials.length})`, style: 'h3', margin: [28, 4, 28, 4] },
+  //     this.serialColumns(serials, bestColCount),
+  //   ];
 
-    // const shouldShowItems = typeof showItemsTable === 'boolean' ? showItemsTable : (d.items?.length ?? 0) > 0;
-    // if (shouldShowItems) {
-    //   content.push({ text: 'Items', style: 'h3', margin: [28, 10, 28, 4] });
-    //   content.push(this.buildItemsTable(d.device_type || 'METER', d.items || []));
-    // }
+  //   // const shouldShowItems = typeof showItemsTable === 'boolean' ? showItemsTable : (d.items?.length ?? 0) > 0;
+  //   // if (shouldShowItems) {
+  //   //   content.push({ text: 'Items', style: 'h3', margin: [28, 10, 28, 4] });
+  //   //   content.push(this.buildItemsTable(d.device_type || 'METER', d.items || []));
+  //   // }
 
-    if (includeNotes) {
-      content.push({ text: 'Notes:', style: 'h3', margin: [28, 10, 28, 2] });
-      content.push({ text: notesText, margin: [28, 0, 28, 6] });
-    }
+  //   if (includeNotes) {
+  //     content.push({ text: 'Notes:', style: 'h3', margin: [28, 10, 28, 2] });
+  //     content.push({ text: notesText, margin: [28, 0, 28, 6] });
+  //   }
 
-    content.push(this.signBlock());
+  //   content.push(this.signBlock());
 
-    return {
-      pageSize: 'A4',
-      pageMargins: [0, 0, 0, 28],
-      defaultStyle: { fontSize: 9, lineHeight: 1.05 },
-      styles: {
-        h3: { fontSize: 11, bold: true },
-        th: { bold: true, fontSize: 9 },
-        footRole: { fontSize: 9, bold: true },
-        tableTight: { fontSize: 9 }
-      },
-      images,
-      content,
-      footer: (current: number, totalPages: number) => ({
-        columns: [
-          { text: `Page ${current} of ${totalPages}`, alignment: 'left', margin: [28, 0, 0, 0] },
-          { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 28, 0] }
-        ],
-        fontSize: 8
-      }),
-      info: { title: this.fileName(d, opts).replace(/\.pdf$/i, '') }
-    };
+  //   return {
+  //     pageSize: 'A4',
+  //     pageMargins: [0, 0, 0, 28],
+  //     defaultStyle: { fontSize: 9, lineHeight: 1.05 },
+  //     styles: {
+  //       h3: { fontSize: 11, bold: true },
+  //       th: { bold: true, fontSize: 9 },
+  //       footRole: { fontSize: 9, bold: true },
+  //       tableTight: { fontSize: 9 }
+  //     },
+  //     images,
+  //     content,
+  //     footer: (current: number, totalPages: number) => ({
+  //       columns: [
+  //         { text: `Page ${current} of ${totalPages}`, alignment: 'left', margin: [28, 0, 0, 0] },
+  //         { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 28, 0] }
+  //       ],
+  //       fontSize: 8
+  //     }),
+  //     info: { title: this.fileName(d, opts).replace(/\.pdf$/i, '') }
+  //   };
+  // }
+  // ---------- Core doc ----------
+private buildDoc(
+  d: InwardReceiptData,
+  opts: InwardReceiptPdfOptions,
+  images: Record<string, string>
+): TDocumentDefinition {
+  const {
+    includeNotes = true,
+    notesText = '— Verify items against the list on receipt.\n— Report discrepancies immediately.',
+    showItemsTable,
+    columns,
+    header
+  } = opts;
+
+  const metaForHeader = {
+    orgLine: (header?.orgLine || 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED').toUpperCase(),
+    labLine: (header?.labLine || d.lab_name || '-').toUpperCase(),
+    addressLine: header?.addressLine || d.lab_address || '-',
+    email: header?.email || d.lab_email || '-',
+    phone: header?.phone || d.lab_phone || '-',
+    logoWidth: header?.logoWidth ?? 36,
+    logoHeight: header?.logoHeight ?? 36,
+  };
+
+  const createdAtStr = new Date().toLocaleString();
+  const total = d.total ?? d.items?.length ?? 0;
+  const serials = this.serialList(d);
+  const bestColCount = columns ?? this.pickSerialColumns(serials.length);
+
+  // 🔹 IMPORTANT: headerBar + top line REMOVED from content
+  const content: any[] = [
+    { canvas: [{ type: 'line', x1: 28, y1: 0, x2: 567 - 28, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },
+    { text: 'INWARD RECEIPT', alignment: 'center', fontSize: 12, bold: true, margin: [0, 0, 0, 6] },
+    this.metaBand({
+      lab_id: d.lab_id ?? '-',
+      office_type: d.office_type ?? '-',
+      date_of_entry: d.date_of_entry ?? '-',
+      location_code: d.location_code ?? '-',
+      location_name: d.location_name ?? '-',
+      device_type: d.device_type ?? '-',
+      total,
+      created_at: createdAtStr,
+      inward_no: d.inward_no ?? '-',
+    }),
+    { text: `Serial Numbers (${serials.length})`, style: 'h3', margin: [28, 4, 28, 4] },
+    this.serialColumns(serials, bestColCount),
+  ];
+
+  // const shouldShowItems = typeof showItemsTable === 'boolean' ? showItemsTable : (d.items?.length ?? 0) > 0;
+  // if (shouldShowItems) {
+  //   content.push({ text: 'Items', style: 'h3', margin: [28, 10, 28, 4] });
+  //   content.push(this.buildItemsTable(d.device_type || 'METER', d.items || []));
+  // }
+
+  if (includeNotes) {
+    content.push({ text: 'Notes:', style: 'h3', margin: [28, 10, 28, 2] });
+    content.push({ text: notesText, margin: [28, 0, 28, 6] });
   }
+
+  content.push(this.signBlock());
+
+  return {
+    pageSize: 'A4',
+
+    // 🔹 Add top margin so body starts below header (≈ 10px gap under header)
+    pageMargins: [0, 80, 0, 28],
+
+    defaultStyle: { fontSize: 9, lineHeight: 1.05 },
+    styles: {
+      h3: { fontSize: 11, bold: true },
+      th: { bold: true, fontSize: 9 },
+      footRole: { fontSize: 9, bold: true },
+      tableTight: { fontSize: 9 }
+    },
+    images,
+    content,
+
+  
+    header: (currentPage: number, pageCount: number) => ({
+      // this margin gives ~10px from top of page
+      margin: [0, 10, 0, 0],
+      stack: [
+        this.headerBar(metaForHeader, images),
+          { canvas: [{ type: 'line', x1: 28, y1: 0, x2: 567 - 28, y2: 0, lineWidth: 1 }], margin: [0, 6, 0, 6] },      
+       
+      ]
+    }),
+
+    footer: (current: number, totalPages: number) => ({
+      columns: [
+        { text: `Page ${current} of ${totalPages}`, alignment: 'left', margin: [28, 0, 0, 0] },
+        { text: 'M.P.P.K.V.V.CO. LTD., INDORE', alignment: 'right', margin: [0, 0, 28, 0] }
+      ],
+      fontSize: 8
+    }),
+
+    info: { title: this.fileName(d, opts).replace(/\.pdf$/i, '') }
+  };
+}
+
+
 
   // ---------- Sections ----------
   private headerBar(meta: {
