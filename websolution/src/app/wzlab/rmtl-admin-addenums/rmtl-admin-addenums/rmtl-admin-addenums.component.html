@@ -1,0 +1,161 @@
+<div class="container-fluid my-4">
+  <div class="row">
+
+    <!-- Left: Form -->
+    <div class="col-12 col-lg-5">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header text-white py-2" style="background:#201c94; color:#fff;">
+          <h5 class="mb-0">Add Enum Values for Master Data</h5>
+        </div>
+
+        <div class="card-body">
+          <form #enumForm="ngForm" (ngSubmit)="onSubmit(enumForm)">
+
+            <!-- Enum Type -->
+            <div class="mb-3">
+              <label class="form-label">Enum Type</label>
+              <select
+                class="form-select"
+                name="enumType"
+                required
+                [(ngModel)]="selectedEnumType"
+                (ngModelChange)="onEnumTypeChange()"
+                #enumTypeRef="ngModel"
+              >
+                <option value="">-- Select Enum Type --</option>
+                <option *ngFor="let t of enumTypes" [value]="t">
+                  {{ t }}
+                </option>
+              </select>
+              <div
+                class="text-danger small"
+                *ngIf="enumTypeRef.invalid && (enumTypeRef.dirty || enumTypeRef.touched || enumForm.submitted)"
+              >
+                Enum type is required.
+              </div>
+            </div>
+
+            <!-- Enum Name (Key) -->
+            <div class="mb-3">
+              <label class="form-label">Enum Name (Key)</label>
+              <input
+                type="text"
+                class="form-control"
+                name="enumKey"
+                required
+                placeholder="e.g. ELMEAS"
+                [(ngModel)]="enumKey"
+                #enumKeyRef="ngModel"
+              />
+              <div
+                class="text-danger small"
+                *ngIf="enumKeyRef.invalid && (enumKeyRef.dirty || enumKeyRef.touched || enumForm.submitted)"
+              >
+                Enum name is required.
+              </div>
+            </div>
+
+            <!-- Enum Value -->
+            <div class="mb-3">
+              <label class="form-label">
+                Enum Value
+                <span class="text-muted small">(optional, default = same as name)</span>
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                name="enumValue"
+                placeholder="e.g. ELMEASURE (or leave blank)"
+                [(ngModel)]="enumValue"
+              />
+            </div>
+
+            <!-- JSON Preview -->
+            <div class="mb-3">
+              <label class="form-label">JSON Payload Preview</label>
+              <pre class="bg-light p-2 border rounded small mb-0">
+{{ previewPayload | json }}
+              </pre>
+            </div>
+
+            <!-- Messages -->
+            <div *ngIf="errorMessage" class="alert alert-danger py-2">
+              {{ errorMessage }}
+            </div>
+            <div *ngIf="successMessage" class="alert alert-success py-2">
+              {{ successMessage }}
+            </div>
+
+            <!-- Submit button -->
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="submitting || enumForm.invalid"
+            >
+              <span *ngIf="!submitting">Save Enum</span>
+              <span *ngIf="submitting">
+                <span class="spinner-border spinner-border-sm me-1"></span>
+                Saving...
+              </span>
+            </button>
+
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Values Table -->
+    <div class="col-12 col-lg-7">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+          <h5 class="mb-0">
+            Enum Values
+            <span *ngIf="selectedEnumType"> - {{ selectedEnumType }}</span>
+          </h5>
+          <span class="badge bg-secondary" *ngIf="enumEntries.length">
+            {{ enumEntries.length }} items
+          </span>
+        </div>
+
+        <div class="card-body enum-list-body">
+
+          <div *ngIf="!selectedEnumType" class="text-muted">
+            Please select an enum type from the form to view values.
+          </div>
+
+          <div *ngIf="loading" class="text-center my-3">
+            <div class="spinner-border" role="status"></div>
+            <div class="small text-muted mt-1">Loading values...</div>
+          </div>
+
+          <div *ngIf="selectedEnumType && !loading && !enumEntries.length" class="text-muted">
+            No values found for this enum type.
+          </div>
+
+          <div *ngIf="!loading && enumEntries.length">
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 60px;">#</th>
+                    <th>Enum Name (Key)</th>
+                    <th>Enum Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of enumEntries; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td><code>{{ item.key }}</code></td>
+                    <td>{{ item.value }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

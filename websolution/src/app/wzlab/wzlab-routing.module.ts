@@ -24,6 +24,7 @@ const routes: Routes = [
       { path: 'lab', loadChildren: () => import('./rmtl-lab/rmtl-lab.module').then(m => m.RmtlLabModule) },
       { path:'store',loadChildren:()=>import('./rmtl-store/rmtl-store.module').then(m=>m.RmtlStoreModule)},
       { path:'reports',loadChildren:()=>import('./rmtl-reports/rmtl-reports.module').then(m=>m.RmtlReportsModule)},
+      { path:'admin-console',loadChildren:()=>import('./rmtl-admin-addenums/rmtl-admin-addenums.module').then(m=>m.RmtlAdminAddenumsModule)},
       { path:'approval',loadChildren:()=>import('./rmtl-approvaltestreport/rmtl-approvaltestreport-routing.module').then(m=>m.RmtlApprovaltestreportRoutingModule)},
     ]
   },

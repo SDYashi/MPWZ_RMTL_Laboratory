@@ -15,7 +15,8 @@ type SectionKey =
   | 'receivedDispatch'
   | 'testingActivities'
   | 'usageAnalytics'
-  | 'approvalMenu';
+  | 'approvalMenu'
+  | 'dbcontentManagement';
 
 @Component({
   selector: 'app-wzlabhome',
@@ -43,6 +44,7 @@ export class WzlabhomeComponent implements OnInit, OnDestroy {
     testingActivities: false,
     usageAnalytics: false,
     approvalMenu: false,
+    dbcontentManagement: false
   };
 
   private sectionRouteMap: Array<{ key: SectionKey; prefixes: string[] }> = [
@@ -56,6 +58,7 @@ export class WzlabhomeComponent implements OnInit, OnDestroy {
     { key: 'testingActivities',  prefixes: ['/wzlab/testing'] },
     { key: 'usageAnalytics',     prefixes: ['/wzlab/reports'] },
     { key: 'approvalMenu',       prefixes: ['/wzlab/approval'] },
+    { key: 'dbcontentManagement', prefixes: ['/wzlab/admin-console'] },
   ];
 
   constructor(

@@ -1,0 +1,17 @@
+.table td, .table th {
+  vertical-align: middle;
+}
+
+.badge {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.table-responsive {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.enum-search-box input {
+  font-size: 0.9rem;
+}

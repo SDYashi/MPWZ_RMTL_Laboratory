@@ -607,5 +607,15 @@ getDivisions() {
   getAssignmentDashboardforcharts(params?: any): Observable<AssignmentDashboardData> {
     return this.http.get<AssignmentDashboardData>(`${this.baseUrl}/reports/assignment-dashboard/`);
   }
+  getenumsNameslist() {
+    return this.http.get<any>(`${this.baseUrl}/enums/names`);  
+  }
+
+  getenunsbynames(values: string) {
+    return this.http.get<any>(`${this.baseUrl}/enums/values/${values}`);  
+  }
+  addEnumValue(enumType: string, payload: any = new Map<string, string>): Observable<any> {
+    return this.http.post(`${this.baseUrl}/enums/values/${enumType}`, payload);
+  }
 
 }

@@ -17,7 +17,7 @@
     <!-- Dashboard -->
     <ul class="sidebar-menu list-unstyled m-0">
       <li class="menu-item" routerLinkActive="active"
-          *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
+          *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','STORE_INCHARGE','TESTING_ASSISTANT'])">
         <a class="menu-link d-flex justify-content-between align-items-center px-3 py-2 text-decoration-none text-white"
            routerLink="/wzlab/dashboard"
            routerLinkActive="active"
@@ -29,9 +29,9 @@
 
     <!-- ADMIN MANAGEMENT -->
     <div class="sidebar-heading px-3"
-         *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">ADMIN MANAGEMENT</div>
+         *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','STORE_INCHARGE'])">ADMIN MANAGEMENT</div>
     <ul class="sidebar-menu list-unstyled m-0"
-        *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
+        *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','STORE_INCHARGE'])">
 
       <!-- Laboratory Management -->
       <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
@@ -80,7 +80,6 @@
           </div>
         </div>
       </li>
-
       <!-- Testing Bench Management -->
       <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <button type="button"
@@ -104,9 +103,32 @@
           </div>
         </div>
       </li>
+      <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
+        <button type="button"
+                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                (click)="toggleSection('dbcontentManagement')"
+                (keydown.enter)="toggleSection('dbcontentManagement')"
+                (keydown.space)="toggleSection('dbcontentManagement')"
+                [attr.aria-expanded]="sections['dbcontentManagement'] || isRouteActive(['/wzlab/admin-console'])"
+                [attr.aria-controls]="'dbcontentManagement'">
+          <span><i class="fas fa-table me-1"></i><span class="menu-text">DB Content Management</span></span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </button>
+        <div class="collapse"
+             [class.show]="sections['dbcontentManagement'] || isRouteActive(['/wzlab/admin-console'])"
+             id="dbcontentManagement">
+          <div class="submenu d-flex flex-column">
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN'])"
+               routerLink="/wzlab/admin-console/add-enums" routerLinkActive="active">Add New Enums </a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])"
+               routerLink="/wzlab/admin-console/list-enums" routerLinkActive="active">List Existing Enums</a>
+          </div>
+        </div>
+      </li>
+    
 
       <!-- Vendor Management -->
-      <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
+      <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','STORE_INCHARGE'])">
         <button type="button"
                 class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('vendorManagement')"

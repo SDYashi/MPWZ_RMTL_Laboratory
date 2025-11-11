@@ -59,11 +59,13 @@ import {
 
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { async, firstValueFrom } from 'rxjs';
 (pdfMake as any).vfs = pdfFonts.vfs;
 
 type DeviceType = any;
 type ReportType = any;
 type TestReport = any;
+type User = any
 
 @Component({
   selector: 'app-rmtl-view-testreport',
@@ -129,6 +131,17 @@ export class RmtlViewTestreportComponent implements OnInit {
       error: (err) => console.error('Failed to load report types:', err)
     });
   }
+
+async getUserNameById(id: number): Promise<any> {
+  try {
+      const user = await  firstValueFrom(this.api.getUser(id));
+      return user?.name ?? '';
+       
+  } catch (err) {
+    console.error(err);
+    return '';
+  }
+}
 
   // ========= date helpers =========
 
@@ -282,22 +295,12 @@ export class RmtlViewTestreportComponent implements OnInit {
         assignment0.bench?.bench_name ||
         '';
 
-      const testUserName =
-        user0.name ||
-        user0.username ||
-        t0.tested_by ||
-        t0.testing_user ||
-        assignment0.user_id ||
-        '';
+      // const testUserName =  assignment0.user_id || '';
 
-      const approvingUser =
-        user0.name ||
-        user0.username || 
-        t0.approved_by ||
-        t0.approving_user ||
-        assignment0.approved_by ||
-        assignment0.assigned_by_user_id ||
-        null;
+      const testUserName = await this.getUserNameById(assignment0.user_id);
+
+      // const approvingUser = assignment0.assigned_by || '';
+      const approvingUser = await this.getUserNameById(assignment0.assigned_by);
 
       const testmethod = S(t0.test_method || 'NA').toUpperCase();  
       const testStatus = S(t0.test_status || 'NA').toUpperCase();
