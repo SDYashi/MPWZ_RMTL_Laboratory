@@ -217,7 +217,7 @@ export class ContestedReportPdfService {
     const shuntBlock   = shuntExists  ? this.sectionShunt(r)  : null;
     const nutralBlock  = nutralExists ? this.sectionNutral(r) : null;
 
-    const combinedSec  = this.sectionCombined(r);
+    // const combinedSec  = this.sectionCombined(r);
     const remarksSec   = this.sectionRemarks(r);
     const signSec      = this.sectionSignatures(meta);
 
@@ -294,8 +294,8 @@ export class ContestedReportPdfService {
 
         ...readingBlocks,
 
-        { text: 'Combined Error', style: 'sectionTitle', noWrap: true },
-        combinedSec,
+        // { text: 'Combined Error', style: 'sectionTitle', noWrap: true },
+        // combinedSec,
 
         { text: 'Remarks', style: 'sectionTitle', noWrap: true },
         remarksSec,
@@ -572,35 +572,35 @@ export class ContestedReportPdfService {
   }
 
   // ---------- Combined Error ----------
-  private sectionCombined(r: ContestedReportRow) {
-    return {
-      margin: [0, 2, 0, 0],
-      layout: 'cleanGrid',
-      table: {
-        widths: ['auto', '*', 'auto', '*'],
-        body: [
-          [
-            {
-              text: 'COMBINED RESULT',
-              colSpan: 4,
-              alignment: 'center',
-              bold: true,
-              fillColor: this.theme.labelBg
-            },
-            {},
-            {},
-            {}
-          ],
-          this.row4(
-            'Final Error % (Combined)',
-            this.fmtNum(r.error_percentage_import),
-            '',
-            ''
-          )
-        ]
-      }
-    };
-  }
+  // private sectionCombined(r: ContestedReportRow) {
+  //   return {
+  //     margin: [0, 2, 0, 0],
+  //     layout: 'cleanGrid',
+  //     table: {
+  //       widths: ['auto', '*', 'auto', '*'],
+  //       body: [
+  //         [
+  //           {
+  //             text: 'COMBINED RESULT',
+  //             colSpan: 4,
+  //             alignment: 'center',
+  //             bold: true,
+  //             fillColor: this.theme.labelBg
+  //           },
+  //           {},
+  //           {},
+  //           {}
+  //         ],
+  //         this.row4(
+  //           'Final Error % (Combined)',
+  //           this.fmtNum(r.error_percentage_import),
+  //           '',
+  //           ''
+  //         )
+  //       ]
+  //     }
+  //   };
+  // }
 
   // ---------- Remarks ----------
   private sectionRemarks(r: ContestedReportRow) {

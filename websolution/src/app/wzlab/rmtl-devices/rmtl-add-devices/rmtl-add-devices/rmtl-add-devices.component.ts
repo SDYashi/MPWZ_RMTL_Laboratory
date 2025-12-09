@@ -169,10 +169,10 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         this.connection_types = data?.connection_types || [];
         this.voltage_ratings = data?.voltage_ratings || ['230V'];
         this.current_ratings = data?.impkwh || [];
-        this.device_testing_purpose = data?.device_testing_purposes || ['ROUTINE'];
+        this.device_testing_purpose = data?.test_report_types || ['ROUTINE'];
         this.meter_subcategories = data?.meter_sub_categories || [];
         this.initiators = data?.initiators || [];
-        this.meterDefaultPurpose = this.device_testing_purpose[0] || 'ROUTINE';
+        // this.meterDefaultPurpose = this.device_testing_purpose[0] || 'ROUTINE';
 
         // Defaults for serialRange
         this.serialRange.connection_type =
@@ -637,7 +637,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       office_type: this.selectedSourceType || null,
       location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
       location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
-      date_of_entry: this.todayISO(),
+      // date_of_entry: this.todayISO(),
       initiator: d.initiator
     }));
 
@@ -645,7 +645,6 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       next: (created: any): void => {
         const inwardNo = created?.[0]?.inward_number || '(generated)';
         this.showAlert('Success', `Meters added! Inward No: ${inwardNo} • Count: ${created.length}`);
-
         const items: InwardReceiptItem[] = created.map((p: any, idx: number) => ({
           sl: idx + 1,
           serial_number: p.serial_number,
@@ -662,14 +661,13 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         }));
 
         const receipt: InwardReceiptData = {
-          ...this.buildLabHeaderForReceipt(),   // ✅ lab_name, lab_address, lab_email, lab_phone
-
-          lab_id: this.labId ?? undefined,
-          office_type: this.selectedSourceType,
-          location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
-          location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
+          ...this.buildLabHeaderForReceipt(),   
+          lab_id: created?.[0]?.lab_id || '',
+          office_type: created?.[0]?.office_type || '',
+          location_code: created?.[0]?.location_code || '',
+          location_name: created?.[0]?.location_name || '',
           inward_no: inwardNo,
-          date_of_entry: this.todayISO(),
+          date_of_entry: created?.[0]?.inward_date || '',
           device_type: 'METER',
           total: items.length,
           items,
@@ -749,7 +747,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       office_type: this.selectedSourceType || null,
       location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
       location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
-      date_of_entry: this.todayISO(),
+      // date_of_entry: this.todayISO(),
       initiator: ct.initiator
     }));
 
@@ -772,12 +770,12 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         const receipt: InwardReceiptData = {
           ...this.buildLabHeaderForReceipt(),   // ✅ lab_name, lab_address, lab_email, lab_phone
 
-          lab_id: this.labId ?? undefined,
-          office_type: this.selectedSourceType,
-          location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
-          location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
+          lab_id: created?.[0]?.lab_id || '',
+          office_type: created?.[0]?.office_type || '',
+          location_code: created?.[0]?.location_code || '',
+          location_name: created?.[0]?.location_name || '',
           inward_no: inwardNo,
-          date_of_entry: this.todayISO(),
+          // date_of_entry: this.todayISO(),
           device_type: 'CT',
           total: items.length,
           items,
@@ -787,7 +785,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         this.inwardPdf.download(
           receipt,
           {
-            fileName: `Inward_Receipt_CT_${this.todayISO()}.pdf`,
+            fileName: `Inward_Receipt_CT_${created?.[0]?.inward_date || ''}.pdf`,
             header: this.pdfHeader,
             showItemsTable: true
           }
