@@ -117,11 +117,11 @@ export class StopDefectiveReportPdfService {
   }): Content {
     const contactLine =
       (meta.labEmail || meta.labPhone)
-        ? `Email: ${meta.labEmail || '-'}    Phone: ${meta.labPhone || '-'}`
+        ? `Email: ${meta.labEmail || '-'}    Phone: ${meta.labPhone || '-'}` 
         : '';
 
     return {
-       margin: [18, 10, 18, 8],
+      margin: [18, 10, 18, 8],
       stack: [
         {
           columns: [
@@ -201,14 +201,15 @@ export class StopDefectiveReportPdfService {
     return {
       margin: [28, 0, 28, 10],
       layout: {
-        hLineWidth: () => 1.5,
-        vLineWidth: () => 1.5,
+        hLineWidth: () => 1.2,
+        vLineWidth: () => 1.2,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 2,
-        paddingBottom: () => 2
+        // ↓↓↓ reduced padding to fit more content per page
+        paddingLeft: () => 2,
+        paddingRight: () => 2,
+        paddingTop: () => 1,
+        paddingBottom: () => 1,
       } as any,
       table: {
         widths: ['auto', '*', 'auto', '*'],
@@ -267,14 +268,15 @@ export class StopDefectiveReportPdfService {
       layout: {
         fillColor: (rowIdx: number) =>
           rowIdx > 0 && rowIdx % 2 === 1 ? '#fafafa' : undefined,
-        hLineWidth: () => 1,
-        vLineWidth: () => 1,
+        hLineWidth: () => 0.8,
+        vLineWidth: () => 0.8,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 2,
-        paddingBottom: () => 2
+        // ↓↓↓ reduced padding to fit more rows per page
+        paddingLeft: () => 2,
+        paddingRight: () => 2,
+        paddingTop: () => 1,
+        paddingBottom: () => 1,
       } as any,
       table: {
         headerRows: 1,
@@ -287,6 +289,9 @@ export class StopDefectiveReportPdfService {
 
   /** Signatures block */
   private signBlock(meta: StopDefMeta): Content {
+    const testingUser = (meta.testing_user || '-').toUpperCase();
+    const approvingUser = (meta.approving_user || '-').toUpperCase();
+
     return {
       margin: [28, 10, 28, 0],
       columns: [
@@ -296,7 +301,13 @@ export class StopDefectiveReportPdfService {
           stack: [
             { text: '\n\nTested by', bold: true, alignment: 'center' as const },
             {
-              text: ('\n\n' + meta.testing_user || '-').toUpperCase(),
+              text: '\n-----------------------------',
+              fontSize: 8.5,
+              color: this.theme.textSubtle,
+              alignment: 'center' as const
+            },
+            {
+              text: '\n\n' + testingUser,
               fontSize: 8.5,
               color: this.theme.textSubtle,
               alignment: 'center' as const
@@ -315,7 +326,13 @@ export class StopDefectiveReportPdfService {
           stack: [
             { text: '\n\nVerified by', bold: true, alignment: 'center' as const },
             {
-              text: ('\n\n').toUpperCase(),
+              text: '\n-----------------------------',
+              fontSize: 8.5,
+              color: this.theme.textSubtle,
+              alignment: 'center' as const
+            },
+             {
+              text: '-',
               fontSize: 8.5,
               color: this.theme.textSubtle,
               alignment: 'center' as const
@@ -334,7 +351,13 @@ export class StopDefectiveReportPdfService {
           stack: [
             { text: '\n\nApproved by', bold: true, alignment: 'center' as const },
             {
-              text: ('\n\n' + meta.approving_user || '-').toUpperCase(),
+              text: '\n-----------------------------',
+              fontSize: 8.5,
+              color: this.theme.textSubtle,
+              alignment: 'center' as const
+            },
+            {
+              text: '\n\n' + approvingUser,
               fontSize: 8.5,
               color: this.theme.textSubtle,
               alignment: 'center' as const
@@ -362,9 +385,9 @@ export class StopDefectiveReportPdfService {
     const defCount = total - okCount;
 
     const labName =
-      meta.lab?.lab_name ||'';
+      meta.lab?.lab_name || '';
     const labAddress =
-      meta.lab?.address_line ||'';
+      meta.lab?.address_line || '';
     const labEmail =
       (meta.lab?.email || '').trim();
     const labPhone =
@@ -375,7 +398,7 @@ export class StopDefectiveReportPdfService {
     return {
       pageSize: 'A4',
       pageMargins: [18, 92, 18, 34],
-      defaultStyle: { fontSize: 9, lineHeight:1.5, color: '#111' },
+      defaultStyle: { fontSize: 9, lineHeight: 1.5, color: '#111' },
       info: { title: `STOP_DEFECTIVE_${meta.date}` },
       images: imagesDict,
       styles: {
@@ -397,27 +420,48 @@ export class StopDefectiveReportPdfService {
         hasLeft: !!imagesDict['leftLogo'],
         hasRight: !!imagesDict['rightLogo']
       }) as any,
-      footer: (currentPage: number, pageCount: number) => ({
-        columns: [
-          {
-            text: `Page ${currentPage} of ${pageCount}`,
-            alignment: 'left',
-            margin: [18, 0, 0, 0],
-            color: this.theme.textSubtle
-          },
-          {
-            text: 'M.P.P.K.V.V. CO. LTD., INDORE',
-            alignment: 'right',
-            margin: [0, 0, 18, 0],
-            color: this.theme.textSubtle
-          }
-        ],
-        fontSize: 8
-      }),
+
+      // ↓↓↓ Footer now shows "Page X of Y" only if more than 1 page
+      footer: (currentPage: number, pageCount: number) => {
+        if (pageCount <= 1) {
+          return {
+            columns: [
+              {
+                text: 'M.P.P.K.V.V. CO. LTD., INDORE',
+                alignment: 'right',
+                margin: [0, 0, 18, 0],
+                color: this.theme.textSubtle
+              }
+            ],
+            fontSize: 8
+          };
+        }
+        return {
+          columns: [
+            {
+              text: `Page ${currentPage} of ${pageCount}`,
+              alignment: 'left',
+              margin: [18, 0, 0, 0],
+              color: this.theme.textSubtle
+            },
+            {
+              text: 'M.P.P.K.V.V. CO. LTD., INDORE',
+              alignment: 'right',
+              margin: [0, 0, 18, 0],
+              color: this.theme.textSubtle
+            }
+          ],
+          fontSize: 8
+        };
+      },
+
       content: [
-        {canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }] , margin: [0, 0, 0, 8]},
-         { text: 'STOP / DEFECTIVE TEST REPORT', bold: true,fontSize: 14 , alignment: 'center' as const},
-         this.metaTable(meta),
+        {
+          canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }],
+          margin: [0, 0, 0, 8]
+        },
+        { text: 'STOP / DEFECTIVE TEST REPORT', bold: true, fontSize: 14, alignment: 'center' as const },
+        this.metaTable(meta),
 
         this.detailsTable(rows),
 

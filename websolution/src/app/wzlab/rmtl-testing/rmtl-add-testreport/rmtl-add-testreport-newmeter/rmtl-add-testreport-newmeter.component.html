@@ -2,7 +2,7 @@
 <div class="container-fluid mt-4">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex flex-wrap gap-2 justify-content-between align-items-center" style="background:#151433">
-      <h5 class="mb-0">RMTL — Stop/Defective Test Report Generation</h5>    
+      <h5 class="mb-0">RMTL — New Meter Test Report Generation</h5>    
     </div>
 
     <div class="card-body">
@@ -106,7 +106,6 @@
                 <!-- Comment by tester -->
                 <td style="min-width:200px">
                   <select class="form-select form-select-sm mb-1" [(ngModel)]="r.remark" [name]="'b_remark_'+i">
-                    <option value="">--</option>
                     <option *ngFor="let option of commentby_testers" [value]="option">{{ option }}</option>
                   </select>
                 </td>
@@ -360,7 +359,7 @@
     
       <!-- Inline messages -->
       <div class="mb-3">
-        <small *ngIf="inlineInfo" class="alert alert-success d-block" role="status">{{ inlineInfo }}</small>
+        <small *ngIf="inlineInfo" class="alert alert-success d-block " role="status">{{ inlineInfo }}</small>
         <small *ngIf="inlineError" class="alert alert-danger d-block" role="alert">{{ inlineError }}</small>
       </div>
   </div>

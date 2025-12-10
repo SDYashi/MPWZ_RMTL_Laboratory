@@ -1,4 +1,4 @@
-// src/app/shared/smartagainstmeter-report-pdf.service.ts
+// src/app/shared/newmeter-report-pdf.service.ts
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import type { TDocumentDefinitions, Content, TableCell } from 'pdfmake/interfaces';
@@ -6,38 +6,33 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 (pdfMake as any).vfs = pdfFonts.vfs;
 
-export interface SmartLabInfo {
+export interface NewMeterLabInfo {
   lab_name?: string;
   address_line?: string;
   email?: string;
   phone?: string;
 }
 
-export interface SmartRow {
-  // keep serial as the canonical field name
-  serial: string;
+export interface NewMeterRow {
+  serial_number: string;
   make?: string;
   capacity?: string;
-  remark?: string;
   test_result?: string;
+  remark?: string;
 }
 
-export interface SmartMeta {
+export interface NewMeterMeta {
   zone?: string;
   phase?: string;
   date: string; // YYYY-MM-DD
-
   testMethod?: string;
   testStatus?: string;
+
   testing_bench?: string;
   testing_user?: string;
   approving_user?: string;
 
-  approver_remarks?: string | null;
-  lab?: SmartLabInfo;
-
-  leftLogoUrl?: string;
-  rightLogoUrl?: string;
+  lab?: NewMeterLabInfo;
 }
 
 export interface PdfLogos {
@@ -46,18 +41,20 @@ export interface PdfLogos {
 }
 
 @Injectable({ providedIn: 'root' })
-export class SmartAgainstMeterReportPdfService {
+export class NewMeterReportPdfService {
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
   private logoCache = new Map<string, string>();
 
+  // ---------- Theme & helpers ----------
   private theme = {
     grid: '#e6e9ef',
     labelBg: '#f8f9fc',
-    textSubtle: '#5d6b7a'
+    softHeaderBg: '#eef7ff',
+    textSubtle: '#5d6b7a',
   };
 
-  // --------- logo helpers ----------
+  // ---- asset helpers ----
   private resolveUrl(url: string): string {
     try {
       if (!url) return url;
@@ -94,13 +91,13 @@ export class SmartAgainstMeterReportPdfService {
     return dataUrl;
   }
 
-  // --------- row helpers ----------
-  private isOk(row: SmartRow): boolean {
+  // ---- row helpers ----
+  private isPass(row: NewMeterRow): boolean {
     const t = `${row.test_result ?? ''} ${row.remark ?? ''}`.toLowerCase();
     return /\bok\b|\bpass\b/.test(t);
   }
 
-  private resultText(row: SmartRow): string {
+  private resultText(row: NewMeterRow): string {
     const t = (row.test_result || '').trim();
     const m = (row.remark || '').trim();
     if (t && m && t.toUpperCase() !== 'OK') return `${t} — ${m}`;
@@ -108,9 +105,10 @@ export class SmartAgainstMeterReportPdfService {
     return m || '-';
   }
 
-  // --------- PDF sections ----------
 
-  /** Top header with logos + lab + company */
+  // ---- PDF blocks ----
+
+  /** Top banner with logos, company line, lab line, contacts, and a bottom rule */
   private headerBar(meta: {
     orgLine: string;
     labName: string;
@@ -196,8 +194,8 @@ export class SmartAgainstMeterReportPdfService {
     } as any;
   }
 
-  /** Compact info/meta table */
-  private metaTable(meta: SmartMeta): Content {
+  /** Test Meta (Zone, Phase, etc.) — compact grid */
+  private metaTable(meta: NewMeterMeta): Content {
     const K = (t: string) => ({
       text: t,
       bold: true,
@@ -207,15 +205,14 @@ export class SmartAgainstMeterReportPdfService {
     return {
       margin: [28, 0, 28, 10],
       layout: {
-        // slightly thinner borders + reduced padding to fit more
-        hLineWidth: () => 1.2,
-        vLineWidth: () => 1.2,
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
-        paddingLeft: () => 2,
-        paddingRight: () => 2,
-        paddingTop: () => 1,
-        paddingBottom: () => 1
+        paddingLeft: () => 4,
+        paddingRight: () => 4,
+        paddingTop: () => 2,
+        paddingBottom: () => 2
       } as any,
       table: {
         widths: ['auto', '*', 'auto', '*'],
@@ -249,56 +246,52 @@ export class SmartAgainstMeterReportPdfService {
     };
   }
 
-  /** Main table of meters */
-  private detailsTable(rows: SmartRow[]): Content {
-    const body: TableCell[][] = [[
-      { text: '#', bold: true, fillColor: this.theme.labelBg, alignment: 'center' as const },
-      { text: 'METER NUMBER', bold: true, fillColor: this.theme.labelBg },
-      { text: 'MAKE', bold: true, fillColor: this.theme.labelBg },
-      { text: 'CAPACITY', bold: true, fillColor: this.theme.labelBg },
-      { text: 'TEST RESULT / REMARK', bold: true, fillColor: this.theme.labelBg }
-    ]];
+  /** Main NEW METER summary table */
+private detailsTable(rows: NewMeterRow[]): Content {
+  const body: TableCell[][] = [[
+    { text: '#', bold: true, fillColor: this.theme.labelBg, alignment: 'center' as const },
+    { text: 'METER NUMBER', bold: true, fillColor: this.theme.labelBg },
+    { text: 'MAKE', bold: true, fillColor: this.theme.labelBg },
+    { text: 'CAPACITY', bold: true, fillColor: this.theme.labelBg },
+    { text: 'RESULT / REMARK', bold: true, fillColor: this.theme.labelBg }
+  ]];
 
-    rows.forEach((r, i) => {
-      body.push([
-        { text: String(i + 1), alignment: 'center' as const },
-        // tolerant: accept serial or serial_number
-        { text: (r as any).serial || (r as any).serial_number || '-' },
-        { text: r.make || '-' },
-        { text: r.capacity || '-' },
-        { text: this.resultText(r) }
-      ]);
-    });
+  rows.forEach((r, i) => {
+    body.push([
+      { text: String(i + 1), alignment: 'center' as const },
+      { text: r.serial_number || '-' },
+      { text: r.make || '-' },
+      { text: r.capacity || '-' },
+      { text: this.resultText(r) }
+    ]);
+  });
 
-    return {
-      margin: [28, 0, 28, 8],
-      layout: {
-        fillColor: (rowIdx: number) =>
-          rowIdx > 0 && rowIdx % 2 === 1 ? '#fafafa' : undefined,
-        // slightly thinner borders + reduced padding
-        hLineWidth: () => 1.0,
-        vLineWidth: () => 1.0,
-        hLineColor: () => this.theme.grid,
-        vLineColor: () => this.theme.grid,
-        paddingLeft: () => 2,
-        paddingRight: () => 2,
-        paddingTop: () => 1,
-        paddingBottom: () => 1
-      } as any,
-      table: {
-        headerRows: 1,
-        widths: ['auto', '*', '*', '*', '*'],
-        body,
-        dontBreakRows: true
-      }
-    };
-  }
+  return {
+    margin: [28, 0, 28, 8],
+    layout: {
+      fillColor: (rowIdx: number) =>
+        rowIdx > 0 && rowIdx % 2 === 1 ? '#fafafa' : undefined,
+      hLineWidth: () => 1,
+      vLineWidth: () => 1,
+      hLineColor: () => this.theme.grid,
+      vLineColor: () => this.theme.grid,
+      paddingLeft: () => 4,
+      paddingRight: () => 4,
+      paddingTop: () => 2,
+      paddingBottom: () => 2
+    } as any,
+    table: {
+      headerRows: 1,
+      widths: ['auto', '*', '*', '*', '*'],
+      body,
+      dontBreakRows: true
+    }
+  };
+}
 
-  /** Signature block */
-  private signBlock(meta: SmartMeta): Content {
-    const testingUser = (meta.testing_user || '____________________________').toUpperCase();
-    const approvingUser = (meta.approving_user || '____________________________').toUpperCase();
 
+  /** Signatures block */
+  private signBlock(meta: NewMeterMeta): Content {
     return {
       margin: [28, 10, 28, 0],
       columns: [
@@ -307,9 +300,8 @@ export class SmartAgainstMeterReportPdfService {
           alignment: 'center' as const,
           stack: [
             { text: '\n\nTested by', bold: true, alignment: 'center' as const },
-            { text: '\n____________________________', alignment: 'center' as const },
             {
-              text: testingUser,
+              text: ('\n\n' + (meta.testing_user || '-')).toUpperCase(),
               fontSize: 8.5,
               color: this.theme.textSubtle,
               alignment: 'center' as const
@@ -327,9 +319,8 @@ export class SmartAgainstMeterReportPdfService {
           alignment: 'center' as const,
           stack: [
             { text: '\n\nVerified by', bold: true, alignment: 'center' as const },
-            { text: '\n____________________________', alignment: 'center' as const },
-             {
-              text: '-',
+            {
+              text: ('\n\n').toUpperCase(),
               fontSize: 8.5,
               color: this.theme.textSubtle,
               alignment: 'center' as const
@@ -347,9 +338,8 @@ export class SmartAgainstMeterReportPdfService {
           alignment: 'center' as const,
           stack: [
             { text: '\n\nApproved by', bold: true, alignment: 'center' as const },
-            { text: '\n____________________________', alignment: 'center' as const },
             {
-              text: approvingUser,
+              text: ('\n\n' + (meta.approving_user || '-')).toUpperCase(),
               fontSize: 8.5,
               color: this.theme.textSubtle,
               alignment: 'center' as const
@@ -366,34 +356,34 @@ export class SmartAgainstMeterReportPdfService {
     } as any;
   }
 
-  // --------- doc builder ----------
+  // ---- main doc builder ----
   private buildDoc(
-    rows: SmartRow[],
-    meta: SmartMeta,
+    rows: NewMeterRow[],
+    meta: NewMeterMeta,
     imagesDict: Record<string, string> = {}
   ): TDocumentDefinitions {
     const total = rows.length;
-    const okCount = rows.filter(r => this.isOk(r)).length;
-    const defCount = total - okCount;
+    const passCount = rows.filter(r => this.isPass(r)).length;
+    const otherCount = total - passCount;
 
     const labName = meta.lab?.lab_name || '';
     const labAddress = meta.lab?.address_line || '';
-    const labEmail = meta.lab?.email || '';
-    const labPhone = meta.lab?.phone || '';
+    const labEmail = (meta.lab?.email || '').trim();
+    const labPhone = (meta.lab?.phone || '').trim();
 
-    const contentWidth = 595.28 - 18 - 18;
+    const contentWidth = 595.28 - 18 - 18; // A4 width minus horizontal header margins
 
     return {
       pageSize: 'A4',
       pageMargins: [18, 92, 18, 34],
       defaultStyle: { fontSize: 9, lineHeight: 1.5, color: '#111' },
-      info: { title: `SMART_AGAINST_METER_${meta.date}` },
+      info: { title: `NEW_METER_${meta.date}` },
       images: imagesDict,
       styles: {
         sectionTitle: {
           bold: true,
           fontSize: 11,
-          color: '#0b2237',
+          color: '#070707ff',
           alignment: 'center',
           margin: [0, 0, 0, 8]
         }
@@ -408,73 +398,47 @@ export class SmartAgainstMeterReportPdfService {
         hasLeft: !!imagesDict['leftLogo'],
         hasRight: !!imagesDict['rightLogo']
       }) as any,
-
-      // Footer: show Page X of Y only if more than 1 page
-      footer: (currentPage: number, pageCount: number) => {
-        if (pageCount <= 1) {
-          return {
-            columns: [
-              {
-                text: 'M.P.P.K.V.V. CO. LTD., INDORE',
-                alignment: 'right',
-                margin: [0, 0, 18, 0],
-                color: this.theme.textSubtle
-              }
-            ],
-            fontSize: 8
-          };
-        }
-        return {
-          columns: [
-            {
-              text: `Page ${currentPage} of ${pageCount}`,
-              alignment: 'left',
-              margin: [18, 0, 0, 0],
-              color: this.theme.textSubtle
-            },
-            {
-              text: 'M.P.P.K.V.V. CO. LTD., INDORE',
-              alignment: 'right',
-              margin: [0, 0, 18, 0],
-              color: this.theme.textSubtle
-            }
-          ],
-          fontSize: 8
-        };
-      },
-
+      footer: (currentPage: number, pageCount: number) => ({
+        columns: [
+          {
+            text: `Page ${currentPage} of ${pageCount}`,
+            alignment: 'left',
+            margin: [18, 0, 0, 0],
+            color: this.theme.textSubtle
+          },
+          {
+            text: 'M.P.P.K.V.V. CO. LTD., INDORE',
+            alignment: 'right',
+            margin: [0, 0, 18, 0],
+            color: this.theme.textSubtle
+          }
+        ],
+        fontSize: 8
+      }),
       content: [
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }], margin: [0, 0, 0, 8] },
         {
-          canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }],
-          margin: [0, 0, 0, 8]
+          text: 'NEW METER TEST REPORT ',
+          bold: true,
+          fontSize: 14,
+          alignment: 'center' as const
         },
-        {
-          text: 'SMART AGAINST METER TEST REPORT',
-          style: 'sectionTitle',
-          fontSize: 13,
-          color: '#0b2237',
-          margin: [0, 12, 0, 0]
-        },
-
         this.metaTable(meta),
-
         this.detailsTable(rows),
-
         {
-          text: `TOTAL: ${total}   •   OK: ${okCount}   •   DEF: ${defCount}`,
+          text: `TOTAL: ${total}   •   PASS/OK: ${passCount}   •   OTHERS: ${otherCount}`,
           alignment: 'right',
           margin: [18, 2, 18, 0],
           fontSize: 9,
           color: '#000'
         },
-
         this.signBlock(meta)
       ]
     };
   }
 
-  // --------- public API ----------
-  async download(rows: SmartRow[], meta: SmartMeta, logos?: PdfLogos): Promise<void> {
+  // ---- public API ----
+  async download(rows: NewMeterRow[], meta: NewMeterMeta, logos?: PdfLogos): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
 
     const imagesDict: Record<string, string> = {};
@@ -494,7 +458,7 @@ export class SmartAgainstMeterReportPdfService {
     }
 
     const doc = this.buildDoc(rows, meta, imagesDict);
-    const fname = `SMART_AGAINST_METER_${meta.date}.pdf`;
+    const fname = `NEW_METER_${meta.date}.pdf`;
 
     return new Promise<void>((resolve) => {
       try {
@@ -505,7 +469,7 @@ export class SmartAgainstMeterReportPdfService {
     });
   }
 
-  async open(rows: SmartRow[], meta: SmartMeta, logos?: PdfLogos): Promise<void> {
+  async open(rows: NewMeterRow[], meta: NewMeterMeta, logos?: PdfLogos): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
 
     const imagesDict: Record<string, string> = {};
@@ -519,7 +483,7 @@ export class SmartAgainstMeterReportPdfService {
         imagesDict['rightLogo'] = imagesDict['leftLogo'];
       }
     } catch {
-      // ignore preview logo errors
+      // ignore logo fetch errors in preview
     }
 
     const doc = this.buildDoc(rows, meta, imagesDict);

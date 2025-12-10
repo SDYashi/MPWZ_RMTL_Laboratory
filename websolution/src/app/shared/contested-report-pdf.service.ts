@@ -109,7 +109,6 @@ export class ContestedReportPdfService {
   private async buildDocWithLogos(header: ContestedReportHeader, rows: ContestedReportRow[]) {
     const images: Record<string, string> = {};
 
-    // helper to turn /assets/... into base64
     const toDataURL = async (url: string) => {
       const abs = new URL(url, document.baseURI).toString();
       const res = await fetch(abs);
@@ -129,7 +128,6 @@ export class ContestedReportPdfService {
       if (header.rightLogoUrl) {
         images['rightLogo'] = await toDataURL(header.rightLogoUrl);
       } else if (images['leftLogo']) {
-        // fallback mirror
         images['rightLogo'] = images['leftLogo'];
       }
     } catch {
@@ -147,7 +145,6 @@ export class ContestedReportPdfService {
     textSubtle: '#5d6b7a',
   };
 
-  private dotted(n = 12) { return '·'.repeat(n); }
   private join(parts: Array<string | undefined | null>, sep = ' ') {
     return parts.filter(Boolean).join(sep);
   }
@@ -156,7 +153,6 @@ export class ContestedReportPdfService {
     return (n ?? '') === '' || n === null || n === undefined ? '' : String(n);
   }
 
-  // check if SHUNT block has any real value
   private hasShunt(r: ContestedReportRow): boolean {
     return (
       r.shunt_reading_before_test != null ||
@@ -170,7 +166,6 @@ export class ContestedReportPdfService {
     );
   }
 
-  // check if NUTRAL block has any real value
   private hasNutral(r: ContestedReportRow): boolean {
     return (
       r.nutral_reading_before_test != null ||
@@ -186,10 +181,8 @@ export class ContestedReportPdfService {
 
   // ---------- Core doc builder ----------
   private buildDoc(header: ContestedReportHeader, rows: ContestedReportRow[], images: Record<string, string> = {}): TDocumentDefinitions {
-    // single-row PDF (1 meter per PDF)
     const r = rows[0] || ({} as ContestedReportRow);
 
-    // build "meta" object that gets passed everywhere
     const meta = {
       date: header.date,
       phase: header.phase || '',
@@ -204,10 +197,11 @@ export class ContestedReportPdfService {
       lab_email: header.lab_email || '-',
       lab_phone: header.lab_phone || '-',
 
-      report_id: header.report_id || `CON-${(header.date || '').replace(/-/g, '')}-${Math.floor(1000 + Math.random()*9000)}`
+      report_id:
+        header.report_id ||
+        `CON-${(header.date || '').replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`
     };
 
-    // pre-build section arrays
     const consumerSection = this.sectionConsumer(meta, r);
     const meterSection    = this.sectionMeter(meta, r);
 
@@ -217,7 +211,6 @@ export class ContestedReportPdfService {
     const shuntBlock   = shuntExists  ? this.sectionShunt(r)  : null;
     const nutralBlock  = nutralExists ? this.sectionNutral(r) : null;
 
-    // const combinedSec  = this.sectionCombined(r);
     const remarksSec   = this.sectionRemarks(r);
     const signSec      = this.sectionSignatures(meta);
 
@@ -228,28 +221,45 @@ export class ContestedReportPdfService {
       if (nutralBlock) readingBlocks.push(nutralBlock);
     }
 
+    const contentWidth = 595.28 - 18 - 18;
+
     return {
       pageSize: 'A4',
       pageMargins: [18, 80, 18, 34],
       images,
-      header: this.headerBar(meta, images),
-      footer: (current: number, total: number) => ({
-        columns: [
-          {
-            text: `Page ${current} of ${total}`,
-            alignment: 'left',
-            margin: [18, 0, 0, 0],
-            color: this.theme.textSubtle
-          },
-          {
-            text: 'M.P.P.K.V.V.CO. LTD., INDORE',
-            alignment: 'right',
-            margin: [0, 0, 18, 0],
-            color: this.theme.textSubtle
-          }
-        ],
-        fontSize: 8
-      }),
+      header: this.headerBar(meta, images, contentWidth),
+      footer: (current: number, total: number) => {
+        if (total <= 1) {
+          return {
+            columns: [
+              {
+                text: 'M.P.P.K.V.V.CO. LTD., INDORE',
+                alignment: 'right',
+                margin: [0, 0, 18, 0],
+                color: this.theme.textSubtle
+              }
+            ],
+            fontSize: 8
+          };
+        }
+        return {
+          columns: [
+            {
+              text: `Page ${current} of ${total}`,
+              alignment: 'left',
+              margin: [18, 0, 0, 0],
+              color: this.theme.textSubtle
+            },
+            {
+              text: 'M.P.P.K.V.V.CO. LTD., INDORE',
+              alignment: 'right',
+              margin: [0, 0, 18, 0],
+              color: this.theme.textSubtle
+            }
+          ],
+          fontSize: 8
+        };
+      },
       defaultStyle: {
         fontSize: 9,
         color: '#111'
@@ -260,7 +270,7 @@ export class ContestedReportPdfService {
           bold: true,
           fontSize: 11,
           color: '#0b2237',
-          margin: [0, 10, 0, 4]
+          margin: [0, 8, 0, 4]
         },
         tableHeader: {
           bold: true,
@@ -274,18 +284,27 @@ export class ContestedReportPdfService {
       },
       tableLayouts: {
         cleanGrid: {
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
+          hLineWidth: () => 0.8,
+          vLineWidth: () => 0.8,
           hLineColor: () => this.theme.grid,
           vLineColor: () => this.theme.grid,
-          paddingLeft: () => 4,
-          paddingRight: () => 4,
-          paddingTop: () => 2,
-          paddingBottom: () => 2
+          // ↓ tighter padding for more compact layout
+          paddingLeft: () => 2,
+          paddingRight: () => 2,
+          paddingTop: () => 1,
+          paddingBottom: () => 1
         }
       },
       content: [
-        { text: 'Contested Meter Testing Report', style: 'sectionTitle', alignment: 'center', noWrap: true,   fontSize: 14, margin: [0, 0, 0, 6] },
+        {
+          text: 'Contested Meter Testing Report',
+          style: 'sectionTitle',
+          alignment: 'center',
+          noWrap: true,
+          fontSize: 14,
+          margin: [0, 0, 0, 6]
+        },
+
         { text: 'Consumer Details', style: 'sectionTitle', noWrap: true },
         consumerSection,
 
@@ -294,10 +313,6 @@ export class ContestedReportPdfService {
 
         ...readingBlocks,
 
-        // { text: 'Combined Error', style: 'sectionTitle', noWrap: true },
-        // combinedSec,
-
-        { text: 'Remarks', style: 'sectionTitle', noWrap: true },
         remarksSec,
 
         signSec
@@ -305,8 +320,8 @@ export class ContestedReportPdfService {
     };
   }
 
-  // ----------------- Header Bar (top banner with logos, lab info, report_id) -----------------
-  private headerBar(meta: any, images: Record<string,string>) {
+  // ----------------- Header Bar -----------------
+  private headerBar(meta: any, images: Record<string, string>, contentWidth: number) {
     const labName = (meta.lab_name || '').toString().toUpperCase();
     const addr    = meta.lab_address || '';
     const mail    = meta.lab_email  || '';
@@ -314,53 +329,85 @@ export class ContestedReportPdfService {
 
     return {
       margin: [18, 14, 18, 10],
-      columnGap: 8,
-            stack: [
+      stack: [
         {
-      columns: [
-        images['leftLogo']
-          ? { image: 'leftLogo', width: 32, alignment: 'left' }
-          : { width: 32, text: '' },
+          columns: [
+            images['leftLogo']
+              ? { image: 'leftLogo', width: 32, alignment: 'left' }
+              : { width: 32, text: '' },
 
-        {
-          width: '*',
-          stack: [
             {
-              text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED',
-              alignment: 'center',
-              bold: true,
-              fontSize: 12
+              width: '*',
+              stack: [
+                {
+                  text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED',
+                  alignment: 'center',
+                  bold: true,
+                  fontSize: 12
+                },
+                {
+                  text: labName || '',
+                  alignment: 'center',
+                  color: '#333',
+                  margin: [0, 2, 0, 0],
+                  fontSize: 11
+                },
+                {
+                  text: addr,
+                  alignment: 'center',
+                  color: '#555',
+                  margin: [0, 2, 0, 0],
+                  fontSize: 9
+                },
+                {
+                  text: `Email: ${mail}    Phone: ${phone}`,
+                  alignment: 'center',
+                  color: '#555',
+                  margin: [0, 2, 0, 0],
+                  fontSize: 9
+                },
+                {
+                  text: `Report ID: ${meta.report_id || '-'}`,
+                  alignment: 'right',
+                  margin: [0, 4, 4, 0],
+                  fontSize: 9,
+                  color: this.theme.textSubtle
+                }
+              ]
             },
-            {
-              text: labName || '',
-              alignment: 'center',
-              color: '#333',
-              margin: [0, 2, 0, 0],
-              fontSize: 11
-            },
-            {
-              text: addr,
-              alignment: 'center',
-              color: '#555',
-              margin: [0, 2, 0, 0],
-              fontSize: 9
-            },
-            {
-              text: `Email: ${mail}    Phone: ${phone}`,
-              alignment: 'center',
-              color: '#555',
-              margin: [0, 2, 2, 0],
-              fontSize: 9
-            },
-            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 1 ,  margin: [0, 2, 0, 0], }] },
-          ]
+
+            images['rightLogo']
+              ? { image: 'rightLogo', width: 32, alignment: 'right' }
+              : { width: 32, text: '' }
+          ],
+          columnGap: 8
         },
-
-        images['rightLogo']
-          ? { image: 'rightLogo', width: 32, alignment: 'right' }
-          : { width: 32, text: '' }
-      ]
-    
+        
+        {
+          canvas: [
+            {
+              type: 'line',
+              x1: 0,
+              y1: 0,
+              x2: meta.contentWidth,
+              y2: 0,
+              lineWidth: 1
+            }
+          ],
+          margin: [0, 6, 0, 0]
+        },
+        {
+          canvas: [
+            {
+              type: 'line',
+              x1: 0,
+              y1: 0,
+              x2: contentWidth,
+              y2: 0,
+              lineWidth: 1
+            }
+          ],
+          margin: [0, 6, 0, 0]
         }
       ]
     };
@@ -368,7 +415,6 @@ export class ContestedReportPdfService {
 
   // ----------------- Section builders -----------------
 
-  // Helpers to generate common row layout of 4 cells (label/value + label/value)
   private row4(l1: string, v1: any, l2: string, v2: any) {
     return [
       { text: l1, style: 'labelCell' },
@@ -378,7 +424,6 @@ export class ContestedReportPdfService {
     ];
   }
 
-  // Long value taking up the rest of row
   private row2(label: string, value: any) {
     return [
       { text: label, style: 'labelCell' },
@@ -400,9 +445,10 @@ export class ContestedReportPdfService {
       table: {
         widths: ['auto', '*', 'auto', '*'],
         body: [
-          this.row4('Zone / DC', meta.zone || '-', 'Date', meta.date || '-'),
-          this.row4('Phase', meta.phase || '-', 'Testing Bench', meta.testing_bench || '-'),
-          this.row4('Testing User', meta.testing_user || '-', 'Approving User', meta.approving_user || '-'),
+          this.row4('Zone / DC', meta.zone || '-', 'Phase', meta.phase || '-'),
+          this.row4('Report ID', meta.report_id || '-', 'Testing Date', r.testing_date || meta.date || '-'),
+          this.row4('Testing Bench', meta.testing_bench || '-', 'Approving User', meta.approving_user || '-'),
+          this.row4('Testing User', meta.testing_user || '-', 'Date (Report)', meta.date || '-'),
           this.row2('Name of Consumer', r.consumer_name || ''),
           this.row2('Account / IVRS', r.account_no_ivrs || ''),
           this.row2('Address', r.address || ''),
@@ -410,7 +456,7 @@ export class ContestedReportPdfService {
           this.row2('Payment Particulars', r.payment_particulars || ''),
           this.row2(
             'Receipt No & Date',
-            `${r.receipt_no || ''}    ${r.receipt_date || ''}`
+            `${r.receipt_no || ''}    ${r.receipt_date || ''}`.trim()
           )
         ]
       }
@@ -425,29 +471,17 @@ export class ContestedReportPdfService {
       table: {
         widths: ['auto', '*', 'auto', '*'],
         body: [
-          [
-            {
-              text: 'Meter & Testing Summary',
-              colSpan: 4,
-              alignment: 'center',
-              bold: true,
-              fillColor: this.theme.labelBg
-            },
-            {},
-            {},
-            {}
-          ],
           this.row4(
             'Meter No.',
-            r.serial || this.dotted(10),
+            r.serial || '-',
             'Make',
-            r.make || this.dotted(10)
+            r.make || '-'
           ),
           this.row4(
             'Capacity',
-            r.capacity || this.dotted(10),
+            r.capacity || '-',
             'Removal Reading',
-            this.fmtNum(r.removal_reading) || this.dotted(8)
+            this.fmtNum(r.removal_reading) || '-'
           ),
           this.row4(
             'Physical Condition',
@@ -525,7 +559,7 @@ export class ContestedReportPdfService {
   // ---------- NUTRAL block ----------
   private sectionNutral(r: ContestedReportRow) {
     return {
-      margin: [0, 6, 0, 0],
+      margin: [0, 4, 0, 0],
       layout: 'cleanGrid',
       table: {
         widths: ['auto', '*', 'auto', '*'],
@@ -571,37 +605,6 @@ export class ContestedReportPdfService {
     };
   }
 
-  // ---------- Combined Error ----------
-  // private sectionCombined(r: ContestedReportRow) {
-  //   return {
-  //     margin: [0, 2, 0, 0],
-  //     layout: 'cleanGrid',
-  //     table: {
-  //       widths: ['auto', '*', 'auto', '*'],
-  //       body: [
-  //         [
-  //           {
-  //             text: 'COMBINED RESULT',
-  //             colSpan: 4,
-  //             alignment: 'center',
-  //             bold: true,
-  //             fillColor: this.theme.labelBg
-  //           },
-  //           {},
-  //           {},
-  //           {}
-  //         ],
-  //         this.row4(
-  //           'Final Error % (Combined)',
-  //           this.fmtNum(r.error_percentage_import),
-  //           '',
-  //           ''
-  //         )
-  //       ]
-  //     }
-  //   };
-  // }
-
   // ---------- Remarks ----------
   private sectionRemarks(r: ContestedReportRow) {
     return {
@@ -617,14 +620,14 @@ export class ContestedReportPdfService {
   // ---------- Signatures ----------
   private sectionSignatures(meta: any) {
     return {
-      margin: [0, 12, 0, 0],
+      margin: [0, 10, 0, 0],
       columns: [
         {
           width: '*',
           stack: [
             { text: '\n\nTested by', alignment: 'center', bold: true },
             { text: '\n____________________________', alignment: 'center' },
-            { text: (meta.testing_user || '').toUpperCase(), alignment: 'center', style: 'small' },
+            { text: (meta.testing_user || '-').toUpperCase(), alignment: 'center', style: 'small' },
             { text: 'TESTING ASSISTANT', alignment: 'center', style: 'small' }
           ]
         },
@@ -632,8 +635,8 @@ export class ContestedReportPdfService {
           width: '*',
           stack: [
             { text: '\n\nVerified by', alignment: 'center', bold: true },
-            { text: '\n____________________________', alignment: 'center' },            
-              { text: ('-').toUpperCase(), style: 'small', alignment: 'center' },
+            { text: '\n____________________________', alignment: 'center' },
+            { text: '-'.toUpperCase(), style: 'small', alignment: 'center' },
             { text: 'JUNIOR ENGINEER', alignment: 'center', style: 'small' }
           ]
         },
@@ -642,7 +645,7 @@ export class ContestedReportPdfService {
           stack: [
             { text: '\n\nApproved by', alignment: 'center', bold: true },
             { text: '\n____________________________', alignment: 'center' },
-            { text: (meta.approving_user || '').toUpperCase(), alignment: 'center', style: 'small' },
+            { text: (meta.approving_user || '-').toUpperCase(), alignment: 'center', style: 'small' },
             { text: 'ASSISTANT ENGINEER', alignment: 'center', style: 'small' }
           ]
         }

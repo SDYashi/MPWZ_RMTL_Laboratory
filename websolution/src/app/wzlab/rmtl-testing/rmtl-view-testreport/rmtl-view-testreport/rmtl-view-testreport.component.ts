@@ -57,6 +57,12 @@ import {
   SmartRow
 } from 'src/app/shared/smartagainstmeter-report-pdf.service';
 
+import {
+     NewMeterRow,
+    NewMeterReportPdfService,
+    NewMeterMeta
+} from 'src/app/shared/newmeter-report-pdf.service'; 
+
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { async, firstValueFrom } from 'rxjs';
@@ -88,7 +94,8 @@ export class RmtlViewTestreportComponent implements OnInit {
     private smartmeterPdf: SmartAgainstMeterReportPdfService,
     private solarGenPdf: SolarGenMeterCertificatePdfService,
     private solarNetPdf: SolarNetMeterCertificatePdfService,
-    private stopDefPdf: StopDefectiveReportPdfService
+    private stopDefPdf: StopDefectiveReportPdfService,
+    private newMeterPdf: NewMeterReportPdfService
   ) {}
 
   // Filters & data
@@ -599,6 +606,10 @@ async getUserNameById(id: number): Promise<any> {
         } as any as StopDefRow;
       };
 
+     
+
+
+
       // ======== dispatch by report_type ========
       switch (rtype) {
 
@@ -815,6 +826,48 @@ async getUserNameById(id: number): Promise<any> {
               rightLogoUrl: commonHeaderBase.rightLogoUrl
             } as any
           );
+          break;
+        }
+        case 'NEW': {
+          const headerForNewMeter = {
+            date: commonHeaderBase.date,
+            zone: commonHeaderBase.location_code + ' - ' + commonHeaderBase.location_name,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
+            testMethod: commonHeaderBase.testMethod,
+            testStatus: commonHeaderBase.testStatus,            
+             phase: commonHeaderBase.phase,
+        lab: {
+          lab_name: commonHeaderBase.lab_name,
+          address_line: commonHeaderBase.lab_address,
+          email: commonHeaderBase.lab_email,
+          phone: commonHeaderBase.lab_phone,
+        },
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl,
+          } as any;
+
+          const newMeterRows = rowsRaw.map(rec => {
+            const t = rec.testing || {};
+            const d = rec.device || {};
+            return {
+              serial_number: d.serial_number || '',
+              make: d.make || '',
+              capacity: d.capacity || '',
+              testMethod: t.test_method || '',
+              testStatus: t.test_status || '',
+              testing_bench: t.testing_bench || '',
+              testing_user: t.testing_user || '',
+              approving_user: t.approving_user || '',
+              date: t.date || '',            
+              phase: t.phase || '',
+            };
+          });
+          await this.newMeterPdf.download(newMeterRows, headerForNewMeter, {
+            leftLogoUrl: headerForNewMeter.leftLogoUrl,
+            rightLogoUrl: headerForNewMeter.rightLogoUrl
+          } as any  );
           break;
         }
 
