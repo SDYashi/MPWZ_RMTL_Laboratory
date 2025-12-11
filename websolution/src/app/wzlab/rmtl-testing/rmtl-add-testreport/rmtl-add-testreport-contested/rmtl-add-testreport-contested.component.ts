@@ -651,87 +651,87 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
   }
 
   // ===== submit + PDF
-private async generatePdfNow(): Promise<void> {
-  const header: ContestedReportHeader = {
-    date: this.batch.header.date || this.toYMD(new Date()),
-    phase: this.batch.header.phase || '',
-    location_code: this.batch.header.location_code || '',
-    location_name: this.batch.header.location_name || '',
-    // zone = "code - name"
-    zone: this.joinNonEmpty(
-      [this.batch.header.location_code, this.batch.header.location_name],
-      ' - '
-    ),
+  private async generatePdfNow(): Promise<void> {
+    const header: ContestedReportHeader = {
+      date: this.batch.header.date || this.toYMD(new Date()),
+      phase: this.batch.header.phase || '',
+      location_code: this.batch.header.location_code || '',
+      location_name: this.batch.header.location_name || '',
+      zone: this.joinNonEmpty(
+        [this.batch.header.location_code, this.batch.header.location_name],
+        ' - '
+      ),
 
-    testing_bench: this.batch.header.testing_bench || '-',
-    testing_user: this.batch.header.testing_user || '',
-    approving_user: this.batch.header.approving_user || '-',
+      testing_bench: this.batch.header.testing_bench || '-',
+      testing_user: this.batch.header.testing_user || '',
+      approving_user: this.batch.header.approving_user || '-',
 
-    lab_name: this.labInfo?.lab_name,
-    lab_address: this.labInfo?.address,
-    lab_email: this.labInfo?.email,
-    lab_phone: this.labInfo?.phone,
+      lab_name: this.labInfo?.lab_name,
+      lab_address: this.labInfo?.address,
+      lab_email: this.labInfo?.email,
+      lab_phone: this.labInfo?.phone,
 
-    leftLogoUrl: '/assets/icons/wzlogo.png',
-    rightLogoUrl: '/assets/icons/wzlogo.png'
-    // report_id is optional; service will auto-generate if missing
-  };
+      leftLogoUrl: '/assets/icons/wzlogo.png',
+      rightLogoUrl: '/assets/icons/wzlogo.png'
+    };
 
-  const rows: ContestedReportRow[] = (this.batch.rows || [])
-    .filter(r => (r.serial || '').trim())
-    .map(r => ({
-      serial: r.serial,
-      make: r.make,
-      capacity: r.capacity,
-      removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
+    const rows: ContestedReportRow[] = (this.batch.rows || [])
+      .filter(r => (r.serial || '').trim())
+      .map(r => ({
+        serial: r.serial,
+        make: r.make,
+        capacity: r.capacity,
+        removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
 
-      consumer_name: r.consumer_name,
-      account_no_ivrs: r.account_no_ivrs,
-      address: r.address,
-      contested_by: r.contested_by,
-      payment_particulars: r.payment_particulars,
-      receipt_no: r.receipt_no,
-      receipt_date: r.receipt_date,
+        consumer_name: r.consumer_name,
+        account_no_ivrs: r.account_no_ivrs,
+        address: r.address,
+        contested_by: r.contested_by,
+        payment_particulars: r.payment_particulars,
+        receipt_no: r.receipt_no,
+        receipt_date: r.receipt_date,
+        condition_at_removal: r.condition_at_removal,   // ← NEW: for “Meter Condition at Removal”
 
-      testing_date: r.testing_date || this.batch.header.date,
-      physical_condition_of_device: r.physical_condition_of_device,
-      is_burned: !!r.is_burned,
-      seal_status: r.seal_status,
-      meter_glass_cover: r.meter_glass_cover,
-      terminal_block: r.terminal_block,
-      meter_body: r.meter_body,
-      other: r.other,
+        testing_date: r.testing_date || this.batch.header.date,
+        physical_condition_of_device: r.physical_condition_of_device,
+        is_burned: !!r.is_burned,
+        seal_status: r.seal_status,
+        meter_glass_cover: r.meter_glass_cover,
+        terminal_block: r.terminal_block,
+        meter_body: r.meter_body,
+        other: r.other,
 
-      // SHUNT
-      shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test) ?? undefined,
-      shunt_reading_after_test: this.numOrNull(r.shunt_reading_after_test) ?? undefined,
-      shunt_ref_start_reading: this.numOrNull(r.shunt_ref_start_reading) ?? undefined,
-      shunt_ref_end_reading: this.numOrNull(r.shunt_ref_end_reading) ?? undefined,
-      shunt_current_test: r.shunt_current_test || null,
-      shunt_creep_test: r.shunt_creep_test || null,
-      shunt_dail_test: r.shunt_dail_test || null,
-      shunt_error_percentage: this.numOrNull(r.shunt_error_percentage) ?? null,
+        // SHUNT
+        shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test) ?? undefined,
+        shunt_reading_after_test: this.numOrNull(r.shunt_reading_after_test) ?? undefined,
+        shunt_ref_start_reading: this.numOrNull(r.shunt_ref_start_reading) ?? undefined,
+        shunt_ref_end_reading: this.numOrNull(r.shunt_ref_end_reading) ?? undefined,
+        shunt_current_test: r.shunt_current_test || null,
+        shunt_creep_test: r.shunt_creep_test || null,
+        shunt_dail_test: r.shunt_dail_test || null,
+        shunt_error_percentage: this.numOrNull(r.shunt_error_percentage) ?? null,
 
-      // NUTRAL
-      nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test) ?? undefined,
-      nutral_reading_after_test: this.numOrNull(r.nutral_reading_after_test) ?? undefined,
-      nutral_ref_start_reading: this.numOrNull(r.nutral_ref_start_reading) ?? undefined,
-      nutral_ref_end_reading: this.numOrNull(r.nutral_ref_end_reading) ?? undefined,
-      nutral_current_test: r.nutral_current_test || null,
-      nutral_creep_test: r.nutral_creep_test || null,
-      nutral_dail_test: r.nutral_dail_test || null,
-      nutral_error_percentage: this.numOrNull(r.nutral_error_percentage) ?? null,
+        // NUTRAL
+        nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test) ?? undefined,
+        nutral_reading_after_test: this.numOrNull(r.nutral_reading_after_test) ?? undefined,
+        nutral_ref_start_reading: this.numOrNull(r.nutral_ref_start_reading) ?? undefined,
+        nutral_ref_end_reading: this.numOrNull(r.nutral_ref_end_reading) ?? undefined,
+        nutral_current_test: r.nutral_current_test || null,
+        nutral_creep_test: r.nutral_creep_test || null,
+        nutral_dail_test: r.nutral_dail_test || null,
+        nutral_error_percentage: this.numOrNull(r.nutral_error_percentage) ?? null,
 
-      // Combined
-      error_percentage_import: this.numOrNull(r.error_percentage_import) ?? null,
+        // Combined
+        error_percentage_import: this.numOrNull(r.error_percentage_import) ?? null,
 
-      remark: r.remark || undefined
-    }));
+        remark: r.remark || undefined
+      }));
 
-  await this.reportPdf.downloadFromBatch(header, rows, {
-    fileName: `CONTESTED_${header.date}.pdf`
-  });
-}
+    await this.reportPdf.downloadFromBatch(header, rows, {
+      fileName: `CONTESTED_${header.date}.pdf`
+    });
+  }
+
 
 
   private doSubmitBatch(): void {

@@ -618,7 +618,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
     if (emptyRow) this.rows.splice(this.rows.indexOf(emptyRow), 1);
 
     this.closeDevicePicker();
-    this.setPageMessage('success', 'Selected devices added to the table.');
+    // this.setPageMessage('success', 'Selected devices added to the table.');
   }
 
   onSerialChanged(i: number, serial: string) {

@@ -125,7 +125,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   commentby_testers: any;
   test_results: any;
 
-  // mechanism selector
+  // mechanism selector (UI only; PDF uses SHUNT details)
   channelView: 'SHUNT' | 'NUTRAL' | 'BOTH' = 'BOTH';
 
   // device meta
@@ -336,6 +336,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
 
       remark: null,
       test_result: null,
+      final_remarks: null,
       ...seed
     };
   }
@@ -651,7 +652,6 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
 
         test_requester_name: requester,
       
-
         p4_division: null,
         p4_no: null,
         p4_date: null,
@@ -682,148 +682,147 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   closeModal(){ this.modal.open=false; this.modal.action=null; this.modal.payload=undefined; }
   confirmModal(){ if (this.modal.action === 'submit') this.doSubmitBatch(); }
 
-private doSubmitBatch() {
-  const v = this.validate();
-  if (!v.ok) {
-    this.showBanner('warning', 'Validation error — ' + v.msg!);
-    return;
-  }
-
-  const payload = this.buildPayload();
-
-  this.submitting = true;
-  this.alertSuccess = null;
-  this.alertError = null;
-
-  this.api.postTestReports(payload).subscribe({
-    next: async () => {
-      this.submitting = false;
-
-      // Build PDF header meta
-      const hdr: GenHeader = {
-        location_code: this.header.location_code,
-        location_name: this.header.location_name,
-        testMethod: this.testMethod,
-        testStatus: this.testStatus,
-        testing_bench: this.testing_bench || '-',
-        testing_user: this.testing_user || '-',
-        approving_user: this.approver_user || '-',
-        date: new Date().toISOString().slice(0, 10),
-
-        lab_name: this.labInfo?.lab_name || null,
-        lab_address: this.labInfo?.address || null,
-        lab_email: this.labInfo?.email || null,
-        lab_phone: this.labInfo?.phone || null,
-        leftLogoUrl:
-          this.labInfo?.left_logo_url ||
-          this.leftLogoUrl ||
-          '/assets/icons/wzlogo.png',
-        rightLogoUrl:
-          this.labInfo?.right_logo_url ||
-          this.rightLogoUrl ||
-          '/assets/icons/wzlogo.png'
-      };
-
-      // Build PDF rows
-      const rows: GenRow[] = (this.rows || [])
-        .filter(r => (r.meter_sr_no || '').trim())
-        .map(r => ({
-          certificate_no: r.certificate_no || null,
-          consumer_name: r.consumer_name || null,
-          address: r.address || null,
-
-          meter_make: r.meter_make || null,
-          meter_sr_no: r.meter_sr_no || null,
-          meter_capacity: r.meter_capacity || null,
-
-          date_of_testing: r.date_of_testing || null,
-
-          // convert testing_fees to numeric if possible
-          testing_fees:
-            r.testing_fees != null && r.testing_fees !== ''
-              ? Number(r.testing_fees)
-              : null,
-          mr_no: r.mr_no || null,
-          mr_date: r.mr_date || null,
-          ref_no: r.ref_no || null,
-
-          // energy readings (shown in certificate table)
-          starting_reading: r.shunt_reading_before_test ?? null,
-          final_reading_r: r.shunt_reading_after_test ?? null,
-          final_reading_e: r.nutral_reading_after_test ?? null,
-          difference: r._shunt_delta_meter ?? null,
-
-          // qualitative tests (fallback logic is in certTable)
-          starting_current_test: r.shunt_current_test || null,
-          creep_test: r.shunt_creep_test || null,
-          dial_test: r.shunt_dail_test || null,
-
-          // we also include the per-channel raw data so certTable
-          // could be extended later or audited
-          shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test) ?? null,
-          shunt_reading_after_test:  this.numOrNull(r.shunt_reading_after_test) ?? null,
-          shunt_ref_start_reading:   this.numOrNull(r.shunt_ref_start_reading) ?? null,
-          shunt_ref_end_reading:     this.numOrNull(r.shunt_ref_end_reading) ?? null,
-          shunt_error_percentage:    this.numOrNull(r.shunt_error_percentage) ?? null,
-
-          nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test) ?? null,
-          nutral_reading_after_test:  this.numOrNull(r.nutral_reading_after_test) ?? null,
-          nutral_ref_start_reading:   this.numOrNull(r.nutral_ref_start_reading) ?? null,
-          nutral_ref_end_reading:     this.numOrNull(r.nutral_ref_end_reading) ?? null,
-          nutral_error_percentage:    this.numOrNull(r.nutral_error_percentage) ?? null,
-
-          shunt_current_test: r.shunt_current_test || null,
-          shunt_creep_test:   r.shunt_creep_test || null,
-          shunt_dail_test:    r.shunt_dail_test || null,
-          nutral_current_test: r.nutral_current_test || null,
-          nutral_creep_test:   r.nutral_creep_test || null,
-          nutral_dail_test:    r.nutral_dail_test || null,
-
-          physical_condition_of_device: r.physical_condition_of_device || null,
-          seal_status: r.seal_status || null,
-          meter_glass_cover: r.meter_glass_cover || null,
-          terminal_block: r.terminal_block || null,
-          meter_body: r.meter_body || null,
-
-          test_result: r.test_result || this.inferredTestResult(r) || null,
-          remark: r.remark || null
-        }));
-
-      try {
-        await this.pdfSvc.download(
-          hdr,
-          rows,
-          `SOLAR_GENERATIONMETER_CERTIFICATES_${hdr.date}.pdf`
-        );
-        this.showBanner(
-          'success',
-          'Certificates generated and downloaded.'
-        );
-      } catch {
-        this.showBanner(
-          'warning',
-          'Saved, but PDF could not be generated.'
-        );
-      }
-
-      this.alertSuccess = 'Batch submitted successfully!';
-      this.rows = [this.emptyRow()];
-      setTimeout(() => this.closeModal(), 800);
-    },
-
-    error: (err) => {
-      this.submitting = false;
-      this.alertError =
-        'Error submitting certificate. Please verify fields and try again.';
-      this.showBanner(
-        'error',
-        'Submission failed — Something went wrong while submitting the batch.'
-      );
-      console.error(err);
+  private doSubmitBatch() {
+    const v = this.validate();
+    if (!v.ok) {
+      this.showBanner('warning', 'Validation error — ' + v.msg!);
+      return;
     }
-  });
-}
 
+    const payload = this.buildPayload();
+
+    this.submitting = true;
+    this.alertSuccess = null;
+    this.alertError = null;
+
+    this.api.postTestReports(payload).subscribe({
+      next: async () => {
+        this.submitting = false;
+
+        // Build PDF header meta
+        const hdr: GenHeader = {
+          location_code: this.header.location_code,
+          location_name: this.header.location_name,
+          testMethod: this.testMethod,
+          testStatus: this.testStatus,
+          testing_bench: this.testing_bench || '-',
+          testing_user: this.testing_user || '-',
+          approving_user: this.approver_user || '-',
+          date: new Date().toISOString().slice(0, 10),
+
+          lab_name: this.labInfo?.lab_name || null,
+          lab_address: this.labInfo?.address || null,
+          lab_email: this.labInfo?.email || null,
+          lab_phone: this.labInfo?.phone || null,
+          leftLogoUrl:
+            this.labInfo?.left_logo_url ||
+            this.leftLogoUrl ||
+            '/assets/icons/wzlogo.png',
+          rightLogoUrl:
+            this.labInfo?.right_logo_url ||
+            this.rightLogoUrl ||
+            '/assets/icons/wzlogo.png'
+        };
+
+        // Build PDF rows (SHUNT-focused)
+        const rows: GenRow[] = (this.rows || [])
+          .filter(r => (r.meter_sr_no || '').trim())
+          .map(r => ({
+            certificate_no: r.certificate_no || null,
+            consumer_name: r.consumer_name || null,
+            address: r.address || null,
+
+            meter_make: r.meter_make || null,
+            meter_sr_no: r.meter_sr_no || null,
+            meter_capacity: r.meter_capacity || null,
+
+            date_of_testing: r.date_of_testing || null,
+
+            // Keep the original string / number for testing fees
+            testing_fees:
+              r.testing_fees != null && r.testing_fees !== ''
+                ? r.testing_fees
+                : null,
+            mr_no: r.mr_no || null,
+            mr_date: r.mr_date || null,
+            ref_no: r.ref_no || null,
+
+            // SHUNT-based energy readings for the main certificate table
+            starting_reading: r.shunt_reading_before_test ?? null,
+            final_reading_r: r.shunt_reading_after_test ?? null,      // Meter final
+            final_reading_e: r.shunt_ref_end_reading ?? null,         // Ref final
+            difference: r._shunt_delta_meter ?? null,
+
+            // qualitative tests (fallback logic is in certTable)
+            starting_current_test: r.shunt_current_test || null,
+            creep_test: r.shunt_creep_test || null,
+            dial_test: r.shunt_dail_test || null,
+
+            // raw SHUNT channel data for details table
+            shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test) ?? null,
+            shunt_reading_after_test:  this.numOrNull(r.shunt_reading_after_test) ?? null,
+            shunt_ref_start_reading:   this.numOrNull(r.shunt_ref_start_reading) ?? null,
+            shunt_ref_end_reading:     this.numOrNull(r.shunt_ref_end_reading) ?? null,
+            shunt_error_percentage:    this.numOrNull(r.shunt_error_percentage) ?? null,
+
+            // NUTRAL channel data still mapped but IGNORED by PDF service
+            nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test) ?? null,
+            nutral_reading_after_test:  this.numOrNull(r.nutral_reading_after_test) ?? null,
+            nutral_ref_start_reading:   this.numOrNull(r.nutral_ref_start_reading) ?? null,
+            nutral_ref_end_reading:     this.numOrNull(r.nutral_ref_end_reading) ?? null,
+            nutral_error_percentage:    this.numOrNull(r.nutral_error_percentage) ?? null,
+
+            shunt_current_test: r.shunt_current_test || null,
+            shunt_creep_test:   r.shunt_creep_test || null,
+            shunt_dail_test:    r.shunt_dail_test || null,
+            nutral_current_test: r.nutral_current_test || null,
+            nutral_creep_test:   r.nutral_creep_test || null,
+            nutral_dail_test:    r.nutral_dail_test || null,
+
+            physical_condition_of_device: r.physical_condition_of_device || null,
+            seal_status: r.seal_status || null,
+            meter_glass_cover: r.meter_glass_cover || null,
+            terminal_block: r.terminal_block || null,
+            meter_body: r.meter_body || null,
+
+            test_result: r.test_result || this.inferredTestResult(r) || null,
+            remark: r.remark || null
+          }));
+
+        try {
+          await this.pdfSvc.download(
+            hdr,
+            rows,
+            `SOLAR_GENERATIONMETER_CERTIFICATES_${hdr.date}.pdf`
+          );
+          this.showBanner(
+            'success',
+            'Certificates generated and downloaded.'
+          );
+        } catch {
+          this.showBanner(
+            'warning',
+            'Saved, but PDF could not be generated.'
+          );
+        }
+
+        this.alertSuccess = 'Batch submitted successfully!';
+        this.rows = [this.emptyRow()];
+        setTimeout(() => this.closeModal(), 800);
+      },
+
+      error: (err) => {
+        this.submitting = false;
+        this.alertError =
+          'Error submitting certificate. Please verify fields and try again.';
+        this.showBanner(
+          'error',
+          'Submission failed — Something went wrong while submitting the batch.'
+        );
+        console.error(err);
+      }
+    });
+  }
 
   // ---------- banner helpers ----------
   showBanner(type: 'success'|'error'|'warning'|'info', message: string, autoCloseMs: number = 4000) {

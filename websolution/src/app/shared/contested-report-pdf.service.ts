@@ -37,13 +37,14 @@ export interface ContestedReportRow {
   consumer_name?: string;
   account_no_ivrs?: string;
   address?: string;
-  contested_by?: string;
-  payment_particulars?: string;
+  contested_by?: string;           // P4 O&M Meter by (Consumer/Zone)
+  payment_particulars?: string;    // Particular of payment of Testing Charges
   receipt_no?: string;
-  receipt_date?: string;       // YYYY-MM-DD
+  receipt_date?: string;           // YYYY-MM-DD
+  condition_at_removal?: string;   // Meter Condition at Removal
 
   // Device condition & meta
-  testing_date?: string;       // YYYY-MM-DD
+  testing_date?: string;           // YYYY-MM-DD
   physical_condition_of_device?: string;
   is_burned?: boolean;
   seal_status?: string;
@@ -148,9 +149,16 @@ export class ContestedReportPdfService {
   private join(parts: Array<string | undefined | null>, sep = ' ') {
     return parts.filter(Boolean).join(sep);
   }
-  private yesNo(v?: boolean) { return v ? 'YES' : 'NO'; }
-  private fmtNum(n?: number | null) {
-    return (n ?? '') === '' || n === null || n === undefined ? '' : String(n);
+  private yesNo(v?: boolean) {
+    if (v === true) return 'YES';
+    if (v === false) return 'NO';
+    return '-';
+  }
+  private fmtNum(n?: number | null, decimals = 2) {
+    if (n === null || n === undefined || n === ('' as any)) return '';
+    const num = Number(n);
+    if (!isFinite(num)) return '';
+    return num.toFixed(decimals);
   }
 
   private hasShunt(r: ContestedReportRow): boolean {
@@ -179,8 +187,26 @@ export class ContestedReportPdfService {
     );
   }
 
+  private statusBox(raw?: string | null) {
+    const val = (raw || '').toString().trim();
+    if (!val) return { text: '' };
+
+    const upper = val.toUpperCase();
+    const isOk = upper === 'OK' || upper === 'PASS' || upper === 'PASSED';
+
+    return {
+      text: val,
+      alignment: 'center',
+      bold: true,
+      margin: [0, 1, 0, 1],
+      fillColor: isOk ? '#2e7d32' : '#ffb300',
+      color: isOk ? '#ffffff' : '#000000'
+    };
+  }
+
   // ---------- Core doc builder ----------
   private buildDoc(header: ContestedReportHeader, rows: ContestedReportRow[], images: Record<string, string> = {}): TDocumentDefinitions {
+    // One meter per report – take the first row from batch
     const r = rows[0] || ({} as ContestedReportRow);
 
     const meta = {
@@ -202,26 +228,21 @@ export class ContestedReportPdfService {
         `CON-${(header.date || '').replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`
     };
 
-    const consumerSection = this.sectionConsumer(meta, r);
-    const meterSection    = this.sectionMeter(meta, r);
-
     const shuntExists  = this.hasShunt(r);
     const nutralExists = this.hasNutral(r);
 
-    const shuntBlock   = shuntExists  ? this.sectionShunt(r)  : null;
-    const nutralBlock  = nutralExists ? this.sectionNutral(r) : null;
-
-    const remarksSec   = this.sectionRemarks(r);
-    const signSec      = this.sectionSignatures(meta);
-
-    const readingBlocks: any[] = [];
-    if (shuntBlock || nutralBlock) {
-      readingBlocks.push({ text: 'Shunt & Nutral Readings', style: 'sectionTitle', noWrap: true });
-      if (shuntBlock)  readingBlocks.push(shuntBlock);
-      if (nutralBlock) readingBlocks.push(nutralBlock);
-    }
-
     const contentWidth = 595.28 - 18 - 18;
+
+    const consumerSection  = this.sectionConsumer(meta, r);
+    const metaPhaseSection = this.sectionPhaseAndBench(meta);
+    const zoneLine         = this.sectionZoneLine(meta);
+    const meterTopSection  = this.sectionMeterTop(r);
+    const labFillTitle     = this.sectionLabFillTitle();
+    const meterCondition   = this.sectionMeterCondition(r);
+    const testingSection   = this.sectionTestingCombined(r, shuntExists, nutralExists);
+    const finalError       = this.sectionFinalError(r);
+    const remarksSec       = this.sectionRemarks(r);
+    const signSec          = this.sectionSignatures(meta);
 
     return {
       pageSize: 'A4',
@@ -262,7 +283,8 @@ export class ContestedReportPdfService {
       },
       defaultStyle: {
         fontSize: 9,
-        color: '#111'
+        color: '#111',
+        lineHeight: 1.05
       },
       styles: {
         small: { fontSize: 8.5, color: this.theme.textSubtle },
@@ -270,7 +292,7 @@ export class ContestedReportPdfService {
           bold: true,
           fontSize: 11,
           color: '#0b2237',
-          margin: [0, 8, 0, 4]
+          margin: [0, 6, 0, 3]
         },
         tableHeader: {
           bold: true,
@@ -288,7 +310,16 @@ export class ContestedReportPdfService {
           vLineWidth: () => 0.8,
           hLineColor: () => this.theme.grid,
           vLineColor: () => this.theme.grid,
-          // ↓ tighter padding for more compact layout
+          paddingLeft: () => 3,
+          paddingRight: () => 3,
+          paddingTop: () => 2,
+          paddingBottom: () => 2
+        },
+        cleanGridTight: {
+          hLineWidth: () => 0.7,
+          vLineWidth: () => 0.7,
+          hLineColor: () => this.theme.grid,
+          vLineColor: () => this.theme.grid,
           paddingLeft: () => 2,
           paddingRight: () => 2,
           paddingTop: () => 1,
@@ -296,25 +327,26 @@ export class ContestedReportPdfService {
         }
       },
       content: [
+        // Main title like screenshot
         {
-          text: 'Contested Meter Testing Report',
+          text: 'CONTESTED METER TEST REPORT',
           style: 'sectionTitle',
           alignment: 'center',
           noWrap: true,
           fontSize: 14,
-          margin: [0, 0, 0, 6]
+          margin: [0, 0, 0, 4]
         },
 
-        { text: 'Consumer Details', style: 'sectionTitle', noWrap: true },
+        metaPhaseSection,
+        zoneLine,
+
         consumerSection,
-
-        { text: 'Meter & Condition', style: 'sectionTitle', noWrap: true },
-        meterSection,
-
-        ...readingBlocks,
-
+        meterTopSection,
+        labFillTitle,
+        meterCondition,
+        ...(testingSection ? [testingSection] : []),
+        finalError,
         remarksSec,
-
         signSec
       ]
     };
@@ -340,7 +372,7 @@ export class ContestedReportPdfService {
               width: '*',
               stack: [
                 {
-                  text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED',
+                  text: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
                   alignment: 'center',
                   bold: true,
                   fontSize: 12
@@ -365,13 +397,6 @@ export class ContestedReportPdfService {
                   color: '#555',
                   margin: [0, 2, 0, 0],
                   fontSize: 9
-                },
-                {
-                  text: `Report ID: ${meta.report_id || '-'}`,
-                  alignment: 'right',
-                  margin: [0, 4, 4, 0],
-                  fontSize: 9,
-                  color: this.theme.textSubtle
                 }
               ]
             },
@@ -382,19 +407,20 @@ export class ContestedReportPdfService {
           ],
           columnGap: 8
         },
-        
         {
-          canvas: [
+          margin: [0, 6, 0, 0],
+          columns: [
             {
-              type: 'line',
-              x1: 0,
-              y1: 0,
-              x2: meta.contentWidth,
-              y2: 0,
-              lineWidth: 1
+              text: `NO: ${meta.report_id || '...............'}`,
+              alignment: 'left',
+              fontSize: 9
+            },
+            {
+              text: `DATE: ${meta.date || '-'}`,
+              alignment: 'right',
+              fontSize: 9
             }
-          ],
-          margin: [0, 6, 0, 0]
+          ]
         },
         {
           canvas: [
@@ -413,8 +439,7 @@ export class ContestedReportPdfService {
     };
   }
 
-  // ----------------- Section builders -----------------
-
+  // ----------------- Basic helpers for rows -----------------
   private row4(l1: string, v1: any, l2: string, v2: any) {
     return [
       { text: l1, style: 'labelCell' },
@@ -437,168 +462,216 @@ export class ContestedReportPdfService {
     ];
   }
 
-  // ---------- Consumer Details ----------
-  private sectionConsumer(meta: any, r: ContestedReportRow) {
+  // ---------- Phase / Bench / User row (top band under title) ----------
+  private sectionPhaseAndBench(meta: any) {
+    return {
+      margin: [0, 2, 0, 0],
+      layout: 'cleanGrid',
+      table: {
+        widths: ['auto', '*', 'auto', '*', 'auto', '*', 'auto', '*'],
+        body: [
+          [
+            { text: 'PHASE', style: 'labelCell' },
+            { text: meta.phase || '-', style: 'valueCell' },
+
+            { text: 'TESTING BENCH', style: 'labelCell' },
+            { text: meta.testing_bench || '-', style: 'valueCell' },
+
+            { text: 'TESTING USER', style: 'labelCell' },
+            { text: meta.testing_user || '-', style: 'valueCell' },
+
+            { text: 'APPROVING USER', style: 'labelCell' },
+            { text: meta.approving_user || '-', style: 'valueCell' }
+          ]
+        ]
+      }
+    };
+  }
+
+  private sectionZoneLine(meta: any) {
+    return {
+      margin: [0, 3, 0, 3],
+      text: `Name of Zone/DC: ${meta.zone || '-'}`,
+      alignment: 'right',
+      fontSize: 9
+    };
+  }
+
+  // ---------- Consumer Details block ----------
+  private sectionConsumer(_: any, r: ContestedReportRow) {
     return {
       margin: [0, 2, 0, 0],
       layout: 'cleanGrid',
       table: {
         widths: ['auto', '*', 'auto', '*'],
         body: [
-          this.row4('Zone / DC', meta.zone || '-', 'Phase', meta.phase || '-'),
-          this.row4('Report ID', meta.report_id || '-', 'Testing Date', r.testing_date || meta.date || '-'),
-          this.row4('Testing Bench', meta.testing_bench || '-', 'Approving User', meta.approving_user || '-'),
-          this.row4('Testing User', meta.testing_user || '-', 'Date (Report)', meta.date || '-'),
-          this.row2('Name of Consumer', r.consumer_name || ''),
-          this.row2('Account / IVRS', r.account_no_ivrs || ''),
+          this.row4('Name of Consumer', r.consumer_name || '', 'Account / IVRS', r.account_no_ivrs || ''),
           this.row2('Address', r.address || ''),
-          this.row2('Contested By', r.contested_by || ''),
-          this.row2('Payment Particulars', r.payment_particulars || ''),
-          this.row2(
-            'Receipt No & Date',
-            `${r.receipt_no || ''}    ${r.receipt_date || ''}`.trim()
+          this.row2('P4 O&M Meter by (Consumer/Zone)', r.contested_by || ''),
+          this.row2('Particular of payment of Testing Charges', r.payment_particulars || ''),
+          this.row4('Receipt No', r.receipt_no || '', 'Receipt Date', r.receipt_date || ''),
+          this.row2('Meter Condition at Removal', r.condition_at_removal || '')
+        ]
+      }
+    };
+  }
+
+  // ---------- Meter top row (Meter No / Make / Capacity / Reading) ----------
+  private sectionMeterTop(r: ContestedReportRow) {
+    return {
+      margin: [0, 2, 0, 0],
+      layout: 'cleanGrid',
+      table: {
+        widths: ['auto', '*', 'auto', '*'],
+        body: [
+          this.row4('Meter No.', r.serial || '-', 'Make', r.make || '-'),
+          this.row4('Capacity', r.capacity || '-', 'Reading (Removal)', this.fmtNum(r.removal_reading, 2) || '-')
+        ]
+      }
+    };
+  }
+
+  private sectionLabFillTitle() {
+    return {
+      margin: [0, 4, 0, 2],
+      text: 'To be filled by Testing Section Laboratory',
+      bold: true,
+      alignment: 'center',
+      fontSize: 9
+    };
+  }
+
+  // ---------- Meter condition table ----------
+  private sectionMeterCondition(r: ContestedReportRow) {
+    return {
+      margin: [0, 0, 0, 2],
+      layout: 'cleanGrid',
+      table: {
+        widths: ['auto', '*', 'auto', '*'],
+        body: [
+          this.row4(
+            'Date of Testing',
+            r.testing_date || '',
+            'Physical Condition of Meter',
+            r.physical_condition_of_device || ''
+          ),
+          this.row4(
+            'Whether Found Burnt',
+            this.yesNo(r.is_burned),
+            'Meter Body Seal',
+            r.seal_status || ''
+          ),
+          this.row4(
+            'Meter Glass Cover',
+            r.meter_glass_cover || '',
+            'Terminal Block',
+            r.terminal_block || ''
+          ),
+          this.row4(
+            'Meter Body',
+            r.meter_body || '',
+            'Any Other',
+            r.other || ''
           )
         ]
       }
     };
   }
 
-  // ---------- Meter & Condition ----------
-  private sectionMeter(meta: any, r: ContestedReportRow) {
-    return {
-      margin: [0, 2, 0, 0],
-      layout: 'cleanGrid',
-      table: {
-        widths: ['auto', '*', 'auto', '*'],
-        body: [
-          this.row4(
-            'Meter No.',
-            r.serial || '-',
-            'Make',
-            r.make || '-'
-          ),
-          this.row4(
-            'Capacity',
-            r.capacity || '-',
-            'Removal Reading',
-            this.fmtNum(r.removal_reading) || '-'
-          ),
-          this.row4(
-            'Physical Condition',
-            r.physical_condition_of_device || '',
-            'Found Burnt',
-            this.yesNo(r.is_burned)
-          ),
-          this.row4(
-            'Body Seal',
-            r.seal_status || '',
-            'Glass Cover',
-            r.meter_glass_cover || ''
-          ),
-          this.row4(
-            'Terminal Block',
-            r.terminal_block || '',
-            'Meter Body',
-            r.meter_body || ''
-          ),
-          this.row2('Any Other', r.other || '')
-        ]
-      }
-    };
-  }
+  // ---------- Combined SHUNT + NEUTRAL table (like screenshot) ----------
+  private sectionTestingCombined(r: ContestedReportRow, shuntExists: boolean, nutralExists: boolean) {
+    if (!shuntExists && !nutralExists) return null;
 
-  // ---------- SHUNT block ----------
-  private sectionShunt(r: ContestedReportRow) {
     return {
-      margin: [0, 2, 0, 0],
-      layout: 'cleanGrid',
+      margin: [0, 4, 0, 0],
+      layout: 'cleanGridTight',
       table: {
         widths: ['auto', '*', 'auto', '*'],
         body: [
           [
             {
-              text: 'SHUNT READINGS',
-              colSpan: 4,
+              text: 'SHUNT',
+              colSpan: 2,
               alignment: 'center',
               bold: true,
-              fillColor: this.theme.softHeaderBg
+              fillColor: this.theme.softHeaderBg,
+              fontSize: 9
             },
             {},
-            {},
+            {
+              text: 'NEUTRAL',
+              colSpan: 2,
+              alignment: 'center',
+              bold: true,
+              fillColor: this.theme.softHeaderBg,
+              fontSize: 9
+            },
             {}
           ],
-          this.row4(
-            'Reading Before Test',
-            this.fmtNum(r.shunt_reading_before_test),
-            'Reading After Test',
-            this.fmtNum(r.shunt_reading_after_test)
-          ),
-          this.row4(
-            'Ref Start',
-            this.fmtNum(r.shunt_ref_start_reading),
-            'Ref End',
-            this.fmtNum(r.shunt_ref_end_reading)
-          ),
-          this.row4(
-            'Starting Current Test',
-            r.shunt_current_test || '',
-            'Creep Test',
-            r.shunt_creep_test || ''
-          ),
-          this.row4(
-            'Dial Test',
-            r.shunt_dail_test || '',
-            'Error % (Shunt)',
-            this.fmtNum(r.shunt_error_percentage)
-          )
+          [
+            { text: 'Before:', style: 'labelCell' },
+            { text: this.fmtNum(r.shunt_reading_before_test), style: 'valueCell' },
+            { text: 'Before:', style: 'labelCell' },
+            { text: this.fmtNum(r.nutral_reading_before_test), style: 'valueCell' }
+          ],
+          [
+            { text: 'After:', style: 'labelCell' },
+            { text: this.fmtNum(r.shunt_reading_after_test), style: 'valueCell' },
+            { text: 'After:', style: 'labelCell' },
+            { text: this.fmtNum(r.nutral_reading_after_test), style: 'valueCell' }
+          ],
+          [
+            { text: 'Ref Start:', style: 'labelCell' },
+            { text: this.fmtNum(r.shunt_ref_start_reading), style: 'valueCell' },
+            { text: 'Ref Start:', style: 'labelCell' },
+            { text: this.fmtNum(r.nutral_ref_start_reading), style: 'valueCell' }
+          ],
+          [
+            { text: 'Ref End:', style: 'labelCell' },
+            { text: this.fmtNum(r.shunt_ref_end_reading), style: 'valueCell' },
+            { text: 'Ref End:', style: 'labelCell' },
+            { text: this.fmtNum(r.nutral_ref_end_reading), style: 'valueCell' }
+          ],
+          [
+            { text: 'Error %:', style: 'labelCell' },
+            { text: this.fmtNum(r.shunt_error_percentage), style: 'valueCell' },
+            { text: 'Error %:', style: 'labelCell' },
+            { text: this.fmtNum(r.nutral_error_percentage), style: 'valueCell' }
+          ],
+          [
+            { text: 'Start Current', style: 'labelCell' },
+            this.statusBox(r.shunt_current_test),
+            { text: 'Start Current', style: 'labelCell' },
+            this.statusBox(r.nutral_current_test)
+          ],
+          [
+            { text: 'Creep Test', style: 'labelCell' },
+            this.statusBox(r.shunt_creep_test),
+            { text: 'Creep Test', style: 'labelCell' },
+            this.statusBox(r.nutral_creep_test)
+          ],
+          [
+            { text: 'Dial Test', style: 'labelCell' },
+            this.statusBox(r.shunt_dail_test),
+            { text: 'Dial Test', style: 'labelCell' },
+            this.statusBox(r.nutral_dail_test)
+          ]
         ]
       }
     };
   }
 
-  // ---------- NUTRAL block ----------
-  private sectionNutral(r: ContestedReportRow) {
+  // ---------- Final Error row ----------
+  private sectionFinalError(r: ContestedReportRow) {
     return {
       margin: [0, 4, 0, 0],
       layout: 'cleanGrid',
       table: {
         widths: ['auto', '*', 'auto', '*'],
         body: [
-          [
-            {
-              text: 'NUTRAL READINGS',
-              colSpan: 4,
-              alignment: 'center',
-              bold: true,
-              fillColor: this.theme.softHeaderBg
-            },
-            {},
-            {},
-            {}
-          ],
-          this.row4(
-            'Reading Before Test',
-            this.fmtNum(r.nutral_reading_before_test),
-            'Reading After Test',
-            this.fmtNum(r.nutral_reading_after_test)
-          ),
-          this.row4(
-            'Ref Start',
-            this.fmtNum(r.nutral_ref_start_reading),
-            'Ref End',
-            this.fmtNum(r.nutral_ref_end_reading)
-          ),
-          this.row4(
-            'Starting Current Test',
-            r.nutral_current_test || '',
-            'Creep Test',
-            r.nutral_creep_test || ''
-          ),
-          this.row4(
-            'Dial Test',
-            r.nutral_dail_test || '',
-            'Error % (Nutral)',
-            this.fmtNum(r.nutral_error_percentage)
+          this.row2(
+            'Final Error % (Import)',
+            this.fmtNum(r.error_percentage_import)
           )
         ]
       }
@@ -612,7 +685,9 @@ export class ContestedReportPdfService {
       layout: 'cleanGrid',
       table: {
         widths: ['auto', '*', 'auto', '*'],
-        body: [ this.row2('Remark', r.remark || '') ]
+        body: [
+          this.row2('Remarks', r.remark || '')
+        ]
       }
     };
   }
@@ -620,7 +695,7 @@ export class ContestedReportPdfService {
   // ---------- Signatures ----------
   private sectionSignatures(meta: any) {
     return {
-      margin: [0, 10, 0, 0],
+      margin: [0, 6, 0, 0],
       columns: [
         {
           width: '*',

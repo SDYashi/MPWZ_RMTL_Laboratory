@@ -181,7 +181,7 @@
                         <option *ngFor="let pc of physical_conditions" [value]="pc">{{ pc }}</option>
                       </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                       <label class="form-label  fw-bold mb-0">Select Seal Status</label>
                       <select class="form-select "
                              [(ngModel)]="r.seal_status"
@@ -220,19 +220,18 @@
                     </div>
                     
 
-            <div class="col-md-3">
+            <!-- <div class="col-md-3">
               <label class="form-label fw-bold mb-0">Select Testing Mechanism</label>
               <select class="form-select" [(ngModel)]="channelView" name="channelView">
                 <option value="SHUNT">SHUNT</option>
                 <option value="NUTRAL">NUTRAL</option>
                 <option value="BOTH">BOTH</option>
               </select>
-            </div>
+            </div> -->
 
                     <!-- SHUNT section -->
-                    <div class="col-12" *ngIf="channelView==='SHUNT' || channelView==='BOTH'">
+                    <div class="col-12">
                       <div class="p-3 border rounded bg-secondary bg-opacity-10">
-                        <div class="fw-bold  mb-2 p-2 bg-secondary text-white">SHUNT Readings</div>
                         <div class="row g-3 p-2">
                           <div class="col-md-3">
                             <label class="form-label  fw-bold mb-0">Testing Meter Starting Reading</label>
@@ -300,79 +299,6 @@
                         </div>
                       </div>
                     </div>
-
-                    <!-- NUTRAL section -->
-                    <div class="col-12" *ngIf="channelView==='NUTRAL' || channelView==='BOTH'">
-                      <div class="p-3 border rounded bg-secondary bg-opacity-10">
-                        <div class="fw-bold  mb-2 p-2 bg-secondary text-white">NUTRAL Readings</div>
-                        <div class="row g-3 p-2">
-                          <div class="col-md-3">
-                            <label class="form-label  fw-bold mb-0">Testing Meter Starting Reading</label>
-                            <input type="number" step="0.0001" class="form-control "
-                                   [(ngModel)]="r.nutral_reading_before_test" [name]="'nu_m_start_'+i" (ngModelChange)="recomputeChannel(i)">
-                          </div>
-                          <div class="col-md-3">
-                            <label class="form-label  fw-bold mb-0">Testing Meter Final Reading</label>
-                            <input type="number" step="0.0001" class="form-control "
-                                   [(ngModel)]="r.nutral_reading_after_test" [name]="'nu_m_final_'+i" (ngModelChange)="recomputeChannel(i)">
-                          </div>
-                          <div class="col-md-3">
-                            <label class="form-label  fw-bold mb-0">Reference Meter Starting Reading</label>
-                            <input type="number" step="0.0001" class="form-control "
-                                   [(ngModel)]="r.nutral_ref_start_reading" [name]="'nu_r_start_'+i" (ngModelChange)="recomputeChannel(i)">
-                          </div>
-                          <div class="col-md-3">
-                            <label class="form-label  fw-bold mb-0">Reference Meter Final Reading</label>
-                            <input type="number" step="0.0001" class="form-control "
-                                   [(ngModel)]="r.nutral_ref_end_reading" [name]="'nu_r_final_'+i" (ngModelChange)="recomputeChannel(i)">
-                          </div>
-
-                          <div class="col-md-3">
-                            <label class="form-label  fw-bold mb-0">Testing Meter Difference</label>
-                            <input class="form-control " [value]="r._nutral_delta_meter ?? ''" readonly>
-                          </div>
-                          <div class="col-md-3">
-                            <label class="form-label  fw-bold mb-0">Reference Meter Difference</label>
-                            <input class="form-control " [value]="r._nutral_delta_ref ?? ''" readonly>
-                          </div>
-                          <div class="col-md-3">
-                            <label class="form-label  fw-bold mb-0">Error %</label>
-                            <input type="number" step="0.01" class="form-control "
-                                   [(ngModel)]="r.nutral_error_percentage" [name]="'nu_err_'+i" readonly>
-                          </div>
-
-                          <!-- NUTRAL qualitative tests -->
-                          <div class="col-md-3">
-                            <label class="form-label  fw-bold mb-0">Nutral Current Test</label>
-                            <select class="form-select "
-                                    [(ngModel)]="r.nutral_current_test"
-                                    [name]="'nu_cur_test_'+i">
-                              <option value="">--</option>
-                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
-                            </select>
-                          </div>
-                          <div class="col-md-3">
-                            <label class="form-label  fw-bold mb-0">Nutral Creep Test</label>
-                            <select class="form-select "
-                                    [(ngModel)]="r.nutral_creep_test"
-                                    [name]="'nu_creep_test_'+i">
-                              <option value="">--</option>
-                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
-                            </select>
-                          </div>
-                          <div class="col-md-3">
-                            <label class="form-label  fw-bold mb-0">Nutral Dial Test</label>
-                            <select class="form-select "
-                                    [(ngModel)]="r.nutral_dail_test"
-                                    [name]="'nu_dail_test_'+i">
-                              <option value="">--</option>
-                              <option *ngFor="let option of test_dail_current_cheaps" [value]="option">{{ option }}</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
                     <!-- Final remark -->
                     <div class="col-12">
                       <label class="form-label  fw-bold mb-0">Final Remark / Observation</label>

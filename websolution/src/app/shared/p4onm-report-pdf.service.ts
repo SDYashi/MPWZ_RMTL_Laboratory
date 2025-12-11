@@ -22,8 +22,8 @@ export interface P4ONMReportHeader {
   lab_email?: string;
   lab_phone?: string;
 
-  leftLogoUrl?: string;             // optional: http/https/relative OR data URL
-  rightLogoUrl?: string;            // optional: http/https/relative OR data URL
+  leftLogoUrl?: string;
+  rightLogoUrl?: string;
 
   testerName?: string;
   report_id?: string;
@@ -41,7 +41,6 @@ export interface P4ONMReportRow {
   consumer_name?: string;
   account_no_ivrs?: string;
   address?: string;
-  /** Some UIs use "contested_by", legacy used "p4onm_by"; we will render whichever is present */
   contested_by?: string;
   p4onm_by?: string;
   payment_particulars?: string;
@@ -78,7 +77,7 @@ export interface P4ONMReportRow {
   shunt_dail_test?: string | null;
   shunt_error_percentage?: number | null;
 
-  // ---- NUTRAL set (rendered as "NEUTRAL") ----
+  // ---- NUTRAL set ----
   nutral_reading_before_test?: number | null;
   nutral_reading_after_test?: number | null;
   nutral_ref_start_reading?: number | null;
@@ -106,9 +105,9 @@ export class P4onmReportPdfService {
     ok: '#198754',
     fail: '#dc3545',
     na: '#6c757d',
-    grid: '#e6e9ef',
+    grid: '#dcdfe6',
     subtleText: '#5d6b7a',
-    labelBg: '#f8f9fc'
+    labelBg: '#f3f4f7'
   };
 
   // ---------- Public API ----------
@@ -159,23 +158,65 @@ export class P4onmReportPdfService {
           ? header.rightLogoUrl
           : await toDataURL(header.rightLogoUrl);
       }
-      // mirror fallback
       if (!images['rightLogo'] && images['leftLogo']) images['rightLogo'] = images['leftLogo'];
       if (!images['leftLogo'] && images['rightLogo']) images['leftLogo'] = images['rightLogo'];
     } catch {
-      // If logo fetch fails we just don't show them
+      // ignore logo errors
     }
 
     return this.buildDoc(header, rows, images);
   }
 
   // ---------- tiny helpers ----------
-  private dotted(n = 12) { return '·'.repeat(n); }
+  private dotted(n = 10) { return '·'.repeat(n); }
   private join(parts: Array<string | undefined | null>, sep = ' ') { return parts.filter(Boolean).join(sep); }
   private yesNo(v?: boolean) { return v ? 'YES' : 'NO'; }
   private present(v: any) { return v !== undefined && v !== null && v !== ''; }
   private fmtNum(v: number | null | undefined, frac = 2) {
     return this.present(v) ? Number(v).toFixed(frac) : '';
+  }
+
+  private numOrNull(v: any): number | null {
+    const n = Number(v);
+    return isFinite(n) ? n : null;
+  }
+  private diff(a?: number | null, b?: number | null): number | null {
+    const na = this.numOrNull(a);
+    const nb = this.numOrNull(b);
+    if (na === null || nb === null) return null;
+    return nb - na;
+  }
+  private pctError(meterDiff: number | null, refDiff: number | null): number | null {
+    if (meterDiff === null || refDiff === null) return null;
+    if (refDiff === 0) return null;
+    return ((meterDiff - refDiff) / refDiff) * 100;
+  }
+  private round2(v: number | null): number | null {
+    if (v === null || !isFinite(v)) return null;
+    return Math.round(v * 100) / 100;
+  }
+
+  private computeShuntError(r: P4ONMReportRow): number | null {
+    if (this.present(r.shunt_error_percentage)) {
+      return this.round2(this.numOrNull(r.shunt_error_percentage));
+    }
+    const meter = this.diff(r.shunt_reading_before_test, r.shunt_reading_after_test);
+    const ref   = this.diff(r.shunt_ref_start_reading, r.shunt_ref_end_reading);
+    return this.round2(this.pctError(meter, ref));
+  }
+  private computeNeutralError(r: P4ONMReportRow): number | null {
+    if (this.present(r.nutral_error_percentage)) {
+      return this.round2(this.numOrNull(r.nutral_error_percentage));
+    }
+    const meter = this.diff(r.nutral_reading_before_test, r.nutral_reading_after_test);
+    const ref   = this.diff(r.nutral_ref_start_reading, r.nutral_ref_end_reading);
+    return this.round2(this.pctError(meter, ref));
+  }
+  private computeFinalImportError(r: P4ONMReportRow): number | null {
+    if (this.present(r.error_percentage_import)) {
+      return this.round2(this.numOrNull(r.error_percentage_import));
+    }
+    return this.computeShuntError(r) ?? this.computeNeutralError(r);
   }
 
   private badge(val?: string | null) {
@@ -195,12 +236,12 @@ export class P4onmReportPdfService {
         hLineWidth: () => 0,
         vLineWidth: () => 0,
         fillColor: () => color,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 1,
-        paddingBottom: () => 1
+        paddingLeft: () => 2,
+        paddingRight: () => 2,
+        paddingTop: () => 0.5,
+        paddingBottom: () => 0.5
       },
-      width: 48
+      width: 40
     };
   }
 
@@ -216,7 +257,6 @@ export class P4onmReportPdfService {
       r.shunt_error_percentage
     ].some(this.present);
   }
-
   private hasNutral(r: P4ONMReportRow): boolean {
     return [
       r.nutral_reading_before_test,
@@ -241,13 +281,13 @@ export class P4onmReportPdfService {
     hasRight: boolean;
   }): any {
     return {
-      margin: [18, 10, 18, 8],
+      margin: [18, 6, 18, 4],
       stack: [
         {
           columns: [
             meta.hasLeft
-              ? { image: 'leftLogo', width: 32, alignment: 'left' as const }
-              : { width: 32, text: '' },
+              ? { image: 'leftLogo', width: 26, alignment: 'left' as const }
+              : { width: 26, text: '' },
             {
               width: '*',
               stack: [
@@ -255,37 +295,37 @@ export class P4onmReportPdfService {
                   text: 'MADHYA PRADESH PASCHIM KSHETRA VIDYUT VITARAN COMPANY LIMITED',
                   alignment: 'center' as const,
                   bold: true,
-                  fontSize: 12
+                  fontSize: 10
                 },
                 {
                   text: (meta.lab_name || '').toUpperCase(),
                   alignment: 'center' as const,
-                  margin: [0, 2, 0, 0],
-                  fontSize: 11,
+                  margin: [0, 1, 0, 0],
+                  fontSize: 9.5,
                   color: '#333',
                   bold: true
                 },
                 {
                   text: meta.lab_address || '-',
                   alignment: 'center' as const,
-                  margin: [0, 2, 0, 0],
-                  fontSize: 9,
+                  margin: [0, 1, 0, 0],
+                  fontSize: 8,
                   color: '#555'
                 },
                 {
                   text: `Email: ${meta.lab_email || '-'}    Phone: ${meta.lab_phone || '-'}`,
                   alignment: 'center' as const,
-                  margin: [0, 2, 0, 0],
-                  fontSize: 9,
+                  margin: [0, 1, 0, 0],
+                  fontSize: 8,
                   color: '#555'
                 }
               ]
             },
             meta.hasRight
-              ? { image: 'rightLogo', width: 32, alignment: 'right' as const }
-              : { width: 32, text: '' }
+              ? { image: 'rightLogo', width: 26, alignment: 'right' as const }
+              : { width: 26, text: '' }
           ],
-          columnGap: 8
+          columnGap: 6
         },
         {
           canvas: [
@@ -295,10 +335,10 @@ export class P4onmReportPdfService {
               y1: 0,
               x2: meta.contentWidth,
               y2: 0,
-              lineWidth: 1
+              lineWidth: 0.7
             }
           ],
-          margin: [0, 6, 0, 0]
+          margin: [0, 4, 0, 0]
         }
       ]
     };
@@ -310,17 +350,17 @@ export class P4onmReportPdfService {
         {
           text: `Page ${current} of ${total}`,
           alignment: 'left' as const,
-          margin: [18, 0, 0, 0],
+          margin: [18, 0, 0, 2],
           color: this.theme.subtleText
         },
         {
           text: 'M.P.P.K.V.V.CO. LTD., INDORE',
           alignment: 'right' as const,
-          margin: [0, 0, 18, 0],
+          margin: [0, 0, 18, 2],
           color: this.theme.subtleText
         }
       ],
-      fontSize: 8
+      fontSize: 7
     });
   }
 
@@ -337,38 +377,23 @@ export class P4onmReportPdfService {
       report_id: string;
     }
   ): any[] {
+
     const row4 = (l1: string, v1: any, l2: string, v2: any) => ([
       { text: l1, bold: true, fillColor: this.theme.labelBg },
       { text: (v1 ?? '').toString() },
       { text: l2, bold: true, fillColor: this.theme.labelBg },
       { text: (v2 ?? '').toString() }
     ]);
-
     const row2 = (label: string, value: any) => ([
       { text: label, bold: true, fillColor: this.theme.labelBg },
       { text: (value ?? '').toString(), colSpan: 3 }, {}, {}
     ]);
 
-    // thin rule
-    const topRule = {
-      canvas: [
-        {
-          type: 'line',
-          x1: 0,
-          y1: 0,
-          x2: 540,
-          y2: 0,
-          lineWidth: 1
-        }
-      ],
-      margin: [0, 6, 0, 6]
-    };
-
     const metaTopLine = {
-      margin: [0, 0, 0, 6],
+      margin: [0, 0, 0, 4],
       columns: [
-        { text: `NO ${this.dotted(20)}` },
-        { text: `DATE ${meta.date}`, alignment: 'right' as const }
+        { text: `NO ${this.dotted(18)}`, fontSize: 8.5 },
+        { text: `DATE ${meta.date}`, alignment: 'right' as const, fontSize: 8.5 }
       ]
     };
 
@@ -376,22 +401,22 @@ export class P4onmReportPdfService {
       text: 'P4 O&M METER TEST REPORT',
       alignment: 'center' as const,
       bold: true,
-      margin: [0, 0, 0, 6],
-      fontSize: 13
+      margin: [0, 0, 0, 4],
+      fontSize: 11
     };
 
     const infoTable = {
       layout: {
-        hLineWidth: () => 1.5,
-        vLineWidth: () => 1.5,
+        hLineWidth: () => 0.7,
+        vLineWidth: () => 0.7,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 2,
-        paddingBottom: () => 2
+        paddingLeft: () => 2,
+        paddingRight: () => 2,
+        paddingTop: () => 1,
+        paddingBottom: () => 1
       },
-      margin: [0, 0, 0, 6],
+      margin: [0, 0, 0, 4],
       table: {
         widths: ['auto', '*', 'auto', '*', 'auto', '*', 'auto', '*'],
         body: [[
@@ -416,27 +441,27 @@ export class P4onmReportPdfService {
             {
               text: `Name of Zone/DC: ${meta.zone || '-'}`,
               color: this.theme.subtleText,
-              fontSize: 9,
+              fontSize: 8,
               alignment: 'right' as const
             }
           ]
         }
       ],
-      margin: [0, 0, 0, 8]
+      margin: [0, 0, 0, 4]
     };
 
     const slip = {
       layout: {
-        hLineWidth: () => 1.5,
-        vLineWidth: () => 1.5,
+        hLineWidth: () => 0.7,
+        vLineWidth: () => 0.7,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 2,
-        paddingBottom: () => 2
+        paddingLeft: () => 2,
+        paddingRight: () => 2,
+        paddingTop: () => 1,
+        paddingBottom: () => 1
       },
-      margin: [0, 0, 0, 6],
+      margin: [0, 0, 0, 4],
       table: {
         widths: ['auto', '*', 'auto', '*'],
         body: [
@@ -452,49 +477,50 @@ export class P4onmReportPdfService {
 
     const slipMeter = {
       layout: {
-        hLineWidth: () => 1.5,
-        vLineWidth: () => 1.5,
+        hLineWidth: () => 0.7,
+        vLineWidth: () => 0.7,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 2,
-        paddingBottom: () => 2
+        paddingLeft: () => 2,
+        paddingRight: () => 2,
+        paddingTop: () => 1,
+        paddingBottom: () => 1
       },
-      margin: [0, 0, 0, 6],
+      margin: [0, 0, 0, 4],
       table: {
         widths: ['auto', '*', 'auto', '*'],
         body: [
-          row4('Meter No.', r.serial || this.dotted(12), 'Make', r.make || this.dotted(10)),
-          row4('Capacity', r.capacity || this.dotted(10), 'Reading (Removal)', this.present(r.removal_reading) ? this.fmtNum(r.removal_reading, 3) : this.dotted(8))
+          row4('Meter No.', r.serial || this.dotted(8), 'Make', r.make || this.dotted(8)),
+          row4(
+            'Capacity',
+            r.capacity || this.dotted(8),
+            'Reading (Removal)',
+            this.present(r.removal_reading) ? this.fmtNum(r.removal_reading, 3) : this.dotted(6)
+          )
         ]
       }
     };
 
     const labBlockHead = {
-      stack: [
-        {
-          text: 'To be filled by Testing Section Laboratory',
-          alignment: 'center' as const,
-          bold: true,
-          margin: [0, 0, 0, 6],
-          fontSize: 10
-        }
-      ]
+      text: 'To be filled by Testing Section Laboratory',
+      alignment: 'center' as const,
+      bold: true,
+      margin: [0, 0, 0, 3],
+      fontSize: 8.5
     };
 
     const rmtlGrid = {
       layout: {
-        hLineWidth: () => 1.5,
-        vLineWidth: () => 1.5,
+        hLineWidth: () => 0.7,
+        vLineWidth: () => 0.7,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 2,
-        paddingBottom: () => 2
+        paddingLeft: () => 2,
+        paddingRight: () => 2,
+        paddingTop: () => 1,
+        paddingBottom: () => 1
       },
-      margin: [0, 0, 0, 6],
+      margin: [0, 0, 0, 4],
       table: {
         widths: ['auto', '*', 'auto', '*'],
         body: [
@@ -506,169 +532,176 @@ export class P4onmReportPdfService {
       }
     };
 
-    const shuntGrid = this.hasShunt(r) ? {
-      layout: {
-        hLineWidth: () => 1.5,
-        vLineWidth: () => 1.5,
-        hLineColor: () => this.theme.grid,
-        vLineColor: () => this.theme.grid,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 2,
-        paddingBottom: () => 2
-      },
-      margin: [0, 0, 0, 6],
-      table: {
-        headerRows: 1,
-        widths: ['*','*','*','*'],
-        body: [
-          [
-            { text: 'SHUNT READINGS', colSpan: 4, alignment: 'center' as const, bold: true, fillColor: this.theme.labelBg },
-            {}, {}, {}
-          ],
-          [
-            { text: 'Before Test', bold: true, fillColor: this.theme.labelBg },
-            { text: this.fmtNum(r.shunt_reading_before_test) },
-            { text: 'After Test', bold: true, fillColor: this.theme.labelBg },
-            { text: this.fmtNum(r.shunt_reading_after_test) }
-          ],
-          [
-            { text: 'Ref Start', bold: true, fillColor: this.theme.labelBg },
-            { text: this.fmtNum(r.shunt_ref_start_reading) },
-            { text: 'Ref End', bold: true, fillColor: this.theme.labelBg },
-            { text: this.fmtNum(r.shunt_ref_end_reading) }
-          ],
-          [
-            { text: 'Error % (Shunt)', bold: true, fillColor: this.theme.labelBg },
-            { text: this.fmtNum(r.shunt_error_percentage) },
-            { text: '', border: [false,false,false,false] },
-            { text: '', border: [false,false,false,false] }
-          ],
-          [
-            { text: 'Starting Current', bold: true, fillColor: this.theme.labelBg }, this.badge(r.shunt_current_test),
-            { text: 'Creep Test', bold: true, fillColor: this.theme.labelBg }, this.badge(r.shunt_creep_test)
-          ],
-          [
-            { text: 'Dial Test', bold: true, fillColor: this.theme.labelBg }, this.badge(r.shunt_dail_test),
-            { text: '', border: [false,false,false,false] }, { text: '', border: [false,false,false,false] }
-          ]
-        ]
-      }
-    } : null;
+    const shuntErr = this.computeShuntError(r);
+    const neutralErr = this.computeNeutralError(r);
+    const finalErr = this.computeFinalImportError(r);
 
-    const neutralGrid = this.hasNutral(r) ? {
-      layout: {
-        hLineWidth: () => 1.5,
-        vLineWidth: () => 1.5,
-        hLineColor: () => this.theme.grid,
-        vLineColor: () => this.theme.grid,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 2,
-        paddingBottom: () => 2
-      },
-      margin: [0, 0, 0, 6],
-      table: {
-        headerRows: 1,
-        widths: ['*','*','*','*'],
-        body: [
-          [
-            { text: 'NEUTRAL READINGS', colSpan: 4, alignment: 'center' as const, bold: true, fillColor: this.theme.labelBg },
-            {}, {}, {}
-          ],
-          [
-            { text: 'Before Test', bold: true, fillColor: this.theme.labelBg },
-            { text: this.fmtNum(r.nutral_reading_before_test) },
-            { text: 'After Test', bold: true, fillColor: this.theme.labelBg },
-            { text: this.fmtNum(r.nutral_reading_after_test) }
-          ],
-          [
-            { text: 'Ref Start', bold: true, fillColor: this.theme.labelBg },
-            { text: this.fmtNum(r.nutral_ref_start_reading) },
-            { text: 'Ref End', bold: true, fillColor: this.theme.labelBg },
-            { text: this.fmtNum(r.nutral_ref_end_reading) }
-          ],
-          [
-            { text: 'Error % (Neutral)', bold: true, fillColor: this.theme.labelBg },
-            { text: this.fmtNum(r.nutral_error_percentage) },
-            { text: '', border: [false,false,false,false] },
-            { text: '', border: [false,false,false,false] }
-          ],
-          [
-            { text: 'Starting Current', bold: true, fillColor: this.theme.labelBg }, this.badge(r.nutral_current_test),
-            { text: 'Creep Test', bold: true, fillColor: this.theme.labelBg }, this.badge(r.nutral_creep_test)
-          ],
-          [
-            { text: 'Dial Test', bold: true, fillColor: this.theme.labelBg }, this.badge(r.nutral_dail_test),
-            { text: '', border: [false,false,false,false] }, { text: '', border: [false,false,false,false] }
-          ]
-        ]
-      }
-    } : null;
+    // Put Shunt and Neutral in two columns to save vertical space
+    const shuntGrid = this.hasShunt(r)
+      ? {
+          layout: {
+            hLineWidth: () => 0.7,
+            vLineWidth: () => 0.7,
+            hLineColor: () => this.theme.grid,
+            vLineColor: () => this.theme.grid,
+            paddingLeft: () => 3,
+            paddingRight: () => 3,
+            paddingTop: () => 2,
+            paddingBottom: () => 2
 
-    // legacy block if anything legacy is present
+          },
+          table: {
+            headerRows: 1,
+            widths: ['*', '*'],
+            body: [
+              [
+                { text: 'SHUNT', colSpan: 2, alignment: 'center' as const, bold: true, fillColor: this.theme.labelBg },
+                {}
+              ],
+              [
+                { text: `Before: ${this.fmtNum(r.shunt_reading_before_test)}`, colSpan: 2 }, {}
+              ],
+              [
+                { text: `After: ${this.fmtNum(r.shunt_reading_after_test)}`, colSpan: 2 }, {}
+              ],
+              [
+                { text: `Ref Start: ${this.fmtNum(r.shunt_ref_start_reading)}`, colSpan: 2 }, {}
+              ],
+              [
+                { text: `Ref End: ${this.fmtNum(r.shunt_ref_end_reading)}`, colSpan: 2 }, {}
+              ],
+              [
+                { text: `Error %: ${this.fmtNum(shuntErr)}`, colSpan: 2 }, {}
+              ],
+              [
+                { text: 'Start Current', bold: true, fillColor: this.theme.labelBg }, this.badge(r.shunt_current_test)
+              ],
+              [
+                { text: 'Creep Test', bold: true, fillColor: this.theme.labelBg }, this.badge(r.shunt_creep_test)
+              ],
+              [
+                { text: 'Dial Test', bold: true, fillColor: this.theme.labelBg }, this.badge(r.shunt_dail_test)
+              ]
+            ]
+          }
+        }
+      : null;
+
+    const neutralGrid = this.hasNutral(r)
+      ? {
+          layout: {
+            hLineWidth: () => 0.7,
+            vLineWidth: () => 0.7,
+            hLineColor: () => this.theme.grid,
+            vLineColor: () => this.theme.grid,
+            paddingLeft: () => 3,
+            paddingRight: () => 3,
+            paddingTop: () => 2,
+            paddingBottom: () => 2
+
+          },
+          table: {
+            headerRows: 1,
+            widths: ['*', '*'],
+            body: [
+              [
+                { text: 'NEUTRAL', colSpan: 2, alignment: 'center' as const, bold: true, fillColor: this.theme.labelBg },
+                {}
+              ],
+              [
+                { text: `Before: ${this.fmtNum(r.nutral_reading_before_test)}`, colSpan: 2 }, {}
+              ],
+              [
+                { text: `After: ${this.fmtNum(r.nutral_reading_after_test)}`, colSpan: 2 }, {}
+              ],
+              [
+                { text: `Ref Start: ${this.fmtNum(r.nutral_ref_start_reading)}`, colSpan: 2 }, {}
+              ],
+              [
+                { text: `Ref End: ${this.fmtNum(r.nutral_ref_end_reading)}`, colSpan: 2 }, {}
+              ],
+              [
+                { text: `Error %: ${this.fmtNum(neutralErr)}`, colSpan: 2 }, {}
+              ],
+              [
+                { text: 'Start Current', bold: true, fillColor: this.theme.labelBg }, this.badge(r.nutral_current_test)
+              ],
+              [
+                { text: 'Creep Test', bold: true, fillColor: this.theme.labelBg }, this.badge(r.nutral_creep_test)
+              ],
+              [
+                { text: 'Dial Test', bold: true, fillColor: this.theme.labelBg }, this.badge(r.nutral_dail_test)
+              ]
+            ]
+          }
+        }
+      : null;
+
     const legacyNeeded = [
       r.rsm_kwh, r.meter_kwh, r.error_percentage,
       r.reading_before_test, r.reading_after_test
     ].some(this.present);
 
-    const legacyResults = legacyNeeded ? {
-      layout: {
-        hLineWidth: () => 1.5,
-        vLineWidth: () => 1.5,
-        hLineColor: () => this.theme.grid,
-        vLineColor: () => this.theme.grid,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 2,
-        paddingBottom: () => 2
-      },
-      margin: [0, 0, 0, 6],
-      table: {
-        widths: ['auto', '*', 'auto', '*'],
-        body: [
-          row4(
-            'Before Test (Legacy)',
-            this.fmtNum(r.reading_before_test),
-            'After Test (Legacy)',
-            this.fmtNum(r.reading_after_test)
-          ),
-          row4(
-            'Dial Test (RSM kWh)',
-            this.fmtNum(r.rsm_kwh),
-            'Dial Test (Meter kWh)',
-            this.fmtNum(r.meter_kwh)
-          ),
-          row4(
-            '% Error (Overall Legacy)',
-            this.fmtNum(r.error_percentage),
-            '—',
-            '—'
-          )
-        ]
-      }
-    } : null;
-
-    // final error % and remarks
-    const combinedError = this.present(r.error_percentage_import)
+    const legacyResults = legacyNeeded
       ? {
           layout: {
-            hLineWidth: () => 1.5,
-            vLineWidth: () => 1.5,
+            hLineWidth: () => 0.7,
+            vLineWidth: () => 0.7,
             hLineColor: () => this.theme.grid,
             vLineColor: () => this.theme.grid,
-            paddingLeft: () => 4,
-            paddingRight: () => 4,
+            paddingLeft: () => 3,
+            paddingRight: () => 3,
             paddingTop: () => 2,
             paddingBottom: () => 2
+
           },
-          margin: [0, 0, 0, 10],
+          margin: [0, 2, 0, 3],
+          table: {
+            widths: ['auto', '*', 'auto', '*'],
+            body: [
+              row4(
+                'Before Test (Legacy)',
+                this.fmtNum(r.reading_before_test),
+                'After Test (Legacy)',
+                this.fmtNum(r.reading_after_test)
+              ),
+              row4(
+                'Dial Test (RSM kWh)',
+                this.fmtNum(r.rsm_kwh),
+                'Dial Test (Meter kWh)',
+                this.fmtNum(r.meter_kwh)
+              ),
+              row4(
+                '% Error (Overall Legacy)',
+                this.fmtNum(r.error_percentage),
+                '—',
+                '—'
+              )
+            ]
+          }
+        }
+      : null;
+
+    const combinedError = this.present(finalErr)
+      ? {
+          layout: {
+            hLineWidth: () => 0.7,
+            vLineWidth: () => 0.7,
+            hLineColor: () => this.theme.grid,
+            vLineColor: () => this.theme.grid,
+            paddingLeft: () => 3,
+            paddingRight: () => 3,
+            paddingTop: () => 2,
+            paddingBottom: () => 2
+
+          },
+          margin: [0, 2, 0, 3],
           table: {
             widths: ['auto', '*'],
             body: [
               [
                 { text: 'Final Error % (Import)', bold: true, fillColor: this.theme.labelBg },
-                { text: String(r.error_percentage_import ?? '') }
+                { text: this.fmtNum(finalErr) }
               ]
             ]
           }
@@ -678,16 +711,17 @@ export class P4onmReportPdfService {
     const remarksBlock = this.present(r.final_remarks)
       ? {
           layout: {
-            hLineWidth: () => 1.5,
-            vLineWidth: () => 1.5,
+            hLineWidth: () => 0.7,
+            vLineWidth: () => 0.7,
             hLineColor: () => this.theme.grid,
             vLineColor: () => this.theme.grid,
-            paddingLeft: () => 4,
-            paddingRight: () => 4,
+            paddingLeft: () => 3,
+            paddingRight: () => 3,
             paddingTop: () => 2,
             paddingBottom: () => 2
+
           },
-          margin: [0, 0, 0, 10],
+          margin: [0, 2, 0, 3],
           table: {
             widths: ['*'],
             body: [
@@ -699,25 +733,25 @@ export class P4onmReportPdfService {
       : null;
 
     const signBlock = {
-      margin: [0, 8, 0, 0],
+      margin: [0, 2, 0, 0],
       columns: [
         {
           width: '*',
           alignment: 'center' as const,
           stack: [
-            { text: 'Tested by', alignment: 'center' as const, bold: true },
-            { text: '\n\n____________________________', alignment: 'center' as const },
+            { text: '\n\nTested by', alignment: 'center' as const, bold: true, fontSize: 8 },
+            { text: '____________________________', alignment: 'center' as const, margin: [0, 4, 0, 0] },
             {
               text: meta.testing_user || '____________________________',
               alignment: 'center' as const,
               color: this.theme.subtleText,
-              fontSize: 9
+              fontSize: 7.5
             },
             {
               text: 'TESTING ASSISTANT',
               alignment: 'center' as const,
               color: this.theme.subtleText,
-              fontSize: 9
+              fontSize: 7.5
             }
           ]
         },
@@ -725,13 +759,13 @@ export class P4onmReportPdfService {
           width: '*',
           alignment: 'center' as const,
           stack: [
-            { text: 'Verified by', alignment: 'center' as const, bold: true },
-            { text: '\n\n____________________________', alignment: 'center' as const },
+            { text: '\n\nVerified by', alignment: 'center' as const, bold: true, fontSize: 8 },
+            { text: '____________________________', alignment: 'center' as const, margin: [0, 4, 0, 0] },
             {
               text: 'JUNIOR ENGINEER',
               alignment: 'center' as const,
               color: this.theme.subtleText,
-              fontSize: 9
+              fontSize: 7.5
             }
           ]
         },
@@ -739,19 +773,19 @@ export class P4onmReportPdfService {
           width: '*',
           alignment: 'center' as const,
           stack: [
-            { text: 'Approved by', alignment: 'center' as const, bold: true },
-            { text: '\n\n____________________________', alignment: 'center' as const },
+            { text: '\n\nApproved by', alignment: 'center' as const, bold: true, fontSize: 8 },
+            { text: '____________________________', alignment: 'center' as const, margin: [0, 4, 0, 0] },
             {
               text: meta.approving_user || '____________________________',
               alignment: 'center' as const,
               color: this.theme.subtleText,
-              fontSize: 9
+              fontSize: 7.5
             },
             {
               text: 'ASSISTANT ENGINEER',
               alignment: 'center' as const,
               color: this.theme.subtleText,
-              fontSize: 9
+              fontSize: 7.5
             }
           ]
         }
@@ -759,7 +793,6 @@ export class P4onmReportPdfService {
     };
 
     const blocks: any[] = [
-      // topRule,
       metaTopLine,
       reportTitle,
       infoTable,
@@ -770,8 +803,18 @@ export class P4onmReportPdfService {
       rmtlGrid
     ];
 
-    if (shuntGrid) blocks.push(shuntGrid);
-    if (neutralGrid) blocks.push(neutralGrid);
+    // Shunt + Neutral side-by-side to save height
+    if (shuntGrid || neutralGrid) {
+      blocks.push({
+        margin: [0, 0, 0, 3],
+        columns: [
+          shuntGrid ? { width: '50%', ...shuntGrid } : { width: '50%', text: '' },
+          neutralGrid ? { width: '50%', ...neutralGrid } : { width: '50%', text: '' }
+        ],
+        columnGap: 4
+      });
+    }
+
     if (combinedError) blocks.push(combinedError);
     if (legacyResults) blocks.push(legacyResults);
     if (remarksBlock) blocks.push(remarksBlock);
@@ -798,7 +841,6 @@ export class P4onmReportPdfService {
         `P4-${header.date.replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`
     };
 
-    // build all pages
     const content: any[] = [];
     rows.forEach((r, idx) => {
       content.push(...this.pageForRow(r, {
@@ -815,16 +857,18 @@ export class P4onmReportPdfService {
       }
     });
 
-    const contentWidth = 595.28 - 18 - 18; // A4 - horizontal header margins
+    const contentWidth = 595.28 - 18 - 18;
 
     return {
       pageSize: 'A4',
-      pageMargins: [18, 92, 18, 34],
-      defaultStyle: {
-        fontSize: 9.5,
-        color: '#111',
-        lineHeight: 1.1
-      },
+      // smaller header & footer margins so content height increases
+     pageMargins: [18, 80, 18, 34],
+   defaultStyle: {
+  fontSize: 9,
+  color: '#111',
+  lineHeight: 1.05   // slightly more breathing room
+},
+
       images,
       info: { title: `P4_ONM_${meta.date}` },
       header: this.headerBar({

@@ -190,7 +190,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
         this.capacities = d?.capacities || [];
         this.phases = d?.phases || [];
         this.testing_request_types = d?.testing_request_types || [];
-        this.fees_mtr_cts = d?.fees_mtr_cts || [];      
+        this.fees_mtr_cts = d?.fees_mtr_cts || [];
         this.ternal_testing_types = d?.ternal_testing_types || this.ternal_testing_types;
         this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
 
@@ -334,7 +334,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
   get allPicked(): boolean {
     const ids = this.pickerFiltered.map(p => p.id);
     return ids.length>0 && ids.every(id => !!this.pickerSelected[id]);
-    }
+  }
   togglePickAll(checked: boolean): void {
     this.pickerFiltered.forEach(a => this.pickerSelected[a.id] = checked);
   }
@@ -362,7 +362,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
       this.batch.rows.splice(emptyRowIndex, 1);
     }
     this.closePicker();
-   }
+  }
   trackAssignment(_i:number, a:AssignmentItem){ return a.id; }
 
   // -------------------- rows --------------------
@@ -490,6 +490,28 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
       if (r.notFound) return { ok:false, reason:`Row #${i+1}: Serial not in assigned list.` };
       if (!r.assignment_id || !r.device_id) return { ok:false, reason:`Row #${i+1}: Missing assignment/device mapping.` };
       if (!r.test_result) return { ok:false, reason:`Row #${i+1}: Choose Test Result.` };
+
+      // ---- enforce mandatory readings based on view_mode ----
+      const usesShunt = (r.view_mode || 'BOTH') !== 'NUTRAL';
+      const usesNeutral = (r.view_mode || 'BOTH') !== 'SHUNT';
+
+      if (usesShunt) {
+        if (r.shunt_reading_before_test == null ||
+            r.shunt_reading_after_test == null ||
+            r.shunt_ref_start_reading == null ||
+            r.shunt_ref_end_reading == null) {
+          return { ok:false, reason:`Row #${i+1}: Fill all SHUNT readings.` };
+        }
+      }
+
+      if (usesNeutral) {
+        if (r.nutral_reading_before_test == null ||
+            r.nutral_reading_after_test == null ||
+            r.nutral_ref_start_reading == null ||
+            r.nutral_ref_end_reading == null) {
+          return { ok:false, reason:`Row #${i+1}: Fill all NEUTRAL readings.` };
+        }
+      }
     }
 
     // Defaults
@@ -592,118 +614,117 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
     if (a==='clear'){ this.batch.rows=[]; this.addBatchRow(); this.closeModal(); return; }
     if (a==='submit'){ this.doSubmit(); }
   }
-private doSubmit(): void {
-  this.submitting = true;
-  this.inlineError = null;
-  this.inlineInfo = null;
 
-  this.api.postTestReports(this.payload).subscribe({
-    next: async () => {
-      this.submitting = false;
+  private doSubmit(): void {
+    this.submitting = true;
+    this.inlineError = null;
+    this.inlineInfo = null;
 
-      const header: P4ONMReportHeader = {
-        date: this.batch.header.date || this.toYMD(new Date()),
-        phase: this.batch.header.phase || '-',
-        location_code: this.batch.header.location_code || '',
-        location_name: this.batch.header.location_name || '',
-        zone: `${this.batch.header.location_code || ''}${this.batch.header.location_code ? ' - ' : ''}${this.batch.header.location_name || ''}`,
-        testing_bench: this.batch.header.testing_bench || '-',
-        testing_user: this.batch.header.testing_user || (localStorage.getItem('currentUserName') || '-'),
-        approving_user: this.batch.header.approving_user || '-',
-        lab_name: this.labInfo?.lab_name || undefined,
-        lab_address: this.labInfo?.address || undefined,
-        lab_email: this.labInfo?.email || undefined,
-        lab_phone: this.labInfo?.phone || undefined,
-        leftLogoUrl: this.labInfo?.logo_left_url || '/assets/icons/wzlogo.png',
-        rightLogoUrl: this.labInfo?.logo_right_url || '/assets/icons/wzlogo.png'
-      };
+    this.api.postTestReports(this.payload).subscribe({
+      next: async () => {
+        this.submitting = false;
 
-      // build full PDF rows, not just slip bits
-      const rows: P4ONMReportRow[] = (this.batch.rows || [])
-        .filter(r => (r.serial || '').trim())
-        .map(r => ({
-          serial: r.serial,
-          make: r.make,
-          capacity: r.capacity,
-          removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
+        const header: P4ONMReportHeader = {
+          date: this.batch.header.date || this.toYMD(new Date()),
+          phase: this.batch.header.phase || '-',
+          location_code: this.batch.header.location_code || '',
+          location_name: this.batch.header.location_name || '',
+          zone: `${this.batch.header.location_code || ''}${this.batch.header.location_code ? ' - ' : ''}${this.batch.header.location_name || ''}`,
+          testing_bench: this.batch.header.testing_bench || '-',
+          testing_user: this.batch.header.testing_user || (localStorage.getItem('currentUserName') || '-'),
+          approving_user: this.batch.header.approving_user || '-',
+          lab_name: this.labInfo?.lab_name || undefined,
+          lab_address: this.labInfo?.address || undefined,
+          lab_email: this.labInfo?.email || undefined,
+          lab_phone: this.labInfo?.phone || undefined,
+          leftLogoUrl: this.labInfo?.logo_left_url || '/assets/icons/wzlogo.png',
+          rightLogoUrl: this.labInfo?.logo_right_url || '/assets/icons/wzlogo.png'
+        };
 
-          consumer_name: r.consumer_name,
-          account_no_ivrs: r.account_no_ivrs,
-          address: r.address,
-          p4onm_by: r.p4onm_by,
-          payment_particulars: r.payment_particulars,
-          receipt_no: r.receipt_no,
-          receipt_date: r.receipt_date,
-          condition_at_removal: r.condition_at_removal,
+        // build full PDF rows, not just slip bits
+        const rows: P4ONMReportRow[] = (this.batch.rows || [])
+          .filter(r => (r.serial || '').trim())
+          .map(r => ({
+            serial: r.serial,
+            make: r.make,
+            capacity: r.capacity,
+            removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
 
-          testing_date: this.batch.header.date,
-          physical_condition_of_device: r.physical_condition_of_device || undefined,
-          is_burned: !!r.is_burned,
-          seal_status: r.seal_status || undefined,
-          meter_glass_cover: r.meter_glass_cover || undefined,
-          terminal_block: r.terminal_block || undefined,
-          meter_body: r.meter_body || undefined,
-          other: undefined,
+            consumer_name: r.consumer_name,
+            account_no_ivrs: r.account_no_ivrs,
+            address: r.address,
+            p4onm_by: r.p4onm_by,
+            payment_particulars: r.payment_particulars,
+            receipt_no: r.receipt_no,
+            receipt_date: r.receipt_date,
+            condition_at_removal: r.condition_at_removal,
 
-          // shunt
-          shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
-          shunt_reading_after_test: this.numOrNull(r.shunt_reading_after_test),
-          shunt_ref_start_reading: this.numOrNull(r.shunt_ref_start_reading),
-          shunt_ref_end_reading: this.numOrNull(r.shunt_ref_end_reading),
-          shunt_current_test: r.shunt_current_test || undefined,
-          shunt_creep_test: r.shunt_creep_test || undefined,
-          shunt_dail_test: r.shunt_dail_test || undefined,
-          shunt_error_percentage: this.numOrNull(r.shunt_error_percentage),
+            testing_date: this.batch.header.date,
+            physical_condition_of_device: r.physical_condition_of_device || undefined,
+            is_burned: !!r.is_burned,
+            seal_status: r.seal_status || undefined,
+            meter_glass_cover: r.meter_glass_cover || undefined,
+            terminal_block: r.terminal_block || undefined,
+            meter_body: r.meter_body || undefined,
+            other: undefined,
 
-          // neutral
-          nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
-          nutral_reading_after_test: this.numOrNull(r.nutral_reading_after_test),
-          nutral_ref_start_reading: this.numOrNull(r.nutral_ref_start_reading),
-          nutral_ref_end_reading: this.numOrNull(r.nutral_ref_end_reading),
-          nutral_current_test: r.nutral_current_test || undefined,
-          nutral_creep_test: r.nutral_creep_test || undefined,
-          nutral_dail_test: r.nutral_dail_test || undefined,
-          nutral_error_percentage: this.numOrNull(r.nutral_error_percentage),
+            // shunt
+            shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
+            shunt_reading_after_test: this.numOrNull(r.shunt_reading_after_test),
+            shunt_ref_start_reading: this.numOrNull(r.shunt_ref_start_reading),
+            shunt_ref_end_reading: this.numOrNull(r.shunt_ref_end_reading),
+            shunt_current_test: r.shunt_current_test || undefined,
+            shunt_creep_test: r.shunt_creep_test || undefined,
+            shunt_dail_test: r.shunt_dail_test || undefined,
+            shunt_error_percentage: this.numOrNull(r.shunt_error_percentage),
 
-          // final / combined error
-          error_percentage_import: this.numOrNull(r.error_percentage_import) ?? undefined,
+            // neutral
+            nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
+            nutral_reading_after_test: this.numOrNull(r.nutral_reading_after_test),
+            nutral_ref_start_reading: this.numOrNull(r.nutral_ref_start_reading),
+            nutral_ref_end_reading: this.numOrNull(r.nutral_ref_end_reading),
+            nutral_current_test: r.nutral_current_test || undefined,
+            nutral_creep_test: r.nutral_creep_test || undefined,
+            nutral_dail_test: r.nutral_dail_test || undefined,
+            nutral_error_percentage: this.numOrNull(r.nutral_error_percentage),
 
-          // legacy fields if present (kept for compatibility)
-          reading_before_test: null,
-          reading_after_test: null,
-          rsm_kwh: null,
-          meter_kwh: null,
-          error_percentage: null,
+            // final / combined error
+            error_percentage_import: this.numOrNull(r.error_percentage_import) ?? undefined,
 
-          final_remarks: r.final_remarks || r.remark || undefined
-        }));
+            // legacy fields if present (kept for compatibility)
+            reading_before_test: null,
+            reading_after_test: null,
+            rsm_kwh: null,
+            meter_kwh: null,
+            error_percentage: null,
 
-      try {
-        await this.pdfSvc.downloadFromBatch(header, rows, {
-          fileName: `P4_ONM_${header.date}.pdf`
-        });
-        this.inlineInfo = 'Batch Report submitted and PDF downloaded successfully!';
-      } catch {
-        this.inlineInfo = 'Batch Report submitted successfully!';
-        this.inlineError = 'PDF generation failed.';
+            final_remarks: r.final_remarks || r.remark || undefined
+          }));
+
+        try {
+          await this.pdfSvc.downloadFromBatch(header, rows, {
+            fileName: `P4_ONM_${header.date}.pdf`
+          });
+          this.inlineInfo = 'Batch Report submitted and PDF downloaded successfully!';
+        } catch {
+          this.inlineInfo = 'Batch Report submitted successfully!';
+          this.inlineError = 'PDF generation failed.';
+        }
+
+        // reset rows for next batch
+        this.batch.rows = [this.emptyRow()];
+        this.closeModal();
+      },
+      error: (e) => {
+        this.submitting = false;
+        const msg =
+          (e?.error && (e.error.detail || e.error.message)) ||
+          (typeof e?.error === 'string' ? e.error : '') ||
+          e?.statusText ||
+          'Error submitting report.';
+        this.inlineError = `Submit failed (HTTP ${e?.status || 400}). ${msg}`;
+        console.error('HttpErrorResponse', e);
       }
-
-      // reset rows for next batch
-      this.batch.rows = [this.emptyRow()];
-      this.closeModal();
-    },
-    error: (e) => {
-      this.submitting = false;
-      const msg =
-        (e?.error && (e.error.detail || e.error.message)) ||
-        (typeof e?.error === 'string' ? e.error : '') ||
-        e?.statusText ||
-        'Error submitting report.';
-      this.inlineError = `Submit failed (HTTP ${e?.status || 400}). ${msg}`;
-      console.error('HttpErrorResponse', e);
-    }
-  });
-}
-
-
+    });
+  }
 }

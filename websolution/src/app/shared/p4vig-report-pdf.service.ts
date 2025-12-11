@@ -900,33 +900,10 @@ export class P4VigReportPdfService {
         ]
       };
     }
+    else {
+      return null;
+    }
 
-    return {
-      stack: [
-        this.sectionHeading('IMPORT READINGS'),
-        {
-          layout: this.tableLayout(),
-          table: {
-            headerRows: 1,
-            widths: ['*','*','*','*'],
-            body: [
-              [
-                lbl('Start Reading'),
-                { text: this.fmtNum(r.start_reading_import), fontSize: 7 },
-                lbl('Final Reading'),
-                { text: this.fmtNum(r.final_reading_import), fontSize: 7 }
-              ],
-              [
-                lbl('Difference'),
-                { text: this.fmtNum(r.difference_import), fontSize: 7 },
-                lbl('Error %'),
-                { text: this.fmtNum(r.error_percentage_import), fontSize: 7 }
-              ]
-            ]
-          }
-        }
-      ]
-    };
   }
 
   private blockTechnical(r: VigRow): Content | null {

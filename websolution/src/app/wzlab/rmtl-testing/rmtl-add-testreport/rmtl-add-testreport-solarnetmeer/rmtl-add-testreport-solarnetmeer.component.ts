@@ -315,20 +315,167 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     const rows = (this.rows || []).filter(
       (r) => (r.meter_sr_no || '').trim()
     );
-    if (!rows.length)
+    if (!rows.length) {
       return {
         ok: false,
         msg: 'Add at least one device row with serial number.'
       };
-
-    const badDateIdx = rows.findIndex((r) => !r.date_of_testing);
-    if (badDateIdx !== -1) {
-      return {
-        ok: false,
-        msg: `Row #${badDateIdx + 1}: Date of Testing is required.`
-      };
     }
 
+    const requireText = (value: any, label: string, rowNo: number) => {
+      if (!value || String(value).trim() === '' || value === 'null') {
+        throw new Error(`Row #${rowNo}: ${label} is required.`);
+      }
+    };
+
+    const requireNumber = (value: any, label: string, rowNo: number) => {
+      const n = this.numOrNull(value);
+      if (n === null) {
+        throw new Error(`Row #${rowNo}: ${label} is required.`);
+      }
+    };
+
+    const requireNotNull = (value: any, label: string, rowNo: number) => {
+      if (value === null || value === undefined || value === '') {
+        throw new Error(`Row #${rowNo}: ${label} is required.`);
+      }
+    };
+
+    try {
+      rows.forEach((r, idx) => {
+        const rowNo = idx + 1;
+
+        // Basic device binding
+        if (r.notFound) {
+          throw new Error(
+            `Row #${rowNo}: Meter Sr. No. must be from assigned list.`
+          );
+        }
+        requireText(r.meter_sr_no, 'Meter Sr. No.', rowNo);
+        requireText(r.meter_make, 'Meter Make', rowNo);
+        requireText(r.meter_capacity, 'Meter Capacity', rowNo);
+        requireNumber(r.device_id, 'Device ID (assignment)', rowNo);
+        requireNumber(r.assignment_id, 'Assignment ID', rowNo);
+
+        // Core meta from expanded editor
+        requireText(r.consumer_name, 'Consumer Name', rowNo);
+        requireText(r.address, 'Full Address', rowNo);
+        requireText(r.date_of_testing, 'Date of Testing', rowNo);
+
+        // Fees block
+        requireText(r.testing_fees, 'Testing Fees', rowNo);
+        requireText(r.mr_no, 'M.R. No / Online Txn No', rowNo);
+        requireText(r.mr_date, 'Date of Payment', rowNo);
+        // ref_no optional
+
+        // Physical condition block
+        requireText(
+          r.physical_condition_of_device,
+          'Physical Condition of Device',
+          rowNo
+        );
+        requireText(r.seal_status, 'Seal Status', rowNo);
+        requireText(r.meter_glass_cover, 'Meter Glass Cover', rowNo);
+        requireText(r.terminal_block, 'Terminal Block', rowNo);
+        requireText(r.meter_body, 'Meter Body', rowNo);
+
+        // Import readings (meter + reference)
+        requireNumber(
+          r.start_reading_import,
+          'Start Reading (Import - Meter)',
+          rowNo
+        );
+        requireNumber(
+          r.final_reading__import,
+          'Final Reading (Import - Meter)',
+          rowNo
+        );
+        requireNumber(
+          r.import_ref_start_reading,
+          'Reference Start Reading (Import)',
+          rowNo
+        );
+        requireNumber(
+          r.import_ref_end_reading,
+          'Reference Final Reading (Import)',
+          rowNo
+        );
+        requireNotNull(
+          r.difference__import,
+          'Difference (Import - Meter)',
+          rowNo
+        );
+        requireNotNull(
+          r.error_percentage_import,
+          'Error % (Import)',
+          rowNo
+        );
+
+        // Export readings (meter + reference)
+        requireNumber(
+          r.start_reading_export,
+          'Start Reading (Export - Meter)',
+          rowNo
+        );
+        requireNumber(
+          r.final_reading_export,
+          'Final Reading (Export - Meter)',
+          rowNo
+        );
+        requireNumber(
+          r.export_ref_start_reading,
+          'Reference Start Reading (Export)',
+          rowNo
+        );
+        requireNumber(
+          r.export_ref_end_reading,
+          'Reference Final Reading (Export)',
+          rowNo
+        );
+        requireNotNull(
+          r.difference_export,
+          'Difference (Export - Meter)',
+          rowNo
+        );
+        requireNotNull(
+          r.error_percentage_export,
+          'Error % (Export)',
+          rowNo
+        );
+
+        // Final Δ I−E
+        requireNotNull(
+          r.final_Meter_Difference,
+          'Final Difference (Import − Export)',
+          rowNo
+        );
+
+        // SHUNT qual tests
+        requireText(
+          r.shunt_current_test,
+          'Current Test Result (SHUNT)',
+          rowNo
+        );
+        requireText(
+          r.shunt_creep_test,
+          'Creep Test Result (SHUNT)',
+          rowNo
+        );
+        requireText(
+          r.shunt_dail_test,
+          'Dial Test Result (SHUNT)',
+          rowNo
+        );
+
+        // Final remark + test result
+        requireText(r.final_remarks, 'Final Remark / Observation', rowNo);
+        requireText(r.test_result, 'Test Result', rowNo);
+      });
+    } catch (e: any) {
+      return { ok: false, msg: e.message || 'Row validation failed.' };
+    }
+
+    // Ensure header meta is present
     this.header.testing_bench =
       (this.header.testing_bench || this.testing_bench || '').trim() || '-';
     this.header.testing_user =
@@ -339,6 +486,13 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     this.testing_bench = this.header.testing_bench;
     this.testing_user = this.header.testing_user;
     this.approving_user = this.header.approving_user;
+
+    if (!this.header.location_name || !this.header.location_code) {
+      return {
+        ok: false,
+        msg: 'Zone / DC details are required — pick assigned meters or load source first.'
+      };
+    }
 
     return { ok: true };
   }
@@ -1019,6 +1173,8 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
             this.header.testing_bench || this.testing_bench || '-',
           testing_user:
             this.header.testing_user || this.testing_user || '-',
+          approving_user:
+            this.header.approving_user || this.approving_user || '-',
           date: new Date().toISOString().slice(0, 10),
 
           lab_name:
@@ -1077,15 +1233,17 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
             final_reading_e: this.numOrNull(r.final_reading_e),
             difference: this.numOrNull(r.difference),
 
-            // import/export meter readings
+            // IMPORT (meter)
             start_reading_import: this.numOrNull(r.start_reading_import),
             final_reading__import: this.numOrNull(r.final_reading__import),
             difference__import: this.numOrNull(r.difference__import),
 
+            // EXPORT (meter)
             start_reading_export: this.numOrNull(r.start_reading_export),
             final_reading_export: this.numOrNull(r.final_reading_export),
             difference_export: this.numOrNull(r.difference_export),
 
+            // Final Δ (I − E)
             final_Meter_Difference: this.numOrNull(
               r.final_Meter_Difference
             ),
@@ -1155,7 +1313,14 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
             remark: r.remark || r.final_remarks || null,
             final_remark: r.final_remarks || null,
-            test_result: r.test_result || null
+            test_result: r.test_result || null,
+
+            // physical condition for PDF
+            physical_condition_of_device: r.physical_condition_of_device || null,
+            seal_status: r.seal_status || null,
+            meter_glass_cover: r.meter_glass_cover || null,
+            terminal_block: r.terminal_block || null,
+            meter_body: r.meter_body || null
           }));
 
         this.showBanner('success', 'Batch submitted successfully!');
