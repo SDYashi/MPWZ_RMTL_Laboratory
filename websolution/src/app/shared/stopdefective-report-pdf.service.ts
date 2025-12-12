@@ -121,7 +121,7 @@ export class StopDefectiveReportPdfService {
         : '';
 
     return {
-       margin: [18, 10, 18, 8],
+      margin: [18, 10, 18, 8],
       stack: [
         {
           columns: [
@@ -172,19 +172,6 @@ export class StopDefectiveReportPdfService {
               : { width: 32, text: '' }
           ],
           columnGap: 8
-        },
-        {
-          canvas: [
-            {
-              type: 'line',
-              x1: 0,
-              y1: 0,
-              x2: meta.contentWidth,
-              y2: 0,
-              lineWidth: 1
-            }
-          ],
-          margin: [0, 6, 0, 0]
         }
       ]
     } as any;
@@ -264,17 +251,18 @@ export class StopDefectiveReportPdfService {
 
     return {
       margin: [28, 0, 28, 8],
+      fontSize: 8,              // smaller font for table content
       layout: {
         fillColor: (rowIdx: number) =>
           rowIdx > 0 && rowIdx % 2 === 1 ? '#fafafa' : undefined,
-        hLineWidth: () => 1,
-        vLineWidth: () => 1,
+        hLineWidth: () => 0.8,
+        vLineWidth: () => 0.8,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 2,
-        paddingBottom: () => 2
+        paddingLeft: () => 3,   // tighter padding
+        paddingRight: () => 3,
+        paddingTop: () => 1.5,
+        paddingBottom: () => 1.5
       } as any,
       table: {
         headerRows: 1,
@@ -285,66 +273,66 @@ export class StopDefectiveReportPdfService {
     };
   }
 
-  /** Signatures block */
+  /** Signatures block – compact for footer */
   private signBlock(meta: StopDefMeta): Content {
+    const line = {
+      canvas: [
+        { type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }
+      ],
+      margin: [0, 4, 0, 2]  // vertical spacing for signature line
+    };
+
     return {
-      margin: [28, 10, 28, 0],
+      margin: [0, 0, 0, 2],
       columns: [
+        // Tested By
         {
           width: '*',
           alignment: 'center' as const,
           stack: [
-            { text: '\n\nTested by', bold: true, alignment: 'center' as const },
+            { text: 'Tested by', bold: true, fontSize: 8 },
+            line,   // signature space
             {
-              text: ('\n\n' + meta.testing_user || '-').toUpperCase(),
-              fontSize: 8.5,
+              text: (meta.testing_user || '-').toUpperCase(),
+              fontSize: 7.5,
               color: this.theme.textSubtle,
-              alignment: 'center' as const
+              margin: [0, 2, 0, 1]
             },
-            {
-              text: 'TESTING ASSISTANT',
-              fontSize: 8.5,
-              color: this.theme.textSubtle,
-              alignment: 'center' as const
-            }
+            { text: 'TESTING ASSISTANT', fontSize: 7, color: this.theme.textSubtle }
           ]
         },
+
+        // Verified By
         {
           width: '*',
           alignment: 'center' as const,
           stack: [
-            { text: '\n\nVerified by', bold: true, alignment: 'center' as const },
+            { text: 'Verified by', bold: true, fontSize: 8 },
+            line,   // signature space
             {
-              text: ('\n\n').toUpperCase(),
-              fontSize: 8.5,
+              text: '',   // JE name if needed
+              fontSize: 7.5,
               color: this.theme.textSubtle,
-              alignment: 'center' as const
+              margin: [0, 2, 0, 1]
             },
-            {
-              text: 'JUNIOR ENGINEER',
-              fontSize: 8.5,
-              color: this.theme.textSubtle,
-              alignment: 'center' as const
-            }
+            { text: 'JUNIOR ENGINEER', fontSize: 7, color: this.theme.textSubtle }
           ]
         },
+
+        // Approved By
         {
           width: '*',
           alignment: 'center' as const,
           stack: [
-            { text: '\n\nApproved by', bold: true, alignment: 'center' as const },
+            { text: 'Approved by', bold: true, fontSize: 8 },
+            line,   // signature space
             {
-              text: ('\n\n' + meta.approving_user || '-').toUpperCase(),
-              fontSize: 8.5,
+              text: (meta.approving_user || '-').toUpperCase(),
+              fontSize: 7.5,
               color: this.theme.textSubtle,
-              alignment: 'center' as const
+              margin: [0, 2, 0, 1]
             },
-            {
-              text: 'ASSISTANT ENGINEER',
-              fontSize: 8.5,
-              color: this.theme.textSubtle,
-              alignment: 'center' as const
-            }
+            { text: 'ASSISTANT ENGINEER', fontSize: 7, color: this.theme.textSubtle }
           ]
         }
       ]
@@ -361,21 +349,22 @@ export class StopDefectiveReportPdfService {
     const okCount = rows.filter(r => this.isOk(r)).length;
     const defCount = total - okCount;
 
-    const labName =
-      meta.lab?.lab_name ||'';
-    const labAddress =
-      meta.lab?.address_line ||'';
-    const labEmail =
-      (meta.lab?.email || '').trim();
-    const labPhone =
-      (meta.lab?.phone || '').trim();
+    const labName = meta.lab?.lab_name || '';
+    const labAddress = meta.lab?.address_line || '';
+    const labEmail = (meta.lab?.email || '').trim();
+    const labPhone = (meta.lab?.phone || '').trim();
 
     const contentWidth = 595.28 - 18 - 18; // A4 width minus horizontal header margins
 
     return {
       pageSize: 'A4',
-      pageMargins: [18, 92, 18, 34],
-      defaultStyle: { fontSize: 9, lineHeight:1.5, color: '#111' },
+      // slightly smaller top/bottom to fit more rows; extra bottom for footer
+      pageMargins: [18, 92, 18, 80],
+      defaultStyle: {
+        fontSize: 8,
+        lineHeight: 1.3,
+        color: '#111'
+      },
       info: { title: `STOP_DEFECTIVE_${meta.date}` },
       images: imagesDict,
       styles: {
@@ -397,39 +386,57 @@ export class StopDefectiveReportPdfService {
         hasLeft: !!imagesDict['leftLogo'],
         hasRight: !!imagesDict['rightLogo']
       }) as any,
-      footer: (currentPage: number, pageCount: number) => ({
-        columns: [
-          {
-            text: `Page ${currentPage} of ${pageCount}`,
-            alignment: 'left',
-            margin: [18, 0, 0, 0],
-            color: this.theme.textSubtle
-          },
-          {
-            text: 'M.P.P.K.V.V. CO. LTD., INDORE',
-            alignment: 'right',
-            margin: [0, 0, 18, 0],
-            color: this.theme.textSubtle
-          }
-        ],
-        fontSize: 8
-      }),
+
+      // FOOTER: Signature block + page no + company name on every page
+      footer: (currentPage: number, pageCount: number) => {
+        return {
+          margin: [18, 4, 18, 10], // left, top, right, bottom
+          stack: [
+            // 1) Signature block
+            this.signBlock(meta),
+
+            // 2) Page no + company name under signatures
+            {
+              margin: [0, 6, 0, 0],
+              columns: [
+                {
+                  text: `Page ${currentPage} of ${pageCount}`,
+                  alignment: 'left',
+                  color: this.theme.textSubtle,
+                  fontSize: 8
+                },
+                {
+                  text: 'MPPKVVCL INDORE',
+                  alignment: 'right',
+                  color: this.theme.textSubtle,
+                  fontSize: 8
+                }
+              ]
+            }
+          ]
+        } as any;
+      },
+
       content: [
-        {canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }] , margin: [0, 0, 0, 8]},
-         { text: 'STOP / DEFECTIVE TEST REPORT', bold: true,fontSize: 14 , alignment: 'center' as const},
-         this.metaTable(meta),
-
+        {
+          canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }],
+          margin: [0, 0, 0, 8]
+        },
+        {
+          text: 'STOP / DEFECTIVE TEST REPORT',
+          bold: true,
+          fontSize: 14,
+          alignment: 'center' as const
+        },
+        this.metaTable(meta),
         this.detailsTable(rows),
-
         {
           text: `TOTAL: ${total}   •   OK: ${okCount}   •   DEF: ${defCount}`,
           alignment: 'right',
           margin: [18, 2, 18, 0],
-          fontSize: 9,
+          fontSize: 8.5,
           color: '#000'
-        },
-
-        this.signBlock(meta)
+        }
       ]
     };
   }

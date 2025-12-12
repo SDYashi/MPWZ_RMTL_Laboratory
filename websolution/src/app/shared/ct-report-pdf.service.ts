@@ -153,6 +153,7 @@ export class CtReportPdfService {
 
     return {
       pageSize: 'A4',
+      // back to smaller bottom margin, because signatures are in content now
       pageMargins: [18, 80, 18, 34],
       images,
       defaultStyle: {
@@ -184,7 +185,10 @@ export class CtReportPdfService {
         }
       },
       header: this.headerBar(meta, images),
+   
+      // ✅ Footer is now *only* page count + company name
       footer: (current: number, total: number) => ({
+        
         columns: [
           {
             text: `Page ${current} of ${total}`,
@@ -201,7 +205,14 @@ export class CtReportPdfService {
         ],
         fontSize: 8
       }),
+
       content: [
+     {
+      canvas: [
+        { type: 'line', x1: 0, y1: 0, x2: 540, y2: 0, lineWidth: 0.7 }
+      ],
+      margin: [0, 4, 0, 2]
+    },
         {
           text: 'CT TESTING REPORT',
           alignment: 'center',
@@ -210,16 +221,16 @@ export class CtReportPdfService {
           bold: true
         },
 
-        // ✅ merged Meta + Consumer/Request block
+        // Meta + Consumer/Request block
         this.metaAndInfoTable(meta, header, m),
 
         // CT Details
-        { text: 'CT Details', style: 'sectionTitle', noWrap: true },
+        // { text: 'CT Details', style: 'sectionTitle', noWrap: true },
         this.detailsTable(rows, m),
 
-        // Signatures
-        { text: 'Approval', style: 'sectionTitle', noWrap: true },
-        ...this.signBlock(meta, header, m)
+        // ✅ Approval & signatures pulled up into content
+        // { text: 'Approval', style: 'sectionTitle', noWrap: true },
+        this.signBlock(meta, header, m)
       ]
     };
   }
@@ -275,74 +286,55 @@ export class CtReportPdfService {
     };
   }
 
-  // ✅ NEW: merged "Test Meta" + "Consumer & Request Details" in one table,
-  // and using one shared layout, one margin.
   private metaAndInfoTable(meta: any, h: CtHeader, m: number) {
     const K = (t: string) => ({ text: t, style: 'kvKey' });
 
     return {
-      margin: [m, 0, m, 10], // single margin block for BOTH sections
+      margin: [m, 0, m, 10],
       layout: 'cleanGrid',
       table: {
-        widths: ['auto', '*', 'auto', '*'], // 2 x (label/value)
+        widths: ['auto', '*', 'auto', '*'],
         body: [
-          // --- Row 1: Zone / Ref
           [ K('DC / Zone'),
             meta.zone || '-',
             K('Ref.'),
             h.ref_no || '-'
           ],
-
-          // --- Row 2: Method / Status
           [ K('Method'),
             meta.method || '-',
             K('Status'),
             meta.status || '-'
           ],
-
-          // --- Row 3: Bench / User
           [ K('Bench'),
             meta.bench || '-',
             K('User'),
             meta.user || '-'
           ],
-
-          // --- Row 4: Approving User / Date
           [ K('Approving User'),
             meta.approver || '-',
             K('Date of Testing'),
             h.date_of_testing || meta.date || '-'
           ],
-
-          // --- Row 5: Consumer Name / Address
           [ K('Name of Consumer'),
             h.consumer_name || '-',
             K('Address'),
             h.address || '-'
           ],
-
-          // --- Row 6: No Of CT / CITY CLASS
           [ K('No. of C.T'),
             h.no_of_ct || '-',
             K('CITY CLASS'),
             h.city_class || '-'
           ],
-
-          // --- Row 7: C.T Make / M.R. No
           [ K('C.T Make'),
             h.ct_make || '-',
             K('M.R. / Txn No.'),
             h.mr_no || '-'
           ],
-
-          // --- Row 8: M.R. Date / Amount
           [ K('M.R. Date'),
             h.mr_date || '-',
             K('Amount Deposited (₹)'),
             this.fmtMoney(h.amount_deposited)
           ],
-
-          // --- Row 9: Primary / Secondary
           [ K('Primary Current (A)'),
             h.primary_current || '-',
             K('Secondary Current (A)'),
@@ -392,48 +384,89 @@ export class CtReportPdfService {
   }
 
   private signBlock(meta: any, h: CtHeader, m: number) {
-    return [
-      {
-        margin: [0, 0, 0, 8],
-        text: `Primary Current: ${h.primary_current || ''} Amp    •    Secondary Current: ${h.secondary_current || ''} Amp`,
-        alignment: 'center',
-        style: 'small'
-      },
-      {
-        margin: [m, 0, m, 0],
-        columns: [
-          {
-            width: '*',
-            alignment: 'center',
-            stack: [
-              { text: '\n\nTested by', bold: true },
-              { text: '\n____________________________', alignment: 'center' },
-              { text: (meta.user || '-').toUpperCase(), style: 'small', alignment: 'center' },
-              { text: 'TESTING ASSISTANT', style: 'small', alignment: 'center' }
-            ]
-          },
-          {
-            width: '*',
-            alignment: 'center',
-            stack: [
-              { text: '\n\nVerified by', bold: true },
-              { text: '\n____________________________', alignment: 'center' },
-              { text: ('-').toUpperCase(), style: 'small', alignment: 'center' },
-              { text: 'JUNIOR ENGINEER', style: 'small', alignment: 'center' }
-            ]
-          },
-          {
-            width: '*',
-            alignment: 'center',
-            stack: [
-              { text: '\n\nApproved by', bold: true },
-              { text: '\n____________________________', alignment: 'center' },
-              { text: (meta.approver || '-').toUpperCase(), style: 'small', alignment: 'center' },
-              { text: 'ASSISTANT ENGINEER', style: 'small', alignment: 'center' }
-            ]
-          }
-        ]
-      }
-    ];
+    return {
+      margin: [m, 0, m, 0],
+      stack: [
+        {
+          margin: [0, 0, 0, 8],
+          text: `Primary Current: ${h.primary_current || ''} Amp    •    Secondary Current: ${h.secondary_current || ''} Amp`,
+          alignment: 'center',
+          style: 'small'
+        },
+        {
+          columns: [
+            {
+              width: '*',
+              alignment: 'center',
+              stack: [
+                { text: 'Tested by', bold: true, margin: [0, 4, 0, 0] },
+                {
+                  canvas: [
+                    { type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }
+                  ],
+                  margin: [0, 4, 0, 2]
+                },
+                {
+                  text: (meta.user || '-').toUpperCase(),
+                  style: 'small',
+                  alignment: 'center'
+                },
+                {
+                  text: 'TESTING ASSISTANT',
+                  style: 'small',
+                  alignment: 'center'
+                }
+              ]
+            },
+            {
+              width: '*',
+              alignment: 'center',
+              stack: [
+                { text: 'Verified by', bold: true, margin: [0, 4, 0, 0] },
+                {
+                  canvas: [
+                    { type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }
+                  ],
+                  margin: [0, 4, 0, 2]
+                },
+                {
+                  text: '-',
+                  style: 'small',
+                  alignment: 'center'
+                },
+                {
+                  text: 'JUNIOR ENGINEER',
+                  style: 'small',
+                  alignment: 'center'
+                }
+              ]
+            },
+            {
+              width: '*',
+              alignment: 'center',
+              stack: [
+                { text: 'Approved by', bold: true, margin: [0, 4, 0, 0] },
+                {
+                  canvas: [
+                    { type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }
+                  ],
+                  margin: [0, 4, 0, 2]
+                },
+                {
+                  text: (meta.approver || '-').toUpperCase(),
+                  style: 'small',
+                  alignment: 'center'
+                },
+                {
+                  text: 'ASSISTANT ENGINEER',
+                  style: 'small',
+                  alignment: 'center'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    };
   }
 }

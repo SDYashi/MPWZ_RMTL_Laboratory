@@ -105,10 +105,9 @@ export class NewMeterReportPdfService {
     return m || '-';
   }
 
-
   // ---- PDF blocks ----
 
-  /** Top banner with logos, company line, lab line, contacts, and a bottom rule */
+  /** Top banner with logos, company line, lab line, contacts */
   private headerBar(meta: {
     orgLine: string;
     labName: string;
@@ -176,19 +175,6 @@ export class NewMeterReportPdfService {
               : { width: 32, text: '' }
           ],
           columnGap: 8
-        },
-        {
-          canvas: [
-            {
-              type: 'line',
-              x1: 0,
-              y1: 0,
-              x2: meta.contentWidth,
-              y2: 0,
-              lineWidth: 1
-            }
-          ],
-          margin: [0, 6, 0, 0]
         }
       ]
     } as any;
@@ -246,110 +232,125 @@ export class NewMeterReportPdfService {
     };
   }
 
-  /** Main NEW METER summary table */
-private detailsTable(rows: NewMeterRow[]): Content {
-  const body: TableCell[][] = [[
-    { text: '#', bold: true, fillColor: this.theme.labelBg, alignment: 'center' as const },
-    { text: 'METER NUMBER', bold: true, fillColor: this.theme.labelBg },
-    { text: 'MAKE', bold: true, fillColor: this.theme.labelBg },
-    { text: 'CAPACITY', bold: true, fillColor: this.theme.labelBg },
-    { text: 'RESULT / REMARK', bold: true, fillColor: this.theme.labelBg }
-  ]];
+  /** Main NEW METER summary table (aligned with other reports) */
+  private detailsTable(rows: NewMeterRow[]): Content {
+    const body: TableCell[][] = [[
+      { text: '#', bold: true, fillColor: this.theme.labelBg, alignment: 'center' as const },
+      { text: 'METER NUMBER', bold: true, fillColor: this.theme.labelBg },
+      { text: 'MAKE', bold: true, fillColor: this.theme.labelBg },
+      { text: 'CAPACITY', bold: true, fillColor: this.theme.labelBg },
+      { text: 'RESULT / REMARK', bold: true, fillColor: this.theme.labelBg }
+    ]];
 
-  rows.forEach((r, i) => {
-    body.push([
-      { text: String(i + 1), alignment: 'center' as const },
-      { text: r.serial_number || '-' },
-      { text: r.make || '-' },
-      { text: r.capacity || '-' },
-      { text: this.resultText(r) }
-    ]);
-  });
+    rows.forEach((r, i) => {
+      body.push([
+        { text: String(i + 1), alignment: 'center' as const },
+        { text: r.serial_number || '-' },
+        { text: r.make || '-' },
+        { text: r.capacity || '-' },
+        { text: this.resultText(r) }
+      ]);
+    });
 
-  return {
-    margin: [28, 0, 28, 8],
-    layout: {
-      fillColor: (rowIdx: number) =>
-        rowIdx > 0 && rowIdx % 2 === 1 ? '#fafafa' : undefined,
-      hLineWidth: () => 1,
-      vLineWidth: () => 1,
-      hLineColor: () => this.theme.grid,
-      vLineColor: () => this.theme.grid,
-      paddingLeft: () => 4,
-      paddingRight: () => 4,
-      paddingTop: () => 2,
-      paddingBottom: () => 2
-    } as any,
-    table: {
-      headerRows: 1,
-      widths: ['auto', '*', '*', '*', '*'],
-      body,
-      dontBreakRows: true
-    }
-  };
-}
-
-
-  /** Signatures block */
-  private signBlock(meta: NewMeterMeta): Content {
     return {
-      margin: [28, 10, 28, 0],
+      margin: [28, 0, 28, 8],
+      fontSize: 8,
+      layout: {
+        fillColor: (rowIdx: number) =>
+          rowIdx > 0 && rowIdx % 2 === 1 ? '#fafafa' : undefined,
+        hLineWidth: () => 0.8,
+        vLineWidth: () => 0.8,
+        hLineColor: () => this.theme.grid,
+        vLineColor: () => this.theme.grid,
+        paddingLeft: () => 3,
+        paddingRight: () => 3,
+        paddingTop: () => 1.5,
+        paddingBottom: () => 1.5
+      } as any,
+      table: {
+        headerRows: 1,
+        widths: ['auto', '*', '*', '*', '*'],
+        body,
+        dontBreakRows: true
+      }
+    };
+  }
+
+  /** Summary line: TOTAL / PASS/OK / OTHERS */
+  private totalsSummary(rows: NewMeterRow[]): Content {
+    const total = rows.length;
+    const passCount = rows.filter(r => this.isPass(r)).length;
+    const otherCount = total - passCount;
+
+    return {
+      text: `TOTAL: ${total}   •   PASS/OK: ${passCount}   •   OTHERS: ${otherCount}`,
+      alignment: 'right',
+      margin: [18, 2, 18, 0],
+      fontSize: 8.5,
+      color: '#000'
+    };
+  }
+
+  /** Signature block – used in footer (like other services) */
+  private signBlock(meta: NewMeterMeta): Content {
+    const line = {
+      canvas: [
+        { type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }
+      ],
+      margin: [0, 4, 0, 2]
+    };
+
+    return {
+      margin: [0, 0, 0, 2],
       columns: [
+        // Tested By
         {
           width: '*',
           alignment: 'center' as const,
           stack: [
-            { text: '\n\nTested by', bold: true, alignment: 'center' as const },
+            { text: 'Tested by', bold: true, fontSize: 8 },
+            line,
             {
-              text: ('\n\n' + (meta.testing_user || '-')).toUpperCase(),
-              fontSize: 8.5,
+              text: (meta.testing_user || '-').toUpperCase(),
+              fontSize: 7.5,
               color: this.theme.textSubtle,
-              alignment: 'center' as const
+              margin: [0, 2, 0, 1]
             },
-            {
-              text: 'TESTING ASSISTANT',
-              fontSize: 8.5,
-              color: this.theme.textSubtle,
-              alignment: 'center' as const
-            }
+            { text: 'TESTING ASSISTANT', fontSize: 7, color: this.theme.textSubtle }
           ]
         },
+
+        // Verified By
         {
           width: '*',
           alignment: 'center' as const,
           stack: [
-            { text: '\n\nVerified by', bold: true, alignment: 'center' as const },
+            { text: 'Verified by', bold: true, fontSize: 8 },
+            line,
             {
-              text: ('\n\n').toUpperCase(),
-              fontSize: 8.5,
+              text: '',
+              fontSize: 7.5,
               color: this.theme.textSubtle,
-              alignment: 'center' as const
+              margin: [0, 2, 0, 1]
             },
-            {
-              text: 'JUNIOR ENGINEER',
-              fontSize: 8.5,
-              color: this.theme.textSubtle,
-              alignment: 'center' as const
-            }
+            { text: 'JUNIOR ENGINEER', fontSize: 7, color: this.theme.textSubtle }
           ]
         },
+
+        // Approved By
         {
           width: '*',
           alignment: 'center' as const,
           stack: [
-            { text: '\n\nApproved by', bold: true, alignment: 'center' as const },
+            { text: 'Approved by', bold: true, fontSize: 8 },
+            line,
             {
-              text: ('\n\n' + (meta.approving_user || '-')).toUpperCase(),
-              fontSize: 8.5,
+              text: (meta.approving_user || '-').toUpperCase(),
+              fontSize: 7.5,
               color: this.theme.textSubtle,
-              alignment: 'center' as const
+              margin: [0, 2, 0, 1]
             },
-            {
-              text: 'ASSISTANT ENGINEER',
-              fontSize: 8.5,
-              color: this.theme.textSubtle,
-              alignment: 'center' as const
-            }
+            { text: 'ASSISTANT ENGINEER', fontSize: 7, color: this.theme.textSubtle }
           ]
         }
       ]
@@ -362,10 +363,6 @@ private detailsTable(rows: NewMeterRow[]): Content {
     meta: NewMeterMeta,
     imagesDict: Record<string, string> = {}
   ): TDocumentDefinitions {
-    const total = rows.length;
-    const passCount = rows.filter(r => this.isPass(r)).length;
-    const otherCount = total - passCount;
-
     const labName = meta.lab?.lab_name || '';
     const labAddress = meta.lab?.address_line || '';
     const labEmail = (meta.lab?.email || '').trim();
@@ -375,8 +372,9 @@ private detailsTable(rows: NewMeterRow[]): Content {
 
     return {
       pageSize: 'A4',
-      pageMargins: [18, 92, 18, 34],
-      defaultStyle: { fontSize: 9, lineHeight: 1.5, color: '#111' },
+      // match other services: more bottom space for footer sig block
+      pageMargins: [18, 92, 18, 80],
+      defaultStyle: { fontSize: 8, lineHeight: 1.3, color: '#111' },
       info: { title: `NEW_METER_${meta.date}` },
       images: imagesDict,
       styles: {
@@ -398,41 +396,48 @@ private detailsTable(rows: NewMeterRow[]): Content {
         hasLeft: !!imagesDict['leftLogo'],
         hasRight: !!imagesDict['rightLogo']
       }) as any,
-      footer: (currentPage: number, pageCount: number) => ({
-        columns: [
-          {
-            text: `Page ${currentPage} of ${pageCount}`,
-            alignment: 'left',
-            margin: [18, 0, 0, 0],
-            color: this.theme.textSubtle
-          },
-          {
-            text: 'M.P.P.K.V.V. CO. LTD., INDORE',
-            alignment: 'right',
-            margin: [0, 0, 18, 0],
-            color: this.theme.textSubtle
-          }
-        ],
-        fontSize: 8
-      }),
+
+      // Footer: Signature block + page no + company name (same pattern as others)
+      footer: (currentPage: number, pageCount: number) => {
+        return {
+          margin: [18, 4, 18, 10],
+          stack: [
+            this.signBlock(meta),
+            {
+              margin: [0, 6, 0, 0],
+              columns: [
+                {
+                  text: `Page ${currentPage} of ${pageCount}`,
+                  alignment: 'left',
+                  color: this.theme.textSubtle,
+                  fontSize: 8
+                },
+                {
+                  text: 'MPPKVVCL INDORE',
+                  alignment: 'right',
+                  color: this.theme.textSubtle,
+                  fontSize: 8
+                }
+              ]
+            }
+          ]
+        } as any;
+      },
+
       content: [
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }], margin: [0, 0, 0, 8] },
         {
-          text: 'NEW METER TEST REPORT ',
+          canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }],
+          margin: [0, 0, 0, 8]
+        },
+        {
+          text: 'NEW METER TEST REPORT',
           bold: true,
           fontSize: 14,
           alignment: 'center' as const
         },
         this.metaTable(meta),
         this.detailsTable(rows),
-        {
-          text: `TOTAL: ${total}   •   PASS/OK: ${passCount}   •   OTHERS: ${otherCount}`,
-          alignment: 'right',
-          margin: [18, 2, 18, 0],
-          fontSize: 9,
-          color: '#000'
-        },
-        this.signBlock(meta)
+        this.totalsSummary(rows)
       ]
     };
   }
@@ -483,7 +488,7 @@ private detailsTable(rows: NewMeterRow[]): Content {
         imagesDict['rightLogo'] = imagesDict['leftLogo'];
       }
     } catch {
-      // ignore logo fetch errors in preview
+      // ignore logo errors in preview
     }
 
     const doc = this.buildDoc(rows, meta, imagesDict);

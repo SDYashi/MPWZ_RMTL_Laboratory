@@ -50,13 +50,15 @@ export class OldAgainstMeterReportPdfService {
 
   private logoCache = new Map<string, string>();
 
-  // ---------- small helpers ----------
+  // align theme with StopDefective / SmartAgainst
   private theme = {
     grid: '#e6e9ef',
-    subtleText: '#5d6b7a',
-    labelBg: '#f8f9fc'
+    labelBg: '#f8f9fc',
+    softHeaderBg: '#eef7ff',
+    textSubtle: '#5d6b7a'
   };
 
+  // ---------- helpers ----------
   private resolveUrl(url: string): string {
     try {
       if (!url) return url;
@@ -106,51 +108,52 @@ export class OldAgainstMeterReportPdfService {
     return m || '-';
   }
 
-  // ---------- HEADER BAR (same vibe as CT service) ----------
+  // ---------- HEADER BAR (same style as other services) ----------
   private headerBar(meta: {
-    companyLine: string;
+    orgLine: string;
     labName: string;
-    addressLine?: string;
-    email?: string;
-    phone?: string;
-    images: Record<string, string>;
+    labAddress?: string;
+    labEmail?: string;
+    labPhone?: string;
+    contentWidth: number;
+    hasLeft: boolean;
+    hasRight: boolean;
   }): Content {
-    const contactBits: string[] = [];
-    if (meta.email) contactBits.push(`Email: ${meta.email}`);
-    if (meta.phone) contactBits.push(`Phone: ${meta.phone}`);
-    const contactLine = contactBits.join('    ');
+    const contactLine =
+      (meta.labEmail || meta.labPhone)
+        ? `Email: ${meta.labEmail || '-'}    Phone: ${meta.labPhone || '-'}`
+        : '';
 
     return {
       margin: [18, 10, 18, 8],
-      columnGap: 8,
       stack: [
         {
           columns: [
-            meta.images['leftLogo']
-              ? { image: 'leftLogo', width: 32, alignment: 'left' }
+            meta.hasLeft
+              ? { image: 'leftLogo', width: 32, alignment: 'left' as const }
               : { width: 32, text: '' },
 
             {
               width: '*',
               stack: [
                 {
-                  text: meta.companyLine,
-                  alignment: 'center',
+                  text: meta.orgLine,
+                  alignment: 'center' as const,
                   bold: true,
                   fontSize: 12
                 },
                 {
                   text: meta.labName || '-',
-                  alignment: 'center',
+                  alignment: 'center' as const,
                   bold: true,
                   fontSize: 11,
                   margin: [0, 2, 0, 0],
                   color: '#333'
                 },
-                ...(meta.addressLine
+                ...(meta.labAddress
                   ? [{
-                      text: meta.addressLine,
-                      alignment: 'center',
+                      text: meta.labAddress,
+                      alignment: 'center' as const,
                       fontSize: 9,
                       margin: [0, 2, 0, 0],
                       color: '#555'
@@ -159,7 +162,7 @@ export class OldAgainstMeterReportPdfService {
                 ...(contactLine
                   ? [{
                       text: contactLine,
-                      alignment: 'center',
+                      alignment: 'center' as const,
                       fontSize: 9,
                       margin: [0, 2, 0, 0],
                       color: '#555'
@@ -168,30 +171,18 @@ export class OldAgainstMeterReportPdfService {
               ]
             },
 
-            meta.images['rightLogo']
-              ? { image: 'rightLogo', width: 32, alignment: 'right' }
+            meta.hasRight
+              ? { image: 'rightLogo', width: 32, alignment: 'right' as const }
               : { width: 32, text: '' }
-          ]
-        },
-        {
-          canvas: [
-            {
-              type: 'line',
-              x1: 0,
-              y1: 0,
-              x2: 559, // ~A4 inner width after margins
-              y2: 0,
-              lineWidth: 1
-            }
           ],
-          margin: [0, 6, 0, 0]
+          columnGap: 8
         }
       ]
-    } as Content;
+    } as any;
   }
 
-  // ---------- META + TEST DETAILS TABLE (merged, like CT metaAndInfoTable) ----------
-  private metaDetailsTable(meta: OldAgainstMeta): Content {
+  // ---------- META TABLE (same as others) ----------
+  private metaTable(meta: OldAgainstMeta): Content {
     const K = (t: string) => ({
       text: t,
       bold: true,
@@ -201,14 +192,14 @@ export class OldAgainstMeterReportPdfService {
     return {
       margin: [28, 0, 28, 10],
       layout: {
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        hLineWidth: () => 1.5,
+        vLineWidth: () => 1.5,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
         paddingLeft: () => 4,
         paddingRight: () => 4,
-        paddingTop: () => 3,
-        paddingBottom: () => 3
+        paddingTop: () => 2,
+        paddingBottom: () => 2
       } as any,
       table: {
         widths: ['auto', '*', 'auto', '*'],
@@ -244,17 +235,17 @@ export class OldAgainstMeterReportPdfService {
 
   // ---------- DEVICE TABLE ----------
   private detailsTable(rows: OldAgainstRow[]): Content {
-    const tableBody: TableCell[][] = [[
-      { text: '#', bold: true, fillColor: this.theme.labelBg, alignment: 'center' },
-      { text: 'Meter Number', bold: true, fillColor: this.theme.labelBg },
-      { text: 'Make', bold: true, fillColor: this.theme.labelBg },
-      { text: 'Capacity', bold: true, fillColor: this.theme.labelBg },
-      { text: 'Test Result / Remark', bold: true, fillColor: this.theme.labelBg }
+    const body: TableCell[][] = [[
+      { text: '#', bold: true, fillColor: this.theme.labelBg, alignment: 'center' as const },
+      { text: 'METER NUMBER', bold: true, fillColor: this.theme.labelBg },
+      { text: 'MAKE', bold: true, fillColor: this.theme.labelBg },
+      { text: 'CAPACITY', bold: true, fillColor: this.theme.labelBg },
+      { text: 'TEST RESULT / REMARK', bold: true, fillColor: this.theme.labelBg }
     ]];
 
     rows.forEach((r, i) => {
-      tableBody.push([
-        { text: String(i + 1), alignment: 'center' },
+      body.push([
+        { text: String(i + 1), alignment: 'center' as const },
         { text: r.serial || '-' },
         { text: r.make || '-' },
         { text: r.capacity || '-' },
@@ -263,185 +254,187 @@ export class OldAgainstMeterReportPdfService {
     });
 
     return {
-      margin: [28, 0, 28, 6],
+      margin: [28, 0, 28, 8],
+      fontSize: 8,
       layout: {
-        fillColor: (rowIndex: number) =>
-          rowIndex > 0 && rowIndex % 2 ? '#fafafa' : undefined,
-        hLineWidth: () => 0.5,
-        vLineWidth: () => 0.5,
+        fillColor: (rowIdx: number) =>
+          rowIdx > 0 && rowIdx % 2 === 1 ? '#fafafa' : undefined,
+        hLineWidth: () => 0.8,
+        vLineWidth: () => 0.8,
         hLineColor: () => this.theme.grid,
         vLineColor: () => this.theme.grid,
-        paddingLeft: () => 4,
-        paddingRight: () => 4,
-        paddingTop: () => 3,
-        paddingBottom: () => 3
+        paddingLeft: () => 3,
+        paddingRight: () => 3,
+        paddingTop: () => 1.5,
+        paddingBottom: () => 1.5
       } as any,
       table: {
         headerRows: 1,
-        widths: ['auto', '*', '*', 'auto', '*'],
-        body: tableBody,
+        widths: ['auto', '*', '*', '*', '*'],
+        body,
         dontBreakRows: true
       }
     };
   }
 
-  // ---------- TOTAL SUMMARY ----------
-  private totalsRow(rows: OldAgainstRow[]): Content {
+  // ---------- SUMMARY LINE ----------
+  private totalsSummary(rows: OldAgainstRow[]): Content {
     const total = rows.length;
     const okCount = rows.filter(r => this.isOk(r)).length;
     const defCount = total - okCount;
 
     return {
-      margin: [28, 0, 28, 10],
-      text: `TOTAL: ${total}    •    OK: ${okCount}    •    DEF: ${defCount}`,
+      text: `TOTAL: ${total}   •   OK: ${okCount}   •   DEF: ${defCount}`,
       alignment: 'right',
-      fontSize: 9,
-      color: this.theme.subtleText
+      margin: [18, 2, 18, 0],
+      fontSize: 8.5,
+      color: '#000'
     };
   }
 
-  // ---------- SIGNATURES ----------
-  private signatureBlock(meta: OldAgainstMeta): Content {
+  // ---------- SIGNATURE BLOCK FOR FOOTER ----------
+  private signBlock(meta: OldAgainstMeta): Content {
+    const line = {
+      canvas: [
+        { type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }
+      ],
+      margin: [0, 4, 0, 2]
+    };
+
     return {
-      margin: [28, 0, 28, 0],
+      margin: [0, 0, 0, 2],
       columns: [
+        // Tested By
         {
           width: '*',
-          alignment: 'center',
+          alignment: 'center' as const,
           stack: [
-            { text: '\n\nTested by', bold: true },
-            { text: '\n____________________________', alignment: 'center' },
+            { text: 'Tested by', bold: true, fontSize: 8 },
+            line,
             {
               text: (meta.testing_user || '-').toUpperCase(),
-              fontSize: 8.5,
-              color: this.theme.subtleText,
-              alignment: 'center'
+              fontSize: 7.5,
+              color: this.theme.textSubtle,
+              margin: [0, 2, 0, 1]
             },
-            {
-              text: 'TESTING ASSISTANT',
-              fontSize: 8.5,
-              color: this.theme.subtleText,
-              alignment: 'center'
-            }
+            { text: 'TESTING ASSISTANT', fontSize: 7, color: this.theme.textSubtle }
           ]
         },
+
+        // Verified By
         {
           width: '*',
-          alignment: 'center',
+          alignment: 'center' as const,
           stack: [
-            { text: '\n\nVerified by', bold: true },
-            { text: '\n____________________________', alignment: 'center' },
+            { text: 'Verified by', bold: true, fontSize: 8 },
+            line,
             {
-              text: '-',
-              fontSize: 8.5,
-              color: this.theme.subtleText,
-              alignment: 'center'
+              text: '',
+              fontSize: 7.5,
+              color: this.theme.textSubtle,
+              margin: [0, 2, 0, 1]
             },
-            {
-              text: 'JUNIOR ENGINEER',
-              fontSize: 8.5,
-              color: this.theme.subtleText,
-              alignment: 'center'
-            }
+            { text: 'JUNIOR ENGINEER', fontSize: 7, color: this.theme.textSubtle }
           ]
         },
+
+        // Approved By
         {
           width: '*',
-          alignment: 'center',
+          alignment: 'center' as const,
           stack: [
-            { text: '\n\nApproved by', bold: true },
-            { text: '\n____________________________', alignment: 'center' },
+            { text: 'Approved by', bold: true, fontSize: 8 },
+            line,
             {
               text: (meta.approving_user || '-').toUpperCase(),
-              fontSize: 8.5,
-              color: this.theme.subtleText,
-              alignment: 'center'
+              fontSize: 7.5,
+              color: this.theme.textSubtle,
+              margin: [0, 2, 0, 1]
             },
-            {
-              text: 'ASSISTANT ENGINEER',
-              fontSize: 8.5,
-              color: this.theme.subtleText,
-              alignment: 'center'
-            }
+            { text: 'ASSISTANT ENGINEER', fontSize: 7, color: this.theme.textSubtle }
           ]
         }
       ]
-    };
+    } as any;
   }
 
   // ---------- MAIN DOC BUILDER ----------
   private buildDoc(
     rows: OldAgainstRow[],
-    metaInput: OldAgainstMeta,
+    meta: OldAgainstMeta,
     imagesDict: Record<string, string> = {}
   ): TDocumentDefinitions {
-    const labName =
-      metaInput.lab?.lab_name?.trim() ||'';
+    const labName = meta.lab?.lab_name?.trim() || '';
+    const labAddress = meta.lab?.address_line?.trim() || '';
+    const labEmail = (meta.lab?.email || '').trim();
+    const labPhone = (meta.lab?.phone || '').trim();
 
-    const addr =
-      metaInput.lab?.address_line?.trim() || '';
-
-    const email = metaInput.lab?.email?.trim() || '';
-    const phone = metaInput.lab?.phone?.trim() || '';
-
-    const headerBlock = this.headerBar({
-      companyLine:
-        'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
-      labName: labName,
-      addressLine: addr,
-      email,
-      phone,
-      images: imagesDict
-    });
+    const contentWidth = 595.28 - 18 - 18; // A4 width minus header horizontal margins
 
     return {
       pageSize: 'A4',
-      pageMargins: [18, 92, 18, 28], // leave space for headerBar stack
-      defaultStyle: { fontSize: 9, color: '#111', lineHeight: 1.1 },
+      pageMargins: [18, 92, 18, 80],
+      defaultStyle: { fontSize: 8, color: '#111', lineHeight: 1.3 },
       images: imagesDict,
-      info: { title: `AGAINST_OLD_METER_${metaInput.date}` },
+      info: { title: `AGAINST_OLD_METER_${meta.date}` },
       styles: {
         sectionTitle: {
           bold: true,
-          fontSize: 12,
+          fontSize: 11,
           alignment: 'center',
-          margin: [0, 0, 0, 10],
-          color: '#0b2237'
+          margin: [0, 0, 0, 8],
+          color: '#070707ff'
         }
       },
-      header: headerBlock as any,
-      footer: (currentPage: number, pageCount: number) => ({
-        columns: [
-          {
-            text: `Page ${currentPage} of ${pageCount}`,
-            alignment: 'left',
-            margin: [28, 0, 0, 0],
-            fontSize: 8,
-            color: this.theme.subtleText
-          },
-          {
-            text: 'M.P.P.K.V.V. CO. LTD., INDORE',
-            alignment: 'right',
-            margin: [0, 0, 28, 0],
-            fontSize: 8,
-            color: this.theme.subtleText
-          }
-        ]
-      }),
+      header: this.headerBar({
+        orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
+        labName,
+        labAddress,
+        labEmail,
+        labPhone,
+        contentWidth,
+        hasLeft: !!imagesDict['leftLogo'],
+        hasRight: !!imagesDict['rightLogo']
+      }) as any,
+      footer: (currentPage: number, pageCount: number) => {
+        return {
+          margin: [18, 4, 18, 10],
+          stack: [
+            this.signBlock(meta),
+            {
+              margin: [0, 6, 0, 0],
+              columns: [
+                {
+                  text: `Page ${currentPage} of ${pageCount}`,
+                  alignment: 'left',
+                  color: this.theme.textSubtle,
+                  fontSize: 8
+                },
+                {
+                  text: 'MPPKVVCL INDORE',
+                  alignment: 'right',
+                  color: this.theme.textSubtle,
+                  fontSize: 8
+                }
+              ]
+            }
+          ]
+        } as any;
+      },
       content: [
-        { text: 'AGAINST OLD METER TEST REPORT', style: 'sectionTitle' },
-
-        // merged meta table
-        this.metaDetailsTable(metaInput),
-
-        // meters table
+        {
+          canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }],
+          margin: [0, 0, 0, 8]
+        },
+        {
+          text: 'AGAINST OLD METER TEST REPORT',
+          bold: true,
+          fontSize: 14,
+          alignment: 'center' as const
+        },
+        this.metaTable(meta),
         this.detailsTable(rows),
-
-        // totals
-        this.totalsRow(rows),
-
-        // signatures
-        this.signatureBlock(metaInput)
+        this.totalsSummary(rows)
       ]
     };
   }
@@ -461,7 +454,6 @@ export class OldAgainstMeterReportPdfService {
         imagesDict['rightLogo'] = imagesDict['leftLogo'];
       }
     } catch (e) {
-      // graceful fallback to no logos
       delete imagesDict['leftLogo'];
       delete imagesDict['rightLogo'];
       console.warn('Logo load failed:', e);
@@ -472,8 +464,8 @@ export class OldAgainstMeterReportPdfService {
 
     return new Promise<void>((resolve) => {
       try {
-        pdfMake.createPdf(doc).download(fname);
-      } finally {
+        pdfMake.createPdf(doc).download(fname, () => resolve());
+      } catch {
         resolve();
       }
     });
@@ -492,7 +484,10 @@ export class OldAgainstMeterReportPdfService {
       } else if (imagesDict['leftLogo']) {
         imagesDict['rightLogo'] = imagesDict['leftLogo'];
       }
-    } catch {}
+    } catch {
+      // ignore preview logo errors
+    }
+
     const doc = this.buildDoc(rows, meta, imagesDict);
     pdfMake.createPdf(doc).open();
   }

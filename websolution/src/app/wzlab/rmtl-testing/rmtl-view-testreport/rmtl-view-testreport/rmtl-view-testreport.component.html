@@ -8,17 +8,10 @@
           RMTL — View Test Reports
         </h5>
 
-        <!-- quick stats -->
         <div class="d-flex flex-wrap gap-2">
-          <span class="badge rounded-pill bg-secondary">
-            From: {{ filters.from || '—' }}
-          </span>
-          <span class="badge rounded-pill bg-secondary">
-            To: {{ filters.to || '—' }}
-          </span>
-          <span class="badge rounded-pill bg-info text-dark">
-            Total: {{ filtered.length }}
-          </span>
+          <span class="badge rounded-pill bg-secondary">From: {{ filters.from || '—' }}</span>
+          <span class="badge rounded-pill bg-secondary">To: {{ filters.to || '—' }}</span>
+          <span class="badge rounded-pill bg-info text-dark">Total: {{ filtered.length }}</span>
           <span class="badge rounded-pill"
                 [ngClass]="{'bg-success': pageRows.length, 'bg-warning text-dark': !pageRows.length}">
             Page: {{ page }} / {{ totalPages || 1 }}
@@ -49,9 +42,11 @@
               <option *ngFor="let rt of reportTypes" [value]="rt">{{ rt }}</option>
             </select>
           </div>
+
           <div class="col-12 col-md-3">
             <label class="form-label fw-semibold">Search by Serial No.</label>
-            <input type="text" class="form-control" placeholder="Search by serial no" [(ngModel)]="search_serial" (keydown.enter)="onSearchChanged()">
+            <input type="text" class="form-control" placeholder="Search by serial no"
+                   [(ngModel)]="search_serial" (keydown.enter)="onSearchChanged()">
           </div>
         </div>
 
@@ -70,9 +65,7 @@
         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
         Loading reports…
       </div>
-      <div *ngIf="!loading && error" class="alert alert-danger">
-        {{ error }}
-      </div>
+      <div *ngIf="!loading && error" class="alert alert-danger">{{ error }}</div>
 
       <!-- Table -->
       <div class="table-responsive mt-3">
@@ -82,38 +75,56 @@
             <tr>
               <th style="min-width:56px;">#</th>
               <th>Report ID</th>
+
+              <!-- ✅ new -->
+              <th style="min-width:140px;">Serial</th>
+              <th style="min-width:120px;">Make</th>
+              <th style="min-width:170px;">Inward No</th>
+              <th style="min-width:140px;">Bench</th>
+              <th style="min-width:110px;">Result</th>
+
               <th style="min-width:110px;">Method</th>
               <th style="min-width:110px;">Status</th>
               <th style="min-width:90px;">Burned</th>
-              <th style="min-width:160px;">Start</th>
-              <th style="min-width:160px;">End</th>
               <th style="min-width:100px;">Error %</th>
               <th style="min-width:160px;">Report Type</th>
               <th style="min-width:140px;">Actions</th>
             </tr>
           </thead>
+
           <tbody>
             <tr *ngFor="let r of pageRows; let i=index" class="align-middle">
               <td class="text-muted">{{ (page-1)*pageSize + i + 1 }}</td>
-                <td>
-                    <button class="btn btn-outline-primary btn-sm d-flex align-items-center"
-                            (click)="downloadTestreports_byreportidwithReportTypes(
-                              (r.report_id || r.testing?.report_id)!,
-                              (r.report_type || r.testing?.report_type)!
-                            )"
-                            [disabled]="!(r.report_id || r.testing?.report_id) || !(r.report_type || r.testing?.report_type)"
-                            title="Download PDF Report">
-                      <i class="fas fa-file-pdf"></i>
-                      <span>{{ r.report_id || r.testing?.report_id }}</span>
-                    </button>
-                </td>
-            
-  
-           
 
-              <td><span class="badge rounded-pill bg-secondary">
-                {{ r.test_method || r.testing?.test_method || '-' }}
-              </span></td>
+              <td>
+                <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
+                        (click)="downloadTestreports_byreportidwithReportTypes(
+                          (r.report_id || r.testing?.report_id)!,
+                          (r.report_type || r.testing?.report_type)!
+                        )"
+                        [disabled]="!(r.report_id || r.testing?.report_id) || !(r.report_type || r.testing?.report_type)"
+                        title="Download PDF Report">
+                  <i class="fas fa-file-pdf"></i>
+                  <span>{{ r.report_id || r.testing?.report_id }}</span>
+                </button>
+              </td>
+
+              <!-- ✅ new columns -->
+              <td>{{ r.serial_number || r.device?.serial_number || '-' }}</td>
+              <td>{{ r.make || r.device?.make || '-' }}</td>
+              <td>{{ r.inward_no || r.device?.inward_number || '-' }}</td>
+              <td>{{ r.testing_bench?.bench_name || r.testing?.testing_bench || '-' }}</td>
+              <td>
+                <span class="badge rounded-pill bg-success">
+                  {{ r.test_result || r.testing?.test_result || '-' }}
+                </span>
+              </td>
+
+              <td>
+                <span class="badge rounded-pill bg-secondary">
+                  {{ r.test_method || r.testing?.test_method || '-' }}
+                </span>
+              </td>
 
               <td>
                 <span class="badge rounded-pill"
@@ -124,17 +135,21 @@
                   }">
                   {{ r.test_status || r.testing?.test_status || '-' }}
                 </span>
-              </td>             
+              </td>
+
               <td>
-                <span [ngClass]="{'text-danger fw-semibold': (r.is_burned ?? r.testing?.is_burned) === true, 'text-success': (r.is_burned ?? r.testing?.is_burned) !== true}">
+                <span [ngClass]="{
+                  'text-danger fw-semibold': (r.is_burned ?? r.testing?.is_burned) === true,
+                  'text-success': (r.is_burned ?? r.testing?.is_burned) !== true
+                }">
                   {{ (r.is_burned ?? r.testing?.is_burned) ? 'YES' : 'NO' }}
                 </span>
               </td>
 
-              <td>{{ (r.start_datetime || r.testing?.start_datetime) | date:'short' }}</td>
-              <td>{{ (r.end_datetime || r.testing?.end_datetime) | date:'short' }}</td>
-
-              <td>{{ (r.error_percentage ?? r.testing?.error_percentage) ?? '-' }}<span *ngIf="(r.error_percentage ?? r.testing?.error_percentage) !== null && (r.error_percentage ?? r.testing?.error_percentage) !== undefined">%</span></td>
+              <td>
+                {{ (r.error_percentage ?? r.testing?.error_percentage) ?? '-' }}
+                <span *ngIf="(r.error_percentage ?? r.testing?.error_percentage) !== null && (r.error_percentage ?? r.testing?.error_percentage) !== undefined">%</span>
+              </td>
 
               <td>{{ r.report_type || r.testing?.report_type || '-' }}</td>
 
@@ -151,7 +166,7 @@
             </tr>
 
             <tr *ngIf="!pageRows.length && !loading && !error">
-              <td colspan="17" class="py-4 text-muted">
+              <td colspan="15" class="py-4 text-muted">
                 <i class="far fa-folder-open me-2"></i>No reports found for selected filters.
               </td>
             </tr>
@@ -159,9 +174,8 @@
         </table>
       </div>
 
-      <!-- Pagination (Responsive, Attractive) -->
+      <!-- Pagination (unchanged) -->
       <div class="rmtl-pager mt-2">
-        <!-- Top row: page-size + showing + desktop jump -->
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
           <div class="d-flex align-items-center gap-2">
             <label class="small text-muted mb-0">Rows per page</label>
@@ -181,13 +195,10 @@
           </div>
         </div>
 
-        <!-- Desktop / tablet: full pagination with ellipses -->
         <nav class="d-none d-md-block">
           <ul class="pagination pagination-sm justify-content-end mb-0 pagination-rounded shadow-sm">
             <li class="page-item" [class.disabled]="page===1">
-              <a class="page-link" (click)="goto(page-1)" aria-label="Previous">
-                <i class="fas fa-angle-left"></i>
-              </a>
+              <a class="page-link" (click)="goto(page-1)" aria-label="Previous"><i class="fas fa-angle-left"></i></a>
             </li>
 
             <li *ngFor="let p of pageWindow"
@@ -199,24 +210,19 @@
             </li>
 
             <li class="page-item" [class.disabled]="page===totalPages">
-              <a class="page-link" (click)="goto(page+1)" aria-label="Next">
-                <i class="fas fa-angle-right"></i>
-              </a>
+              <a class="page-link" (click)="goto(page+1)" aria-label="Next"><i class="fas fa-angle-right"></i></a>
             </li>
           </ul>
         </nav>
 
-        <!-- Mobile: compact bar -->
         <div class="d-flex d-md-none align-items-center justify-content-between gap-2 mt-2">
           <button class="btn btn-sm btn-outline-secondary flex-fill" [disabled]="page===1" (click)="goto(page-1)">
             <i class="fas fa-chevron-left me-1"></i> Prev
           </button>
 
-          <div class="d-flex align-items-center gap-2">
-            <select class="form-select form-select-sm" [(ngModel)]="page" (change)="goto(page)">
-              <option *ngFor="let p of allPages" [value]="p">Page {{ p }}</option>
-            </select>
-          </div>
+          <select class="form-select form-select-sm" [(ngModel)]="page" (change)="goto(page)">
+            <option *ngFor="let p of allPages" [value]="p">Page {{ p }}</option>
+          </select>
 
           <button class="btn btn-sm btn-outline-secondary flex-fill" [disabled]="page===totalPages" (click)="goto(page+1)">
             Next <i class="fas fa-chevron-right ms-1"></i>
@@ -238,7 +244,7 @@
   </div>
 
   <div class="offcanvas-body" *ngIf="selected as s">
-    <!-- top meta -->
+    <!-- badges -->
     <div class="d-flex flex-wrap gap-2 mb-3">
       <span class="badge bg-dark">Report: {{ (s.report_id || s.testing?.report_id) || '-' }}</span>
       <span class="badge bg-primary">Type: {{ s.report_type || s.testing?.report_type || '-' }}</span>
@@ -246,49 +252,46 @@
       <span class="badge bg-success">Result: {{ s.test_result || s.testing?.test_result || '-' }}</span>
     </div>
 
-    <div class="row g-2">
-      <div class="col-6"><strong>Start:</strong> {{ (s.start_datetime || s.testing?.start_datetime) | date:'medium' }}</div>
-      <div class="col-6"><strong>End:</strong> {{ (s.end_datetime || s.testing?.end_datetime) | date:'medium' }}</div>
-
-      <div class="col-6"><strong>Device ID:</strong> {{ s.device_id || s.testing?.device_id || s.device?.id || '-' }}</div>
-      <div class="col-6"><strong>Assignment ID:</strong> {{ s.assignment_id || s.testing?.assignment_id || s.assignment?.id || '-' }}</div>
-
-      <div class="col-6"><strong>Serial:</strong> {{ s.serial_number || s.device?.serial_number || '-' }}</div>
-      <div class="col-6"><strong>Make:</strong> {{ s.make || s.device?.make || '-' }}</div>
-
-      <div class="col-6"><strong>Inward No:</strong> {{ s.inward_no || s.device?.inward_number || '-' }}</div>
-      <div class="col-6"><strong>Inward Date:</strong> {{ (s.inward_date || s.device?.inward_date) | date:'yyyy-MM-dd' }}</div>
-
-      <div class="col-6"><strong>Meter Category:</strong> {{ s.meter_category || s.device?.meter_category || '-' }}</div>
-      <div class="col-6"><strong>Phase:</strong> {{ s.phase || s.device?.phase || '-' }}</div>
-
-      <div class="col-6"><strong>Meter Type:</strong> {{ s.meter_type || s.device?.meter_type || '-' }}</div>
-      <div class="col-6"><strong>Voltage:</strong> {{ s.voltage_rating || s.device?.voltage_rating || '-' }}</div>
+    <!-- ✅ structured sections -->
+    <div class="border rounded-3 p-2 mb-3">
+      <div class="fw-semibold mb-2">Testing</div>
+      <div class="small">
+        <div><strong>Method:</strong> {{ s.testing?.test_method || s.test_method || '-' }}</div>
+        <div><strong>Status:</strong> {{ s.testing?.test_status || s.test_status || '-' }}</div>
+        <div><strong>Result:</strong> {{ s.testing?.test_result || s.test_result || '-' }}</div>
+        <div><strong>Final remarks:</strong> {{ s.testing?.final_remarks || s.final_remarks || '-' }}</div>
+      </div>
     </div>
 
-    <hr class="my-3">
-
-    <div class="row g-2">
-      <div class="col-6"><strong>Terminal Block:</strong> {{ s.terminal_block || s.testing?.terminal_block || '-' }}</div>
-      <div class="col-6"><strong>Meter Body:</strong> {{ s.meter_body || s.testing?.meter_body || '-' }}</div>
-      <div class="col-6"><strong>Glass Cover:</strong> {{ s.meter_glass_cover || s.testing?.meter_glass_cover || '-' }}</div>
-      <div class="col-6"><strong>Seal:</strong> {{ s.seal_status || s.testing?.seal_status || '-' }}</div>
-
-      <div class="col-6"><strong>Testing Condition:</strong> {{ s.physical_condition_of_device || s.testing?.physical_condition_of_device || '-' }}</div>
-      <div class="col-6"><strong>Error %:</strong> {{ (s.error_percentage ?? s.testing?.error_percentage) ?? '-' }}</div>
-
-      <div class="col-6"><strong>Test Method:</strong> {{ s.test_method || s.testing?.test_method || '-' }}</div>
-      <div class="col-6"><strong>Burned:</strong>
-        <span [ngClass]="{'text-danger fw-semibold': (s.is_burned ?? s.testing?.is_burned) === true, 'text-success': (s.is_burned ?? s.testing?.is_burned) !== true}">
-          {{ (s.is_burned ?? s.testing?.is_burned) ? 'YES' : 'NO' }}
-        </span>
-      </div>  
-      <div class="col-6"><strong>Tested By:</strong> {{ s.tested_by || s.user?.username || s.user?.name || '-' }}</div>
-      <div class="col-6"><strong>Tested On:</strong> {{ s.tested_on || s.testing_bench?.bench_name ||s.testing_bench?.type|| '-' }}</div>  
-
-      <div class="col-12"><strong>Details/Remarks:</strong> {{ s.details || s.testing?.details || s.remarks || '-' }}</div>
-      <div class="col-12"><strong>Approver Remark:</strong> {{ s.approver_remark || s.testing?.approver_remark || '-' }}</div>
+    <div class="border rounded-3 p-2 mb-3">
+      <div class="fw-semibold mb-2">Device</div>
+      <div class="small">
+        <div><strong>Serial:</strong> {{ s.device?.serial_number || s.serial_number || '-' }}</div>
+        <div><strong>Make:</strong> {{ s.device?.make || s.make || '-' }}</div>
+        <div><strong>Inward No:</strong> {{ s.device?.inward_number || s.inward_no || '-' }}</div>
+        <div><strong>Inward Date:</strong> {{ (s.device?.inward_date || s.inward_date) | date:'yyyy-MM-dd' }}</div>
+        <div><strong>Type:</strong> {{ s.device?.device_type || '-' }} / {{ s.device?.device_testing_purpose || '-' }}</div>
+        <div><strong>Phase:</strong> {{ s.device?.phase || '-' }}</div>
+        <div><strong>Voltage:</strong> {{ s.device?.voltage_rating || '-' }}</div>
+        <div><strong>Capacity:</strong> {{ s.device?.capacity || '-' }}</div>
+        <div><strong>Meter Category:</strong> {{ s.device?.meter_category || '-' }}</div>
+      </div>
     </div>
-    
+
+    <div class="border rounded-3 p-2 mb-3">
+      <div class="fw-semibold mb-2">Assignment / Bench</div>
+      <div class="small">
+        <div><strong>Assignment Status:</strong> {{ s.assignment?.assignment_status || '-' }}</div>
+        <div><strong>Bench:</strong> {{ s.testing_bench?.bench_name || '-' }}</div>
+        <div><strong>Bench Type:</strong> {{ s.testing_bench?.type || '-' }}</div>
+        <div><strong>Operation:</strong> {{ s.testing_bench?.operation_type || '-' }}</div>
+      </div>
+    </div>
+
+    <!-- ✅ Raw JSON viewer -->
+    <details class="mt-2">
+      <summary class="fw-semibold">Raw JSON (full response)</summary>
+      <pre class="bg-light border rounded-3 p-2 mt-2 small" style="white-space:pre-wrap;">{{ s | json }}</pre>
+    </details>
   </div>
 </div>

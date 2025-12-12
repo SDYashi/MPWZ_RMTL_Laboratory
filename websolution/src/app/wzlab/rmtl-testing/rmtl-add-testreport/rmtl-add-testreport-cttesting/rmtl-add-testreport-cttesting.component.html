@@ -10,15 +10,14 @@
     <div class="card-body">
       <!-- Toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none align-items-center">
-          <button class="btn btn-outline-danger" (click)="openAssignPicker()">
-            <i class="bi bi-arrow-repeat"></i> Select/Pick Assigned CTs for Testing
-          </button>
+        <button class="btn btn-outline-danger" (click)="openAssignPicker()">
+          <i class="bi bi-arrow-repeat"></i> Select/Pick Assigned CTs for Testing
+        </button>
       </div>
+
       <!-- Batch header -->
       <div class="card shadow-sm mb-3">
-          <div class="card-body bg-secondary bg-opacity-10">
-          <h5 class="card-title mb-0">User & Location Information</h5>          
-          <hr class="mb-3">
+        <div class="card-body bg-secondary bg-opacity-10">
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label fw-bold">Name of Zone/DC</label>
@@ -37,15 +36,16 @@
               <label class="form-label fw-bold">Selected Approver User</label>
               <input class="form-control" [(ngModel)]="approving_user" name="approving_user" readonly disabled>
             </div>
-            
-           <div class="col-md-4">
+
+            <div class="col-md-4">
               <label class="form-label fw-bold">Select Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method">
                 <option [ngValue]="null" disabled>Select Testing Method</option>
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
               </select>
             </div>
-           <div class="col-md-4">
+
+            <div class="col-md-4">
               <label class="form-label fw-bold">Select Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status">
                 <option [ngValue]="null" disabled>Select Testing Status</option>
@@ -59,69 +59,74 @@
       <!-- Certificate header block -->
       <div class="card shadow-sm mb-3">
         <div class="card-body bg-secondary bg-opacity-10">
-             <div class="row g-3">
-          <div class="col-md-3">
+          <div class="row g-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Select Date of Testing <span class="text-danger">*</span></label>
               <input type="date" class="form-control" [(ngModel)]="header.date_of_testing" name="date_of_testing">
-               </div>
-            <div class="col-md-3">
-                <label class="form-label fw-bold">Enter Name of Consumer</label>
-                <input class="form-control" [(ngModel)]="header.consumer_name" name="consumer_name" placeholder="Name">
-                  </div>
-         <div class="col-md-3">
-                <label class="form-label fw-bold">Enter Full Address</label>
-                <input class="form-control" [(ngModel)]="header.address" name="address" placeholder="Address">
-                    </div>
+            </div>
 
-         <div class="col-md-3">
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Enter Name of Consumer</label>
+              <input class="form-control" [(ngModel)]="header.consumer_name" name="consumer_name" placeholder="Name">
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Enter Full Address</label>
+              <input class="form-control" [(ngModel)]="header.address" name="address" placeholder="Address">
+            </div>
+
+            <div class="col-md-3">
               <label class="form-label fw-bold">No. of CT</label>
               <input class="form-control" [(ngModel)]="header.no_of_ct" name="no_of_ct" readonly>
-                  </div>
-          <div class="col-md-3">
+            </div>
+
+            <div class="col-md-3">
               <label class="form-label fw-bold">Select Class of CT</label>
               <select class="form-select" [(ngModel)]="header.city_class" name="city_class">
                 <option *ngFor="let c of ct_classes" [value]="c">{{ c }}</option>
               </select>
             </div>
-        <div class="col-md-3">
+
+            <div class="col-md-3">
               <label class="form-label fw-bold">Enter Refer. No. / remarks / Note</label>
               <input class="form-control" [(ngModel)]="header.ref_no" name="ref_no" placeholder="Ref / Note">
-                   </div>
+            </div>
 
-           <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Select Make of CT</label>
               <select class="form-select" [(ngModel)]="header.ct_make" name="ct_make">
                 <option [ngValue]="null" disabled>Select Make</option>
                 <option *ngFor="let make of makes" [value]="make">{{ make }}</option>
               </select>
-                 </div>
+            </div>
 
-         <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Enter M.R. No / Online Transaction No</label>
-                 <input class="form-control" [(ngModel)]="header.mr_no" name="mr_no" placeholder="Receipt / Txn #">
-           </div>
-         <div class="col-md-3">
+              <input class="form-control" [(ngModel)]="header.mr_no" name="mr_no" placeholder="Receipt / Txn #">
+            </div>
+
+            <div class="col-md-3">
               <label class="form-label fw-bold">Select Amount Deposited (₹)</label>
               <select class="form-select" [(ngModel)]="header.amount_deposited" name="amount_deposited">
                 <option [ngValue]="null" disabled>Select Amount</option>
                 <option *ngFor="let fee of fees_mtr_cts" [value]="fee">{{ fee }}</option>
               </select>
-             </div>
+            </div>
 
-         <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Select Payment Date</label>
-                    <input type="date" class="form-control" [(ngModel)]="header.mr_date" name="mr_date">
-           
-               </div>
+              <input type="date" class="form-control" [(ngModel)]="header.mr_date" name="mr_date">
+            </div>
 
-          <div class="col-md-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Enter Primary Current (Amp)</label>
               <input class="form-control" [(ngModel)]="header.primary_current" name="primary_current">
-             </div>
-           <div class="col-md-3">
+            </div>
+
+            <div class="col-md-3">
               <label class="form-label fw-bold">Enter Secondary Current (Amp)</label>
               <input class="form-control" [(ngModel)]="header.secondary_current" name="secondary_current">
-              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -145,37 +150,39 @@
             <tr *ngFor="let r of displayRows(); let i = index; trackBy: trackByCtRow" [ngClass]="{'table-danger': r.notFound}">
               <td class="text-center"><span class="badge bg-secondary">{{ i + 1 }}</span></td>
               <td>
-                <input class="form-control " [(ngModel)]="r.ct_no" [name]="'ctno_'+i" (ngModelChange)="onCtNoChanged(i, r.ct_no)" placeholder="CT Serial">
-                <div *ngIf="r.notFound" class=" text-danger">Not in assigned list</div>
+                <input class="form-control" [(ngModel)]="r.ct_no" [name]="'ctno_'+i"
+                       (ngModelChange)="onCtNoChanged(i, r.ct_no)" placeholder="CT Serial">
+                <div *ngIf="r.notFound" class="text-danger">Not in assigned list</div>
               </td>
-              <td><input class="form-control " [(ngModel)]="r.make" [name]="'make_'+i" placeholder="Make"></td>
+
+              <td><input class="form-control" [(ngModel)]="r.make" [name]="'make_'+i" placeholder="Make"></td>
 
               <td>
-                <select class="form-select " [(ngModel)]="r.ratio" [name]="'ratio_'+i">
+                <select class="form-select" [(ngModel)]="r.ratio" [name]="'ratio_'+i">
                   <option [ngValue]="''" disabled>Select</option>
                   <option *ngFor="let opt of ratioOptions" [ngValue]="opt">{{ opt }}</option>
                 </select>
               </td>
-              <td><input class="form-control " [(ngModel)]="r.polarity" [name]="'pol_'+i" placeholder="OK / value"></td>
+
+              <td><input class="form-control" [(ngModel)]="r.polarity" [name]="'pol_'+i" placeholder="OK / value"></td>
 
               <td>
-                <select class="form-select " [(ngModel)]="r.working" [name]="'working_'+i">
+                <select class="form-select" [(ngModel)]="r.working" [name]="'working_'+i">
                   <option [ngValue]="undefined" disabled>Select</option>
                   <option *ngFor="let w of workingOptions" [ngValue]="w">{{ w }}</option>
                 </select>
               </td>
 
-              <td><input class="form-control " [(ngModel)]="r.remark" [name]="'rem_'+i" placeholder="OK / DEF …"></td>
+              <td><input class="form-control" [(ngModel)]="r.remark" [name]="'rem_'+i" placeholder="OK / DEF …"></td>
               <td class="text-center d-print-none">
                 <button class="btn btn-sm btn-outline-danger" (click)="removeCtRow(i)" title="Remove">
-                  <i class="bi bi-x-lg"></i>
+                 ✕
                 </button>
               </td>
             </tr>
           </tbody>
         </table>
 
-        <!-- Empty state -->
         <div *ngIf="!ctRows?.length" class="alert alert-light border text-center py-4 mb-0">
           <div class="mb-1"><i class="bi bi-inboxes"></i></div>
           No CT rows added yet.
@@ -184,8 +191,10 @@
 
       <!-- Bottom actions -->
       <div class="d-flex flex-wrap gap-2 mt-3 d-print-none">
-        <button class="btn btn-success" (click)="addCtRow()"><i class="bi bi-plus-lg"></i> Add CT Row</button>
-          <div class="ms-auto"></div>
+        <button class="btn btn-success" (click)="addCtRow()">
+          <i class="bi bi-plus-lg"></i> Add CT Row
+        </button>
+        <div class="ms-auto"></div>
         <button class="btn btn-primary" [disabled]="submitting || !ctRows.length" (click)="openConfirm('submit')">
           <i *ngIf="!submitting" class="bi bi-check2-circle"></i>
           {{ submitting ? 'Submitting…' : 'Validate & Submit' }}
@@ -194,6 +203,20 @@
     </div>
   </div>
 
+
+      <!-- ✅ Inline Messages (NO ALERT MODAL) -->
+      <div class="mb-3 d-print-none" *ngIf="inlineMsg.text">
+        <div class="alert alert-dismissible fade show mb-0"
+          [ngClass]="{
+            'alert-success': inlineMsg.type==='success',
+            'alert-danger': inlineMsg.type==='error',
+            'alert-warning': inlineMsg.type==='warning',
+            'alert-info': inlineMsg.type==='info'
+          }">
+          <strong class="me-2">{{ inlineMsg.title }}</strong>{{ inlineMsg.text }}
+          <button type="button" class="btn-close" aria-label="Close" (click)="clearInlineMsg()"></button>
+        </div>
+      </div>
   <!-- Loading overlay -->
   <div *ngIf="loading" class="position-fixed top-0 start-0 w-100 h-100" style="background:rgba(0,0,0,0.15); z-index:1080;">
     <div class="d-flex h-100 align-items-center justify-content-center">
@@ -202,7 +225,7 @@
     </div>
   </div>
 
-  <!-- Assigned picker modal -->
+  <!-- ✅ KEEP Assigned picker modal -->
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': assignedPicker.open}" *ngIf="assignedPicker.open">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
@@ -256,7 +279,7 @@
     </div>
   </div>
 
-  <!-- Submit Preview Modal -->
+  <!-- ✅ KEEP Submit Preview Modal -->
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modal.open}" *ngIf="modal.open">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
@@ -264,9 +287,10 @@
           <h5 class="modal-title">{{ modal.title }}</h5>
           <button type="button" class="btn-close" (click)="closeModal()"></button>
         </div>
+
         <div class="modal-body">
           <ng-container *ngIf="modal.action==='submit'">
-            <div class="row  gy-1">
+            <div class="row gy-1">
               <div class="col-md-4"><strong>Zone/DC:</strong> {{ header.location_code }} - {{ header.location_name }}</div>
               <div class="col-md-4"><strong>Method:</strong> {{ testMethod || '-' }}</div>
               <div class="col-md-4"><strong>Status:</strong> {{ testStatus || '-' }}</div>
@@ -275,6 +299,7 @@
               <div class="col-md-4"><strong>Date:</strong> {{ pdf_date || header.date_of_testing || '-' }}</div>
             </div>
             <hr>
+
             <div class="table-responsive">
               <table class="table table-sm table-bordered align-middle">
                 <thead>
@@ -297,33 +322,15 @@
               </table>
             </div>
           </ng-container>
+
           <div *ngIf="modal.message" class="alert alert-info mt-2">{{ modal.message }}</div>
         </div>
+
         <div class="modal-footer">
           <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
           <button *ngIf="modal.action" class="btn btn-primary" (click)="confirmModal()">Confirm</button>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Alert Modal -->
-  <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': alert.open}" *ngIf="alert.open">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header"
-             [ngClass]="{
-                'bg-success text-white': alert.type==='success',
-                'bg-danger text-white': alert.type==='error',
-                'bg-warning text-dark': alert.type==='warning',
-                'bg-info text-white': alert.type==='info'
-              }">
-          <h6 class="modal-title">{{ alert.title }}</h6>
-          <button type="button" class="btn-close" (click)="closeAlert()"></button>
-        </div>
-        <div class="modal-body"><p class="mb-0">{{ alert.message }}</p></div>
-        <div class="modal-footer"><button class="btn btn-primary btn-sm" (click)="closeAlert()">OK</button></div>
-      </div>
-    </div>
-  </div>
+  </div> 
 </div>

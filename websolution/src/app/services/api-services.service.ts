@@ -617,5 +617,8 @@ getDivisions() {
   addEnumValue(enumType: string, payload: any = new Map<string, string>): Observable<any> {
     return this.http.post(`${this.baseUrl}/enums/values/${enumType}`, payload);
   }
+  postTestingBulkWithPdf(formData: FormData): Observable<any> {
+    return this.http.post(`${this.baseUrl}/testing/bulk-with-pdf/`, formData);
+  }
 
 }
