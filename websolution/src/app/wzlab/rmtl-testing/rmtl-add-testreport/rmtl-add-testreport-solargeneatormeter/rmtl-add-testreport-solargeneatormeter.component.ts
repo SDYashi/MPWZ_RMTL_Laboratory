@@ -187,12 +187,9 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
     this.device_testing_purpose = 'SOLAR_GENERATION_METER';
     this.currentUserId = this.authService.getuseridfromtoken();
     this.currentLabId = this.authService.getlabidfromtoken();
-    const userNameFromLS = this.authService.getUserNameFromToken() || '';
+    // const userNameFromLS = this.authService.getUserNameFromToken() || '';
 
-    if (userNameFromLS) {
-      this.testing_user = userNameFromLS;
-      this.approver_user = userNameFromLS; // default approver to current user
-    }
+
 
     this.api.getEnums().subscribe({
       next: (d) => {

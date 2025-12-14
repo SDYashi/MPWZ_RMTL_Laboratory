@@ -139,6 +139,7 @@ export class RmtlAddTestreportSamplemeterComponent implements OnInit {
   device_type = 'METER';
   device_testing_purpose: any;
   report_type = 'SAMPLE_TESTING';
+  benches: any;
 
   constructor(
     private api: ApiServicesService,
@@ -150,8 +151,7 @@ export class RmtlAddTestreportSamplemeterComponent implements OnInit {
     this.currentUserId = this.authService.getuseridfromtoken();
     this.currentLabId = this.authService.getlabidfromtoken();
 
-    // FIX: load lab info once (for PDF header)
-    this.loadLabInfo();
+
 
     this.api.getEnums().subscribe({
       next: (data) => {
@@ -166,44 +166,25 @@ export class RmtlAddTestreportSamplemeterComponent implements OnInit {
       },
       error: () => (this.inlineError = 'Unable to load enums. Please reload.')
     });
+
+     // Lab info (for PDF header)
+    if (this.currentLabId) {
+      this.api.getLabInfo(this.currentLabId).subscribe({
+        next: (info: any) => {
+          this.labInfo = {
+            lab_name: info?.lab_pdfheader_name || info?.lab_name,
+            address_line: info?.lab_pdfheader_address || info?.lab_location,
+            email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no,
+            phone: info?.lab_pdfheader_contact_no || info?.lab_location
+         };
+          this.benches = Array.isArray(info?.benches) ? info.benches : [];
+        }
+      });
+    }
   }
 
   // ===================== Lab info (FIX) =====================
-  private loadLabInfo() {
-    const lid = Number(this.currentLabId) || 0;
-    if (!lid) return;
 
-    // NOTE: adjust API method name to your backend. Common patterns:
-    // this.api.getLabInfo(lid)
-    // this.api.getLabDetails(lid)
-    // this.api.getLabById(lid)
-    const obs =
-      (this.api as any).getLabInfo?.(lid) ||
-      (this.api as any).getLabDetails?.(lid) ||
-      (this.api as any).getLabById?.(lid);
-
-    if (!obs?.subscribe) {
-      // If your ApiServicesService doesn't have lab API yet, header will still work but lab fields remain blank.
-      return;
-    }
-
-    obs.subscribe({
-      next: (res: any) => {
-        // Normalize different backend shapes safely
-        const lab = res?.lab || res?.data || res || {};
-        this.labInfo = {
-          lab_name: lab?.lab_name || lab?.name || lab?.labName || '',
-          address_line: lab?.address_line || lab?.address || lab?.lab_address || '',
-          email: lab?.email || '',
-          phone: lab?.phone || lab?.mobile || ''
-        };
-      },
-      error: () => {
-        // don't block flow
-        this.labInfo = this.labInfo || {};
-      }
-    });
-  }
 
   // ===================== PDF selection =====================
   onPdfSelected(ev: Event) {
@@ -583,14 +564,14 @@ export class RmtlAddTestreportSamplemeterComponent implements OnInit {
 
         const url = Array.isArray(res) && res.length ? res[0]?.report_file_url : null;
         this.inlineInfo = url ? `Submitted successfully. PDF URL saved: ${url}` : 'Submitted successfully. PDF URL saved.';
-
+        this.downloadPdf();
         this.inlineError = null;
         this.rows = [this.emptyRow()];
         this.selectedPdfFile = null;
         this.selectedPdfName = null;
 
         // generate local preview/download PDF also
-        this.downloadPdf();
+       
       },
       error: (e) => {
         this.submitting = false;

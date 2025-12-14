@@ -30,8 +30,6 @@ export interface PqMeterMeta {
   testing_bench?: string;
   testing_user?: string;
   approving_user?: string;
-
-  // FIX
   lab?: PqLabInfo;
 }
 
@@ -42,6 +40,7 @@ export interface PdfLogos {
 
 @Injectable({ providedIn: 'root' })
 export class PqMeterReportPdfService {
+  contentWidth = 595.28 - 18 - 18; // A4 width minus header margins
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
   private logoCache = new Map<string, string>();
@@ -135,7 +134,8 @@ export class PqMeterReportPdfService {
             meta.hasRight ? { image: 'rightLogo', width: 34, alignment: 'right' as const } : { width: 34, text: '' }
           ],
           columnGap: 8
-        }
+        },
+         { canvas: [{ type: 'line', x1: 0, y1: 0, x2: this.contentWidth, y2: 0, lineWidth: 1 }], margin: [0, 0, 0, 8] }
       ]
     } as any;
   }
@@ -320,10 +320,6 @@ export class PqMeterReportPdfService {
         }) as any,
 
       content: [
-        {
-          canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }],
-          margin: [0, 0, 0, 8]
-        },
         this.metaTable(meta),
         this.detailsTable(safeRows)
       ]

@@ -106,7 +106,7 @@ export class SampleMeterReportPdfService {
     if (t && (!m || t.toUpperCase() === 'OK')) return t;
     return m || '-';
   }
-
+  contentWidth = 595.28 - 18 - 18; // A4 width minus header margins
   // ---------- Blocks ----------
   private headerBar(meta: {
     orgLine: string;
@@ -149,7 +149,8 @@ export class SampleMeterReportPdfService {
             meta.hasRight ? { image: 'rightLogo', width: 34, alignment: 'right' as const } : { width: 34, text: '' }
           ],
           columnGap: 8
-        }
+        },
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: this.contentWidth, y2: 0, lineWidth: 1 }], margin: [0, 0, 0, 8] }
       ]
     } as any;
   }
@@ -298,8 +299,7 @@ export class SampleMeterReportPdfService {
     const labName = this.S(meta.lab?.lab_name);
     const labAddress = this.S(meta.lab?.address_line);
     const labEmail = this.S(meta.lab?.email);
-    const labPhone = this.S(meta.lab?.phone);
-
+    const labPhone = this.S(meta.lab?.phone);   
     const contentWidth = 595.28 - 18 - 18; // A4 width minus header margins
 
     return {
@@ -312,7 +312,7 @@ export class SampleMeterReportPdfService {
       header: this.headerBar({
         orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
         titleLine: 'SAMPLE METER TEST REPORT',
-        labName: labName || '-',              // FIX: never blank
+        labName: labName || '-',             
         labAddress: labAddress || undefined,
         labEmail: labEmail || undefined,
         labPhone: labPhone || undefined,
@@ -336,8 +336,7 @@ export class SampleMeterReportPdfService {
         } as any;
       },
 
-      content: [
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1 }], margin: [0, 0, 0, 8] },
+      content: [      
         this.metaTable(meta),
         this.detailsTable(rows),
         {

@@ -150,8 +150,8 @@
             <tr *ngFor="let r of displayRows(); let i = index; trackBy: trackByCtRow" [ngClass]="{'table-danger': r.notFound}">
               <td class="text-center"><span class="badge bg-secondary">{{ i + 1 }}</span></td>
               <td>
-                <input class="form-control" [(ngModel)]="r.ct_no" [name]="'ctno_'+i"
-                       (ngModelChange)="onCtNoChanged(i, r.ct_no)" placeholder="CT Serial">
+                <input class="form-control" [(ngModel)]="r.serial_number" [name]="'ctno_'+i"
+                       (ngModelChange)="onCtNoChanged(i, r.serial_number)" placeholder="CT Serial">
                 <div *ngIf="r.notFound" class="text-danger">Not in assigned list</div>
               </td>
 
@@ -310,7 +310,7 @@
                 <tbody>
                   <tr *ngFor="let r of ctRows; let i = index">
                     <td>{{ i+1 }}</td>
-                    <td>{{ r.ct_no }}</td>
+                    <td>{{ r.serial_number }}</td>
                     <td>{{ r.make }}</td>
                     <td>{{ r.cap }}</td>
                     <td>{{ r.ratio }}</td>

@@ -229,11 +229,6 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     this.currentUserId = this.authService.getuseridfromtoken();
     this.currentLabId = this.authService.getlabidfromtoken();
 
-    const userNameFromLS = this.authService.getUserNameFromToken() || '';
-    if (userNameFromLS) {
-      this.testing_user = userNameFromLS;
-      this.header.testing_user = userNameFromLS;
-    }
 
     this.api.getEnums().subscribe({
       next: (d) => {
@@ -1217,12 +1212,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
             meter_sr_no: r.meter_sr_no,
             meter_capacity: r.meter_capacity,
             date_of_testing: r.date_of_testing || null,
-
-            // convert to number if possible for PDF money formatting
-            testing_fees:
-              r.testing_fees != null && r.testing_fees !== ''
-                ? Number(r.testing_fees)
-                : null,
+            testing_fees: r.testing_fees || '-',
             mr_no: r.mr_no || null,
             mr_date: r.mr_date || null,
             ref_no: r.ref_no || null,

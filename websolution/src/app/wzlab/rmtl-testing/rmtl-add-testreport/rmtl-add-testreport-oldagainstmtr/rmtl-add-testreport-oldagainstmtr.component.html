@@ -404,7 +404,7 @@
             <table class="table table-sm table-bordered">
               <thead>
                 <tr>
-                  <th>#</th><th>Sr. No.</th><th>Make</th><th>Capacity</th><th>Consumer</th><th>Remark</th><th>Fees</th>
+                  <th>#</th><th>Sr. No.</th><th>Make</th><th>Capacity</th><th>Remark</th>
                 </tr>
               </thead>
               <tbody>
@@ -413,9 +413,7 @@
                   <td>{{ r.meter_sr_no }}</td>
                   <td>{{ r.meter_make }}</td>
                   <td>{{ r.meter_capacity }}</td>
-                  <td>{{ r.consumer_name || '—' }}</td>
                   <td>{{ r.remark || '—' }}</td>
-                  <td>{{ r.testing_fees ?? '—' }}</td>
                 </tr>
               </tbody>
             </table>

@@ -1,37 +1,29 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { ApiServicesService } from 'src/app/services/api-services.service';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { firstValueFrom } from 'rxjs';
+import { ApiServicesService } from 'src/app/services/api-services.service';
 
-// existing pdf services...
-import { ContestedReportPdfService } from 'src/app/shared/contested-report-pdf.service';
-import { CtReportPdfService } from 'src/app/shared/ct-report-pdf.service';
-import { P4onmReportPdfService } from 'src/app/shared/p4onm-report-pdf.service';
-import { P4VigReportPdfService } from 'src/app/shared/p4vig-report-pdf.service';
-import { SolarGenMeterCertificatePdfService } from 'src/app/shared/solargenmeter-certificate-pdf.service';
-import { SolarNetMeterCertificatePdfService } from 'src/app/shared/solarnetmeter-certificate-pdf.service';
-import { StopDefectiveReportPdfService } from 'src/app/shared/stopdefective-report-pdf.service';
-import { OldAgainstMeterReportPdfService } from 'src/app/shared/oldagainstmeter-report-pdf.service';
-import { SmartAgainstMeterReportPdfService } from 'src/app/shared/smartagainstmeter-report-pdf.service';
-import { NewMeterReportPdfService } from 'src/app/shared/newmeter-report-pdf.service';
+import { ContestedReportPdfService, ContestedReportRow, ContestedReportHeader } from 'src/app/shared/contested-report-pdf.service';
+import { CtReportPdfService, CtPdfRow, CtHeader } from 'src/app/shared/ct-report-pdf.service';
+import { NewMeterReportPdfService, NewMeterRow } from 'src/app/shared/newmeter-report-pdf.service';
+import { OldAgainstMeterReportPdfService, OldAgainstRow, OldAgainstMeta } from 'src/app/shared/oldagainstmeter-report-pdf.service';
+import { P4onmReportPdfService, P4ONMReportRow, P4ONMReportHeader } from 'src/app/shared/p4onm-report-pdf.service';
+import { P4VigReportPdfService, VigRow, VigHeader } from 'src/app/shared/p4vig-report-pdf.service';
+import { PqMeterReportPdfService } from 'src/app/shared/pqmeter-report-pdf.service';
+import { SampleMeterReportPdfService } from 'src/app/shared/samplemeter-report-pdf.service';
+import { SmartAgainstMeterReportPdfService, SmartRow, SmartMeta } from 'src/app/shared/smartagainstmeter-report-pdf.service';
+import { SolarGenMeterCertificatePdfService, GenRow, GenHeader } from 'src/app/shared/solargenmeter-certificate-pdf.service';
+import { SolarNetMeterCertificatePdfService, SolarRow, SolarHeader } from 'src/app/shared/solarnetmeter-certificate-pdf.service';
+import { StopDefectiveReportPdfService, StopDefRow, StopDefMeta } from 'src/app/shared/stopdefective-report-pdf.service';
 
-// ✅ SAMPLE PDF service types (MATCH YOUR SERVICE FILE)
-import {
-  SampleMeterReportPdfService,
-  SampleMeterRow,
-  SampleMeterMeta,
-  PdfLogos
-} from 'src/app/shared/samplemeter-report-pdf.service';
+(pdfMake as any).vfs = pdfFonts.vfs;
 
-// ✅ PQ PDF service types (adjust names to match your pq service file)
-import {
-  PqMeterReportPdfService,
-  PqMeterRow,
-  PqMeterMeta
-} from 'src/app/shared/pqmeter-report-pdf.service';
-
+type DeviceType = any;
 type ReportType = any;
 type TestReport = any;
+type User = any;
 
 @Component({
   selector: 'app-rmtl-view-testreport',
@@ -39,6 +31,7 @@ type TestReport = any;
   styleUrls: ['./rmtl-view-testreport.component.css']
 })
 export class RmtlViewTestreportComponent implements OnInit {
+
   Math = Math;
   search_serial = '';
 
@@ -54,188 +47,90 @@ export class RmtlViewTestreportComponent implements OnInit {
     private solarGenPdf: SolarGenMeterCertificatePdfService,
     private solarNetPdf: SolarNetMeterCertificatePdfService,
     private stopDefPdf: StopDefectiveReportPdfService,
-    private newMeterPdf: NewMeterReportPdfService,
-
-    // ✅ NEW
+    private newPdf: NewMeterReportPdfService,
     private samplePdf: SampleMeterReportPdfService,
-    private pqPdf: PqMeterReportPdfService
+    private pqPdf: PqMeterReportPdfService,
+
   ) {}
 
+  // Filters & data
   reportTypes: ReportType[] = [];
-  filters = { from: '', to: '', report_type: '' as '' | ReportType };
+  filters = {
+    from: '',
+    to: '',
+    report_type: '' as '' | ReportType,
+  };
 
   all: TestReport[] = [];
   filtered: TestReport[] = [];
   pageRows: TestReport[] = [];
-
   page = 1;
   pageSize = 50;
   pageSizeOptions = [10, 25, 50, 100, 250, 500, 1000];
-
   pages: number[] = [];
   allPages: number[] = [];
   pageWindow: Array<number | '…'> = [];
   totalPages = 1;
   gotoInput: number | null = null;
 
+  // ui state
   loading = false;
   error: string | null = null;
 
   selected: TestReport | null = null;
+  lab : any = null;
 
+  // ===== NEW: cache for usernames =====
+  private userNameCache = new Map<number, string>();
+
+  // ========= lifecycle =========
   ngOnInit(): void {
     this.fetchFromServer(true);
+
     this.api.getEnums().subscribe({
-      next: (data) => (this.reportTypes = data?.test_report_types || []),
+      next: (data) => {
+        this.reportTypes = data?.test_report_types || [];
+      },
       error: (err) => console.error('Failed to load report types:', err)
     });
   }
 
-  private S(v: any): string {
-    return (v ?? '').toString().trim();
-  }
-
+  // ===== UPDATED: cached username lookup =====
   async getUserNameById(id: number): Promise<string> {
+    if (!id && id !== 0) return '';
+    if (this.userNameCache.has(id)) return this.userNameCache.get(id)!;
+
     try {
       const user = await firstValueFrom(this.api.getUser(id));
-      return user?.name ?? '';
-    } catch {
+      const name = user?.name ?? '';
+      this.userNameCache.set(id, name);
+      return name;
+    } catch (err) {
+      console.error(err);
       return '';
     }
   }
 
-  // ✅ PDF download by report id & type (SAMPLE + PQ included)
-  async downloadTestreports_byreportidwithReportTypes(report_id?: string | null, report_type?: string | null) {
-    const rid = this.S(report_id);
-    const rtype = this.S(report_type);
+  // ===== NEW: helper to fetch rows for a report_id =====
+  private async fetchReportBatchRows(report_id: string): Promise<Array<{
+    testing: any;
+    device?: any;
+    assignment?: any;
+    lab?: any;
+    user?: any;
+    testing_bench?: any;
+  }>> {
+    const apiResp: any = await new Promise((resolve, reject) =>
+      this.api.getDevicesByReportId(report_id).subscribe({
+        next: resolve,
+        error: reject
+      })
+    );
 
-    if (!rid || !rtype) return;
-
-    this.loading = true;
-
-    try {
-      const apiResp: any = await new Promise((resolve, reject) =>
-        this.api.getDevicesByReportId(rid).subscribe({ next: resolve, error: reject })
-      );
-
-      const rowsRaw: Array<{
-        testing: any;
-        device?: any;
-        assignment?: any;
-        lab?: any;
-        user?: any;
-        testing_bench?: any;
-      }> = Array.isArray(apiResp) ? apiResp : [];
-
-      if (!rowsRaw.length) {
-        alert('No devices found for this report.');
-        return;
-      }
-
-      const first = rowsRaw[0];
-      const t0 = first.testing || {};
-      const d0 = first.device || {};
-      const a0 = first.assignment || {};
-      const lab0 = first.lab || {};
-      const bench0 = first.testing_bench || {};
-
-      const benchName =
-        bench0?.bench_name ||
-        a0?.bench_name ||
-        a0?.bench?.bench_name ||
-        '';
-
-      const phaseName = this.S(d0.phase || t0.phase);
-
-      const testedBy = await this.getUserNameById(a0.user_id);
-      const approvedBy = await this.getUserNameById(a0.assigned_by);
-
-      const metaBase = {
-        zone: `${this.S(d0.location_code || t0.location_code)} - ${this.S(d0.location_name || t0.location_name)}`.trim().replace(/^-?\s*-\s*$/, '-'),
-        phase: phaseName || '-',
-        date: this.S(t0.start_datetime || t0.testing_date || t0.created_at || new Date().toISOString()).slice(0, 10),
-        testMethod: this.S(t0.test_method || 'NA').toUpperCase(),
-        testStatus: this.S(t0.test_status || 'NA').toUpperCase(),
-        testing_bench: this.S(benchName || bench0?.id || ''),
-        testing_user: this.S(testedBy || ''),
-        approving_user: this.S(approvedBy || ''),
-        lab: {
-          lab_name: this.S(lab0.lab_pdfheader_name || lab0.lab_name || t0.lab_name || ''),
-          address_line: this.S(lab0.lab_pdfheader_address || lab0.lab_location || t0.lab_address || ''),
-          email: this.S(lab0.lab_pdfheader_email || t0.lab_email || ''),
-          phone: this.S(lab0.lab_pdfheader_contact_no || t0.lab_phone || '')
-        }
-      };
-
-      const logos: PdfLogos = {
-        leftLogoUrl: '/assets/icons/wzlogo.png',
-        rightLogoUrl: '/assets/icons/wzlogo.png'
-      };
-
-      // ✅ SAMPLE mapping: MUST match SampleMeterRow interface (remark field!)
-      const mapSAMPLE = (rec: any): SampleMeterRow => {
-        const t = rec.testing || {};
-        const d = rec.device || {};
-        return {
-          serial_number: this.S(d.serial_number),
-          make: this.S(d.make),
-          capacity: this.S(d.capacity),
-          remark: this.S(t.final_remarks || t.details || ''),
-          test_result: this.S(t.test_result)
-        };
-      };
-
-      // ✅ PQ mapping: adjust to your PqMeterRow interface
-      const mapPQ = (rec: any): PqMeterRow => {
-        const t = rec.testing || {};
-        const d = rec.device || {};
-        return {
-          serial_number: this.S(d.serial_number),
-          make: this.S(d.make),
-          phase: this.S(d.phase),
-          voltage_rating: this.S(d.voltage_rating),
-          meter_type: this.S(d.meter_type),
-          meter_class: this.S(d.meter_class),
-          remark: this.S(t.final_remarks || t.details || ''),
-          test_result: this.S(t.test_result)
-        } as any;
-      };
-
-      switch (rtype) {
-        case 'SAMPLE': {
-          const meta: SampleMeterMeta = metaBase as SampleMeterMeta;
-          const sampleRows: SampleMeterRow[] = rowsRaw.map(mapSAMPLE);
-
-          await this.samplePdf.download(sampleRows, meta, logos);
-          break;
-        }
-
-        case 'PQ_METER_TESTING': {
-          const meta: PqMeterMeta = {
-            ...metaBase
-          } as any;
-
-          const pqRows: PqMeterRow[] = rowsRaw.map(mapPQ);
-          await this.pqPdf.download(pqRows, meta, logos);
-          break;
-        }
-
-        default: {
-          alert(`Unsupported / unhandled report type: ${rtype}`);
-          break;
-        }
-      }
-    } catch (err) {
-      console.error('downloadTestreports_byreportidwithReportTypes failed:', err);
-      alert('Could not generate PDF for this report. Check console for details.');
-    } finally {
-      this.loading = false;
-    }
+    return Array.isArray(apiResp) ? apiResp : [];
   }
 
-  // ---------------- existing methods below unchanged ----------------
-  onSearchChanged(): void { this.fetchFromServer(true); }
-
+  // ========= date helpers =========
   private fmt(d: Date): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -254,19 +149,30 @@ export class RmtlViewTestreportComponent implements OnInit {
     const hasFrom = !!this.filters.from;
     const hasTo = !!this.filters.to;
 
-    if (!hasFrom && !hasTo) return this.currentMonthRange();
+    if (!hasFrom && !hasTo) {
+      return this.currentMonthRange();
+    }
 
     let from = this.filters.from;
     let to = this.filters.to;
 
-    if (hasFrom && !hasTo) to = this.fmt(new Date());
-    else if (!hasFrom && hasTo) {
+    if (hasFrom && !hasTo) {
+      to = this.fmt(new Date());
+    } else if (!hasFrom && hasTo) {
       const t = new Date(this.filters.to);
       from = this.fmt(new Date(t.getFullYear(), t.getMonth(), 1));
     }
 
-    if (from && to && new Date(from) > new Date(to)) [from, to] = [to!, from!];
+    if (from && to && new Date(from) > new Date(to)) {
+      [from, to] = [to!, from!];
+    }
+
     return { from: from!, to: to! };
+  }
+
+  // ========= data fetch =========
+  onSearchChanged(): void {
+    this.fetchFromServer(true);
   }
 
   private fetchFromServer(resetPage = false): void {
@@ -279,7 +185,13 @@ export class RmtlViewTestreportComponent implements OnInit {
 
     this.api.getTestingRecords(
       this.search_serial,
-      null, null, null, null, null, null, null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
       this.filters.report_type,
       from,
       to
@@ -304,8 +216,807 @@ export class RmtlViewTestreportComponent implements OnInit {
     });
   }
 
-  onDateChanged(): void { this.fetchFromServer(true); }
-  onReportTypeChanged(): void { this.fetchFromServer(true); }
+  // Download ALL unique (report_id + report_type) from filtered list
+  async downloadAllFilteredReports(): Promise<void> {
+    if (this.loading) return;
+
+    const uniq = new Map<string, { report_id: string; report_type: string }>();
+
+    for (const r of this.filtered || []) {
+      const rid = (r?.report_id ?? r?.testing?.report_id ?? '').toString().trim();
+      const rtype = (r?.report_type ?? r?.testing?.report_type ?? '').toString().trim();
+      if (!rid || !rtype) continue;
+
+      const key = `${rid}__${rtype}`;
+      if (!uniq.has(key)) uniq.set(key, { report_id: rid, report_type: rtype });
+    }
+
+    const list = Array.from(uniq.values());
+    if (!list.length) {
+      alert('No reports found to download (report_id/report_type missing).');
+      return;
+    }
+
+    this.loading = true;
+    let ok = 0;
+    let fail = 0;
+
+    try {
+      for (const item of list) {
+        try {
+          await this.downloadTestreports_byreportidwithReportTypes(item.report_id, item.report_type);
+          ok++;
+        } catch (e) {
+          console.error('Download failed', item, e);
+          fail++;
+        }
+      }
+      alert(`Download completed.\nSuccess: ${ok}\nFailed: ${fail}`);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  // Download unique (report_id + report_type) only from current page rows
+  async downloadCurrentPageReports(): Promise<void> {
+    if (this.loading) return;
+
+    const uniq = new Map<string, { report_id: string; report_type: string }>();
+
+    for (const r of this.pageRows || []) {
+      const rid = (r?.report_id ?? r?.testing?.report_id ?? '').toString().trim();
+      const rtype = (r?.report_type ?? r?.testing?.report_type ?? '').toString().trim();
+      if (!rid || !rtype) continue;
+
+      const key = `${rid}__${rtype}`;
+      if (!uniq.has(key)) uniq.set(key, { report_id: rid, report_type: rtype });
+    }
+
+    const list = Array.from(uniq.values());
+    if (!list.length) {
+      alert('No reports found on this page to download.');
+      return;
+    }
+
+    this.loading = true;
+    let ok = 0;
+    let fail = 0;
+
+    try {
+      for (const item of list) {
+        try {
+          await this.downloadTestreports_byreportidwithReportTypes(item.report_id, item.report_type);
+          ok++;
+        } catch (e) {
+          console.error('Download failed', item, e);
+          fail++;
+        }
+      }
+      alert(`Page download completed.\nSuccess: ${ok}\nFailed: ${fail}`);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  // ========= PDF GENERATION FLOW =========
+  async downloadTestreports_byreportidwithReportTypes(
+    report_id?: string | null,
+    report_type?: string | null
+  ) {
+    const rid = (report_id ?? '').toString().trim();
+    const rtype = (report_type ?? '').toString().trim();
+
+    if (!rid || !rtype) {
+      console.warn('Missing report_id or report_type', { rid, rtype });
+      return;
+    }
+
+    this.loading = true;
+
+    try {
+      // ===== UPDATED: use helper =====
+      const rowsRaw = await this.fetchReportBatchRows(rid);
+
+      if (!rowsRaw.length) {
+        alert('No devices found for this report.');
+        this.loading = false;
+        return;
+      }
+
+      const S = (v: any) => (v === null || v === undefined ? '' : String(v));
+      const N = (v: any) => {
+        if (v === null || v === undefined || v === '') return undefined;
+        const num = Number(v);
+        return Number.isFinite(num) ? num : undefined;
+      };
+
+      // pick first item for header info
+      const first = rowsRaw[0];
+      const t0 = first.testing || {};
+      const d0 = first.device || {};
+      const assignment0 = first.assignment || {};
+      const lab0 = first.lab || {};
+      const bench0 = first.testing_bench || {};
+
+      const phase_name = d0.phase || t0.phase || '';
+
+      const benchName =
+        bench0.bench_name ||
+        assignment0.bench_name ||
+        assignment0.bench?.bench_name ||
+        '';
+
+      const testUserName = await this.getUserNameById(assignment0.user_id);
+      const approvingUser = await this.getUserNameById(assignment0.assigned_by);
+
+      const testmethod = S(t0.test_method || 'NA').toUpperCase();
+      const testStatus = S(t0.test_status || 'NA').toUpperCase();
+
+      const commonHeaderBase = {
+        location_code: S(d0.location_code || t0.location_code || ''),
+        location_name: S(d0.location_name || t0.location_name || ''),
+        date: S(
+          t0.start_datetime ||
+          t0.testing_date ||
+          t0.created_at ||
+          new Date().toISOString()
+        ).slice(0, 10),
+
+        testMethod: S(testmethod || 'NA'),
+        phase: S(phase_name || ''),
+        testStatus: S(testStatus || 'NA'),
+        testing_bench: S(benchName || bench0.id || ''),
+        testing_user: S(testUserName || ''),
+        approving_user: S(approvingUser || ''),
+
+        lab_name: S(lab0.lab_pdfheader_name || lab0.lab_name || t0.lab_name || ''),
+        lab_address: S(lab0.lab_pdfheader_address || lab0.lab_location || t0.lab_address || ''),
+        lab_email: S(lab0.lab_pdfheader_email || t0.lab_email || ''),
+        lab_phone: S(lab0.lab_pdfheader_contact_no || t0.lab_phone || ''),
+        leftLogoUrl: '/assets/icons/wzlogo.png',
+        rightLogoUrl: '/assets/icons/wzlogo.png'
+      };
+
+      // ======== Row mappers ========
+
+      const mapSMART_AGAINST_METER = (rec: any) => {
+        const t = rec.testing || {};
+        const d = rec.device || {};
+        return {
+          serial: S(d.serial_number),
+          make: S(d.make),
+          capacity: S(d.capacity || d.phase || ''),
+          meter_category: S(d.meter_category || ''),
+          test_result: S(t.test_result),
+          final_remarks: S(t.final_remarks || t.details || ''),
+          reading_before_test: N(t.reading_before_test),
+          reading_after_test: N(t.reading_after_test),
+          error_percentage: N(t.error_percentage_import ?? t.error_percentage_export),
+        } as any as SmartRow;
+      };
+
+      const mapAGAINST_OLD_METER = (rec: any) => {
+        const t = rec.testing || {};
+        const d = rec.device || {};
+        return {
+          serial: S(d.serial_number),
+          make: S(d.make),
+          capacity: S(d.capacity || d.phase || ''),
+          meter_category: S(d.meter_category || ''),
+          test_result: S(t.test_result),
+          final_remarks: S(t.final_remarks || t.details || ''),
+          reading_before_test: N(t.reading_before_test),
+          reading_after_test: N(t.reading_after_test),
+          error_percentage: N(t.error_percentage_import ?? t.error_percentage_export),
+        } as any as OldAgainstRow;
+      };
+
+      const mapP4ONM = (rec: any, idx: number) => {
+        const t = rec.testing || {};
+        const d = rec.device || {};
+        return {
+          serial: S(d.serial_number || `S${idx + 1}`),
+          make: S(d.make),
+          capacity: S(d.capacity),
+          removal_reading: N(t.meter_removaltime_reading),
+          consumer_name: S(d.consumer_name || t.consumer_name),
+          account_no_ivrs: S(d.consumer_no || d.consumer_number || ''),
+          address: S(d.location_name || d.location_code || ''),
+          p4onm_by: S(t.testing_user || t.tested_by || ''),
+          payment_particulars: S(d.payment_remarks || ''),
+          receipt_no: S(t.fees_mr_no),
+          receipt_date: S(t.fees_mr_date),
+          condition_at_removal: S(t.meter_removaltime_metercondition),
+          testing_date: S(t.start_datetime).slice(0, 10),
+          physical_condition_of_device: S(t.physical_condition_of_device),
+          is_burned: !!t.is_burned,
+          seal_status: S(t.seal_status),
+          meter_glass_cover: S(t.meter_glass_cover),
+          terminal_block: S(t.terminal_block),
+          meter_body: S(t.meter_body),
+          starting_current_test: S(t.shunt_current_test || t.nutral_current_test),
+          creep_test: S(t.shunt_creep_test || t.nutral_creep_test),
+          remark: S(t.final_remarks || t.details || ''),
+        } as any as P4ONMReportRow;
+      };
+
+      const mapP4VIG = (rec: any, idx: number) => {
+        const t = rec.testing || {};
+        const d = rec.device || {};
+        return {
+          serial: S(d.serial_number || `S${idx + 1}`),
+          make: S(d.make),
+          capacity: S(d.capacity),
+          reading_before_test: N(t.reading_before_test),
+          reading_after_test: N(t.reading_after_test),
+          error_percentage: N(t.error_percentage ?? t.error_percentage_import ?? t.error_percentage_export),
+          remark: S(t.final_remarks || t.details || ''),
+        } as any as VigRow;
+      };
+
+    const mapCT = (rec: any, idx: number) => {
+      const t = rec.testing || {};
+      const d = rec.device || {};
+
+      return {
+        serial_number: S(d.serial_number || `CT${idx + 1}`),
+        make: S(d.make),
+        ct_ratio: S(t.ct_ratio || d.ct_ratio),
+        ct_class: S(t.ct_class || d.ct_class),
+        remark: S(t.final_remarks || t.details || ''),
+      } as CtPdfRow;
+    };
+
+
+      const mapCONTESTED = (rec: any, idx: number) => {
+        const t = rec.testing || {};
+        const d = rec.device || {};
+        return {
+          serial: S(d.serial_number || `S${idx + 1}`),
+          make: S(d.make),
+          capacity: S(d.capacity),
+          testing_date: S(t.start_datetime || t.end_datetime).slice(0, 10),
+          remark: S(t.final_remarks || t.details || ''),
+        } as any as ContestedReportRow;
+      };
+
+      const mapSOLAR_GEN = (rec: any) => {
+        const t = rec.testing || {};
+        const d = rec.device || {};
+        return {
+          certificate_no: S(t.certificate_number),
+          consumer_name: S(t.consumer_name),
+          address: S(t.consumer_address),
+          meter_make: S(d.make),
+          meter_sr_no: S(d.serial_number),
+          meter_capacity: S(d.capacity),
+          date_of_testing: S(t.start_datetime || t.end_datetime).slice(0, 10),
+          testing_fees: t.testing_fees,
+          mr_no: S(t.fees_mr_no),
+          mr_date: S(t.fees_mr_date),
+          ref_no: S(t.ref_no),
+          starting_reading: N(t.reading_before_test),
+          final_reading_r: N(t.reading_after_test),
+          final_reading_e: undefined,
+          difference: undefined,
+          shunt_reading_before_test: N(t.shunt_reading_before_test),
+          shunt_reading_after_test: N(t.shunt_reading_after_test),
+          shunt_ref_start_reading: N(t.shunt_ref_start_reading),
+          shunt_ref_end_reading: N(t.shunt_ref_end_reading),
+          shunt_error_percentage: N(t.shunt_error_percentage),
+          nutral_reading_before_test: N(t.nutral_reading_before_test),
+          nutral_reading_after_test: N(t.nutral_reading_after_test),
+          nutral_ref_start_reading: N(t.nutral_ref_start_reading),
+          nutral_ref_end_reading: N(t.nutral_ref_end_reading),
+          nutral_error_percentage: N(t.nutral_error_percentage),
+          starting_current_test: S(t.shunt_current_test || t.nutral_current_test),
+          creep_test: S(t.shunt_creep_test || t.nutral_creep_test),
+          dial_test: S(t.shunt_dail_test || t.nutral_dail_test),
+          test_result: S(t.test_result),
+          remark: S(t.final_remarks || t.details || '')
+        } as any as GenRow;
+      };
+
+      const mapSOLAR_NET = (rec: any) => {
+        const t = rec.testing || {};
+        const d = rec.device || {};
+        return {
+          certificate_no: S(t.certificate_number),
+          consumer_name: S(t.consumer_name),
+          address: S(t.consumer_address),
+          meter_make: S(d.make),
+          meter_sr_no: S(d.serial_number),
+          meter_capacity: S(d.capacity),
+          date_of_testing: S(t.start_datetime || t.end_datetime).slice(0, 10),
+          testing_fees: N(t.testing_fees),
+          mr_no: S(t.fees_mr_no),
+          mr_date: S(t.fees_mr_date),
+          ref_no: S(t.ref_no),
+          starting_reading: N(t.reading_before_test),
+          final_reading_r: N(t.reading_after_test),
+          final_reading_e: undefined,
+          difference: undefined,
+          start_reading_import: N(t.start_reading_import),
+          final_reading__import: N(t.final_reading__import),
+          difference__import: N(t.difference__import),
+          start_reading_export: N(t.start_reading_export),
+          final_reading_export: N(t.final_reading_export),
+          difference_export: N(t.difference_export),
+          final_Meter_Difference: N(t.final_Meter_Difference),
+          import_ref_start_reading: N(t.import_ref_start_reading),
+          import_ref_end_reading: N(t.import_ref_end_reading),
+          export_ref_start_reading: N(t.export_ref_start_reading),
+          export_ref_end_reading: N(t.export_ref_end_reading),
+          error_percentage_import: N(t.error_percentage_import),
+          error_percentage_export: N(t.error_percentage_export),
+          shunt_reading_before_test: N(t.shunt_reading_before_test),
+          shunt_reading_after_test: N(t.shunt_reading_after_test),
+          shunt_ref_start_reading: N(t.shunt_ref_start_reading),
+          shunt_ref_end_reading: N(t.shunt_ref_end_reading),
+          shunt_error_percentage: N(t.shunt_error_percentage),
+          nutral_reading_before_test: N(t.nutral_reading_before_test),
+          nutral_reading_after_test: N(t.nutral_reading_after_test),
+          nutral_ref_start_reading: N(t.nutral_ref_start_reading),
+          nutral_ref_end_reading: N(t.nutral_ref_end_reading),
+          nutral_error_percentage: N(t.nutral_error_percentage),
+          starting_current_test: S(t.shunt_current_test || t.nutral_current_test),
+          creep_test: S(t.shunt_creep_test || t.nutral_creep_test),
+          dial_test: S(t.shunt_dail_test || t.nutral_dail_test),
+          remark: S(t.final_remarks || t.details || ''),
+          test_result: S(t.test_result)
+        } as any as SolarRow;
+      };
+
+      const mapSTOP_DEF = (rec: any) => {
+        const t = rec.testing || {};
+        const d = rec.device || {};
+        return {
+          serial: S(d.serial_number),
+          make: S(d.make),
+          capacity: S(d.capacity || d.phase || ''),
+          physical_condition_of_device: S(t.physical_condition_of_device),
+          seal_status: S(t.seal_status),
+          meter_body: S(t.meter_body),
+          meter_glass_cover: S(t.meter_glass_cover),
+          terminal_block: S(t.terminal_block),
+          is_burned: !!t.is_burned,
+          test_result: S(t.test_result),
+          test_method: S(t.test_method),
+          test_status: S(t.test_status),
+
+          shunt_reading_before_test: N(t.shunt_reading_before_test),
+          shunt_reading_after_test: N(t.shunt_reading_after_test),
+          shunt_ref_start_reading: N(t.shunt_ref_start_reading),
+          shunt_ref_end_reading: N(t.shunt_ref_end_reading),
+          shunt_error_percentage: N(t.shunt_error_percentage),
+          shunt_current_test: S(t.shunt_current_test),
+          shunt_creep_test: S(t.shunt_creep_test),
+          shunt_dail_test: S(t.shunt_dail_test),
+
+          nutral_reading_before_test: N(t.nutral_reading_before_test),
+          nutral_reading_after_test: N(t.nutral_reading_after_test),
+          nutral_ref_start_reading: N(t.nutral_ref_start_reading),
+          nutral_ref_end_reading: N(t.nutral_ref_end_reading),
+          nutral_error_percentage: N(t.nutral_error_percentage),
+          nutral_current_test: S(t.nutral_current_test),
+          nutral_creep_test: S(t.nutral_creep_test),
+          nutral_dail_test: S(t.nutral_dail_test),
+
+          testing_fees: S(t.testing_fees),
+          fees_mr_no: S(t.fees_mr_no),
+          fees_mr_date: S(t.fees_mr_date),
+          ref_no: S(t.ref_no),
+
+          consumer_name: S(t.consumer_name),
+          consumer_address: S(t.consumer_address),
+
+          meter_removaltime_reading: N(t.meter_removaltime_reading),
+          meter_removaltime_metercondition: S(t.meter_removaltime_metercondition),
+
+          remark: S(t.final_remarks || t.details || ''),
+        } as any as StopDefRow;
+      };
+
+      // NEW
+      const mapNEW = (rec: any, idx: number) => {
+        const t = rec.testing || {};
+        const d = rec.device || {};
+        return {
+          serial_number: S(d.serial_number),
+          make: S(d.make),
+          capacity: S(d.capacity || d.phase || ''),
+          meter_category: S(d.meter_category || ''),
+          phase: S(d.phase || t.phase || ''),
+          test_result: S(t.test_result),
+          test_method: S(t.test_method),
+          test_status: S(t.test_status),
+          reading_before_test: N(t.reading_before_test),
+          reading_after_test: N(t.reading_after_test),
+          error_percentage: N(t.error_percentage ?? t.error_percentage_import ?? t.error_percentage_export),
+          remark: S(t.final_remarks || t.details || '')
+        } as any as NewMeterRow; 
+      };
+
+      const mapSAMPLE = (rec: any, idx: number) => {
+        const t = rec.testing || {};
+        const d = rec.device || {};
+        return {
+          serial_number: S(d.serial_number || `S${idx + 1}`),
+          make: S(d.make),
+          capacity: S(d.capacity || d.phase || ''),
+          meter_category: S(d.meter_category || ''),
+          phase: S(d.phase || t.phase || ''),
+          test_result: S(t.test_result),
+          test_method: S(t.test_method),
+          test_status: S(t.test_status),
+          remark: S(t.final_remarks || t.details || ''),
+        } as any ; 
+      };
+
+      const mapPQ = (rec: any, idx: number) => {
+        const t = rec.testing || {};
+        const d = rec.device || {};
+        return {
+          serial_number: S(d.serial_number || `PQ${idx + 1}`),
+          make: S(d.make),
+          capacity: S(d.capacity || d.phase || ''),
+          meter_category: S(d.meter_category || ''),
+          phase: S(d.phase || t.phase || ''),
+          voltage: N(t.voltage || d.voltage),
+          current: N(t.current || d.current),
+          frequency: N(t.frequency || ''),
+          pf: N(t.power_factor || t.pf || ''),
+          remark: S(t.final_remarks || t.details || ''),
+          test_result: S(t.test_result),
+        } as any;
+      };
+
+      // ======== dispatch by report_type ========
+      switch (rtype) {
+
+        case 'SMART_AGAINST_METER': {
+          const headerForSmart: SmartMeta = {
+            date: commonHeaderBase.date,
+            zone: commonHeaderBase.location_code + ' - ' + commonHeaderBase.location_name,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
+            testMethod: commonHeaderBase.testMethod,
+            testStatus: commonHeaderBase.testStatus,
+            phase: commonHeaderBase.phase,
+            lab: {
+              lab_name: commonHeaderBase.lab_name,
+              address_line: commonHeaderBase.lab_address,
+              email: commonHeaderBase.lab_email,
+              phone: commonHeaderBase.lab_phone,
+            },
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl,
+          };
+
+          const smartRows = rowsRaw.map(mapSMART_AGAINST_METER);
+          await this.smartmeterPdf.download(smartRows, headerForSmart, {
+            leftLogoUrl: headerForSmart.leftLogoUrl,
+            rightLogoUrl: headerForSmart.rightLogoUrl
+          } as any);
+          break;
+        }
+        case 'AGAINST_OLD_METER': {
+          const headerForOld: OldAgainstMeta = {
+            date: commonHeaderBase.date,
+            zone: commonHeaderBase.location_code + ' - ' + commonHeaderBase.location_name,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
+            testMethod: commonHeaderBase.testMethod,
+            testStatus: commonHeaderBase.testStatus,
+            phase: commonHeaderBase.phase,
+            lab: {
+              lab_name: commonHeaderBase.lab_name,
+              address_line: commonHeaderBase.lab_address,
+              email: commonHeaderBase.lab_email,
+              phone: commonHeaderBase.lab_phone,
+            },
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl,
+          };
+
+          const oldRows = rowsRaw.map(mapAGAINST_OLD_METER);
+          await this.oldmeterPdf.download(oldRows, headerForOld, {
+            leftLogoUrl: headerForOld.leftLogoUrl,
+            rightLogoUrl: headerForOld.rightLogoUrl
+          } as any);
+          break;
+        }
+        case 'ONM_CHECKING': {
+          const headerForOnm: P4ONMReportHeader = {
+            date: commonHeaderBase.date,
+            zone: commonHeaderBase.location_code + ' - ' + commonHeaderBase.location_name,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
+            phase: commonHeaderBase.phase,
+            lab_name: commonHeaderBase.lab_name,
+            lab_address: commonHeaderBase.lab_address,
+            lab_email: commonHeaderBase.lab_email,
+            lab_phone: commonHeaderBase.lab_phone,
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl,
+          };
+
+          const onmRows = rowsRaw.map(mapP4ONM);
+          await this.p4onmPdf.downloadFromBatch(headerForOnm, onmRows, {
+            fileName: `P4_ONM_${headerForOnm.date}_${rid}.pdf`
+          });
+          break;
+        }
+        case 'VIGILENCE_CHECKING': {
+          const headerForVig: VigHeader = {
+            date: commonHeaderBase.date,
+            zone: commonHeaderBase.location_code + ' - ' + commonHeaderBase.location_name,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
+            lab_name: commonHeaderBase.lab_name,
+            lab_address: commonHeaderBase.lab_address,
+            lab_email: commonHeaderBase.lab_email,
+            lab_phone: commonHeaderBase.lab_phone,
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl,
+          };
+
+          const vigRows = rowsRaw.map(mapP4VIG);
+          await this.p4vigPdf.download(headerForVig, vigRows);
+          break;
+        }
+        case 'CT_TESTING': {
+          const first = rowsRaw[0] || {};
+          const t0 = first.testing || {};
+          const d0 = first.device || {};
+          const a0 = first.assignment || {};
+
+          const headerForCt: CtHeader = {
+            location_code: S(d0.location_code || t0.location_code || ''),
+            location_name: S(d0.location_name || t0.location_name || ''),
+
+            consumer_name: S(t0.consumer_name || d0.consumer_name || ''),
+            address: S(t0.consumer_address || d0.consumer_address || ''),
+
+            no_of_ct: S(t0.no_of_ct || rowsRaw.length || ''),
+            city_class: S(t0.city_class || ''),
+
+            ref_no: S(t0.ref_no || t0.ref_number || ''),
+            ct_make: S(t0.ct_make || d0.make || ''),
+
+            mr_no: S(t0.fees_mr_no || t0.mr_no || ''),
+            mr_date: S(t0.fees_mr_date || t0.mr_date || ''),
+            amount_deposited: S(t0.testing_fees || t0.amount_deposited || ''),
+
+            date_of_testing: S(
+              t0.start_datetime || t0.testing_date || t0.created_at || new Date().toISOString()
+            ).slice(0, 10),
+
+            primary_current: S(t0.primary_current || ''),
+            secondary_current: S(t0.secondary_current || ''),
+
+            // optional meta
+            testMethod: S(commonHeaderBase.testMethod || ''),
+            testStatus: S(commonHeaderBase.testStatus || ''),
+            testing_bench: S(commonHeaderBase.testing_bench || a0.bench_name || ''),
+            testing_user: S(commonHeaderBase.testing_user || ''),
+            approving_user: S(commonHeaderBase.approving_user || ''),
+            date: S(commonHeaderBase.date || '').slice(0, 10),
+
+            lab_name: S(commonHeaderBase.lab_name || ''),
+            lab_address: S(commonHeaderBase.lab_address || ''),
+            lab_email: S(commonHeaderBase.lab_email || ''),
+            lab_phone: S(commonHeaderBase.lab_phone || ''),
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl,
+          };
+
+          const ctRows = rowsRaw.map(mapCT);
+
+          // ✅ Debug once (optional) - see why remark not coming
+          // console.log('CT ROWS:', ctRows);
+
+          await this.ctPdf.download(
+            headerForCt,
+            ctRows,
+            `CT_TESTING_${headerForCt.date_of_testing || commonHeaderBase.date}_${rid}.pdf`
+          );
+          break;
+        }
+
+        case 'CONTESTED': {
+          const headerForContested: ContestedReportHeader = {
+            date: commonHeaderBase.date,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
+            phase: commonHeaderBase.phase,
+            lab_name: commonHeaderBase.lab_name,
+            lab_address: commonHeaderBase.lab_address,
+            lab_email: commonHeaderBase.lab_email,
+            lab_phone: commonHeaderBase.lab_phone,
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl,
+          };
+
+          const contRows = rowsRaw.map(mapCONTESTED);
+          await this.contestedPdf.downloadFromBatch(headerForContested, contRows, {
+            fileName: `Contested_${headerForContested.date}_${rid}.pdf`
+          });
+          break;
+        }
+        case 'SOLAR_GENERATION_METER': {
+          const headerForSolarGen: GenHeader = {
+            location_code: commonHeaderBase.location_code,
+            location_name: commonHeaderBase.location_name,
+            testMethod: commonHeaderBase.testMethod,
+            testStatus: commonHeaderBase.testStatus,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            date: commonHeaderBase.date,
+            lab_name: commonHeaderBase.lab_name,
+            lab_address: commonHeaderBase.lab_address,
+            lab_email: commonHeaderBase.lab_email,
+            lab_phone: commonHeaderBase.lab_phone,
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl,
+          };
+
+          const genRows = rowsRaw.map(mapSOLAR_GEN);
+          await this.solarGenPdf.download(headerForSolarGen, genRows, `SOLAR_GENERATION_${rid}.pdf`);
+          break;
+        }
+        case 'SOLAR_NETMETER': {
+          const headerForSolarNet: SolarHeader = {
+            location_code: commonHeaderBase.location_code,
+            location_name: commonHeaderBase.location_name,
+            testMethod: commonHeaderBase.testMethod,
+            testStatus: commonHeaderBase.testStatus,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            date: commonHeaderBase.date,
+            lab_name: commonHeaderBase.lab_name,
+            lab_address: commonHeaderBase.lab_address,
+            lab_email: commonHeaderBase.lab_email,
+            lab_phone: commonHeaderBase.lab_phone,
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl,
+          };
+
+          const netRows = rowsRaw.map(mapSOLAR_NET);
+          await this.solarNetPdf.download(headerForSolarNet, netRows, `SOLAR_NETMETER_${rid}.pdf`);
+          break;
+        }
+        case 'STOP_DEFECTIVE': {
+          const headerForStopDef: StopDefMeta = {
+            date: commonHeaderBase.date,
+            zone: commonHeaderBase.location_code + ' - ' + commonHeaderBase.location_name,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
+            testMethod: commonHeaderBase.testMethod,
+            testStatus: commonHeaderBase.testStatus,
+            phase: commonHeaderBase.phase,
+            lab: {
+              lab_name: commonHeaderBase.lab_name,
+              address_line: commonHeaderBase.lab_address,
+              email: commonHeaderBase.lab_email,
+              phone: commonHeaderBase.lab_phone,
+            }
+          };
+
+          const stopRows = rowsRaw.map(mapSTOP_DEF);
+          await this.stopDefPdf.download(stopRows, headerForStopDef, {
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl
+          } as any);
+          break;
+        }
+        case 'NEW': {
+          const headerForNew: any = {
+            date: commonHeaderBase.date,
+            zone: commonHeaderBase.location_code + ' - ' + commonHeaderBase.location_name,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
+            testMethod: commonHeaderBase.testMethod,
+            testStatus: commonHeaderBase.testStatus,
+            phase: commonHeaderBase.phase,
+            lab: {
+              lab_name: commonHeaderBase.lab_name,
+              address_line: commonHeaderBase.lab_address,
+              email: commonHeaderBase.lab_email,
+              phone: commonHeaderBase.lab_phone,
+            }
+          };
+
+          const newRows = rowsRaw.map(mapNEW);
+          await this.newPdf.download(newRows, headerForNew, {
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl
+          } as any);
+
+          break;
+        }
+        case 'SAMPLE_TESTING': {
+          const headerForSample: any = {
+            date: commonHeaderBase.date,
+            zone: commonHeaderBase.location_code + ' - ' + commonHeaderBase.location_name,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
+            testMethod: commonHeaderBase.testMethod,
+            testStatus: commonHeaderBase.testStatus,
+            phase: commonHeaderBase.phase,
+            lab: {
+              lab_name: commonHeaderBase.lab_name,
+              address_line: commonHeaderBase.lab_address,
+              email: commonHeaderBase.lab_email,
+              phone: commonHeaderBase.lab_phone,
+            }
+          };
+
+          const sampleRows = rowsRaw.map(mapSAMPLE);
+          await this.samplePdf.download(sampleRows, headerForSample, {
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl
+          } as any);
+
+          break;
+        }
+        case 'PQ_METER_TESTING': {
+          const headerForPq: any = {
+            date: commonHeaderBase.date,
+            zone: commonHeaderBase.location_code + ' - ' + commonHeaderBase.location_name,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
+            testMethod: commonHeaderBase.testMethod,
+            testStatus: commonHeaderBase.testStatus,
+            phase: commonHeaderBase.phase,
+            lab: {
+              lab_name: commonHeaderBase.lab_name,
+              address_line: commonHeaderBase.lab_address,
+              email: commonHeaderBase.lab_email,
+              phone: commonHeaderBase.lab_phone,
+            }
+          };
+
+          const pqRows = rowsRaw.map(mapPQ);
+          await this.pqPdf.download(pqRows, headerForPq, {
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl
+          } as any);
+
+          break;
+        }
+
+        default: {
+          alert(`Unsupported / unhandled report type: ${rtype}`);
+          break;
+        }
+      }
+
+    } catch (err) {
+      console.error('downloadTestreports_byreportidwithReportTypes failed:', err);
+      alert('Could not generate PDF for this report. Check console for details.');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  // ========= filter / pagination =========
+  onDateChanged(): void {
+    this.fetchFromServer(true);
+  }
+
+  onReportTypeChanged(): void {
+    this.fetchFromServer(true);
+  }
 
   resetFilters(): void {
     this.filters = { from: '', to: '', report_type: '' };
@@ -315,6 +1026,7 @@ export class RmtlViewTestreportComponent implements OnInit {
   private buildPageWindow(current: number, total: number, radius = 1): Array<number | '…'> {
     const set = new Set<number>();
     const add = (n: number) => { if (n >= 1 && n <= total) set.add(n); };
+
     add(1); add(total);
     for (let d = -radius; d <= radius; d++) add(current + d);
     add(2); add(3); add(total - 1); add(total - 2);
@@ -356,24 +1068,27 @@ export class RmtlViewTestreportComponent implements OnInit {
     this.repaginate();
   }
 
+  // ========= detail / csv =========
   openDetails(r: TestReport): void {
     this.selected = r;
   }
 
   exportCSV(): void {
     const headers = [
-      'report_id','report_type','test_method','test_status','test_result',
-      'serial_number','make','inward_number','inward_date','phase','meter_type','voltage_rating',
-      'final_remarks'
+      'id','tested_date','device_type','report_type','serial_number','make','result','inward_no',
+      'meter_category','phase','meter_type','ct_class','ct_ratio','burden_va',
+      'observation','cause','site','load_kw','inspection_ref','solar_kwp','inverter_make','grid_voltage',
+      'magnetization_test','ratio_error_pct','phase_angle_min','tested_by','remarks'
     ];
 
-    const val = (r: any, k: string) => (r?.[k] ?? r?.testing?.[k] ?? r?.device?.[k] ?? '');
-    const rows = this.filtered.map(r => headers.map(k => val(r, k)));
+    const val = (r: any, k: string) =>
+      (r?.[k] ?? r?.testing?.[k] ?? r?.device?.[k] ?? '');
 
+    const rows = this.filtered.map(r => headers.map(k => val(r, k)));
     const csv = [headers, ...rows]
       .map(row => row.map(v => {
         const s = String(v ?? '');
-        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
       }).join(','))
       .join('\n');
 
@@ -381,7 +1096,7 @@ export class RmtlViewTestreportComponent implements OnInit {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rmtl_test_reports_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `rmtl_test_reports_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

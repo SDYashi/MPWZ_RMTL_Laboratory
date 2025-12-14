@@ -6,11 +6,10 @@ import pdfFonts from 'pdfmake/build/vfs_fonts';
 type TDocumentDefinitions = any;
 
 export interface CtPdfRow {
-  ct_no: string;
+  serial_number: string;
   make: string;
-  cap: string;
-  ratio: string;
-  polarity: string;
+  ct_ratio: string;
+  ct_class: string;
   remark: string;
 }
 
@@ -153,7 +152,6 @@ export class CtReportPdfService {
 
     return {
       pageSize: 'A4',
-      // back to smaller bottom margin, because signatures are in content now
       pageMargins: [18, 80, 18, 34],
       images,
       defaultStyle: {
@@ -185,10 +183,7 @@ export class CtReportPdfService {
         }
       },
       header: this.headerBar(meta, images),
-   
-      // ✅ Footer is now *only* page count + company name
       footer: (current: number, total: number) => ({
-        
         columns: [
           {
             text: `Page ${current} of ${total}`,
@@ -207,12 +202,12 @@ export class CtReportPdfService {
       }),
 
       content: [
-     {
-      canvas: [
-        { type: 'line', x1: 0, y1: 0, x2: 540, y2: 0, lineWidth: 0.7 }
-      ],
-      margin: [0, 4, 0, 2]
-    },
+        {
+          canvas: [
+            { type: 'line', x1: 0, y1: 0, x2: 540, y2: 0, lineWidth: 0.7 }
+          ],
+          margin: [0, 4, 0, 2]
+        },
         {
           text: 'CT TESTING REPORT',
           alignment: 'center',
@@ -221,15 +216,11 @@ export class CtReportPdfService {
           bold: true
         },
 
-        // Meta + Consumer/Request block
         this.metaAndInfoTable(meta, header, m),
 
-        // CT Details
-        // { text: 'CT Details', style: 'sectionTitle', noWrap: true },
+        // ✅ Updated table: capacity removed, polarity removed, remark fixed
         this.detailsTable(rows, m),
 
-        // ✅ Approval & signatures pulled up into content
-        // { text: 'Approval', style: 'sectionTitle', noWrap: true },
         this.signBlock(meta, header, m)
       ]
     };
@@ -295,79 +286,43 @@ export class CtReportPdfService {
       table: {
         widths: ['auto', '*', 'auto', '*'],
         body: [
-          [ K('DC / Zone'),
-            meta.zone || '-',
-            K('Ref.'),
-            h.ref_no || '-'
-          ],
-          [ K('Method'),
-            meta.method || '-',
-            K('Status'),
-            meta.status || '-'
-          ],
-          [ K('Bench'),
-            meta.bench || '-',
-            K('User'),
-            meta.user || '-'
-          ],
-          [ K('Approving User'),
-            meta.approver || '-',
-            K('Date of Testing'),
-            h.date_of_testing || meta.date || '-'
-          ],
-          [ K('Name of Consumer'),
-            h.consumer_name || '-',
-            K('Address'),
-            h.address || '-'
-          ],
-          [ K('No. of C.T'),
-            h.no_of_ct || '-',
-            K('CITY CLASS'),
-            h.city_class || '-'
-          ],
-          [ K('C.T Make'),
-            h.ct_make || '-',
-            K('M.R. / Txn No.'),
-            h.mr_no || '-'
-          ],
-          [ K('M.R. Date'),
-            h.mr_date || '-',
-            K('Amount Deposited (₹)'),
-            this.fmtMoney(h.amount_deposited)
-          ],
-          [ K('Primary Current (A)'),
-            h.primary_current || '-',
-            K('Secondary Current (A)'),
-            h.secondary_current || '-'
-          ],
+          [K('DC / Zone'), meta.zone || '-', K('Ref.'), h.ref_no || '-'],
+          [K('Method'), meta.method || '-', K('Status'), meta.status || '-'],
+          [K('Bench'), meta.bench || '-', K('User'), meta.user || '-'],
+          [K('Approving User'), meta.approver || '-', K('Date of Testing'), h.date_of_testing || meta.date || '-'],
+          [K('Name of Consumer'), h.consumer_name || '-', K('Address'), h.address || '-'],
+          [K('No. of C.T'), h.no_of_ct || '-', K('CITY CLASS'), h.city_class || '-'],
+          [K('C.T Make'), h.ct_make || '-', K('M.R. / Txn No.'), h.mr_no || '-'],
+          [K('M.R. Date'), h.mr_date || '-', K('Amount Deposited (₹)'), this.fmtMoney(h.amount_deposited)],
+          [K('Primary Current (A)'), h.primary_current || '-', K('Secondary Current (A)'), h.secondary_current || '-'],
         ]
       }
     };
   }
 
+  // ✅ capacity removed ✅ polarity removed ✅ remark prints & wraps
   private detailsTable(rows: CtPdfRow[], m: number) {
     const body: any[] = [[
       { text: '#', style: 'th', alignment: 'center' },
-      { text: 'C.T No.', style: 'th' },
-      { text: 'Make', style: 'th' },
-      { text: 'Cap.', style: 'th' },
-      { text: 'Ratio', style: 'th' },
-      { text: 'Polarity', style: 'th' },
+      { text: 'C.T Serial No.', style: 'th' },
+      { text: 'CT Make', style: 'th' },
+      { text: 'CT Ratio', style: 'th' },
+      { text: 'CT Class', style: 'th' },
       { text: 'Remark', style: 'th' }
     ]];
 
     let i = 1;
-    rows
-      .filter(r => (r.ct_no || '').trim())
+
+    (rows || [])
+      .filter(r => String(r?.serial_number ?? '').trim())
       .forEach(r => {
         body.push([
           { text: String(i++), alignment: 'center' },
-          r.ct_no || '-',
-          r.make || '-',
-          r.cap || '-',
-          r.ratio || '-',
-          r.polarity || '-',
-          r.remark || '-'
+          String(r.serial_number ?? '-'),
+          String(r.make ?? '-'),
+          String(r.ct_ratio ?? '-'),
+          String(r.ct_class ?? '-'),
+          { text: String(r.remark ?? '-'), noWrap: false }
         ]);
       });
 
@@ -376,7 +331,7 @@ export class CtReportPdfService {
       layout: 'cleanGrid',
       table: {
         headerRows: 1,
-        widths: ['auto', '*', '*', 'auto', 'auto', 'auto', '*'],
+        widths: ['auto', '*', '*', 'auto', 'auto', '*'],
         body,
         dontBreakRows: true
       }
@@ -401,21 +356,11 @@ export class CtReportPdfService {
               stack: [
                 { text: 'Tested by', bold: true, margin: [0, 4, 0, 0] },
                 {
-                  canvas: [
-                    { type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }
-                  ],
+                  canvas: [{ type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }],
                   margin: [0, 4, 0, 2]
                 },
-                {
-                  text: (meta.user || '-').toUpperCase(),
-                  style: 'small',
-                  alignment: 'center'
-                },
-                {
-                  text: 'TESTING ASSISTANT',
-                  style: 'small',
-                  alignment: 'center'
-                }
+                { text: (meta.user || '-').toUpperCase(), style: 'small', alignment: 'center' },
+                { text: 'TESTING ASSISTANT', style: 'small', alignment: 'center' }
               ]
             },
             {
@@ -424,21 +369,11 @@ export class CtReportPdfService {
               stack: [
                 { text: 'Verified by', bold: true, margin: [0, 4, 0, 0] },
                 {
-                  canvas: [
-                    { type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }
-                  ],
+                  canvas: [{ type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }],
                   margin: [0, 4, 0, 2]
                 },
-                {
-                  text: '-',
-                  style: 'small',
-                  alignment: 'center'
-                },
-                {
-                  text: 'JUNIOR ENGINEER',
-                  style: 'small',
-                  alignment: 'center'
-                }
+                { text: '-', style: 'small', alignment: 'center' },
+                { text: 'JUNIOR ENGINEER', style: 'small', alignment: 'center' }
               ]
             },
             {
@@ -447,21 +382,11 @@ export class CtReportPdfService {
               stack: [
                 { text: 'Approved by', bold: true, margin: [0, 4, 0, 0] },
                 {
-                  canvas: [
-                    { type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }
-                  ],
+                  canvas: [{ type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }],
                   margin: [0, 4, 0, 2]
                 },
-                {
-                  text: (meta.approver || '-').toUpperCase(),
-                  style: 'small',
-                  alignment: 'center'
-                },
-                {
-                  text: 'ASSISTANT ENGINEER',
-                  style: 'small',
-                  alignment: 'center'
-                }
+                { text: (meta.approver || '-').toUpperCase(), style: 'small', alignment: 'center' },
+                { text: 'ASSISTANT ENGINEER', style: 'small', alignment: 'center' }
               ]
             }
           ]

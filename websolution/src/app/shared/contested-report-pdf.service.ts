@@ -23,8 +23,7 @@ export interface ContestedReportHeader {
 
   leftLogoUrl?: string;
   rightLogoUrl?: string;
-
-  report_id?: string;          // e.g. "CON-2025-000123"
+  report_id?: string; 
 }
 
 export interface ContestedReportRow {

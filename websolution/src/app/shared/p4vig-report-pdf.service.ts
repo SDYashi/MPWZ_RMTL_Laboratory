@@ -17,6 +17,10 @@ export interface VigHeader {
   testing_user?: string | null;
   approving_user?: string | null;
 
+  // zone + phase
+  zone?: string;
+  phase?: string;
+
   // lab info + logos
   lab_name?: string | null;
   lab_address?: string | null;
@@ -493,7 +497,7 @@ export class P4VigReportPdfService {
 
     // === SECTION: Consumer / seizure info ===
     const consumerBlock: Content[] = [
-      this.sectionHeading('1. CONSUMER / SEIZURE DETAILS'),
+      this.sectionHeading('1. CONSUMER  DETAILS'),
       {
         layout: this.tableLayout(),
         table: {
@@ -1010,10 +1014,6 @@ export class P4VigReportPdfService {
       table: {
         widths: [120, '*'],
         body: [
-          [ lbl('Certificate Number'), { text: r.certificate_number || '', fontSize: 7 } ],
-          [ lbl('Testing Fees'),       { text: r.testing_fees || '', fontSize: 7 } ],
-          [ lbl('Fees MR No.'),        { text: r.fees_mr_no || '', fontSize: 7 } ],
-          [ lbl('Fees MR Date'),       { text: r.fees_mr_date || '', fontSize: 7 } ],
           [ lbl('Reference No.'),      { text: r.ref_no || '', fontSize: 7 } ],
           [ lbl('Test Requester'),     { text: r.test_requester_name || '', fontSize: 7 } ],
           [ lbl('Other Remarks'),      { text: r.any_other_remarkny_zone || '', fontSize: 7 } ]

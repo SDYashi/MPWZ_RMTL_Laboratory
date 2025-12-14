@@ -682,31 +682,7 @@ export class P4onmReportPdfService {
         }
       : null;
 
-    const combinedError = this.present(finalErr)
-      ? {
-          layout: {
-            hLineWidth: () => 0.7,
-            vLineWidth: () => 0.7,
-            hLineColor: () => this.theme.grid,
-            vLineColor: () => this.theme.grid,
-            paddingLeft: () => 3,
-            paddingRight: () => 3,
-            paddingTop: () => 2,
-            paddingBottom: () => 2
 
-          },
-          margin: [0, 2, 0, 3],
-          table: {
-            widths: ['auto', '*'],
-            body: [
-              [
-                { text: 'Final Error % (Import)', bold: true, fillColor: this.theme.labelBg },
-                { text: this.fmtNum(finalErr) }
-              ]
-            ]
-          }
-        }
-      : null;
 
     const remarksBlock = this.present(r.final_remarks)
       ? {
@@ -815,7 +791,7 @@ export class P4onmReportPdfService {
       });
     }
 
-    if (combinedError) blocks.push(combinedError);
+ 
     if (legacyResults) blocks.push(legacyResults);
     if (remarksBlock) blocks.push(remarksBlock);
 

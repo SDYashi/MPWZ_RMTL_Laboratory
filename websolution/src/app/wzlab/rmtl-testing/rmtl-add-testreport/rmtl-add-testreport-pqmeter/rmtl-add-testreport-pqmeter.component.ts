@@ -130,6 +130,7 @@ export class RmtlAddTestreportPqmeterComponent implements OnInit {
   device_type = 'METER';
   device_testing_purpose: any;
   report_type = 'PQ_METER_TESTING';
+  benches: any;
 
   constructor(
     private api: ApiServicesService,
@@ -140,10 +141,6 @@ export class RmtlAddTestreportPqmeterComponent implements OnInit {
   ngOnInit(): void {
     this.currentUserId = this.authService.getuseridfromtoken();
     this.currentLabId = this.authService.getlabidfromtoken();
-
-    // FIX: load lab info so header prints correctly
-    this.loadLabInfo();
-
     this.api.getEnums().subscribe({
       next: (data) => {
         this.commentby_testers = data?.commentby_testers || [];
@@ -157,35 +154,24 @@ export class RmtlAddTestreportPqmeterComponent implements OnInit {
       },
       error: () => (this.inlineError = 'Unable to load enums. Please reload.')
     });
+    
+
+     // Lab info (for PDF header)
+    if (this.currentLabId) {
+      this.api.getLabInfo(this.currentLabId).subscribe({
+        next: (info: any) => {
+          this.labInfo = {
+            lab_name: info?.lab_pdfheader_name || info?.lab_name,
+            address_line: info?.lab_pdfheader_address || info?.lab_location,
+            email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no,
+            phone: info?.lab_pdfheader_contact_no || info?.lab_location
+         };
+          this.benches = Array.isArray(info?.benches) ? info.benches : [];
+        }
+      });
+    }
   }
 
-  // ===================== Lab info (FIX) =====================
-  private loadLabInfo() {
-    const lid = Number(this.currentLabId) || 0;
-    if (!lid) return;
-
-    const obs =
-      (this.api as any).getLabInfo?.(lid) ||
-      (this.api as any).getLabDetails?.(lid) ||
-      (this.api as any).getLabById?.(lid);
-
-    if (!obs?.subscribe) return;
-
-    obs.subscribe({
-      next: (res: any) => {
-        const lab = res?.lab || res?.data || res || {};
-        this.labInfo = {
-          lab_name: lab?.lab_name || lab?.name || lab?.labName || '',
-          address_line: lab?.address_line || lab?.address || lab?.lab_address || '',
-          email: lab?.email || '',
-          phone: lab?.phone || lab?.mobile || ''
-        };
-      },
-      error: () => {
-        this.labInfo = this.labInfo || {};
-      }
-    });
-  }
 
   // ====== PDF selection
   onPdfSelected(ev: Event) {
@@ -516,63 +502,77 @@ export class RmtlAddTestreportPqmeterComponent implements OnInit {
     }
   }
 
-  private confirmSubmit() {
-    const v = this.validateBeforeSubmit();
-    if (!v.ok) {
-      this.inlineError = v.reason || 'Invalid data.';
-      return;
-    }
-
-    const whenISO = new Date(`${this.batchDate}T10:00:00`);
-    const iso = new Date(whenISO.getTime() - whenISO.getTimezoneOffset() * 60000).toISOString();
-
-    const payload = this.rows
-      .filter((r) => (r.meter_sr_no || '').trim())
-      .map((r) => ({
-        assignment_id: r.assignment_id!,
-        device_id: r.device_id!,
-        report_type: this.report_type,
-        start_datetime: iso,
-        end_datetime: iso,
-        test_method: this.testMethod!,
-        test_status: this.testStatus!,
-        test_result: r.test_result!,
-        details: (r.remark || '').trim() || null,
-        final_remarks: (r.remark || '').trim() || null,
-        consumer_name: r.consumer_name ?? null,
-        consumer_address: r.consumer_address ?? null
-      }));
-
-    const fd = new FormData();
-    fd.append('file', this.selectedPdfFile!);
-    fd.append('testings_json', JSON.stringify(payload));
-
-    this.submitting = true;
-    this.inlineInfo = null;
-    this.inlineError = null;
-
-    this.api.postTestingBulkWithPdf(fd).subscribe({
-      next: (res: any) => {
-        this.submitting = false;
-        this.closeModal();
-
-        const url = Array.isArray(res) && res.length ? res[0]?.report_file_url : null;
-        this.inlineInfo = url ? `Submitted successfully. PDF URL saved: ${url}` : 'Submitted successfully. PDF URL saved.';
-
-        this.inlineError = null;
-        this.rows = [this.emptyRow()];
-        this.selectedPdfFile = null;
-        this.selectedPdfName = null;
-
-        this.downloadPdf();
-      },
-      error: (e) => {
-        this.submitting = false;
-        console.error(e);
-        this.inlineError = e?.error?.detail || 'Error submitting PQ report with PDF.';
-      }
-    });
+private confirmSubmit() {
+  const v = this.validateBeforeSubmit();
+  if (!v.ok) {
+    this.inlineError = v.reason || 'Invalid data.';
+    return;
   }
+
+  // ✅ 1) CAPTURE PDF DATA BEFORE SUBMIT (so device rows exist)
+  const pdfSnap = this.buildPqPdfInputs(); // { rows, meta, logos }
+
+  const whenISO = new Date(`${this.batchDate}T10:00:00`);
+  const iso = new Date(whenISO.getTime() - whenISO.getTimezoneOffset() * 60000).toISOString();
+
+  const payload = this.rows
+    .filter((r) => (r.meter_sr_no || '').trim())
+    .map((r) => ({
+      assignment_id: r.assignment_id!,
+      device_id: r.device_id!,
+      report_type: this.report_type,
+      start_datetime: iso,
+      end_datetime: iso,
+      test_method: this.testMethod!,
+      test_status: this.testStatus!,
+      test_result: r.test_result!,
+      details: (r.remark || '').trim() || null,
+      final_remarks: (r.remark || '').trim() || null,
+      consumer_name: r.consumer_name ?? null,
+      consumer_address: r.consumer_address ?? null
+    }));
+
+  const fd = new FormData();
+  fd.append('file', this.selectedPdfFile!);
+  fd.append('testings_json', JSON.stringify(payload));
+
+  this.submitting = true;
+  this.inlineInfo = null;
+  this.inlineError = null;
+
+  this.api.postTestingBulkWithPdf(fd).subscribe({
+    next: async (res: any) => {
+      this.submitting = false;
+      this.closeModal();
+
+      const url = Array.isArray(res) && res.length ? res[0]?.report_file_url : null;
+      this.inlineInfo = 'Submitted successfully with PDF. View Report';
+
+      // ✅ 2) GENERATE LOCAL PDF USING SNAPSHOT (rows still present)
+      try {
+        if (pdfSnap.rows.length) {
+          await this.pqPdf.download(pdfSnap.rows, pdfSnap.meta, pdfSnap.logos);
+        } else {
+          console.warn('PQ PDF skipped: no rows in snapshot');
+        }
+      } catch (e) {
+        console.error(e);
+        this.inlineError = 'Submitted successfully, but local PDF generation failed.';
+      }
+
+      // ✅ 3) NOW CLEAR UI
+      this.rows = [this.emptyRow()];
+      this.selectedPdfFile = null;
+      this.selectedPdfName = null;
+    },
+    error: (e) => {
+      this.submitting = false;
+      console.error(e);
+      this.inlineError = e?.error?.detail || 'Error submitting PQ report with PDF.';
+    }
+  });
+}
+
 
   private fillHeaderFromAssignment(first?: AssignmentItem) {
     if (!first?.device) return;

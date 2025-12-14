@@ -26,10 +26,11 @@ interface AssignmentItem {
 }
 
 interface CtRow {
-  ct_no: string;
+  serial_number: string;
   make: string;
   cap: string;
   ratio: string;
+  class:string;
   polarity: string;
   remark: string;
   working?: Working;
@@ -232,7 +233,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       return { ok: false, reason: 'Date of testing is required.' };
     }
 
-    const validRows = (this.ctRows || []).filter(r => (r.ct_no || '').trim());
+    const validRows = (this.ctRows || []).filter(r => (r.serial_number || '').trim());
     if (!validRows.length) {
       return { ok: false, reason: 'Add at least one CT row.' };
     }
@@ -267,7 +268,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
         this.lab_name    = lab?.lab_pdfheader_name || lab?.lab_name || this.lab_name;
         this.lab_address = lab?.lab_pdfheader_address || lab?.lab_location || this.lab_address;
         this.lab_email   = lab?.lab_pdfheader_email || this.lab_email;
-        this.lab_phone   = lab?.lab_pdfheader_contact_no || this.lab_phone;
+        this.lab_phone   = lab?.lab_pdfheader_contaserial_number || this.lab_phone;
       },
       error: () => {}
     });
@@ -326,13 +327,13 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
 
   private emptyCtRow(seed?: Partial<CtRow>): CtRow {
     return {
-      ct_no: '',
+      serial_number: '',
       make: '',
       cap: '',
       ratio: '',
+      class: '',
       polarity: '',
       remark: '',
-      working: undefined,
       ...seed
     };
   }
@@ -345,19 +346,19 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     if (i >= 0 && i < this.ctRows.length) {
       this.ctRows.splice(i, 1);
       if (!this.ctRows.length) this.ctRows = [this.emptyCtRow()];
-      this.header.no_of_ct = this.ctRows.filter(r => (r.ct_no || '').trim()).length.toString();
+      this.header.no_of_ct = this.ctRows.filter(r => (r.serial_number || '').trim()).length.toString();
     }
   }
 
   trackByCtRow(i: number, r: CtRow) {
-    return `${r.assignment_id || 0}_${r.device_id || 0}_${r.ct_no || ''}_${i}`;
+    return `${r.assignment_id || 0}_${r.device_id || 0}_${r.serial_number || ''}_${i}`;
   }
 
   displayRows(): CtRow[] {
     const q = (this.filterText || '').trim().toLowerCase();
     if (!q) return this.ctRows;
     return this.ctRows.filter(r =>
-      (r.ct_no || '').toLowerCase().includes(q) ||
+      (r.serial_number || '').toLowerCase().includes(q) ||
       (r.make || '').toLowerCase().includes(q) ||
       (r.remark || '').toLowerCase().includes(q)
     );
@@ -458,7 +459,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       !Object.values(this.ctRows[0]).some(v => (v ?? '').toString().trim());
     if (onlyOneEmpty) this.ctRows = [];
 
-    const existing = new Set(this.ctRows.map(r => (r.ct_no || '').toUpperCase().trim()));
+    const existing = new Set(this.ctRows.map(r => (r.serial_number || '').toUpperCase().trim()));
 
     let added = 0;
     for (const c of chosen) {
@@ -467,7 +468,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
 
       this.ctRows.push(
         this.emptyCtRow({
-          ct_no: ctno,
+          serial_number: ctno,
           make: c.make || '',
           cap: c.capacity || '',
           ratio: c.ratio || '',
@@ -497,7 +498,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     this.header.testing_user = this.testing_user;
     this.header.approving_user = this.approving_user;
 
-    this.header.no_of_ct = this.ctRows.filter(r => (r.ct_no || '').trim()).length.toString();
+    this.header.no_of_ct = this.ctRows.filter(r => (r.serial_number || '').trim()).length.toString();
     this.header.ct_make = this.ctRows[0]?.make || '';
 
     this.assignedPicker.open = false;
@@ -525,7 +526,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       row.notFound = key.length > 0;
     }
 
-    this.header.no_of_ct = this.ctRows.filter(r => (r.ct_no || '').trim()).length.toString();
+    this.header.no_of_ct = this.ctRows.filter(r => (r.serial_number || '').trim()).length.toString();
     if (!this.header.ct_make) this.header.ct_make = row.make || '';
   }
 
@@ -606,7 +607,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
       (this.header.location_name || '');
 
     return (this.ctRows || [])
-      .filter(r => (r.ct_no || '').trim())
+      .filter(r => (r.serial_number || '').trim())
       .map(r => {
         const working: Working =
           r.working ||
@@ -629,7 +630,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           secondary_current: this.header.secondary_current || '',
           zone_dc: zone_dc,
 
-          ct_no: r.ct_no || '',
+          serial_number: r.serial_number || '',
           make: r.make || '',
           cap: r.cap || '',
           ratio: r.ratio || '',
@@ -745,12 +746,13 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
 
   private toCtRows(): CtPdfRow[] {
     return (this.ctRows || [])
-      .filter(r => (r.ct_no || '').trim())
+      .filter(r => (r.serial_number || '').trim())
       .map(r => ({
-        ct_no: r.ct_no || '-',
+        serial_number: r.serial_number || '-',
         make: r.make || '-',
-        cap: r.cap || '-',
-        ratio: r.ratio || '-',
+        capacity: r.cap || '-',
+        ct_ratio: r.ratio || '-',
+        ct_class: r.class || '-',
         polarity: r.polarity || '-',
         remark: r.remark || '-'
       }));
