@@ -878,8 +878,8 @@ async doSubmit() {
       const header: VigHeader = {
         location_code: this.header.location_code || '',
         location_name: this.header.location_name || '',
-        testMethod: this.testMethod || '',
-        testStatus: this.testStatus || '',
+        test_method: this.testMethod || '',
+        test_status: this.testStatus || '',
         date: new Date().toISOString().slice(0, 10),
         testing_bench: this.header.testing_bench || '-',
         testing_user: this.header.testing_user || '-',

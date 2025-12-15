@@ -631,7 +631,7 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
           // contested extras mapped
           consumer_name: r.consumer_name || null,
           consumer_address: r.address || null,
-          testing_fees: this.parseAmount(r.payment_particulars),
+          testing_fees: r.payment_particulars,
           fees_mr_no: r.receipt_no || null,
           fees_mr_date: r.receipt_date || null,
           ref_no: r.account_no_ivrs || null,

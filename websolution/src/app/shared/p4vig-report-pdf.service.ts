@@ -8,16 +8,14 @@ import pdfFonts from 'pdfmake/build/vfs_fonts';
 export interface VigHeader {
   location_code?: string;
   location_name?: string;
-  testMethod?: string | null;
-  testStatus?: string | null;
+  test_method?: string | null;
+  test_status?: string | null;
 
   // meta
   date?: string;
   testing_bench?: string | null;
   testing_user?: string | null;
   approving_user?: string | null;
-
-  // zone + phase
   zone?: string;
   phase?: string;
 
@@ -363,12 +361,12 @@ export class P4VigReportPdfService {
 
     const meta = {
       zone,
-      method: header.testMethod || '-',
-      status: header.testStatus || '-',
+      method: header.test_method || '-',
+      status: header.test_status || '-',
       bench: header.testing_bench || '-',
       user: header.testing_user || '-',
       approver: header.approving_user || '-',
-      date: header.date || new Date().toISOString().slice(0, 10),
+      date: header.date || '-',
 
       lab_name: header.lab_name || '',
       lab_address: header.lab_address || '',
@@ -469,7 +467,7 @@ export class P4VigReportPdfService {
           widths: ['auto','*','auto','*','auto','*','auto','*'],
           body: [[
             labelCell('Zone / DC'),
-            { text: meta.zone || '-', fontSize: 7 },
+            { text: meta.zone ||  r.test_requester_name || '-', fontSize: 7 },
             labelCell('Method'),
             { text: meta.method || '-', fontSize: 7 },
             labelCell('Status'),

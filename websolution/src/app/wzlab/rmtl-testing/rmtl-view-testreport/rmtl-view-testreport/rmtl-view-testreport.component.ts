@@ -358,12 +358,11 @@ export class RmtlViewTestreportComponent implements OnInit {
         date: S(
           t0.start_datetime ||
           t0.testing_date ||
-          t0.created_at ||
-          new Date().toISOString()
+          t0.created_at || ''
         ).slice(0, 10),
 
         testMethod: S(testmethod || 'NA'),
-        phase: S(phase_name || ''),
+        phase: S(phase_name || 'NA'),
         testStatus: S(testStatus || 'NA'),
         testing_bench: S(benchName || bench0.id || ''),
         testing_user: S(testUserName || ''),
@@ -411,161 +410,368 @@ export class RmtlViewTestreportComponent implements OnInit {
         } as any as OldAgainstRow;
       };
 
-      const mapP4ONM = (rec: any, idx: number) => {
-        const t = rec.testing || {};
-        const d = rec.device || {};
-        return {
-          serial: S(d.serial_number || `S${idx + 1}`),
-          make: S(d.make),
-          capacity: S(d.capacity),
-          removal_reading: N(t.meter_removaltime_reading),
-          consumer_name: S(d.consumer_name || t.consumer_name),
-          account_no_ivrs: S(d.consumer_no || d.consumer_number || ''),
-          address: S(d.location_name || d.location_code || ''),
-          p4onm_by: S(t.testing_user || t.tested_by || ''),
-          payment_particulars: S(d.payment_remarks || ''),
-          receipt_no: S(t.fees_mr_no),
-          receipt_date: S(t.fees_mr_date),
-          condition_at_removal: S(t.meter_removaltime_metercondition),
-          testing_date: S(t.start_datetime).slice(0, 10),
-          physical_condition_of_device: S(t.physical_condition_of_device),
-          is_burned: !!t.is_burned,
-          seal_status: S(t.seal_status),
-          meter_glass_cover: S(t.meter_glass_cover),
-          terminal_block: S(t.terminal_block),
-          meter_body: S(t.meter_body),
-          starting_current_test: S(t.shunt_current_test || t.nutral_current_test),
-          creep_test: S(t.shunt_creep_test || t.nutral_creep_test),
-          remark: S(t.final_remarks || t.details || ''),
-        } as any as P4ONMReportRow;
-      };
 
-      const mapP4VIG = (rec: any, idx: number) => {
-        const t = rec.testing || {};
-        const d = rec.device || {};
-        return {
-          serial: S(d.serial_number || `S${idx + 1}`),
-          make: S(d.make),
-          capacity: S(d.capacity),
-          reading_before_test: N(t.reading_before_test),
-          reading_after_test: N(t.reading_after_test),
-          error_percentage: N(t.error_percentage ?? t.error_percentage_import ?? t.error_percentage_export),
-          remark: S(t.final_remarks || t.details || ''),
-        } as any as VigRow;
-      };
+        const mapP4ONM = (rec: any, idx: number): P4ONMReportRow => {
+          const t = rec?.testing || {};
+          const d = rec?.device || {};
+          const u = rec?.user || {};
+          const b = rec?.testing_bench || {};
 
-    const mapCT = (rec: any, idx: number) => {
-      const t = rec.testing || {};
-      const d = rec.device || {};
+          return {
+            // must exist for buildPayload()
+            device_id: d.id ?? t.device_id ?? null,
+            assignment_id: rec?.assignment?.id ?? t.assignment_id ?? null,
+            serial: S(d.serial_number || `S${idx + 1}`),
+            make: S(d.make),
+            capacity: S(d.capacity),
+            consumer_name: S(t.consumer_name),
+            address: S(t.consumer_address),
+            account_no_ivrs: S(t.ref_no || d.consumer_no || ''),
+            payment_particulars: S(t.testing_fees),
+            receipt_no: S(t.fees_mr_no),
+            receipt_date: t.fees_mr_date ? S(t.fees_mr_date).slice(0, 10) : '',
+            removal_reading: N(t.meter_removaltime_reading),
+            condition_at_removal: S(t.meter_removaltime_metercondition || t.any_other_remarkny_zone || ''),
+            physical_condition_of_device: S(t.physical_condition_of_device),
+            seal_status: S(t.seal_status),
+            meter_glass_cover: S(t.meter_glass_cover),
+            terminal_block: S(t.terminal_block),
+            meter_body: S(t.meter_body),
+            is_burned: !!t.is_burned,
+            shunt_reading_before_test: N(t.shunt_reading_before_test),
+            shunt_reading_after_test: N(t.shunt_reading_after_test),
+            shunt_ref_start_reading: N(t.shunt_ref_start_reading),
+            shunt_ref_end_reading: N(t.shunt_ref_end_reading),
+            shunt_error_percentage: N(t.shunt_error_percentage),
+            shunt_current_test: S(t.shunt_current_test),
+            shunt_creep_test: S(t.shunt_creep_test),
+            shunt_dail_test: S(t.shunt_dail_test),
+            nutral_reading_before_test: N(t.nutral_reading_before_test),
+            nutral_reading_after_test: N(t.nutral_reading_after_test),
+            nutral_ref_start_reading: N(t.nutral_ref_start_reading),
+            nutral_ref_end_reading: N(t.nutral_ref_end_reading),
+            nutral_error_percentage: N(t.nutral_error_percentage),
+            nutral_current_test: S(t.nutral_current_test),
+            nutral_creep_test: S(t.nutral_creep_test),
+            nutral_dail_test: S(t.nutral_dail_test),
+            error_percentage_import: N(t.error_percentage_import),
+            test_result: S(t.test_result),
+            remark: S(t.details || ''),
+            final_remarks: S(t.final_remarks || ''),
+            testing_date: S(t.start_datetime || t.end_datetime).slice(0, 10),
+            p4onm_by: S(u.name || u.username || ''),
+            bench_name: S(b.bench_name || ''),
+          } as any as P4ONMReportRow;
+        };
 
-      return {
-        serial_number: S(d.serial_number || `CT${idx + 1}`),
-        make: S(d.make),
-        ct_ratio: S(t.ct_ratio || d.ct_ratio),
-        ct_class: S(t.ct_class || d.ct_class),
-        remark: S(t.final_remarks || t.details || ''),
-      } as CtPdfRow;
-    };
+        const mapP4VIG = (rec: any, idx: number) => {
+          const t = rec?.testing || {};
+          const d = rec?.device || {};
+          const u = rec?.user || {};
+          const a = rec?.assignment || {};
+
+          return {
+            // identity
+            serial: S(d.serial_number || `S${idx + 1}`),
+            make: S(d.make),
+            capacity: S(d.capacity),
+
+            device_id: d.id ?? t.device_id ?? null,
+            assignment_id: a.id ?? t.assignment_id ?? null,
+
+            // removal / basic
+            removal_reading: N(t.meter_removaltime_reading),
+
+            // result + mode
+            test_result: S(t.test_result),
+            view_mode: 'BOTH', 
+
+            // consumer / seizure info (your response has mostly null, keep safe)
+            consumer_name: S(t.consumer_name),
+            address: S(t.consumer_address),
+            account_number: S(t.ref_no || ''), // best available in your response
+            division_zone: S(t.test_requester_name || d.location_name || ''), // ex: "3465205 - AE-Zone..."
+            panchanama_no: S(t.p4_no || ''),   // null in response, but keep mapping
+            panchanama_date: t.p4_date ? S(t.p4_date).slice(0, 10) : '',
+            condition_at_removal: S(t.meter_removaltime_metercondition || t.any_other_remarkny_zone || t.p4_metercodition || ''),
+
+            // physical condition block
+            testing_date: S(t.start_datetime || t.end_datetime).slice(0, 10),
+            is_burned: !!t.is_burned,
+            seal_status: S(t.seal_status),
+            meter_glass_cover: S(t.meter_glass_cover),
+            terminal_block: S(t.terminal_block),
+            meter_body: S(t.meter_body),
+            other: t.other ?? null,
+
+            // SHUNT set
+            shunt_reading_before_test: N(t.shunt_reading_before_test),
+            shunt_reading_after_test: N(t.shunt_reading_after_test),
+            shunt_ref_start_reading: N(t.shunt_ref_start_reading),
+            shunt_ref_end_reading: N(t.shunt_ref_end_reading),
+            shunt_error_percentage: N(t.shunt_error_percentage),
+            shunt_current_test: t.shunt_current_test ?? null,
+            shunt_creep_test: t.shunt_creep_test ?? null,
+            shunt_dail_test: t.shunt_dail_test ?? null,
+
+            // NUTRAL set
+            nutral_reading_before_test: N(t.nutral_reading_before_test),
+            nutral_reading_after_test: N(t.nutral_reading_after_test),
+            nutral_ref_start_reading: N(t.nutral_ref_start_reading),
+            nutral_ref_end_reading: N(t.nutral_ref_end_reading),
+            nutral_error_percentage: N(t.nutral_error_percentage),
+            nutral_current_test: t.nutral_current_test ?? null,
+            nutral_creep_test: t.nutral_creep_test ?? null,
+            nutral_dail_test: t.nutral_dail_test ?? null,
+
+            // error (PDF uses error_percentage_import sometimes)
+            error_percentage_import: N(t.error_percentage_import),
+            error_percentage_export: N(t.error_percentage_export),
+
+            // request / misc
+            test_requester_name: S(t.test_requester_name || d.location_name || ''),
+            meter_removaltime_metercondition: t.meter_removaltime_metercondition ?? null,
+            any_other_remarkny_zone: t.any_other_remarkny_zone ?? null,
+
+            // P4-ish
+            p4_division: S(t.p4_division || ''),
+            p4_no: S(t.p4_no || ''),
+            p4_date: t.p4_date ? S(t.p4_date).slice(0, 10) : '',
+            p4_metercodition: t.p4_metercodition ?? null,
+
+            // remarks
+            final_remarks: S(t.final_remarks || ''),
+            remark: S(t.details || ''),
+
+            // (optional) who tested/approved
+            tested_by: S(u.name || u.username || ''),
+            approver_id: t.approver_id ?? null, 
+
+            
+          } as any as VigRow;
+        };
 
 
-      const mapCONTESTED = (rec: any, idx: number) => {
-        const t = rec.testing || {};
-        const d = rec.device || {};
-        return {
-          serial: S(d.serial_number || `S${idx + 1}`),
-          make: S(d.make),
-          capacity: S(d.capacity),
-          testing_date: S(t.start_datetime || t.end_datetime).slice(0, 10),
-          remark: S(t.final_remarks || t.details || ''),
-        } as any as ContestedReportRow;
-      };
+        const mapCT = (rec: any, idx: number) => {
+          const t = rec.testing || {};
+          const d = rec.device || {};
 
-      const mapSOLAR_GEN = (rec: any) => {
-        const t = rec.testing || {};
-        const d = rec.device || {};
-        return {
-          certificate_no: S(t.certificate_number),
-          consumer_name: S(t.consumer_name),
-          address: S(t.consumer_address),
-          meter_make: S(d.make),
-          meter_sr_no: S(d.serial_number),
-          meter_capacity: S(d.capacity),
-          date_of_testing: S(t.start_datetime || t.end_datetime).slice(0, 10),
-          testing_fees: t.testing_fees,
-          mr_no: S(t.fees_mr_no),
-          mr_date: S(t.fees_mr_date),
-          ref_no: S(t.ref_no),
-          starting_reading: N(t.reading_before_test),
-          final_reading_r: N(t.reading_after_test),
-          final_reading_e: undefined,
-          difference: undefined,
-          shunt_reading_before_test: N(t.shunt_reading_before_test),
-          shunt_reading_after_test: N(t.shunt_reading_after_test),
-          shunt_ref_start_reading: N(t.shunt_ref_start_reading),
-          shunt_ref_end_reading: N(t.shunt_ref_end_reading),
-          shunt_error_percentage: N(t.shunt_error_percentage),
-          nutral_reading_before_test: N(t.nutral_reading_before_test),
-          nutral_reading_after_test: N(t.nutral_reading_after_test),
-          nutral_ref_start_reading: N(t.nutral_ref_start_reading),
-          nutral_ref_end_reading: N(t.nutral_ref_end_reading),
-          nutral_error_percentage: N(t.nutral_error_percentage),
-          starting_current_test: S(t.shunt_current_test || t.nutral_current_test),
-          creep_test: S(t.shunt_creep_test || t.nutral_creep_test),
-          dial_test: S(t.shunt_dail_test || t.nutral_dail_test),
-          test_result: S(t.test_result),
-          remark: S(t.final_remarks || t.details || '')
-        } as any as GenRow;
-      };
+          return {
+            serial_number: S(d.serial_number || `CT${idx + 1}`),
+            make: S(d.make),
+            ct_ratio: S(t.ct_ratio || d.ct_ratio),
+            ct_class: S(t.ct_class || d.ct_class),
+            remark: S(t.final_remarks || t.details || ''),
+          } as CtPdfRow;
+        };
 
-      const mapSOLAR_NET = (rec: any) => {
-        const t = rec.testing || {};
-        const d = rec.device || {};
-        return {
-          certificate_no: S(t.certificate_number),
-          consumer_name: S(t.consumer_name),
-          address: S(t.consumer_address),
-          meter_make: S(d.make),
-          meter_sr_no: S(d.serial_number),
-          meter_capacity: S(d.capacity),
-          date_of_testing: S(t.start_datetime || t.end_datetime).slice(0, 10),
-          testing_fees: N(t.testing_fees),
-          mr_no: S(t.fees_mr_no),
-          mr_date: S(t.fees_mr_date),
-          ref_no: S(t.ref_no),
-          starting_reading: N(t.reading_before_test),
-          final_reading_r: N(t.reading_after_test),
-          final_reading_e: undefined,
-          difference: undefined,
-          start_reading_import: N(t.start_reading_import),
-          final_reading__import: N(t.final_reading__import),
-          difference__import: N(t.difference__import),
-          start_reading_export: N(t.start_reading_export),
-          final_reading_export: N(t.final_reading_export),
-          difference_export: N(t.difference_export),
-          final_Meter_Difference: N(t.final_Meter_Difference),
-          import_ref_start_reading: N(t.import_ref_start_reading),
-          import_ref_end_reading: N(t.import_ref_end_reading),
-          export_ref_start_reading: N(t.export_ref_start_reading),
-          export_ref_end_reading: N(t.export_ref_end_reading),
-          error_percentage_import: N(t.error_percentage_import),
-          error_percentage_export: N(t.error_percentage_export),
-          shunt_reading_before_test: N(t.shunt_reading_before_test),
-          shunt_reading_after_test: N(t.shunt_reading_after_test),
-          shunt_ref_start_reading: N(t.shunt_ref_start_reading),
-          shunt_ref_end_reading: N(t.shunt_ref_end_reading),
-          shunt_error_percentage: N(t.shunt_error_percentage),
-          nutral_reading_before_test: N(t.nutral_reading_before_test),
-          nutral_reading_after_test: N(t.nutral_reading_after_test),
-          nutral_ref_start_reading: N(t.nutral_ref_start_reading),
-          nutral_ref_end_reading: N(t.nutral_ref_end_reading),
-          nutral_error_percentage: N(t.nutral_error_percentage),
-          starting_current_test: S(t.shunt_current_test || t.nutral_current_test),
-          creep_test: S(t.shunt_creep_test || t.nutral_creep_test),
-          dial_test: S(t.shunt_dail_test || t.nutral_dail_test),
-          remark: S(t.final_remarks || t.details || ''),
-          test_result: S(t.test_result)
-        } as any as SolarRow;
-      };
+
+
+
+        const mapCONTESTED = (rec: any, idx: number): ContestedReportRow => {
+          const t = rec?.testing ?? {}; // ✅ main testing record
+          const d = rec?.device ?? {};  // ✅ device record
+
+          return {
+            // Device basics
+            serial: S(d.serial_number || `S${idx + 1}`),
+            make: S(d.make),
+            capacity: S(d.capacity),
+            removal_reading: t.meter_removaltime_reading ?? null,   // ✅ from testing
+
+            // Consumer / AE–JE slip fields (all from testing)
+            consumer_name: S(t.consumer_name),
+            account_no_ivrs: S((t as any).account_no_ivrs), // keep if your backend has it
+            address: S(t.consumer_address),
+            contested_by: S(t.any_other_remarkny_zone),
+            payment_particulars: S(t.testing_fees),
+            receipt_no: S(t.fees_mr_no),
+            receipt_date: t.fees_mr_date ? S(t.fees_mr_date).slice(0, 10) : undefined,
+            condition_at_removal: S(t.meter_removaltime_metercondition),
+
+            // Device condition & meta
+            testing_date: S(t.start_datetime || t.end_datetime).slice(0, 10),
+            physical_condition_of_device: S(t.physical_condition_of_device),
+            is_burned: !!t.is_burned,
+            seal_status: S(t.seal_status),
+            meter_glass_cover: S(t.meter_glass_cover),
+            terminal_block: S(t.terminal_block),
+            meter_body: S(t.meter_body),
+            other: S(t.other),
+
+            // SHUNT readings
+            shunt_reading_before_test: t.shunt_reading_before_test ?? null,
+            shunt_reading_after_test: t.shunt_reading_after_test ?? null,
+            shunt_ref_start_reading: t.shunt_ref_start_reading ?? null,
+            shunt_ref_end_reading: t.shunt_ref_end_reading ?? null,
+            shunt_current_test: t.shunt_current_test ?? null,
+            shunt_creep_test: t.shunt_creep_test ?? null,
+            shunt_dail_test: t.shunt_dail_test ?? null,
+            shunt_error_percentage: t.shunt_error_percentage ?? null,
+
+            // NUTRAL readings
+            nutral_reading_before_test: t.nutral_reading_before_test ?? null,
+            nutral_reading_after_test: t.nutral_reading_after_test ?? null,
+            nutral_ref_start_reading: t.nutral_ref_start_reading ?? null,
+            nutral_ref_end_reading: t.nutral_ref_end_reading ?? null,
+            nutral_current_test: t.nutral_current_test ?? null,
+            nutral_creep_test: t.nutral_creep_test ?? null,
+            nutral_dail_test: t.nutral_dail_test ?? null,
+            nutral_error_percentage: t.nutral_error_percentage ?? null,
+
+            // Combined error
+            error_percentage_import: t.error_percentage_import ?? null,
+
+            // Free-form remark
+            remark: S(t.final_remarks || t.details || '')
+          };
+        };
+
+
+
+const mapSOLAR_GEN = (rec: any) => {
+  const t = rec?.testing || {};
+  const d = rec?.device || {};
+
+  return {
+    certificate_no: S(t.certificate_number),
+    consumer_name: S(t.consumer_name),
+    address: S(t.consumer_address),
+    meter_make: S(d.make),
+    meter_sr_no: S(d.serial_number),
+    meter_capacity: S(d.capacity),
+    date_of_testing: S(t.start_datetime || t.end_datetime).slice(0, 10),
+
+    testing_fees: t.testing_fees,
+    mr_no: S(t.fees_mr_no),
+    mr_date: S(t.fees_mr_date),
+    ref_no: S(t.ref_no),
+
+    starting_reading: N(t.reading_before_test),
+    final_reading_r: N(t.reading_after_test),
+    final_reading_e: undefined,
+    difference: undefined,
+
+    shunt_reading_before_test: N(t.shunt_reading_before_test),
+    shunt_reading_after_test: N(t.shunt_reading_after_test),
+    shunt_ref_start_reading: N(t.shunt_ref_start_reading),
+    shunt_ref_end_reading: N(t.shunt_ref_end_reading),
+    shunt_error_percentage: N(t.shunt_error_percentage),
+
+    nutral_reading_before_test: N(t.nutral_reading_before_test),
+    nutral_reading_after_test: N(t.nutral_reading_after_test),
+    nutral_ref_start_reading: N(t.nutral_ref_start_reading),
+    nutral_ref_end_reading: N(t.nutral_ref_end_reading),
+    nutral_error_percentage: N(t.nutral_error_percentage),
+
+    starting_current_test: S(t.shunt_current_test || t.nutral_current_test),
+    creep_test: S(t.shunt_creep_test || t.nutral_creep_test),
+    dial_test: S(t.shunt_dail_test || t.nutral_dail_test),
+
+    test_result: S(t.test_result),
+    remark: S(t.final_remarks || t.details || ''),
+    physical_condition_of_device: S(t.physical_condition_of_device),
+    seal_status: S(t.seal_status),
+    meter_glass_cover: S(t.meter_glass_cover),
+    terminal_block: S(t.terminal_block),
+    meter_body: S(t.meter_body),
+  } as any as GenRow;
+};
+
+
+    const mapSOLAR_NET = (rec: any) => {
+  const t = rec?.testing ?? {};
+  const d = rec?.device ?? {};
+
+  // helpers (assuming you already have S/N)
+  const ISO_DATE = (v: any) => S(v).slice(0, 10);
+
+  return {
+    // device / consumer
+    device_id: t.device_id ?? 0,
+    assignment_id: t.assignment_id ?? 0,
+
+    certificate_no: S(t.certificate_number),
+    consumer_name: S(t.consumer_name),
+    address: S(t.consumer_address),
+
+    meter_make: S(d.make),
+    meter_sr_no: S(d.serial_number),
+    meter_capacity: S(d.capacity),
+
+    // dates
+    date_of_testing: ISO_DATE(t.start_datetime || t.end_datetime),
+
+    // fees (NOTE: in payload you send testing_fees as string; keep string for view/pdf)
+    testing_fees: t.testing_fees ?? null,
+    mr_no: S(t.fees_mr_no),
+    mr_date: S(t.fees_mr_date),
+    ref_no: S(t.ref_no),
+
+    // import/export readings (payload exact keys)
+    start_reading_import: N(t.start_reading_import),
+    final_reading__import: N(t.final_reading__import),
+    difference__import: N(t.difference__import),
+
+    start_reading_export: N(t.start_reading_export),
+    final_reading_export: N(t.final_reading_export),
+    difference_export: N(t.difference_export),
+
+    // ref readings (payload exact keys)
+    import_ref_start_reading: N(t.import_ref_start_reading),
+    import_ref_end_reading: N(t.import_ref_end_reading),
+    export_ref_start_reading: N(t.export_ref_start_reading),
+    export_ref_end_reading: N(t.export_ref_end_reading),
+
+    // final diff & errors
+    final_Meter_Difference: N(t.final_Meter_Difference),
+    error_percentage_import: N(t.error_percentage_import),
+    error_percentage_export: N(t.error_percentage_export),
+
+    // SHUNT block (payload exact keys)
+    shunt_reading_before_test: N(t.shunt_reading_before_test),
+    shunt_reading_after_test: N(t.shunt_reading_after_test),
+    shunt_ref_start_reading: N(t.shunt_ref_start_reading),
+    shunt_ref_end_reading: N(t.shunt_ref_end_reading),
+    shunt_error_percentage: N(t.shunt_error_percentage),
+
+    shunt_current_test: S(t.shunt_current_test),
+    shunt_creep_test: S(t.shunt_creep_test),
+    shunt_dail_test: S(t.shunt_dail_test),
+
+    // NUTRAL block (payload exact keys)
+    nutral_reading_before_test: N(t.nutral_reading_before_test),
+    nutral_reading_after_test: N(t.nutral_reading_after_test),
+    nutral_ref_start_reading: N(t.nutral_ref_start_reading),
+    nutral_ref_end_reading: N(t.nutral_ref_end_reading),
+    nutral_error_percentage: N(t.nutral_error_percentage),
+
+    nutral_current_test: S(t.nutral_current_test),
+    nutral_creep_test: S(t.nutral_creep_test),
+    nutral_dail_test: S(t.nutral_dail_test),
+
+    // for old PDF fields (if your Solar PDF template expects these 3 combined)
+    starting_current_test: S(t.shunt_current_test || t.nutral_current_test),
+    creep_test: S(t.shunt_creep_test || t.nutral_creep_test),
+    dial_test: S(t.shunt_dail_test || t.nutral_dail_test),
+
+    // remarks/result/method/status/requester
+    remark: S(t.final_remarks || t.details || ''),
+    final_remarks: S(t.final_remarks),
+    test_result: S(t.test_result),
+    test_method: S(t.test_method),
+    test_status: S(t.test_status),
+    test_requester_name: S(t.test_requester_name),
+
+    // physical condition fields (if PDF shows these)
+    physical_condition_of_device: S(t.physical_condition_of_device),
+    seal_status: S(t.seal_status),
+    meter_glass_cover: S(t.meter_glass_cover),
+    terminal_block: S(t.terminal_block),
+    meter_body: S(t.meter_body),
+  } as SolarRow;
+};
+
 
       const mapSTOP_DEF = (rec: any) => {
         const t = rec.testing || {};
@@ -754,6 +960,9 @@ export class RmtlViewTestreportComponent implements OnInit {
           const headerForVig: VigHeader = {
             date: commonHeaderBase.date,
             zone: commonHeaderBase.location_code + ' - ' + commonHeaderBase.location_name,
+            phase: commonHeaderBase.phase,
+            test_method: commonHeaderBase.testMethod,
+            test_status: commonHeaderBase.testStatus,
             testing_bench: commonHeaderBase.testing_bench,
             testing_user: commonHeaderBase.testing_user,
             approving_user: commonHeaderBase.approving_user,
@@ -817,9 +1026,6 @@ export class RmtlViewTestreportComponent implements OnInit {
 
           const ctRows = rowsRaw.map(mapCT);
 
-          // ✅ Debug once (optional) - see why remark not coming
-          // console.log('CT ROWS:', ctRows);
-
           await this.ctPdf.download(
             headerForCt,
             ctRows,
@@ -833,6 +1039,7 @@ export class RmtlViewTestreportComponent implements OnInit {
             date: commonHeaderBase.date,
             testing_bench: commonHeaderBase.testing_bench,
             testing_user: commonHeaderBase.testing_user,
+            zone: commonHeaderBase.location_code + ' - ' + commonHeaderBase.location_name,
             approving_user: commonHeaderBase.approving_user,
             phase: commonHeaderBase.phase,
             lab_name: commonHeaderBase.lab_name,
