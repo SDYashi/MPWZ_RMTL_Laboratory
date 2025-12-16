@@ -552,18 +552,20 @@ export class RmtlViewTestreportComponent implements OnInit {
         };
 
 
-        const mapCT = (rec: any, idx: number) => {
-          const t = rec.testing || {};
-          const d = rec.device || {};
+      const mapCT = (rec: any, idx: number) => {
+  const t = rec.testing || {};
+  const d = rec.device || {};
+  const det = safeJson(t.details);
 
-          return {
-            serial_number: S(d.serial_number || `CT${idx + 1}`),
-            make: S(d.make),
-            ct_ratio: S(t.ct_ratio || d.ct_ratio),
-            ct_class: S(t.ct_class || d.ct_class),
-            remark: S(t.final_remarks || t.details || ''),
-          } as CtPdfRow;
-        };
+  return {
+    serial_number: S(pick(d.serial_number, det.serial_number, `CT${idx + 1}`)),
+    make: S(pick(d.make, det.make)),
+    ct_ratio: S(pick(d.ct_ratio, det.ratio, t.ct_ratio)),
+    ct_class: S(pick(t.ct_class, det.city_class, d.ct_class)),
+    remark: S(pick(det.remark, t.final_remarks, '')),
+  } as CtPdfRow;
+};
+
 
 
 
@@ -679,11 +681,9 @@ const mapSOLAR_GEN = (rec: any) => {
 };
 
 
-    const mapSOLAR_NET = (rec: any) => {
+  const mapSOLAR_NET = (rec: any) => {
   const t = rec?.testing ?? {};
   const d = rec?.device ?? {};
-
-  // helpers (assuming you already have S/N)
   const ISO_DATE = (v: any) => S(v).slice(0, 10);
 
   return {
@@ -876,6 +876,12 @@ const mapSOLAR_GEN = (rec: any) => {
           test_result: S(t.test_result),
         } as any;
       };
+  const safeJson = (v: any) => {
+      if (!v) return {};
+      if (typeof v === 'object') return v; 
+      try { return JSON.parse(v); } catch { return {}; }
+    };
+  const pick = (...vals: any[]) => vals.find(v => v !== null && v !== undefined && String(v).trim() !== '') ?? '';
 
       // ======== dispatch by report_type ========
       switch (rtype) {
@@ -978,61 +984,62 @@ const mapSOLAR_GEN = (rec: any) => {
           await this.p4vigPdf.download(headerForVig, vigRows);
           break;
         }
-        case 'CT_TESTING': {
-          const first = rowsRaw[0] || {};
-          const t0 = first.testing || {};
-          const d0 = first.device || {};
-          const a0 = first.assignment || {};
+      case 'CT_TESTING': {
+  const first = rowsRaw[0] || {};
+  const t0 = first.testing || {};
+  const d0 = first.device || {};
+  const a0 = first.assignment || {};
 
-          const headerForCt: CtHeader = {
-            location_code: S(d0.location_code || t0.location_code || ''),
-            location_name: S(d0.location_name || t0.location_name || ''),
+  const det0 = safeJson(t0.details);
 
-            consumer_name: S(t0.consumer_name || d0.consumer_name || ''),
-            address: S(t0.consumer_address || d0.consumer_address || ''),
+  const headerForCt: CtHeader = {
+    location_code: S(pick(d0.location_code, t0.location_code, det0.zone_code)),
+    location_name: S(pick(d0.location_name, t0.location_name, det0.zone_dc)),
 
-            no_of_ct: S(t0.no_of_ct || rowsRaw.length || ''),
-            city_class: S(t0.city_class || ''),
+    consumer_name: S(pick(t0.consumer_name, d0.consumer_name, det0.consumer_name)),
+    address: S(pick(t0.consumer_address, d0.consumer_address, det0.address)),
 
-            ref_no: S(t0.ref_no || t0.ref_number || ''),
-            ct_make: S(t0.ct_make || d0.make || ''),
+    no_of_ct: S(pick(det0.no_of_ct, rowsRaw.length)),
+    city_class: S(pick(t0.ct_class, det0.city_class, d0.ct_class)), // your payload uses ct_class
 
-            mr_no: S(t0.fees_mr_no || t0.mr_no || ''),
-            mr_date: S(t0.fees_mr_date || t0.mr_date || ''),
-            amount_deposited: S(t0.testing_fees || t0.amount_deposited || ''),
+    ref_no: S(pick(t0.ref_no, det0.ref_no)),
+    ct_make: S(pick(det0.ct_make, d0.make)),
 
-            date_of_testing: S(
-              t0.start_datetime || t0.testing_date || t0.created_at || new Date().toISOString()
-            ).slice(0, 10),
+    mr_no: S(pick(t0.fees_mr_no, det0.mr_no)),
+    mr_date: S(pick(t0.fees_mr_date, det0.mr_date)),
+    amount_deposited: S(pick(t0.testing_fees, det0.amount_deposited)),
 
-            primary_current: S(t0.primary_current || ''),
-            secondary_current: S(t0.secondary_current || ''),
+    date_of_testing: S(pick(t0.start_datetime, t0.created_at, new Date().toISOString())).slice(0, 10),
 
-            // optional meta
-            testMethod: S(commonHeaderBase.testMethod || ''),
-            testStatus: S(commonHeaderBase.testStatus || ''),
-            testing_bench: S(commonHeaderBase.testing_bench || a0.bench_name || ''),
-            testing_user: S(commonHeaderBase.testing_user || ''),
-            approving_user: S(commonHeaderBase.approving_user || ''),
-            date: S(commonHeaderBase.date || '').slice(0, 10),
+    // your DB columns are ct_primary_current / ct_secondary_current
+    primary_current: S(pick(t0.ct_primary_current, det0.primary_current)),
+    secondary_current: S(pick(t0.ct_secondary_current, det0.secondary_current)),
 
-            lab_name: S(commonHeaderBase.lab_name || ''),
-            lab_address: S(commonHeaderBase.lab_address || ''),
-            lab_email: S(commonHeaderBase.lab_email || ''),
-            lab_phone: S(commonHeaderBase.lab_phone || ''),
-            leftLogoUrl: commonHeaderBase.leftLogoUrl,
-            rightLogoUrl: commonHeaderBase.rightLogoUrl,
-          };
+    testMethod: S(pick(commonHeaderBase.testMethod, t0.test_method)),
+    testStatus: S(pick(commonHeaderBase.testStatus, t0.test_status)),
+    testing_bench: S(pick(commonHeaderBase.testing_bench, a0.bench_name)),
+    testing_user: S(pick(commonHeaderBase.testing_user)),
+    approving_user: S(pick(commonHeaderBase.approving_user)),
+    date: S(pick(commonHeaderBase.date, t0.created_at)).slice(0, 10),
 
-          const ctRows = rowsRaw.map(mapCT);
+    lab_name: S(commonHeaderBase.lab_name || ''),
+    lab_address: S(commonHeaderBase.lab_address || ''),
+    lab_email: S(commonHeaderBase.lab_email || ''),
+    lab_phone: S(commonHeaderBase.lab_phone || ''),
+    leftLogoUrl: commonHeaderBase.leftLogoUrl,
+    rightLogoUrl: commonHeaderBase.rightLogoUrl,
+  };
 
-          await this.ctPdf.download(
-            headerForCt,
-            ctRows,
-            `CT_TESTING_${headerForCt.date_of_testing || commonHeaderBase.date}_${rid}.pdf`
-          );
-          break;
-        }
+  const ctRows = rowsRaw.map(mapCT);
+
+  await this.ctPdf.download(
+    headerForCt,
+    ctRows,
+    `CT_TESTING_${headerForCt.date_of_testing || headerForCt.date}_${rid}.pdf`
+  );
+  break;
+}
+
 
         case 'CONTESTED': {
           const headerForContested: ContestedReportHeader = {
@@ -1229,6 +1236,8 @@ const mapSOLAR_GEN = (rec: any) => {
     this.filters = { from: '', to: '', report_type: '' };
     this.fetchFromServer(true);
   }
+
+
 
   private buildPageWindow(current: number, total: number, radius = 1): Array<number | '…'> {
     const set = new Set<number>();
