@@ -328,3 +328,66 @@ export interface AssignmentDashboardData {
   dispatched_devices: number;
   inwarded_devices : number;
 }
+
+export interface DailySummaryRow {
+  meter_type: string;
+
+  shift_1: { single: number; three: number };
+  shift_2: { single: number; three: number };
+  shift_3: { single: number; three: number };
+
+  today_progress: { single: number; three: number };
+
+  progressive_month: { single: number; three: number };
+  month_ok: { single: number; three: number };
+  month_defective: { single: number; three: number };
+
+  meter_received_at_lab: { single: number; three: number };
+  meter_issued_from_lab: { single: number; three: number };
+  balance_meter_for_testing_at_lab: { single: number; three: number };
+}
+
+export interface DailySummaryResponse {
+  filters: { report_date?: string; from_date: string; to_date: string; lab_id?: number | null };
+  generated_at: string;
+  month_start: string;
+  no_working_shift: number;
+  rows: DailySummaryRow[];
+  total: {
+    shift_1: { single: number; three: number };
+    shift_2: { single: number; three: number };
+    shift_3: { single: number; three: number };
+    today_progress: { single: number; three: number };
+    progressive_month: { single: number; three: number };
+    month_ok: { single: number; three: number };
+    month_defective: { single: number; three: number };
+    meter_received_at_lab: { single: number; three: number };
+    meter_issued_from_lab: { single: number; three: number };
+    balance_meter_for_testing_at_lab: { single: number; three: number };
+  };
+}
+
+export interface MonthlySummaryRow {
+  circle_id: number | null;
+  division_id: number | null;
+  dc_id: number | null;
+  installed_smart: number;
+  received_non_smart: number;
+  tested: number;
+  not_tested: number;
+}
+
+export interface MonthlySummaryResponse {
+  filters: {
+    from_date?: string | null;
+    to_date?: string | null;
+    circle_id?: number | null;
+    division_id?: number | null;
+    dc_id?: number | null;
+    group_level: 'circle' | 'division' | 'dc';
+  };
+  generated_at: string;
+  rows: MonthlySummaryRow[];
+  totals: { installed_smart: number; received_non_smart: number; tested: number; not_tested: number };
+}
+

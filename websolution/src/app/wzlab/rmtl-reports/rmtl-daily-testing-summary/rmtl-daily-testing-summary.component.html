@@ -1,0 +1,137 @@
+<div class="container-fluid mt-4">
+  <div class="card shadow">
+    <div class="card-header text-white" style="background:#151433; color:#fff;">
+      <h5 class="mb-0">RMTL — Daily Testing Summary</h5>
+    </div>
+  
+  <!-- Filters -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="row g-3">
+
+        <div class="col-md-3">
+          <label class="form-label"><b>From Date</b></label>
+          <input type="date" class="form-control" [(ngModel)]="from_date">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label"><b>To Date</b></label>
+          <input type="date" class="form-control" [(ngModel)]="to_date">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label"><b>Select Lab</b></label>
+          <select class="form-select" [(ngModel)]="lab_id">
+            <option [ngValue]="0">All</option>
+            <option *ngFor="let lab of labs" [ngValue]="lab.id">
+              {{ lab.lab_name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-3 d-flex align-items-end gap-2">
+          <button class="btn btn-secondary w-50" (click)="clear()" [disabled]="loading">
+            Reset
+          </button>
+
+          <button class="btn btn-primary w-50" (click)="load()" [disabled]="loading">
+            <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+            Search
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="alert alert-info">Loading...</div>
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <!-- Table -->
+  <div class="card" *ngIf="data && !loading">
+    <div class="card-body table-responsive">
+
+<table class="table table-bordered table-sm align-middle text-center">
+  <!-- Column Headers -->  <thead class="table-light">
+    <tr>
+      <th rowspan="2">Meter Type</th>
+      <th colspan="2">Shift 1</th>
+      <th colspan="2">Shift 2</th>
+      <th colspan="2">Shift 3</th>
+      <th colspan="2">Today Progress</th>
+      <th colspan="2">Progressive Month</th>
+      <th colspan="2">Month OK</th>
+      <th colspan="2">Month Defective</th>
+      <th colspan="2">Received at Lab</th>
+      <th colspan="2">Issued from Lab</th>
+      <th colspan="2">Balance in Lab</th>
+    </tr>
+
+    <tr>
+      <th>Single</th><th>Three</th>
+      <th>Single</th><th>Three</th>
+      <th>Single</th><th>Three</th>
+      <th>Single</th><th>Three</th>
+      <th>Single</th><th>Three</th>
+      <th>Single</th><th>Three</th>
+      <th>Single</th><th>Three</th>
+      <th>Single</th><th>Three</th>
+      <th>Single</th><th>Three</th>
+      <th>Single</th><th>Three</th>
+    </tr>
+  </thead>
+
+        <tbody>
+          <tr *ngFor="let r of data.rows">
+            <td class="fw-semibold">{{ displayMeterType(r.meter_type) }}</td>
+
+            <td>{{ r.shift_1.single }}</td><td>{{ r.shift_1.three }}</td>
+            <td>{{ r.shift_2.single }}</td><td>{{ r.shift_2.three }}</td>
+            <td>{{ r.shift_3.single }}</td><td>{{ r.shift_3.three }}</td>
+
+            <td class="fw-semibold">{{ r.today_progress.single }}</td>
+            <td class="fw-semibold">{{ r.today_progress.three }}</td>
+
+            <td>{{ r.progressive_month.single }}</td><td>{{ r.progressive_month.three }}</td>
+            <td>{{ r.month_ok.single }}</td><td>{{ r.month_ok.three }}</td>
+            <td>{{ r.month_defective.single }}</td><td>{{ r.month_defective.three }}</td>
+
+            <td>{{ r.meter_received_at_lab.single }}</td><td>{{ r.meter_received_at_lab.three }}</td>
+            <td>{{ r.meter_issued_from_lab.single }}</td><td>{{ r.meter_issued_from_lab.three }}</td>
+            <td>{{ r.balance_meter_for_testing_at_lab.single }}</td><td>{{ r.balance_meter_for_testing_at_lab.three }}</td>
+          </tr>
+
+          <tr *ngIf="data.rows.length === 0">
+            <td colspan="21" class="text-center text-muted py-3">
+              No records found for selected filters.
+            </td>
+          </tr>
+        </tbody>
+
+        <tfoot class="table-light" *ngIf="data.total">
+          <tr>
+            <th>Total</th>
+
+            <th>{{ data.total.shift_1.single }}</th><th>{{ data.total.shift_1.three }}</th>
+            <th>{{ data.total.shift_2.single }}</th><th>{{ data.total.shift_2.three }}</th>
+            <th>{{ data.total.shift_3.single }}</th><th>{{ data.total.shift_3.three }}</th>
+
+            <th class="fw-semibold">{{ data.total.today_progress.single }}</th>
+            <th class="fw-semibold">{{ data.total.today_progress.three }}</th>
+
+            <th>{{ data.total.progressive_month.single }}</th><th>{{ data.total.progressive_month.three }}</th>
+            <th>{{ data.total.month_ok.single }}</th><th>{{ data.total.month_ok.three }}</th>
+            <th>{{ data.total.month_defective.single }}</th><th>{{ data.total.month_defective.three }}</th>
+
+            <th>{{ data.total.meter_received_at_lab.single }}</th><th>{{ data.total.meter_received_at_lab.three }}</th>
+            <th>{{ data.total.meter_issued_from_lab.single }}</th><th>{{ data.total.meter_issued_from_lab.three }}</th>
+            <th>{{ data.total.balance_meter_for_testing_at_lab.single }}</th><th>{{ data.total.balance_meter_for_testing_at_lab.three }}</th>
+          </tr>
+        </tfoot>
+
+      </table>
+    </div>
+  </div>
+</div>
+</div>

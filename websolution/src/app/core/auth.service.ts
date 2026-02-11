@@ -13,6 +13,7 @@ type Role =
   | 'STORE_INCHARGE'
   | 'TESTING_ASSISTANT'
   | 'EXECUTIVE'
+  | 'SUPERINTENDING_ENGINEER'
   | string;
 
 function b64UrlDecodeToUtf8(b64url: string) {

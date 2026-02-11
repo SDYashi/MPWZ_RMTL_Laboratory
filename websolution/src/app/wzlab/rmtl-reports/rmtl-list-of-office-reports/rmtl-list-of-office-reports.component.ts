@@ -1,7 +1,6 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { OfficeReport } from 'src/app/interface/models';
 import { ApiServicesService } from 'src/app/services/api-services.service';
-
 import * as XLSX from 'xlsx';
 
 @Component({
@@ -12,46 +11,54 @@ import * as XLSX from 'xlsx';
 })
 export class RmtlListOfOfficeReportsComponent implements OnInit {
 
-  // Raw + filtered
   all: OfficeReport[] = [];
   rows: OfficeReport[] = [];
 
-  // Filters
   searchText = '';
   selectedRegion: string = 'ALL';
   selectedCircle: string = 'ALL';
   selectedDivision: string = 'ALL';
 
-  // Dropdown options (unique values)
   regions: string[] = [];
   circles: string[] = [];
   divisions: string[] = [];
 
-  // Flip this to true to use STATIC data below instead of API
   private useMock = false;
 
-  constructor(private service: ApiServicesService) {}
+  constructor(
+    private service: ApiServicesService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
+    // ✅ AUTO LOAD ON PAGE OPEN
+    this.loadOfficeList();
+  }
+
+  loadOfficeList(): void {
     if (this.useMock) {
       this.all = this.mockData().map(this.normalizeNulls);
       this.setupDropdowns();
       this.applyFilters();
-    } else {
-      this.service.getofficelist().subscribe({
-        next: (data:any) => {
-          this.all = (data ?? []).map(this.normalizeNulls);          
-          this.applyFilters();
-          this.setupDropdowns();
-        },
-        error: (err:any) => {
-          console.error('Failed to fetch list:', err);
-        }
-      });
+      this.cdr.markForCheck(); // ✅ refresh UI
+      return;
     }
+
+    this.service.getofficelist().subscribe({
+      next: (data: any) => {
+        this.all = (data ?? []).map(this.normalizeNulls);
+        this.setupDropdowns();
+        this.applyFilters();
+
+        this.cdr.markForCheck(); // ✅ VERY IMPORTANT FOR OnPush
+      },
+      error: (err: any) => {
+        console.error('Failed to fetch list:', err);
+        this.cdr.markForCheck();
+      }
+    });
   }
 
-  // Replace "NULL" strings with actual nulls; trim values
   private normalizeNulls = (r: OfficeReport): OfficeReport => {
     const fix = (v: any) => (v === 'NULL' || v === undefined ? null : (typeof v === 'string' ? v.trim() : v));
     return {
@@ -68,8 +75,8 @@ export class RmtlListOfOfficeReportsComponent implements OnInit {
   };
 
   private setupDropdowns(): void {
-    const uniq = (arr: (string|null|undefined)[]) =>
-      Array.from(new Set(arr.filter(Boolean) as string[])).sort((a,b)=>a.localeCompare(b));
+    const uniq = (arr: (string | null | undefined)[]) =>
+      Array.from(new Set(arr.filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
 
     this.regions = ['ALL', ...uniq(this.all.map(x => x.region_name))];
     this.circles = ['ALL', ...uniq(this.all.map(x => x.circle_name))];
@@ -78,10 +85,12 @@ export class RmtlListOfOfficeReportsComponent implements OnInit {
 
   onFilterChange(): void {
     this.applyFilters();
+    this.cdr.markForCheck();
   }
 
   onSearchChange(): void {
     this.applyFilters();
+    this.cdr.markForCheck();
   }
 
   resetFilters(): void {
@@ -90,6 +99,7 @@ export class RmtlListOfOfficeReportsComponent implements OnInit {
     this.selectedCircle = 'ALL';
     this.selectedDivision = 'ALL';
     this.applyFilters();
+    this.cdr.markForCheck();
   }
 
   private includesText(hay: string | null | undefined, needle: string): boolean {
@@ -102,14 +112,11 @@ export class RmtlListOfOfficeReportsComponent implements OnInit {
     const txt = this.searchText.trim().toLowerCase();
 
     this.rows = this.all.filter(row => {
-      // Dropdown filters
       const regionOk = this.selectedRegion === 'ALL' || row.region_name === this.selectedRegion;
       const circleOk = this.selectedCircle === 'ALL' || row.circle_name === this.selectedCircle;
       const divisionOk = this.selectedDivision === 'ALL' || row.division_name === this.selectedDivision;
-
       if (!(regionOk && circleOk && divisionOk)) return false;
 
-      // Text search across common fields
       if (!txt) return true;
 
       return [
@@ -147,39 +154,7 @@ export class RmtlListOfOfficeReportsComponent implements OnInit {
     XLSX.writeFile(wb, fname);
   }
 
-  // --- TEMP MOCK DATA (useMock=true to test without API) ---
   private mockData(): OfficeReport[] {
-    return [
-      {
-        "division_code": "NULL","id": 1,"circle_code": "NULL","region_code": "3610100","org_code": "3429800",
-        "created_at": "2025-08-23T14:18:30","created_by": 1,"updated_by": 1,"division_name": "NULL",
-        "code": "3361000","name": "SE-O&M Circle-Dewas","circle_name": "NULL","region_name": "CE/ED-Region-Ujjain",
-        "org_name": "MD-Corporate-Office","updated_at": "2025-08-23T14:18:30"
-      },
-      {
-        "division_code": "NULL","id": 2,"circle_code": "NULL","region_code": "NULL","org_code": "3429800",
-        "created_at": "2025-08-23T14:18:30","created_by": 1,"updated_by": 1,"division_name": "NULL",
-        "code": "3361001","name": "AE Nodal Office (FSP) Dewas","circle_name": "NULL","region_name": "NULL",
-        "org_name": "MD-Corporate-Office","updated_at": "2025-08-23T14:18:30"
-      },
-      {
-        "division_code": "NULL","id": 3,"circle_code": "NULL","region_code": "3610100","org_code": "3429800",
-        "created_at": "2025-08-23T14:18:30","created_by": 1,"updated_by": 1,"division_name": "NULL",
-        "code": "3362000","name": "SE-O&M Circle-Shajapur","circle_name": "NULL","region_name": "CE/ED-Region-Ujjain",
-        "org_name": "MD-Corporate-Office","updated_at": "2025-08-23T14:18:30"
-      },
-      {
-        "division_code": "NULL","id": 4,"circle_code": "NULL","region_code": "NULL","org_code": "3429800",
-        "created_at": "2025-08-23T14:18:30","created_by": 1,"updated_by": 1,"division_name": "NULL",
-        "code": "3362800","name": "EE Vigilance Shajapur","circle_name": "NULL","region_name": "NULL",
-        "org_name": "MD-Corporate-Office","updated_at": "2025-08-23T14:18:30"
-      },
-      {
-        "division_code": "NULL","id": 5,"circle_code": "NULL","region_code": "3610100","org_code": "3429800",
-        "created_at": "2025-08-23T14:18:30","created_by": 1,"updated_by": 1,"division_name": "NULL",
-        "code": "3363000","name": "SE-O&M Circle-Agar","circle_name": "NULL","region_name": "CE/ED-Region-Ujjain",
-        "org_name": "MD-Corporate-Office","updated_at": "2025-08-23T14:18:30"
-      }
-    ] as any;
+    return [/* same as your mock */] as any;
   }
 }

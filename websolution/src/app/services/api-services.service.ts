@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environment/environment';
-import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass, TestReportPayload, TestingStatusAgg, DashboardCounts, BarChartItem, TestingBarChartItem, AssignmentBarItem, AssignmentPercentageItem, LineChartItem, TestingDashboardData, AssignmentDashboardData } from '../interface/models';
+import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass, TestReportPayload, TestingStatusAgg, DashboardCounts, BarChartItem, TestingBarChartItem, AssignmentBarItem, AssignmentPercentageItem, LineChartItem, TestingDashboardData, AssignmentDashboardData, DailySummaryResponse, MonthlySummaryResponse } from '../interface/models';
 
 export type DeviceType = 'METER' | 'CT';
 
@@ -620,5 +620,52 @@ getDivisions() {
   postTestingBulkWithPdf(formData: FormData): Observable<any> {
     return this.http.post(`${this.baseUrl}/testing/bulk-with-pdf/`, formData);
   }
+
+   getDailySummary(params: {
+    report_date?: string;
+    from_date?: string;
+    to_date?: string;
+    lab_id?: number | null;
+  }): Observable<DailySummaryResponse> {
+    let p = new HttpParams();
+    if (params.report_date) p = p.set('report_date', params.report_date);
+    if (params.from_date) p = p.set('from_date', params.from_date);
+    if (params.to_date) p = p.set('to_date', params.to_date);
+    if (params.lab_id !== undefined && params.lab_id !== null) p = p.set('lab_id', String(params.lab_id));
+
+    return this.http.get<DailySummaryResponse>(`${this.baseUrl}/meter-replacement-daily-summary`, { params: p });
+  }
+
+  getMonthlySummary(params: {
+    from_date?: string;
+    to_date?: string;
+    circle_code?: number | null;
+    division_code?: number | null;
+    dc_code?: number | null;
+    group_level?: 'circle' | 'division' | 'dc';
+  }): Observable<MonthlySummaryResponse> {
+    let p = new HttpParams();
+    if (params.from_date) p = p.set('from_date', params.from_date);
+    if (params.to_date) p = p.set('to_date', params.to_date);
+    if (params.circle_code !== undefined && params.circle_code !== null) p = p.set('circle_code', String(params.circle_code));
+    if (params.division_code !== undefined && params.division_code !== null) p = p.set('division_code', String(params.division_code));
+    if (params.dc_code !== undefined && params.dc_code !== null) p = p.set('dc_code', String(params.dc_code));
+    if (params.group_level) p = p.set('group_level', params.group_level);
+
+    return this.http.get<MonthlySummaryResponse>(`${this.baseUrl}/meter-replacement-monthly-summary`, { params: p });
+  }
+
+getDashboardMain(params: any) {
+  return this.http.get<any>(`${this.baseUrl}/dashboard/main`, { params });
+}
+
+getDashboardStoreUser(params: any) {
+  return this.http.get(`${this.baseUrl}/dashboard/store-user`, { params });
+}
+getDashboardTestingUser(params: any) {
+  return this.http.get(`${this.baseUrl}/dashboard/testing-user`, { params });
+}
+
+
 
 }

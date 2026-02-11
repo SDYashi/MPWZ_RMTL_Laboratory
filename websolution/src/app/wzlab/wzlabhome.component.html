@@ -18,7 +18,7 @@
     <ul class="sidebar-menu list-unstyled m-0">
       <li class="menu-item" routerLinkActive="active"
           *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','STORE_INCHARGE','TESTING_ASSISTANT'])">
-        <a class="menu-link d-flex justify-content-between align-items-center px-3 py-2 text-decoration-none text-white"
+        <a class="menu-link d-flex justify-content-between align-items-center px-1 py-2 text-decoration-none text-white"
            routerLink="/wzlab/dashboard"
            routerLinkActive="active"
            [routerLinkActiveOptions]="{ exact: true }">
@@ -28,15 +28,15 @@
     </ul>
 
     <!-- ADMIN MANAGEMENT -->
-    <div class="sidebar-heading px-3"
-         *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','STORE_INCHARGE'])">ADMIN MANAGEMENT</div>
+    <!-- <div class="sidebar-heading px-1"
+         *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">ADMIN MANAGEMENT</div> -->
     <ul class="sidebar-menu list-unstyled m-0"
-        *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','STORE_INCHARGE'])">
+        *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
 
       <!-- Laboratory Management -->
       <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                class="menu-link w-100 text-start px-1 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('LABManagement')"
                 (keydown.enter)="toggleSection('LABManagement')"
                 (keydown.space)="toggleSection('LABManagement')"
@@ -60,7 +60,7 @@
       <!-- User Management -->
       <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                class="menu-link w-100 text-start px-1 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('userManagement')"
                 (keydown.enter)="toggleSection('userManagement')"
                 (keydown.space)="toggleSection('userManagement')"
@@ -83,7 +83,7 @@
       <!-- Testing Bench Management -->
       <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                class="menu-link w-100 text-start px-1 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('benchManagement')"
                 (keydown.enter)="toggleSection('benchManagement')"
                 (keydown.space)="toggleSection('benchManagement')"
@@ -105,13 +105,13 @@
       </li>
       <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                class="menu-link w-100 text-start px-1 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('dbcontentManagement')"
                 (keydown.enter)="toggleSection('dbcontentManagement')"
                 (keydown.space)="toggleSection('dbcontentManagement')"
                 [attr.aria-expanded]="sections['dbcontentManagement'] || isRouteActive(['/wzlab/admin-console'])"
                 [attr.aria-controls]="'dbcontentManagement'">
-          <span><i class="fas fa-table me-1"></i><span class="menu-text">MasterData Management</span></span>
+          <span><i class="fas fa-table me-1"></i><span class="menu-text">Data Hierarchy Management</span></span>
           <i class="fas fa-chevron-down chevron"></i>
         </button>
         <div class="collapse"
@@ -130,7 +130,7 @@
       <!-- Vendor Management -->
       <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','STORE_INCHARGE'])">
         <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                class="menu-link w-100 text-start px-1 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('vendorManagement')"
                 (keydown.enter)="toggleSection('vendorManagement')"
                 (keydown.space)="toggleSection('vendorManagement')"
@@ -158,7 +158,7 @@
       <!-- Store Management -->
       <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE'])">
         <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                class="menu-link w-100 text-start px-1 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('storeManagement')"
                 (keydown.enter)="toggleSection('storeManagement')"
                 (keydown.space)="toggleSection('storeManagement')"
@@ -181,17 +181,17 @@
     </ul>
 
     <!-- ACTIVITY ASSIGNMENT -->
-    <div class="sidebar-heading px-3">ACTIVITY ASSIGNMENT</div>
+    <!-- <div class="sidebar-heading px-1">ACTIVITY ASSIGNMENT</div> -->
     <ul class="sidebar-menu list-unstyled m-0">
       <li class="menu-item" *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT'])">
         <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                class="menu-link w-100 text-start px-1 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('userAssignments')"
                 (keydown.enter)="toggleSection('userAssignments')"
                 (keydown.space)="toggleSection('userAssignments')"
                 [attr.aria-expanded]="sections['userAssignments'] || isRouteActive(['/wzlab/assignement'])"
                 [attr.aria-controls]="'userAssignments'">
-          <span><i class="fas fa-window-maximize me-2"></i><span class="menu-text">User Assignments</span></span>
+          <span><i class="fas fa-window-maximize me-2"></i><span class="menu-text">User Assignments Management</span></span>
           <i class="fas fa-chevron-down chevron"></i>
         </button>
         <div class="collapse"
@@ -211,13 +211,13 @@
       <!-- Received/Dispatch -->
       <li class="menu-item">
         <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                class="menu-link w-100 text-start px-1 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('receivedDispatch')"
                 (keydown.enter)="toggleSection('receivedDispatch')"
                 (keydown.space)="toggleSection('receivedDispatch')"
                 [attr.aria-expanded]="sections['receivedDispatch'] || isRouteActive(['/wzlab/devices', '/wzlab/getpass'])"
                 [attr.aria-controls]="'receivedDispatch'">
-          <span><i class="fas fa-box-open me-2"></i><span class="menu-text">Inward/Dispatch Devices</span></span>
+          <span><i class="fas fa-box-open me-2"></i><span class="menu-text">Inward/Dispatch Management</span></span>
           <i class="fas fa-chevron-down chevron"></i>
         </button>
         <div class="collapse"
@@ -239,13 +239,13 @@
       <!-- Testing Activities -->
       <li class="menu-item">
         <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                class="menu-link w-100 text-start px-1 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('testingActivities')"
                 (keydown.enter)="toggleSection('testingActivities')"
                 (keydown.space)="toggleSection('testingActivities')"
                 [attr.aria-expanded]="sections['testingActivities'] || isRouteActive(['/wzlab/testing'])"
                 [attr.aria-controls]="'testingActivities'">
-          <span><i class="fas fa-cogs me-2"></i><span class="menu-text">Generate Devices TestReports</span></span>
+          <span><i class="fas fa-cogs me-2"></i><span class="menu-text">TestReports Management</span></span>
           <i class="fas fa-chevron-down chevron"></i>
         </button>
         <div class="collapse"
@@ -286,18 +286,18 @@
     </ul>
 
     <!-- APPROVAL MANAGEMENT -->
-    <div class="sidebar-heading px-3" *ngIf="canShow(['ADMIN','OFFICER_INCHARGE'])">APPROVAL MANAGEMENT</div>
+    <!-- <div class="sidebar-heading px-1" *ngIf="canShow(['ADMIN','OFFICER_INCHARGE'])">APPROVAL MANAGEMENT</div> -->
     <ul class="sidebar-menu list-unstyled m-0"
         *ngIf="canShow(['ADMIN','OFFICER_INCHARGE'])">
       <li class="menu-item" *ngIf="canShow(['ADMIN','OFFICER_INCHARGE'])">
         <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                class="menu-link w-100 text-start px-1 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('approvalMenu')"
                 (keydown.enter)="toggleSection('approvalMenu')"
                 (keydown.space)="toggleSection('approvalMenu')"
                 [attr.aria-expanded]="sections['approvalMenu'] || isRouteActive(['/wzlab/approval'])"
                 [attr.aria-controls]="'approvalMenu'">
-          <span><i class="fas fa-check-circle me-2"></i><span class="menu-text">Approval Test Reports</span></span>
+          <span><i class="fas fa-check-circle me-2"></i><span class="menu-text">Approval Management</span></span>
           <i class="fas fa-chevron-down chevron"></i>
         </button>
         <div class="collapse"
@@ -314,12 +314,11 @@
     </ul>
 
     <!-- ANALYTICS & REPORTS -->
-    <div class="sidebar-heading px-3"
-         *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])">ANALYTICS & REPORTS</div>
+    <!-- <div class="sidebar-heading px-1"  *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])">ANALYTICS & REPORTS</div> -->
     <ul class="sidebar-menu list-unstyled m-0">
       <li class="menu-item">
         <button type="button"
-                class="menu-link w-100 text-start px-3 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
+                class="menu-link w-100 text-start px-1 py-2 d-flex justify-content-between align-items-center text-white btn btn-link border-0"
                 (click)="toggleSection('usageAnalytics')"
                 (keydown.enter)="toggleSection('usageAnalytics')"
                 (keydown.space)="toggleSection('usageAnalytics')"
@@ -343,7 +342,13 @@
                routerLink="/wzlab/reports/view-devices-summary-reports">Device Summary Reports</a>
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
                *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
-               routerLink="/wzlab/reports/view-list-of-office-reports">List of All Offfices Reports</a>
+               routerLink="/wzlab/reports/view-list-of-office-reports">All Offfices information Reports</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
+               routerLink="/wzlab/reports/view-daily-testing-summary">Daily Testing Summary</a>
+            <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
+               *ngIf="canShow(['ADMIN','EXECUTIVE','OFFICER_INCHARGE','TESTING_ASSISTANT','STORE_INCHARGE'])"
+               routerLink="/wzlab/reports/view-monthly-testing-summary">Monthly Testing Summary</a>
           </div>
         </div>
       </li>
@@ -352,7 +357,7 @@
 
   <!-- Main Content -->
   <div class="content-wrapper flex-grow-1 overflow-x-hidden">
-    <nav class="top-nav text-white d-flex justify-content-between align-items-center px-3"
+    <nav class="top-nav text-white d-flex justify-content-between align-items-center px-1"
          style="background: linear-gradient(to bottom, #081129, #010e38);">
       <div class="d-flex align-items-center">
         <button class="btn sidebar-toggle me-3 d-block d-lg-none bg-primary text-white"

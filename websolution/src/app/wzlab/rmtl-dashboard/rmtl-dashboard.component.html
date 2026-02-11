@@ -1,28 +1,22 @@
 <div class="container-fluid py-2">
 
   <!-- HEADER BAR -->
-  <div
-    class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-4 px-3 py-2 rounded shadow-sm bg-white"
-  >
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-4 px-3 py-2 rounded shadow-sm bg-white">
     <div class="d-flex align-items-center gap-3 mb-2 mb-lg-0">
-      <img
-        src="../../assets/icons/wzlogo.png"
-        alt="wzlogo"
-        width="40"
-        height="40"
-      />
-      <h1 class="h4 mb-0 fw-semibold">RMTL Laboratory Dashboard</h1>
+      <img src="../../assets/icons/wzlogo.png" alt="wzlogo" width="40" height="40" />
+      <div>
+        <h1 class="h4 mb-0 fw-semibold">RMTL Laboratory Dashboard</h1>
+        <div class="text-muted small" *ngIf="mainData?.generated_at || storeData?.generated_at || testingData?.generated_at">
+          Updated:
+          {{ mainData?.generated_at || storeData?.generated_at || testingData?.generated_at }}
+        </div>
+      </div>
     </div>
 
     <div class="text-end">
       <button class="btn btn-sm btn-outline-primary me-2" (click)="reloadAll()">
         <i class="bi bi-arrow-clockwise"></i> Refresh
       </button>
-
-      <button class="btn btn-outline-primary btn-sm me-2">
-        <i class="fas fa-download me-1"></i> Export
-      </button>
-
       <button class="btn btn-outline-secondary btn-sm" (click)="onLogout()">
         <i class="fas fa-sign-out-alt me-1"></i> Logout
       </button>
@@ -30,10 +24,7 @@
   </div>
 
   <!-- Loading / Error -->
-  <div
-    *ngIf="isLoading"
-    class="alert alert-light border d-flex align-items-center gap-2"
-  >
+  <div *ngIf="isLoading" class="alert alert-light border d-flex align-items-center gap-2">
     <i class="fas fa-spinner fa-spin"></i>
     <span>Loading dashboard…</span>
   </div>
@@ -42,190 +33,95 @@
     {{ error }}
   </div>
 
-  <!-- PRIMARY KPIs -->
-  <div class="row g-3 mt-3" *ngIf="!isLoading && !error">
-    <div class="col-6 col-md-3">
-      <div class="card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="rounded-3 bg-primary text-white p-3">
-            <i class="fas fa-box"></i>
+  <!-- ===================== MAIN DASHBOARD ===================== -->
+  <div *ngIf="!isLoading && !error && mainData" class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0 fw-semibold">Main Dashboard</h5>
+      <span class="badge bg-primary">/dashboard/main</span>
+    </div>
+
+    <!-- MAIN KPIs -->
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Inwards Device</div>
+            <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.inwards_device) }}</div>
           </div>
-          <div>
-            <div class="fw-bold h5 mb-0">{{ number(counts?.inwards) }}</div>
-            <div class="text-muted small">Total Inwards</div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Dispatched Devices</div>
+            <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.dispatched_devices) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Assigned For Testing</div>
+            <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.assigned_for_testing) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Not Assigned For Testing</div>
+            <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.not_assigned_for_testing) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Testing Completed</div>
+            <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.testing_completed) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Testing Pending</div>
+            <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.testing_pending) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Pending For Approval</div>
+            <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.pending_for_approval) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Approval Done</div>
+            <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.approval_done) }}</div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="col-6 col-md-3">
-      <div class="card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="rounded-3 bg-info text-white p-3">
-            <i class="fas fa-truck"></i>
-          </div>
-          <div>
-            <div class="fw-bold h5 mb-0">
-              {{ number(counts?.dispatcheds) }}
-            </div>
-            <div class="text-muted small">Dispatched</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-6 col-md-3">
-      <div class="card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="rounded-3 bg-success text-white p-3">
-            <i class="fas fa-clipboard-list"></i>
-          </div>
-          <div>
-            <div class="fw-bold h5 mb-0">
-              {{ number(counts?.assignments) }}
-            </div>
-            <div class="text-muted small">Assignments</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-6 col-md-3">
-      <div class="card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="rounded-3 bg-dark text-white p-3">
-            <i class="fas fa-vial"></i>
-          </div>
-          <div>
-            <div class="fw-bold h5 mb-0">
-              {{ number(counts?.testings) }}
-            </div>
-            <div class="text-muted small">Testings</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SECONDARY KPIs -->
-  <div class="row g-3 mt-1" *ngIf="!isLoading && !error">
-    <div
-      class="col-6 col-sm-4 col-lg-2"
-      *ngFor="let i of secondaryCards"
-    >
-      <div class="card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="rounded-3 bg-secondary text-white p-3">
-            <i class="fas" [ngClass]="i.icon"></i>
-          </div>
-          <div>
-            <div class="fw-bold">
-              {{ number(getCount(i.key)) }}
-            </div>
-            <div class="text-muted small">{{ i.label }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-6 col-sm-4 col-lg-2">
-      <div class="card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="rounded-3 bg-primary text-white p-3">
-            <i class="fas fa-ticket-alt"></i>
-          </div>
-          <div>
-            <div class="fw-bold">
-              {{ number(counts?.gatepasses) }}
-            </div>
-            <div class="text-muted small">Gatepasses</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-6 col-sm-4 col-lg-2">
-      <div class="card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="rounded-3 bg-success text-white p-3">
-            <i class="fas fa-thumbs-up"></i>
-          </div>
-          <div>
-            <div class="fw-bold">
-              {{ number(counts?.approved_statuses) }}
-            </div>
-            <div class="text-muted small">Approved</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-6 col-sm-4 col-lg-2">
-      <div class="card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="rounded-3 bg-warning text-white p-3">
-            <i class="fas fa-hourglass-half"></i>
-          </div>
-          <div>
-            <div class="fw-bold">
-              {{ number(counts?.pending_approvals) }}
-            </div>
-            <div class="text-muted small">Pending Approvals</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-6 col-sm-4 col-lg-2">
-      <div class="card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="rounded-3 bg-success text-white p-3">
-            <i class="fas fa-check-circle"></i>
-          </div>
-          <div>
-            <div class="fw-bold">
-              {{ number(testingCompleted) }}
-            </div>
-            <div class="text-muted small">Completed</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-6 col-sm-4 col-lg-2">
-      <div class="card border-0 shadow-sm h-100 hover-card">
-        <div class="card-body d-flex align-items-center gap-3">
-          <div class="rounded-3 bg-secondary text-white p-3">
-            <i class="fas fa-ban"></i>
-          </div>
-          <div>
-            <div class="fw-bold">
-              {{ number(testingUntestable) }}
-            </div>
-            <div class="text-muted small">Untestable</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CHARTS ROWS -->
-  <div
-    class="container-fluid py-2 mt-2"
-    *ngIf="!isLoading && !error"
-  >
-    <!-- ROW: BAR CHARTS -->
-    <div class="row g-3 mb-4">
-      <!-- Devices by Type -->
+    <!-- Charts -->
+    <div class="row g-3 mt-3">
       <div class="col-12 col-xl-6">
         <div class="card shadow-sm border-0 h-100">
-          <div
-            class="card-header bg-white border-0 d-flex justify-content-between align-items-center"
-          >
-            <div>
-              <div class="fw-semibold">Devices by Type</div>
-              <div class="text-muted small">Total received</div>
-            </div>
+          <div class="card-header bg-white border-0">
+            <div class="fw-semibold">Devices by Type</div>
+            <div class="text-muted small">Total received</div>
           </div>
           <div class="card-body">
             <div style="height:260px; position:relative;">
@@ -235,18 +131,11 @@
         </div>
       </div>
 
-      <!-- Testing Progress -->
       <div class="col-12 col-xl-6">
         <div class="card shadow-sm border-0 h-100">
-          <div
-            class="card-header bg-white border-0 d-flex justify-content-between align-items-center"
-          >
-            <div>
-              <div class="fw-semibold">Testing Progress</div>
-              <div class="text-muted small">
-                Completed vs Total
-              </div>
-            </div>
+          <div class="card-header bg-white border-0">
+            <div class="fw-semibold">Testing Progress</div>
+            <div class="text-muted small">Completed vs Total</div>
           </div>
           <div class="card-body">
             <div style="height:260px; position:relative;">
@@ -255,22 +144,12 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ROW: ASSIGNMENT & LINE -->
-    <div class="row g-3 mb-4">
-      <!-- Assignment % -->
       <div class="col-12 col-xl-4">
         <div class="card shadow-sm border-0 h-100">
-          <div
-            class="card-header bg-white border-0 d-flex justify-content-between align-items-center"
-          >
-            <div>
-              <div class="fw-semibold">Assignment %</div>
-              <div class="text-muted small">
-                Assigned / Total per device type
-              </div>
-            </div>
+          <div class="card-header bg-white border-0">
+            <div class="fw-semibold">Assignment %</div>
+            <div class="text-muted small">Assigned / Total per type</div>
           </div>
           <div class="card-body">
             <div style="height:260px; position:relative;">
@@ -280,18 +159,11 @@
         </div>
       </div>
 
-      <!-- Line chart inward per day -->
       <div class="col-12 col-xl-8">
         <div class="card shadow-sm border-0 h-100">
-          <div
-            class="card-header bg-white border-0 d-flex justify-content-between align-items-center"
-          >
-            <div>
-              <div class="fw-semibold">Inwarded per Day</div>
-              <div class="text-muted small">
-                Single Phase / Three Phase only
-              </div>
-            </div>
+          <div class="card-header bg-white border-0">
+            <div class="fw-semibold">Inwarded per Day</div>
+            <div class="text-muted small">Single / Three Phase only</div>
           </div>
           <div class="card-body">
             <div style="height:260px; position:relative;">
@@ -301,79 +173,252 @@
         </div>
       </div>
     </div>
+
+    <!-- Userwise tables -->
+    <div class="row g-3 mt-3">
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white fw-semibold">Testing Users Summary</div>
+          <div class="card-body table-responsive">
+            <table class="table table-sm table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Name</th>
+                  <th>Total Assigned</th>
+                  <th>Done</th>
+                  <th>Pending</th>
+                  <th>Approved</th>
+                  <th>Pending Approval</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let u of mainData.userwise?.testing_users">
+                  <td>{{ u.name }}</td>
+                  <td>{{ u.total_assigned }}</td>
+                  <td>{{ u.testing_done }}</td>
+                  <td>{{ u.testing_pending }}</td>
+                  <td>{{ u.approved }}</td>
+                  <td>{{ u.pending_approval }}</td>
+                </tr>
+                <tr *ngIf="(mainData.userwise?.testing_users?.length || 0) === 0">
+                  <td colspan="6" class="text-center text-muted">No records</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white fw-semibold">OIC Users Summary</div>
+          <div class="card-body table-responsive">
+            <table class="table table-sm table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Name</th>
+                  <th>Total Assigned By Me</th>
+                  <th>Not Assigned</th>
+                  <th>Approved</th>
+                  <th>Pending Approval</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let u of mainData.userwise?.oic_users">
+                  <td>{{ u.name }}</td>
+                  <td>{{ u.total_assigned_by_me }}</td>
+                  <td>{{ u.not_assigned }}</td>
+                  <td>{{ u.approved }}</td>
+                  <td>{{ u.pending_approval }}</td>
+                </tr>
+                <tr *ngIf="(mainData.userwise?.oic_users?.length || 0) === 0">
+                  <td colspan="5" class="text-center text-muted">No records</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white fw-semibold">Store Users Summary</div>
+          <div class="card-body table-responsive">
+            <table class="table table-sm table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Name</th>
+                  <th>Inwarded By Me</th>
+                  <th>Dispatched By Me</th>
+                  <th>Pending Assignment</th>
+                  <th>Pending Dispatch After Approval</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let u of mainData.userwise?.store_users">
+                  <td>{{ u.name }}</td>
+                  <td>{{ u.inwarded_by_me }}</td>
+                  <td>{{ u.dispatched_by_me }}</td>
+                  <td>{{ u.pending_assignment }}</td>
+                  <td>{{ u.pending_dispatch_after_approval }}</td>
+                </tr>
+                <tr *ngIf="(mainData.userwise?.store_users?.length || 0) === 0">
+                  <td colspan="5" class="text-center text-muted">No records</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  <!-- RECENT HISTORY TABLES -->
-  <!-- <div class="row g-3 mt-3" *ngIf="!isLoading && !error">
-    <div
-      class="col-12 col-xl-6"
-      *ngFor="let cfg of tablesConfig; trackBy: trackByIdx"
-    >
-      <div
-        class="card shadow-sm border-0 rounded-4 h-100"
-      >
-        <div
-          class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between"
-        >
-          <div class="d-flex align-items-center gap-2">
-            <i class="fas" [ngClass]="cfg.icon"></i>
-            <h5 class="mb-0">{{ cfg.title }}</h5>
+  <!-- ===================== STORE DASHBOARD ===================== -->
+  <div *ngIf="!isLoading && !error && storeData" class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0 fw-semibold">Store Dashboard</h5>
+      <span class="badge bg-success">/dashboard/store-user</span>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Total Inwards</div>
+            <div class="h5 fw-bold mb-0">{{ number(storeData.counts?.total_inwards) }}</div>
           </div>
-          <span class="text-muted small"
-            >Rows:
-            {{ getList(cfg.key).length | number }}</span
-          >
         </div>
+      </div>
 
-        <div class="card-body pt-0">
-          <ng-container
-            *ngIf="deriveCols(getList(cfg.key)) as cols"
-          >
-            <div class="table-responsive soft-max-h">
-              <table
-                class="table table-sm table-hover align-middle"
-              >
-                <thead
-                  class="table-light sticky-thead"
-                >
-                  <tr>
-                    <th
-                      *ngFor="let c of cols; trackBy: trackByIdx"
-                    >
-                      {{ prettify(c) }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    *ngFor="let row of getList(cfg.key); trackBy: trackByIdx"
-                  >
-                    <td
-                      *ngFor="let c of cols; trackBy: trackByIdx"
-                    >
-                      <span
-                        class="text-truncate-1 d-inline-block"
-                        >{{ cell(row, c) }}</span
-                      >
-                    </td>
-                  </tr>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Total Dispatched</div>
+            <div class="h5 fw-bold mb-0">{{ number(storeData.counts?.total_dispatched) }}</div>
+          </div>
+        </div>
+      </div>
 
-                  <tr
-                    *ngIf="!getList(cfg.key).length"
-                  >
-                    <td
-                      [attr.colspan]="cols.length"
-                      class="text-center text-muted"
-                    >
-                      No data
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </ng-container>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Pending Assignment</div>
+            <div class="h5 fw-bold mb-0">{{ number(storeData.counts?.pending_for_assignment) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Pending Dispatch After Approval</div>
+            <div class="h5 fw-bold mb-0">{{ number(storeData.counts?.pending_for_dispatch_after_testing_done) }}</div>
+          </div>
         </div>
       </div>
     </div>
-  </div> -->
+
+    <div class="card shadow-sm border-0 mt-3">
+      <div class="card-header bg-white fw-semibold">Store Pending Devices</div>
+      <div class="card-body table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Serial</th>
+              <th>Inward No</th>
+              <th>Inward Date</th>
+              <th>Purpose</th>
+              <th>Category</th>
+              <th>Phase</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of storeData.pending_devices">
+              <td>{{ d.serial_number }}</td>
+              <td>{{ d.inward_number }}</td>
+              <td>{{ d.inward_date }}</td>
+              <td>{{ d.device_testing_purpose }}</td>
+              <td>{{ d.meter_category }}</td>
+              <td>{{ d.phase }}</td>
+            </tr>
+            <tr *ngIf="(storeData.pending_devices?.length || 0) === 0">
+              <td colspan="6" class="text-center text-muted">No pending devices</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== TESTING DASHBOARD ===================== -->
+  <div *ngIf="!isLoading && !error && testingData" class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0 fw-semibold">Testing Dashboard</h5>
+      <span class="badge bg-warning text-dark">/dashboard/testing-user</span>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Total Assigned</div>
+            <div class="h5 fw-bold mb-0">{{ number(testingData.counts?.total_assigned) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Total Tested</div>
+            <div class="h5 fw-bold mb-0">{{ number(testingData.counts?.total_tested) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="text-muted small">Pending For Tested</div>
+            <div class="h5 fw-bold mb-0">{{ number(testingData.counts?.pending_for_tested) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mt-3">
+      <div class="card-header bg-white fw-semibold">Pending Assignments For Testing</div>
+      <div class="card-body table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Serial</th>
+              <th>Inward No</th>
+              <th>Inward Date</th>
+              <th>Purpose</th>
+              <th>Category</th>
+              <th>Phase</th>
+              <th>Assigned Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of testingData.pending_devices">
+              <td>{{ d.serial_number }}</td>
+              <td>{{ d.inward_number }}</td>
+              <td>{{ d.inward_date }}</td>
+              <td>{{ d.device_testing_purpose }}</td>
+              <td>{{ d.meter_category }}</td>
+              <td>{{ d.phase }}</td>
+              <td>{{ d.assigned_datetime }}</td>
+            </tr>
+            <tr *ngIf="(testingData.pending_devices?.length || 0) === 0">
+              <td colspan="7" class="text-center text-muted">No pending assignments</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>

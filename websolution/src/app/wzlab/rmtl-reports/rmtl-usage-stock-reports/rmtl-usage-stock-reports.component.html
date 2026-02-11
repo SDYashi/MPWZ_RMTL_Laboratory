@@ -158,10 +158,10 @@
                   <th>Category / CT Class</th>
                   <th>Phase / CT Ratio</th>
                   <th>Meter Type</th>
-                  <th>Available</th>
+                  <th>TOTAL</th>
                   <th>INWARD</th>
                   <th>DISPATCHED</th>
-                  <th>Total</th>
+                  <th>AVAILABLE</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,7 +175,7 @@
                   <td>{{ s.available }}</td>
                   <td>{{ s.reserved }}</td>
                   <td>{{ s.faulty }}</td>
-                  <td class="fw-bold">{{ s.reserved + s.faulty }}</td>
+                  <td class="fw-bold">{{ s.reserved - s.faulty }}</td>
                 </tr>
 
                 <tr *ngIf="!stockFiltered.length">
@@ -188,7 +188,7 @@
                   <td class="fw-bold">{{ totals.available }}</td>
                   <td class="fw-bold">{{ totals.reserved }}</td>
                   <td class="fw-bold">{{ totals.faulty }}</td>
-                  <td class="fw-bold">{{ totals.stock }}</td>
+                  <td class="fw-bold">{{ totals.available - totals.faulty }}</td>
                 </tr>
               </tfoot>
             </table>
