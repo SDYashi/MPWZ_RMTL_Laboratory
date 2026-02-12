@@ -1,8 +1,7 @@
-import { Component, OnDestroy, OnInit, NgZone } from '@angular/core';
-import { Router } from '@angular/router';
+import { ApplicationRef, Component, OnDestroy, OnInit, NgZone } from '@angular/core';
 import { ChartConfiguration } from 'chart.js';
 import { Subscription } from 'rxjs';
-
+import { first } from 'rxjs/operators';
 import {
   AssignmentPercentageItem,
   BarChartItem,
@@ -10,7 +9,6 @@ import {
   TestingBarChartItem,
 } from 'src/app/interface/models';
 import { ApiServicesService } from 'src/app/services/api-services.service';
-
 import {
   Chart,
   BarController,
@@ -23,6 +21,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { AuthService } from 'src/app/core/auth.service';
 
 Chart.register(
   BarController,
@@ -36,7 +35,13 @@ Chart.register(
   Legend
 );
 
-// ----------------- API RESPONSE TYPES -----------------
+// ✅ Global chart polish (optional but recommended)
+Chart.defaults.color = '#334155';
+Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+Chart.defaults.plugins.tooltip.backgroundColor = '#0f172a';
+Chart.defaults.plugins.tooltip.titleColor = '#fff';
+Chart.defaults.plugins.tooltip.bodyColor = '#e5e7eb';
+
 interface DashboardMainResponse {
   generated_at?: string;
   counts?: {
@@ -56,27 +61,6 @@ interface DashboardMainResponse {
   };
 }
 
-interface DashboardTestingUserResponse {
-  generated_at?: string;
-  counts?: {
-    total_assigned: number;
-    total_tested: number;
-    pending_for_tested: number;
-  };
-  pending_devices?: any[];
-}
-
-interface DashboardStoreUserResponse {
-  generated_at?: string;
-  counts?: {
-    total_inwards: number;
-    total_dispatched: number;
-    pending_for_assignment: number;
-    pending_for_dispatch_after_testing_done: number;
-  };
-  pending_devices?: any[];
-}
-
 @Component({
   selector: 'app-rmtl-dashboard',
   templateUrl: './rmtl-dashboard.component.html',
@@ -85,29 +69,26 @@ interface DashboardStoreUserResponse {
 export class RmtlDashboardComponent implements OnInit, OnDestroy {
   currentUser: any | null = null;
 
-  // ✅ ALL DATA VISIBLE
-  mainData: DashboardMainResponse | null = null;
-  storeData: DashboardStoreUserResponse | null = null;
-  testingData: DashboardTestingUserResponse | null = null;
+  filters = {
+    start_date: '',
+    end_date: '',
+    lab_id: '' as string,
+    device_type: '' as '' | 'METER' | 'CT',
+  };
 
-  // loading/error
+  mainData: DashboardMainResponse | null = null;
+  labs: any[] = [];
+
   isLoading = false;
   error: string | null = null;
 
-  // filters (if you want later)
-  currentFilters: any = {
-    lab_id: 0,         // 0 = all labs for main api
-    start_date: null,
-    end_date: null,
-    device_type: null,
-  };
-
-  // ---------------- CHARTS ----------------
+  // charts instances
   private devicesByTypeChart?: Chart;
   private testingProgressChart?: Chart;
   private assignmentPctChart?: Chart;
   private inwardPerDayChart?: Chart;
 
+  // chart configs
   private devicesByTypeConfig?: ChartConfiguration<'bar'>;
   private testingProgressConfig?: ChartConfiguration<'bar'>;
   private assignmentPctConfig?: ChartConfiguration<'bar'>;
@@ -123,22 +104,110 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
 
   private subs: Subscription[] = [];
 
+  // ---------- chart colors ----------
+  private COLORS = {
+    blue: '#4f46e5',
+    green: '#22c55e',
+    orange: '#f97316',
+    red: '#ef4444',
+    purple: '#a855f7',
+    cyan: '#06b6d4',
+    yellow: '#eab308',
+    gray: '#64748b',
+  };
+
+  private BG = {
+    blue: 'rgba(79,70,229,0.7)',
+    green: 'rgba(34,197,94,0.7)',
+    orange: 'rgba(249,115,22,0.7)',
+    red: 'rgba(239,68,68,0.7)',
+    purple: 'rgba(168,85,247,0.7)',
+    cyan: 'rgba(6,182,212,0.7)',
+    yellow: 'rgba(234,179,8,0.7)',
+  };
+
   constructor(
-    private router: Router,
     private api: ApiServicesService,
-    private zone: NgZone
+    private zone: NgZone,
+    private auth: AuthService,
+    private appRef: ApplicationRef
   ) {}
 
-  ngOnInit(): void {
-    const raw = localStorage.getItem('current_user');
-    if (raw) {
-      try {
-        this.currentUser = JSON.parse(raw);
-      } catch {
-        this.currentUser = null;
+  // ---------- role helpers ----------
+  get roles(): string[] {
+    const raw = this.currentUser?.roles ?? this.currentUser?.role ?? [];
+    const normalize = (v: any): string[] => {
+      if (!v) return [];
+      if (Array.isArray(v)) {
+        return v.flatMap((x) => {
+          if (!x) return [];
+          if (typeof x === 'string') return [x.toUpperCase()];
+          if (typeof x === 'object') {
+            const name =
+              x.name ??
+              x.role ??
+              x.role_name ??
+              x.code ??
+              x.slug ??
+              x.title ??
+              '';
+            return name ? [String(name).toUpperCase()] : [];
+          }
+          return [String(x).toUpperCase()];
+        });
       }
+      if (typeof v === 'string') {
+        return v
+          .split(',')
+          .map((s) => s.trim().toUpperCase())
+          .filter(Boolean);
+      }
+      if (typeof v === 'object') {
+        const name = v.name ?? v.role ?? v.role_name ?? '';
+        return name ? [String(name).toUpperCase()] : [];
+      }
+      return [String(v).toUpperCase()];
+    };
+    return Array.from(new Set(normalize(raw)));
+  }
+
+  hasRole(role: string): boolean {
+    const target = role.toUpperCase();
+    return this.roles.some((r) => {
+      const rr = String(r).toUpperCase();
+      return rr === target || rr === `ROLE_${target}` || rr.includes(target);
+    });
+  }
+
+  get canSeeMain(): boolean {
+    return (
+      this.hasRole('ADMIN') ||
+      this.hasRole('EXECUTIVE') ||
+      this.hasRole('SUPERADMIN')
+    );
+  }
+
+  // ---------- lifecycle ----------
+  ngOnInit(): void {
+    this.currentUser = this.auth.currentUser;
+    if (!this.currentUser) {
+      const ls = localStorage.getItem('current_user');
+      this.currentUser = ls ? JSON.parse(ls) : null;
     }
-    this.reloadAll();
+
+    this.subs.push(
+      this.api.getLabs().subscribe({
+        next: (res) => (this.labs = res || []),
+        error: () => (this.labs = []),
+      })
+    );
+
+    if (!this.currentUser) {
+      this.error = 'User not loaded. Please login again.';
+      return;
+    }
+
+    this.reload();
   }
 
   ngOnDestroy(): void {
@@ -146,17 +215,22 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     this.subs.forEach((s) => s.unsubscribe());
   }
 
-  // ---------------- ACTIONS ----------------
+  onDateChange(): void {
+    this.reload();
+  }
 
-  reloadAll(): void {
+  onLabChange(): void {
+    this.reload();
+  }
+
+  // ---------- main reload ----------
+  reload(): void {
     this.error = null;
     this.isLoading = true;
 
     this.mainData = null;
-    this.storeData = null;
-    this.testingData = null;
 
-    // reset charts
+    // reset charts state
     this.destroyCharts();
     this.chartDataReady = false;
     this.chartSourcesLoaded = {
@@ -165,51 +239,41 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
       barAssignPct: false,
       lineInward: false,
     };
-      const now = new Date();
-      const first = new Date(now.getFullYear(), now.getMonth(), 1);
-      const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      const from_date = this.currentFilters?.start_date || first.toISOString().split('T')[0];
-      const to_date = this.currentFilters?.end_date || last.toISOString().split('T')[0]; 
 
-    const sub1 = this.api.getDashboardMain({
-      from_date,
-      to_date,
-      lab_id: this.currentFilters?.lab_id ?? '',
-    }).subscribe({
-      next: (res: DashboardMainResponse) => (this.mainData = res),
-      error: (err) => this.setError(err),
-    });
+    const { from_date, to_date } = this.getDateRange();
 
-    const sub2 = this.api.getDashboardStoreUser({
-      from_date,
-      to_date,
-    }).subscribe({
-      next: (res: DashboardStoreUserResponse) => (this.storeData = res),
-      error: (err) => this.setError(err),
-    });
+    // MAIN
+    this.subs.push(
+      this.api
+        .getDashboardMain({
+          from_date,
+          to_date,
+          lab_id: this.filters.lab_id ? Number(this.filters.lab_id) : undefined,
+        })
+        .subscribe({
+          next: (res: DashboardMainResponse) => {
+            this.mainData = res;
+            this.isLoading = false;
+            this.renderChartsIfReady();
+          },
+          error: (err) => this.setError(err),
+        })
+    );
 
-    const sub3 = this.api.getDashboardTestingUser({
-      from_date,
-      to_date,
-    }).subscribe({
-      next: (res: DashboardTestingUserResponse) => (this.testingData = res),
-      error: (err) => this.setError(err),
-    });
+    // CHARTS
+    this.reloadChartsData(from_date, to_date);
+  }
 
-    this.subs.push(sub1, sub2, sub3);
+  private getDateRange(): { from_date: string; to_date: string } {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    // ✅ charts (optional) — if your chart APIs are public for all, keep them
-    this.reloadChartsData();
-
-    // stop loader once all 3 arrived (simple timer based check)
-    const watcher = setInterval(() => {
-      const done = !!this.mainData && !!this.storeData && !!this.testingData;
-      if (done || this.error) {
-        clearInterval(watcher);
-        this.isLoading = false;
-        this.renderChartsIfReady();
-      }
-    }, 100);
+    const from_date =
+      this.filters.start_date || firstDay.toISOString().split('T')[0];
+    const to_date =
+      this.filters.end_date || lastDay.toISOString().split('T')[0];
+    return { from_date, to_date };
   }
 
   private setError(err: any) {
@@ -217,196 +281,213 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     this.isLoading = false;
   }
 
-  onLogout(): void {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('current_user');
-    this.router.navigate(['/wzlogin']);
-  }
-
-  // ---------------- UI HELPERS ----------------
-
   number(n?: number | null): string {
     return (n ?? 0).toLocaleString();
   }
 
-  // ---------------- CHARTS ----------------
-
-  private buildParamsForApi() {
+  // ---------- charts loaders ----------
+  private buildChartParams(from_date: string, to_date: string) {
     return {
-      lab_id: this.currentFilters.lab_id,
-      start_date: this.currentFilters.start_date,
-      end_date: this.currentFilters.end_date,
-      device_type: this.currentFilters.device_type,
+      lab_id: this.filters.lab_id ? Number(this.filters.lab_id) : undefined,
+      from_date,
+      to_date,
+      device_type: this.filters.device_type || undefined,
     };
   }
 
-  private reloadChartsData(): void {
-    const p = this.buildParamsForApi();
+  private reloadChartsData(from_date: string, to_date: string): void {
+    const p = this.buildChartParams(from_date, to_date);
 
     // Devices by Type
     this.subs.push(
-      this.api.getBarChart(p).subscribe((data: BarChartItem[]) => {
-        const labels = data.map((x) => x.device_type);
-        const counts = data.map((x) => x.count);
+      this.api.getBarChart(p).subscribe({
+        next: (data: BarChartItem[]) => {
+          const labels = (data || []).map((x) => x.device_type);
+          const counts = (data || []).map((x) => x.count);
 
-        this.devicesByTypeConfig = {
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Total Devices',
-                data: counts,
-                backgroundColor: 'rgba(13,110,253,0.2)',
-                borderColor: 'rgba(13,110,253,1)',
-                borderWidth: 1,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { ticks: { autoSkip: false } },
-              y: { beginAtZero: true, ticks: { precision: 0 } },
+          const bgList = Object.values(this.BG);
+          const brList = Object.values(this.COLORS);
+
+          this.devicesByTypeConfig = {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Total Devices',
+                  data: counts,
+                  backgroundColor: labels.map((_, i) => bgList[i % bgList.length]),
+                  borderColor: labels.map((_, i) => brList[i % brList.length]),
+                  borderWidth: 1,
+                  borderRadius: 6,
+                  hoverBackgroundColor: labels.map((_, i) => brList[i % brList.length]),
+                },
+              ],
             },
-          },
-        };
-        this.chartSourcesLoaded.barDevices = true;
-        this.renderChartsIfReady();
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+            },
+          };
+
+          this.chartSourcesLoaded.barDevices = true;
+          this.renderChartsIfReady();
+        },
+        error: () => {
+          this.chartSourcesLoaded.barDevices = true;
+          this.renderChartsIfReady();
+        },
       })
     );
 
     // Testing Progress
     this.subs.push(
-      this.api.getTestingBarChart(p).subscribe((data: TestingBarChartItem[]) => {
-        const labels = data.map((x) => x.device_type);
-        const totals = data.map((x) => x.total);
-        const completed = data.map((x) => x.completed);
+      this.api.getTestingBarChart(p).subscribe({
+        next: (data: TestingBarChartItem[]) => {
+          const labels = (data || []).map((x) => x.device_type);
+          const totals = (data || []).map((x) => x.total);
+          const completed = (data || []).map((x) => x.completed);
 
-        this.testingProgressConfig = {
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Completed',
-                data: completed,
-                backgroundColor: 'rgba(25,135,84,0.2)',
-                borderColor: 'rgba(25,135,84,1)',
-                borderWidth: 1,
-              },
-              {
-                label: 'Total',
-                data: totals,
-                backgroundColor: 'rgba(108,117,125,0.2)',
-                borderColor: 'rgba(108,117,125,1)',
-                borderWidth: 1,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } },
-            scales: {
-              x: { stacked: false },
-              y: { beginAtZero: true, ticks: { precision: 0 } },
+          this.testingProgressConfig = {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Completed',
+                  data: completed,
+                  backgroundColor: this.BG.green,
+                  borderColor: this.COLORS.green,
+                  borderWidth: 1,
+                  borderRadius: 6,
+                },
+                {
+                  label: 'Total',
+                  data: totals,
+                  backgroundColor: this.BG.blue,
+                  borderColor: this.COLORS.blue,
+                  borderWidth: 1,
+                  borderRadius: 6,
+                },
+              ],
             },
-          },
-        };
-        this.chartSourcesLoaded.barTesting = true;
-        this.renderChartsIfReady();
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom' } },
+            },
+          };
+
+          this.chartSourcesLoaded.barTesting = true;
+          this.renderChartsIfReady();
+        },
+        error: () => {
+          this.chartSourcesLoaded.barTesting = true;
+          this.renderChartsIfReady();
+        },
       })
     );
 
     // Assignment %
     this.subs.push(
-      this.api.getAssignmentPercentage(p).subscribe((data: AssignmentPercentageItem[]) => {
-        const labels = data.map((x) => x.device_type);
-        const pctValues = data.map((x) => parseFloat(String(x.percentage).replace('%', '')));
+      this.api.getAssignmentPercentage(p).subscribe({
+        next: (data: AssignmentPercentageItem[]) => {
+          const labels = (data || []).map((x) => x.device_type);
+          const pctValues = (data || []).map((x) => {
+            const v = (x as any).percentage ?? '0';
+            return parseFloat(String(v).replace('%', '')) || 0;
+          });
 
-        this.assignmentPctConfig = {
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Assigned %',
-                data: pctValues,
-                backgroundColor: 'rgba(255,193,7,0.2)',
-                borderColor: 'rgba(255,193,7,1)',
-                borderWidth: 1,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { grid: { display: false } },
-              y: {
-                beginAtZero: true,
-                max: 100,
-                ticks: { callback: (val) => val + '%' },
-              },
+          this.assignmentPctConfig = {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Assigned %',
+                  data: pctValues,
+                  backgroundColor: pctValues.map((v) =>
+                    v >= 80 ? this.BG.green : v >= 50 ? this.BG.yellow : this.BG.red
+                  ),
+                  borderColor: pctValues.map((v) =>
+                    v >= 80 ? this.COLORS.green : v >= 50 ? this.COLORS.yellow : this.COLORS.red
+                  ),
+                  borderWidth: 1,
+                  borderRadius: 6,
+                },
+              ],
             },
-          },
-        };
-        this.chartSourcesLoaded.barAssignPct = true;
-        this.renderChartsIfReady();
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true, max: 100 } },
+            },
+          };
+
+          this.chartSourcesLoaded.barAssignPct = true;
+          this.renderChartsIfReady();
+        },
+        error: () => {
+          this.chartSourcesLoaded.barAssignPct = true;
+          this.renderChartsIfReady();
+        },
       })
     );
 
     // Inward per Day
     this.subs.push(
-      this.api.getCompletedActivitiesLine(p).subscribe((data: LineChartItem[]) => {
-        const sorted = [...data].sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
+      this.api.getCompletedActivitiesLine(p).subscribe({
+        next: (data: LineChartItem[]) => {
+          const sorted = [...(data || [])].sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+          );
+          const labels = sorted.map((x) => this.formatDateLabel(x.date));
+          const counts = sorted.map((x) => x.count);
 
-        const labels = sorted.map((x) => this.formatDateLabel(x.date));
-        const counts = sorted.map((x) => x.count);
-
-        this.inwardPerDayConfig = {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Inwarded Devices',
-                data: counts,
-                borderColor: 'rgba(13,110,253,1)',
-                backgroundColor: 'rgba(13,110,253,0.15)',
-                borderWidth: 2,
-                pointRadius: 3,
-                pointHoverRadius: 5,
-                tension: 0.3,
-                fill: true,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } },
-            scales: {
-              x: { grid: { display: false } },
-              y: { beginAtZero: true, ticks: { precision: 0 } },
+          this.inwardPerDayConfig = {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Inwarded Devices',
+                  data: counts,
+                  borderColor: this.COLORS.purple,
+                  backgroundColor: 'rgba(168,85,247,0.25)',
+                  pointBackgroundColor: this.COLORS.purple,
+                  pointBorderColor: '#fff',
+                  pointRadius: 4,
+                  pointHoverRadius: 6,
+                  tension: 0.35,
+                  fill: true,
+                },
+              ],
             },
-          },
-        };
-        this.chartSourcesLoaded.lineInward = true;
-        this.renderChartsIfReady();
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom' } },
+            },
+          };
+
+          this.chartSourcesLoaded.lineInward = true;
+          this.renderChartsIfReady();
+        },
+        error: () => {
+          this.chartSourcesLoaded.lineInward = true;
+          this.renderChartsIfReady();
+        },
       })
     );
   }
 
+  // ✅ FIXED: wait until DOM creates canvases, then draw (retry if needed)
   private renderChartsIfReady(): void {
     if (this.chartDataReady) return;
     if (this.isLoading || this.error) return;
+    if (!this.mainData) return;
 
     const allReady =
       this.chartSourcesLoaded.barDevices &&
@@ -415,6 +496,26 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
       this.chartSourcesLoaded.lineInward;
 
     if (!allReady) return;
+
+    this.appRef.isStable.pipe(first((v) => v === true)).subscribe(() => {
+      requestAnimationFrame(() => this.tryDrawCharts(0));
+    });
+  }
+
+  private tryDrawCharts(attempt: number) {
+    const ids = [
+      'devicesByTypeChart',
+      'testingProgressChart',
+      'assignmentPctChart',
+      'inwardPerDayChart',
+    ];
+    const allCanvasExist = ids.every((id) => !!document.getElementById(id));
+
+    if (!allCanvasExist) {
+      if (attempt < 3) requestAnimationFrame(() => this.tryDrawCharts(attempt + 1));
+      else console.warn('Chart canvases not found after retries. Check *ngIf and canvas ids.', ids);
+      return;
+    }
 
     this.zone.runOutsideAngular(() => {
       this.devicesByTypeChart = this.initOrUpdateChart(
@@ -448,8 +549,13 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     config: ChartConfiguration
   ): Chart {
     if (chartInstance) chartInstance.destroy();
+
     const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
-    if (!canvas) return chartInstance as any;
+    if (!canvas) {
+      console.warn(`Chart canvas not found: ${canvasId}`);
+      return chartInstance as any;
+    }
+
     return new Chart(canvas, config);
   }
 
