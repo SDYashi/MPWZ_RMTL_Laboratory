@@ -14,7 +14,7 @@
 
       <!-- From Date -->
       <div class="col-12 col-sm-6 col-md-4">
-        <label class="form-label fw-semibold">From Date</label>
+        <label class="form-label fw-semibold"><b>From Date</b></label>
         <input
           type="date"
           class="form-control"
@@ -25,7 +25,7 @@
 
       <!-- To Date -->
       <div class="col-12 col-sm-6 col-md-4">
-        <label class="form-label fw-semibold">To Date</label>
+        <label class="form-label fw-semibold"><b>To Date</b></label>
         <input
           type="date"
           class="form-control"
@@ -34,21 +34,15 @@
         />
       </div>
 
-      <!-- Lab Select -->
-      <!-- <div class="col-12 col-md-4">
-        <label class="form-label fw-semibold">Select Lab</label>
-        <select
-          class="form-select"
-          [(ngModel)]="filters.lab_id"
-          (change)="onLabChange()"
-        >
-          <option value="">All Labs</option>
-          <option *ngFor="let lab of labs" [value]="lab.id">
-            {{ lab.lab_name }}
-          </option>
-        </select>
-      </div> -->
-
+      <!-- Search -->
+      <div class="col-12 col-sm-6 col-md-4 d-flex align-items-end">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" class="form-control" placeholder="Search by serial no, name, or comment"
+                 [(ngModel)]="filters.search" (keydown.enter)="onSearchChanged()">
+        </div>
+        <button class="btn btn-primary ms-2" (click)="onSearchChanged()">Search</button>
+      </div>
     </div>
   </div>
 </div>
@@ -65,8 +59,8 @@
     <div class="row g-3">
       <div class="col-6 col-md-4">
         <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-muted small">Total Assigned</div>
+          <div class="card-body" style="background: linear-gradient(135deg, #97dcc0, #dffaf0);">
+            <div class="text-muted fw-bold">Total Assigned</div>
             <div class="h5 fw-bold mb-0">{{ number(testingData.counts?.total_assigned) }}</div>
           </div>
         </div>
@@ -74,8 +68,8 @@
 
       <div class="col-6 col-md-4">
         <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-muted small">Total Tested</div>
+          <div class="card-body" style="background: linear-gradient(135deg, #f3b586, #ece5df);">
+            <div class="text-muted fw-bold">Total Testing Completed</div>
             <div class="h5 fw-bold mb-0">{{ number(testingData.counts?.total_tested) }}</div>
           </div>
         </div>
@@ -83,8 +77,8 @@
 
       <div class="col-6 col-md-4">
         <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-muted small">Pending For Tested</div>
+          <div class="card-body" style="background: linear-gradient(135deg, #b8845f, #ffe8da);">
+            <div class="text-muted fw-bold">Pending For Testeing</div>
             <div class="h5 fw-bold mb-0">{{ number(testingData.counts?.pending_for_tested) }}</div>
           </div>
         </div>
@@ -94,33 +88,43 @@
     <div class="card shadow-sm border-0 mt-3">
       <div class="card-header bg-white fw-semibold">Pending Assignments For Testing</div>
       <div class="card-body table-responsive">
-        <table class="table table-sm table-bordered align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>Serial</th>
-              <th>Inward No</th>
-              <th>Inward Date</th>
-              <th>Purpose</th>
-              <th>Category</th>
-              <th>Phase</th>
-              <th>Assigned Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let d of testingData.pending_devices">
-              <td>{{ d.serial_number }}</td>
-              <td>{{ d.inward_number }}</td>
-              <td>{{ d.inward_date }}</td>
-              <td>{{ d.device_testing_purpose }}</td>
-              <td>{{ d.meter_category }}</td>
-              <td>{{ d.phase }}</td>
-              <td>{{ d.assigned_datetime }}</td>
-            </tr>
-            <tr *ngIf="(testingData.pending_devices?.length || 0) === 0">
-              <td colspan="7" class="text-center text-muted">No pending assignments</td>
-            </tr>
-          </tbody>
-        </table>
+<table class="table table-sm table-bordered align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>#</th>
+      <th>Serial</th>
+      <th>Inward No</th>
+      <th>Inward Date</th>
+      <th>Purpose</th>
+      <!-- <th>Category</th>
+      <th>Phase</th> -->
+      <th>Assigned Date</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr *ngFor="let d of testingData.pending_devices; let i = index">
+      <!-- Serial number -->
+      <td>{{ i + 1 }}</td>
+
+      <td>{{ d.serial_number }}</td>
+      <td>{{ d.inward_number }}</td>
+      <td>{{ d.inward_date | date:'dd-MM-yyyy' }}</td>
+      <td>{{ d.device_testing_purpose?.split('.').pop() }}</td>
+
+      <!-- <td>{{ d.meter_category }}</td>
+      <td>{{ d.phase }}</td> -->
+      <td>{{ d.assigned_datetime | date:'dd-MM-yyyy HH:mm' }}</td>
+    </tr>
+
+    <tr *ngIf="(testingData.pending_devices?.length || 0) === 0">
+      <td colspan="8" class="text-center text-muted">
+        No pending assignments
+      </td>
+    </tr>
+  </tbody>
+</table>
+
       </div>
     </div>
 

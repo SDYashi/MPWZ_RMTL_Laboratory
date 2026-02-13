@@ -72,9 +72,9 @@
     <!-- MAIN KPIs -->
     <div class="row g-3">
       <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card border-0 shadow-sm h-100"  style="background: linear-gradient(135deg, #e8f8f5, #d1f2eb);">
           <div class="card-body">
-            <div class="text-muted small">Inwards Device</div>
+            <div class="text-muted fw-bold">Inwards Device</div>
             <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.inwards_device) }}</div>
           </div>
         </div>
@@ -82,8 +82,8 @@
 
       <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-muted small">Dispatched Devices</div>
+          <div class="card-body" style="background: linear-gradient(135deg, #eaf2ff, #dbe7ff);">
+            <div class="text-muted fw-bold">Dispatched Devices</div>
             <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.dispatched_devices) }}</div>
           </div>
         </div>
@@ -91,8 +91,8 @@
 
       <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-muted small">Assigned For Testing</div>
+          <div class="card-body" style="background: linear-gradient(135deg, #f2f0fa, #e6e3f5);">
+            <div class="text-muted fw-bold">Assigned For Testing</div>
             <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.assigned_for_testing) }}</div>
           </div>
         </div>
@@ -100,8 +100,8 @@
 
       <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-muted small">Not Assigned For Testing</div>
+          <div class="card-body" style="background: linear-gradient(135deg, #f0f9f4, #dff3ea);">
+            <div class="text-muted fw-bold">Not Assigned For Testing</div>
             <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.not_assigned_for_testing) }}</div>
           </div>
         </div>
@@ -109,8 +109,8 @@
 
       <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-muted small">Testing Completed</div>
+          <div class="card-body" style="background: linear-gradient(135deg, #faf8f3, #f0ede6);">
+            <div class="text-muted fw-bold">Testing Completed</div>
             <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.testing_completed) }}</div>
           </div>
         </div>
@@ -118,8 +118,8 @@
 
       <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-muted small">Testing Pending</div>
+          <div class="card-body" style="background: linear-gradient(135deg, #f4f7fb, #e9eef5);">
+            <div class="text-muted fw-bold">Testing Pending</div>
             <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.testing_pending) }}</div>
           </div>
         </div>
@@ -127,8 +127,8 @@
 
       <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-muted small">Pending For Approval</div>
+          <div class="card-body" style="background: linear-gradient(135deg, #a7c4e9, #e9eef5);">
+            <div class="text-muted fw-bold">Pending For Approval</div>
             <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.pending_for_approval) }}</div>
           </div>
         </div>
@@ -136,8 +136,8 @@
 
       <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="text-muted small">Approval Done</div>
+          <div class="card-body" style="background: linear-gradient(135deg, #eef5ff, #e1ecff);">
+            <div class="text-muted fw-bold">Approval Done</div>
             <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.approval_done) }}</div>
           </div>
         </div>

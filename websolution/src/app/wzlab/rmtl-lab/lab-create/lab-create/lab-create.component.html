@@ -2,7 +2,7 @@
   <div class="card shadow">
     <div
       class="card-header d-flex align-items-center justify-content-between"
-      style="background-color:#151433; color:#f2ecec; font-weight:bold;"
+      style="background-color: rgb(71, 175, 124); color:#f2ecec; font-weight:bold;"
     >
       <div class="d-flex align-items-center gap-2">
         <h5 class="mb-0">{{ lab?.id ? 'Edit Laboratory' : 'Add New Laboratory' }}</h5>
@@ -180,7 +180,7 @@
 <div class="modal fade" #previewModal tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
-      <div class="modal-header border-0" style="background:#151433; color:#fff;">
+      <div class="modal-header border-0" style="background: rgb(71, 175, 124); color:#fff;">
         <h5 class="modal-title fw-bold" id="previewModalLabel">
           <i class="fas fa-search me-2"></i>Confirm Laboratory Details
         </h5>
@@ -261,7 +261,7 @@
 <div class="modal fade" #alertModal tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" [ngClass]="{ 'border-success': responseSuccess, 'border-danger': !responseSuccess }">
-      <div class="modal-header border-0" style="background:#151433; color:#fff;">
+      <div class="modal-header border-0" style="background: rgb(71, 175, 124); color:#fff;">
         <h5 class="modal-title fw-bold" id="alertModalLabel">
           <span class="ms-2">{{ responseSuccess ? 'Done' : 'Error' }}</span>
         </h5>

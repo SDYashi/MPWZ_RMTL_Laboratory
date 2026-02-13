@@ -24,6 +24,7 @@ export class RmtlTestingDashboardComponent implements OnInit, OnDestroy {
     end_date: '',
     lab_id: '',
     user_id: '',
+    search: '',
   };
 
   labs: any[] = [];
@@ -50,7 +51,19 @@ export class RmtlTestingDashboardComponent implements OnInit, OnDestroy {
 
     this.reload();
   }
-
+  onSearchChanged() {
+   this.subs.push(
+      this.api.getDashboardTestingUser({ user_id: this.filters.user_id,serial_number: this.filters.search }).subscribe({
+        next: (res: DashboardTestingUserResponse) => {
+          this.testingData = res;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          this.error = err?.error?.detail || err?.message || 'Something went wrong while Searching Data';
+          this.isLoading = false;
+        },
+      }));
+  }
   ngOnDestroy(): void {
     this.subs.forEach((s) => s.unsubscribe());
   }
@@ -59,9 +72,7 @@ export class RmtlTestingDashboardComponent implements OnInit, OnDestroy {
     this.reload();
   }
 
-  onLabChange(): void {
-    this.reload();
-  }
+
 
   reload(): void {
     this.error = null;

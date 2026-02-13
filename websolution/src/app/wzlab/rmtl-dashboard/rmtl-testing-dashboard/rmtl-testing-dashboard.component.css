@@ -1,0 +1,204 @@
+/* =========================
+   RMTL DASHBOARD (Bootstrap Enhancements)
+   Responsive + Clean UI
+   ========================= */
+
+/* Page background */
+:host {
+  display: block;
+  background: #f6f8fb;
+}
+
+/* Header bar */
+.dashboard-header {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 14px;
+}
+
+/* Header title */
+.dashboard-title {
+  letter-spacing: 0.2px;
+}
+
+/* Buttons */
+.btn-soft {
+  border-radius: 10px;
+  padding: 0.4rem 0.75rem;
+}
+
+/* Card base */
+.card {
+  border-radius: 14px;
+}
+
+.card.shadow-sm {
+  box-shadow: 0 10px 25px rgba(16, 24, 40, 0.06) !important;
+}
+
+.card-header {
+  border-top-left-radius: 14px !important;
+  border-top-right-radius: 14px !important;
+}
+
+/* KPI cards hover */
+.hover-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.hover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(16, 24, 40, 0.10) !important;
+}
+
+/* KPI icon block (optional) */
+.kpi-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  font-size: 1.1rem;
+}
+
+/* Section header row */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.section-head h5 {
+  margin: 0;
+  font-weight: 700;
+}
+
+/* Badge style */
+.section-badge {
+  font-size: 0.75rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+}
+
+/* Table enhancements */
+.table {
+  background: #fff;
+  margin-bottom: 0;
+}
+
+.table thead.table-light th {
+  background: #f2f5f9 !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  color: #111827;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.table td,
+.table th {
+  vertical-align: middle !important;
+}
+
+.table td {
+  color: #111827;
+}
+
+/* Prevent table breaking on small screens */
+.table-responsive {
+  border-radius: 14px;
+  overflow: auto;
+}
+
+/* Compact table for dashboard */
+.table-sm th,
+.table-sm td {
+  padding: 0.55rem 0.6rem;
+}
+
+/* Zebra effect (soft) */
+.table tbody tr:nth-child(even) {
+  background: #fbfcfe;
+}
+
+/* Row hover */
+.table tbody tr:hover {
+  background: #f3f7ff;
+}
+
+/* Empty row text */
+.table-empty {
+  padding: 1rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* Chart container */
+.chart-box {
+  height: 260px;
+  position: relative;
+}
+
+@media (max-width: 576px) {
+  .chart-box {
+    height: 220px;
+  }
+}
+
+/* Alerts */
+.alert {
+  border-radius: 12px;
+}
+
+/* Fix button group wrapping on mobile */
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Spacing improvements */
+.block-gap {
+  margin-bottom: 1.25rem;
+}
+
+/* Make long text wrap nicely */
+.wrap {
+  white-space: normal !important;
+  word-break: break-word;
+}
+
+/* Small helper text */
+.small-muted {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+/* Optional: reduce padding on very small screens */
+@media (max-width: 576px) {
+  .container-fluid {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .card-body {
+    padding: 12px !important;
+  }
+
+  .card-header {
+    padding: 12px !important;
+  }
+}
+
+.card {
+  border-radius: 12px;
+}
+
+.form-control,
+.form-select {
+  border-radius: 8px;
+}
+

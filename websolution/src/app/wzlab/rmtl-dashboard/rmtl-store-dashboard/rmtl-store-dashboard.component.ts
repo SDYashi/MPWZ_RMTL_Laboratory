@@ -22,7 +22,8 @@ export class RmtlStoreDashboardComponent implements OnInit, OnDestroy {
   filters = {
     start_date: '',
     end_date: '',
-    lab_id: '' as string,
+    lab_id: '',
+    search: '',
   };
 
   labs: any[] = [];
@@ -44,6 +45,20 @@ export class RmtlStoreDashboardComponent implements OnInit, OnDestroy {
     );
 
     this.reload();
+  }
+  onSearchChanged(): void {
+    this.subs.push(
+      this.api.getDashboardStoreUser({ serial_number: this.filters.search }).subscribe({
+        next: (res: DashboardStoreUserResponse) => {
+          this.storeData = res;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          this.error = err?.error?.detail || err?.message || 'Something went wrong while Searching Data';
+          this.isLoading = false;
+        },
+      })
+    );
   }
 
   ngOnDestroy(): void {
