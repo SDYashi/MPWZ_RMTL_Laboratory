@@ -1,5 +1,5 @@
 <!-- src/app/wzlab/rmtl-testing/rmtl-add-testreport-p4onm/rmtl-add-testreport-p4onm.component.html -->
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-2">
   <div class="card shadow border-0">
     <!-- Header -->
     <div
@@ -66,8 +66,17 @@
                 <option *ngFor="let phase of phases" [value]="phase">{{ phase }}</option>
               </select>
             </div>
+            
+          <div class="col-12 col-md-2">
+              <label class="form-label fw-bold">Select Working Shift <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="testshifts" name="testshifts" required>
+                <option [ngValue]="null">-- Select Testing Shift --</option>
+                <option *ngFor="let m of shifts" [value]="m">{{ m }}</option>
+              </select>
+            </div>
+            
 
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-md-2">
               <label class="form-label fw-bold">Select Test Method <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testMethod" name="b_test_method" required>
                 <option [ngValue]="null" disabled>-- Select Test Method --</option>
@@ -75,7 +84,7 @@
               </select>
             </div>
 
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-md-2">
               <label class="form-label fw-bold">Select Test Status <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testStatus" name="b_test_status" required>
                 <option [ngValue]="null" disabled>-- Select Test Status --</option>

@@ -1,4 +1,4 @@
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-2">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex justify-content-between align-items-center" style="background: rgb(71, 175, 124)">
       <h5 class="mb-0">RMTL — Solar Generator Meter TestReport Form</h5>
@@ -45,19 +45,27 @@
               <label class="form-label fw-bold">Selected Testing User</label>
               <input class="form-control" [(ngModel)]="header.testing_user" name="testing_user" readonly disabled>
             </div>
-            <div class="col-md-4">
+           <div class="col-12 col-md-3">
               <label class="form-label fw-bold">Selected Approver User</label>
               <input class="form-control" [(ngModel)]="header.approving_user" name="approver_user" readonly disabled>
+            </div>   
+            
+          <div class="col-12 col-md-3">
+              <label class="form-label fw-bold">Select Working Shift <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="testshifts" name="testshifts" required>
+                <option [ngValue]="null">-- Select Testing Shift --</option>
+                <option *ngFor="let m of shifts" [value]="m">{{ m }}</option>
+              </select>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-12 col-md-3">
               <label class="form-label fw-bold">Select Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method">
                    <option [ngValue]="null" disabled>-- Select Test Method --</option>
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
               </select>
             </div>
-            <div class="col-md-4">
+             <div class="col-12 col-md-3">
               <label class="form-label fw-bold">Select Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status">
                    <option [ngValue]="null" disabled>-- Select Test Status --</option>

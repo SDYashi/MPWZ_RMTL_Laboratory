@@ -35,6 +35,7 @@ interface Row {
   notFound?: boolean;
   removal_reading?: number;
   test_result?: string;
+    testshifts?: string | null; // enum
 
   // quick remark list + free text
   remark?: string;
@@ -129,6 +130,8 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   };
 
   // methods/status
+      testshifts: string | null = null;
+  shifts: string[] = [];
   test_methods: any[] = [];
   test_statuses: any[] = [];
   testMethod: string | null = null;
@@ -244,6 +247,7 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         this.ternal_testing_types = d?.ternal_testing_types || this.ternal_testing_types;
         this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
         this.fees_mtr_cts = d?.fees_mtr_cts || [];
+        this.shifts = d?.labshifts || [];
 
         this.report_type = d?.test_report_types?.VIGILENCE_CHECKING || 'VIGILENCE_CHECKING';
         this.device_testing_purpose = d?.test_report_types?.VIGILENCE_CHECKING || 'VIGILENCE_CHECKING';
@@ -779,6 +783,8 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
           meter_body: r.meter_body || null,
           other: r.other || null,
           is_burned: !!r.is_burned,
+
+           testshifts: this.testshifts ?? null,  
 
           // SHUNT
           shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),

@@ -37,6 +37,7 @@ interface Row {
   meter_capacity: string;
   remark?: string;
   test_result?: string;
+    testshifts?: string | null; // enum
 
   // mapping
   device_id?: Id;
@@ -71,7 +72,8 @@ interface ModalState {
   styleUrls: ['./rmtl-add-testreport-samplemeter.component.css']
 })
 export class RmtlAddTestreportSamplemeterComponent implements OnInit {
-  // enums/options
+  testshifts: string | null = null;
+  shifts: string[] = [];
   commentby_testers: string[] = [];
   test_results: string[] = [];
   test_methods: string[] = [];
@@ -161,6 +163,7 @@ export class RmtlAddTestreportSamplemeterComponent implements OnInit {
         this.test_statuses = data?.test_statuses || [];
         this.report_type = data?.test_report_types?.SAMPLE_TESTING ?? 'SAMPLE_TESTING';
         this.device_testing_purpose = this.report_type;
+        this.shifts = data?.labshifts || [];
 
         this.reloadAssignedIndex();
       },
@@ -541,6 +544,7 @@ export class RmtlAddTestreportSamplemeterComponent implements OnInit {
         test_method: this.testMethod!,
         test_status: this.testStatus!,
         test_result: r.test_result!,
+        testshifts: this.testshifts ?? null,  
 
         details: (r.remark || '').trim() || null,
         final_remarks: (r.remark || '').trim() || null,

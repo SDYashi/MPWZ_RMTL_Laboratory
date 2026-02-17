@@ -91,6 +91,8 @@ interface Row {
 
   _open?: boolean;
   notFound?: boolean;
+  
+  testshifts?: string | null;
 }
 
 interface Header {
@@ -128,6 +130,8 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
   makes: string[] = [];
   capacities: string[] = [];
   device_status: 'ASSIGNED' = 'ASSIGNED';
+  
+  shifts: string[] = [];
 
   device_type = '';
   device_testing_purpose = '';
@@ -174,6 +178,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
   testMethod: string | null = null;
   testStatus: string | null = null;
 
+  testshifts: string | null = null;
   // Global view mode (toolbar)
   globalViewMode: ViewMode = 'BOTH';
 
@@ -217,6 +222,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
 
+        this.shifts = data?.labshifts || [];
         // ← the only difference vs Stop/Defective
         const smart =
           data?.test_report_types?.SMART_AGAINST_METER ??
@@ -517,7 +523,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
           fees_mr_no: r.fees_mr_no ?? null,
           fees_mr_date: r.fees_mr_date ?? null,
           ref_no: r.ref_no ?? null,
-
+     
           // device condition
           physical_condition_of_device: r.physical_condition_of_device ?? null,
           seal_status: r.seal_status ?? null,
@@ -525,7 +531,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
           terminal_block: r.terminal_block ?? null,
           meter_body: r.meter_body ?? null,
           is_burned: !!r.is_burned,
-
+          testshifts: this.testshifts ?? null,  
           // combined error (optional)
           error_percentage_import: this.toNumOrNull(r.error_percentage_import),
 

@@ -50,7 +50,17 @@
               <input type="date" class="form-control" [(ngModel)]="batchDate" name="batch_date" required>
                </div>
 
-            <div class="col-md-3">
+               
+
+            <div class="col-md-2">
+              <label class="form-label fw-bold">Select Working Shift <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="testshifts" name="testshifts" required>
+                <option [ngValue]="null">-- Select Testing Shift --</option>
+                <option *ngFor="let m of shifts" [value]="m">{{ m }}</option>
+              </select>
+            </div>
+
+            <div class="col-md-2">
               <label class="form-label fw-bold">Select Test Method <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method" required>
                 <option [ngValue]="null" disabled>-- Select Test Method --</option>
@@ -58,7 +68,7 @@
               </select>
                    </div>
 
-            <div class="col-md-3">
+            <div class="col-md-2">
               <label class="form-label fw-bold">Select Test Status <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status" required>
                <option [ngValue]="null" disabled>-- Select Test Status --</option>

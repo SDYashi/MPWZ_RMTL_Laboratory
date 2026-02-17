@@ -26,6 +26,7 @@ interface CertRow {
   device_id?: number;
   notFound?: boolean;
 
+  testshifts?: string | null; // enum
   consumer_name: string;
   address: string;
   meter_make: string;
@@ -104,6 +105,8 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   test_statuses: any[] = [];
   testMethod: string | null = null;
   testStatus: string | null = null;
+      testshifts: string | null = null;
+  shifts: string[] = [];
 
   // bench/user/approver
   testing_bench: string = '-';
@@ -205,6 +208,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         this.glass_covers = d?.glass_covers || [];
         this.terminal_blocks = d?.terminal_blocks || [];
         this.meter_bodies = d?.meter_bodies || [];
+        this.shifts = d?.labshifts || [];
 
         this.device_testing_purpose =
           d?.test_report_types?.SOLAR_GENERATION_METER || 'SOLAR_GENERATION_METER';
@@ -635,6 +639,8 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         test_result: this.inferredTestResult(r) || null,
         test_method: this.testMethod || null,
         test_status: this.testStatus || null,
+
+        testshifts: this.testshifts || null,
         final_remarks: r.final_remarks || null,
         consumer_name: r.consumer_name || null,
         consumer_address: r.address || null,

@@ -1,4 +1,4 @@
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-2">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex justify-content-between align-items-center" style="background: rgb(71, 175, 124)">
       <h5 class="mb-0">RMTL — Solar NetMeter TestReport Form</h5>
@@ -17,31 +17,40 @@
       <div class="card shadow-sm mb-3 border-0">
         <div class="card-body bg-secondary bg-opacity-10">
           <div class="row g-3">
-            <div class="col-md-4">
+           <div class="col-12 col-md-4">
               <label class="form-label fw-bold mt-2"> Name of Zone/DC</label>
               <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" readonly disabled>
             </div>
-            <div class="col-md-4">
+           <div class="col-12 col-md-4">
               <label class="form-label fw-bold mt-2">Selected Testing Bench</label>
               <input class="form-control" [(ngModel)]="header.testing_bench" name="testing_bench" placeholder="e.g., zera_one" readonly disabled>
             </div>
-            <div class="col-md-4">
+           <div class="col-12 col-md-4">
               <label class="form-label fw-bold mt-2">Selected Testing User</label>
               <input class="form-control" [(ngModel)]="header.testing_user" name="testing_user" placeholder="e.g., Admin" readonly disabled>
             </div>
-            <div class="col-md-4">
+           <div class="col-12 col-md-3">
               <label class="form-label fw-bold mt-2">Selected Approving User</label>
               <input class="form-control" [(ngModel)]="header.approving_user" name="approving_user" placeholder="e.g., JE / AE" readonly disabled>
+            </div>           
+                     
+            
+          <div class="col-12 col-md-3">
+              <label class="form-label fw-bold">Select Working Shift <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="testshifts" name="testshifts" required>
+                <option [ngValue]="null">-- Select Testing Shift --</option>
+                <option *ngFor="let m of shifts" [value]="m">{{ m }}</option>
+              </select>
             </div>
 
-            <div class="col-md-4">
+           <div class="col-12 col-md-3">
               <label class="form-label fw-bold mt-2">Select Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method">
                  <option [ngValue]="null" disabled>-- Select Test Method --</option>
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
               </select>
             </div>
-            <div class="col-md-4">
+          <div class="col-12 col-md-3">
               <label class="form-label fw-bold mt-2">Select Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status">
                   <option [ngValue]="null" disabled>-- Select Test Status --</option>

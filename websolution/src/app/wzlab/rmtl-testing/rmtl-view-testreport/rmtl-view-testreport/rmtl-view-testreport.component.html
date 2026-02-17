@@ -1,4 +1,4 @@
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-2">
   <div class="card shadow border-0">
     <!-- Header -->
     <div class="card-header py-3" style="background: rgb(71, 175, 124); color:#fff;">
@@ -260,6 +260,7 @@
         <div><strong>Status:</strong> {{ s.testing?.test_status || s.test_status || '-' }}</div>
         <div><strong>Result:</strong> {{ s.testing?.test_result || s.test_result || '-' }}</div>
         <div><strong>Final remarks:</strong> {{ s.testing?.final_remarks || s.final_remarks || '-' }}</div>
+        <div><strong>Shift:</strong> {{ s.testing?.testshifts || '-' }}</div>
       </div>
     </div>
 

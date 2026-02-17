@@ -234,6 +234,39 @@ export interface TestReportPayload {
   error_percentage: number;
   approver_id: number;
 }
+export type Working = 'OK' | 'FAST' | 'SLOW' | 'NOT WORKING';
+export type TestStatus = 'COMPLETED' | 'PENDING';
+export type TestMethod = string;     // use enum strings from getEnums()
+export type TestReportType = string; // e.g. 'CT_TESTING'
+export interface CtTestReportPayload {
+  device_id: number;
+  assignment_id: number;
+  start_datetime: string;
+  end_datetime: string;
+  report_type: TestReportType;
+  test_result: Working;
+  test_method: TestMethod;
+  test_status: TestStatus;
+  lab_id?: number | null;
+  testshifts?: string | null;
+  consumer_name?: string | null;
+  consumer_address?: string | null;
+  testing_fees?: string | null;
+  fees_mr_no?: string | null;
+  fees_mr_date?: string | null; // 'YYYY-MM-DD' string
+  ref_no?: string | null;
+  ct_class?: string | null;
+  ct_primary_current?: number | null;
+  ct_secondary_current?: number | null;
+  ct_ratio?: number | null;
+  ct_polarity?: string | null;
+  final_remarks?: string | null;
+  test_requester_name?: string | null;
+  approver_id?: number | null;
+  approver_remark?: string | null;
+  details?: string | null; 
+  created_by?: string | null;
+}
 
 export interface DashboardCounts {
   labs: number;

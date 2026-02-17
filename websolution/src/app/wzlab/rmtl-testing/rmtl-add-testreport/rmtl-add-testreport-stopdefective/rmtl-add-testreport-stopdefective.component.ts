@@ -85,7 +85,6 @@ interface Row {
   is_burned?: boolean;
   certificate_number?: string | null;
   final_remarks?: string | null;
-
   device_id?: Id;
   assignment_id?: Id;
 
@@ -94,6 +93,9 @@ interface Row {
 
   _open?: boolean;
   notFound?: boolean;
+  test_method?: string | null;
+  testshifts?: string | null; // enum
+
 }
 
 interface Header {
@@ -118,7 +120,6 @@ interface ModalState {
   styleUrls: ['./rmtl-add-testreport-stopdefective.component.css']
 })
 export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
-  // ===== enums/options
   commentby_testers: string[] = [];
   test_results: string[] = [];
   test_methods: string[] = [];
@@ -130,18 +131,15 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   meter_bodies: string[] = [];
   makes: string[] = [];
   capacities: string[] = [];
+  shifts: string[] = [];
   device_status: 'ASSIGNED' = 'ASSIGNED';
-
   device_type = '';
   device_testing_purpose = '';
   report_type = '';
-
-  // ids
   currentUserId: any;
   currentLabId: any;
   approverId: any;
 
-  // header/date + ui
   header: Header = {
     location_code: '',
     location_name: '',
@@ -154,17 +152,12 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   filterText = '';
   loading = false;
   submitting = false;
-
   inlineInfo: string | null = null;
   inlineError: string | null = null;
-
   rows: Row[] = [this.emptyRow()];
   batch = { header: this.header, rows: this.rows };
-
   modal: ModalState = { open: false, title: '', message: '' };
   success = { open: false, message: '' };
-
-  // picker
   asgPicker = {
     open: false,
     filter: '',
@@ -172,19 +165,13 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     list: [] as AssignmentItem[],
     replaceExisting: true
   };
-
-  // selected method/status
   testMethod: string | null = null;
   testStatus: string | null = null;
-
-  // Global view mode (toolbar)
+  testshifts: string | null = null;
   globalViewMode: ViewMode = 'BOTH';
-
   private enumsReady = false;
   private idsReady = false;
-
   private serialIndex: Record<string, { make?: string; capacity?: string; device_id: Id; assignment_id: Id; phase?: string; }> = {};
-  // Lab info + benches
   labInfo: SmartLabInfo | null = null;
   benches: string[] = [];
   payload: any[] = [];
@@ -218,10 +205,11 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
         this.meter_bodies = data?.meter_bodies || [];
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
+        this.shifts = data?.labshifts || [];
 
         const stopDef =
-          data?.test_report_types?.STOP_DEFECTIVE ??
-          data?.test_report_types?.STOPDEFECTIVE ?? 'STOP_DEFECTIVE';
+        data?.test_report_types?.STOP_DEFECTIVE ??
+        data?.test_report_types?.STOPDEFECTIVE ?? 'STOP_DEFECTIVE';
         this.report_type = stopDef;
         this.device_testing_purpose = stopDef;
         this.device_type = data?.device_types?.METER ?? 'METER';
@@ -253,8 +241,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
       });
     }
   }
-
-  // ===== guards + load
   private getAssignedParams() {
     const purpose = this.device_testing_purpose?.trim();
     const dtype = this.device_type?.trim();
@@ -263,12 +249,10 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     if (!purpose || !dtype || !uid || !lid) return null;
     return { status: this.device_status, user_id: uid, lab_id: lid, device_testing_purpose: purpose, device_type: dtype };
   }
-
   private tryInitialLoad() {
     if (!this.enumsReady || !this.idsReady) return;
     this.reloadAssignedIndex();
   }
-
   private reloadAssignedIndex() {
     const p = this.getAssignedParams();
     if (!p) return;
@@ -292,7 +276,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
         }
       });
   }
-
   private rebuildSerialIndex(assignments: AssignmentItem[]) {
     this.serialIndex = {};
     for (const a of assignments) {
@@ -308,8 +291,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
       };
     }
   }
-
-  // ===== rows helpers
   private emptyRow(seed: Partial<Row> = {}): Row {
     return {
       meter_sr_no: '',
@@ -333,7 +314,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   applyViewModeToAll() {
     for (const r of this.rows) r.view_mode = this.globalViewMode;
   }
-
   trackByRow = (_: number, r: Row) =>
     `${r.assignment_id || 0}_${r.device_id || 0}_${(r.meter_sr_no || '').toUpperCase()}`;
 
@@ -409,7 +389,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     }
   }
 
-  // Copies from selected source into combined import
   calculateErrorPct(i: number) {
     const r = this.rows[i];
     if (r.error_from_mode === 'SHUNT') {
@@ -433,7 +412,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
     }
   }
 
-  // ===== validation
   private validateBeforeSubmit(): { ok: boolean; reason?: string } {
     const p = this.getAssignedParams();
     if (!p) return { ok: false, reason: 'Missing required data: Lab/User/Device Type/Purpose.' };
@@ -490,7 +468,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
   async confirmSubmitFromModal() {
     const v = this.validateBeforeSubmit();
     if (!v.ok) { this.inlineError = v.reason || 'Invalid data.'; return; }
-
     const whenISO = new Date(`${this.batchDate}T10:00:00`);
     const iso = new Date(whenISO.getTime() - whenISO.getTimezoneOffset() * 60000).toISOString();
 
@@ -506,34 +483,23 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
           test_method: this.testMethod!,
           test_status: this.testStatus!,
           test_result: r.test_result!,
-
-          // remarks mapping
           details: r.remark ?? r.final_remarks ?? null,
           final_remarks: r.final_remarks ?? r.remark ?? null,
-
-          // identity & address
           consumer_name: r.consumer_name ?? null,
           consumer_address: r.consumer_address ?? null,
-
-          // receipts & refs
           certificate_number: r.certificate_number ?? null,
           testing_fees: r.testing_fees,
           fees_mr_no: r.fees_mr_no ?? null,
           fees_mr_date: r.fees_mr_date ?? null,
           ref_no: r.ref_no ?? null,
-
-          // device condition
           physical_condition_of_device: r.physical_condition_of_device ?? null,
           seal_status: r.seal_status ?? null,
           meter_glass_cover: r.meter_glass_cover ?? null,
           terminal_block: r.terminal_block ?? null,
           meter_body: r.meter_body ?? null,
           is_burned: !!r.is_burned,
-
-          // error % (combined optional)
+          testshifts: this.testshifts ?? null,          
           error_percentage_import: this.toNumOrNull(r.error_percentage_import),
-
-          // audit
           created_by: String(this.currentUserId || ''),
           updated_by: String(this.currentUserId || '')
         };
@@ -547,8 +513,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
         body.shunt_creep_test          = r.shunt_creep_test? String(r.shunt_creep_test).trim() : null;
         body.shunt_dail_test           = r.shunt_dail_test? String(r.shunt_dail_test).trim() : null;
         body.shunt_error_percentage    = this.toNumOrNull(r.shunt_error_percentage);
-
-        // NUTRAL readings (required)
         body.nutral_reading_before_test = this.toNumOrNull(r.nutral_reading_before_test);
         body.nutral_reading_after_test  = this.toNumOrNull(r.nutral_reading_after_test);
         body.nutral_ref_start_reading   = this.toNumOrNull(r.nutral_ref_start_reading);
@@ -557,7 +521,6 @@ export class RmtlAddTestreportStopdefectiveComponent implements OnInit {
         body.nutral_creep_test          = r.nutral_creep_test? String(r.nutral_creep_test).trim() : null;
         body.nutral_dail_test           = r.nutral_dail_test? String(r.nutral_dail_test).trim() : null;
         body.nutral_error_percentage    = this.toNumOrNull(r.nutral_error_percentage);
-
         return body;
       });
 

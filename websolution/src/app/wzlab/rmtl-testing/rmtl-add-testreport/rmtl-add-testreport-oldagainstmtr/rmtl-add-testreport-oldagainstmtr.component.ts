@@ -35,6 +35,7 @@ interface Row {
   meter_make: string;
   meter_capacity: string;
 
+  testshifts?: string | null; // enum
   remark?: string; // UI comment -> maps to details/final_remarks
   test_result?: string; // enum
   consumer_name?: string;
@@ -124,6 +125,9 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
   meter_bodies: string[] = [];
   makes: string[] = [];
   capacities: string[] = [];
+  
+  testshifts: string | null = null;
+  shifts: string[] = [];
   fees_mtr_cts: (string | number)[] = [];
   test_dail_current_cheaps: string[] = [];
   ternal_testing_types: Array<'SHUNT' | 'NUTRAL' | 'BOTH'> = ['SHUNT', 'NUTRAL', 'BOTH'];
@@ -215,6 +219,7 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
 
+        this.shifts = data?.labshifts || [];
         // against old meter constants
         const oldType = data?.test_report_types?.AGAINST_OLD_METER ?? 'AGAINST_OLD_METER';
         this.report_type = oldType;
@@ -534,6 +539,7 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
           test_status: this.testStatus!,
           test_result: r.test_result!,
 
+          testshifts: this.testshifts ?? null,  
           // remarks mapping
           details: r.remark ?? r.final_remarks ?? null,
           final_remarks: r.final_remarks ?? r.remark ?? null,

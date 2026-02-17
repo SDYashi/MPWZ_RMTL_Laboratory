@@ -36,6 +36,7 @@ interface Row {
   meter_capacity: string;
   remark?: string;
   test_result?: string;
+    testshifts?: string | null; // enum
 
   device_id?: Id;
   assignment_id?: Id;
@@ -72,6 +73,8 @@ export class RmtlAddTestreportPqmeterComponent implements OnInit {
   test_results: string[] = [];
   test_methods: string[] = [];
   test_statuses: string[] = [];
+  testshifts: string | null = null;
+  shifts: string[] = [];
 
   currentUserId: any;
   currentLabId: any;
@@ -149,6 +152,7 @@ export class RmtlAddTestreportPqmeterComponent implements OnInit {
         this.test_statuses = data?.test_statuses || [];
         this.report_type = data?.test_report_types?.PQ_METER_TESTING ?? 'PQ_METER_TESTING';
         this.device_testing_purpose = this.report_type;
+        this.shifts = data?.labshifts || [];
 
         this.reloadAssignedIndex();
       },
@@ -529,7 +533,8 @@ private confirmSubmit() {
       details: (r.remark || '').trim() || null,
       final_remarks: (r.remark || '').trim() || null,
       consumer_name: r.consumer_name ?? null,
-      consumer_address: r.consumer_address ?? null
+      consumer_address: r.consumer_address ?? null,
+      testshifts: this.testshifts ?? null, 
     }));
 
   const fd = new FormData();

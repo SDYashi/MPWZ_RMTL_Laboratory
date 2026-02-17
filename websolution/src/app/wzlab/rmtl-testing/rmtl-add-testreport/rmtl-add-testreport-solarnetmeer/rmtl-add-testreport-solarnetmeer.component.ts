@@ -30,6 +30,7 @@ interface CertRow {
   assignment_id?: number;
   device_id?: number;
   notFound?: boolean;
+    testshifts?: string | null; // enum
 
   consumer_name: string;
   address: string;
@@ -141,6 +142,8 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   test_statuses: any[] = [];
   testMethod: string | null = null;
   testStatus: string | null = null;
+      testshifts: string | null = null;
+  shifts: string[] = [];
 
   channelView: 'SHUNT' | 'NUTRAL' | 'BOTH' = 'BOTH';
 
@@ -244,6 +247,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         this.meter_bodies = d?.meter_bodies || [];
         this.makes = d?.makes || [];
         this.capacities = d?.capacities || [];
+        this.shifts = d?.labshifts || [];
 
         this.device_testing_purpose =
           d?.test_report_types?.SOLAR_NETMETER ??
@@ -815,6 +819,8 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         test_result: r.test_result || null,
         test_method: this.testMethod || null,
         test_status: this.testStatus || null,
+
+        testshifts: this.testshifts || null,
 
         consumer_name: r.consumer_name || null,
         consumer_address: r.address || null,

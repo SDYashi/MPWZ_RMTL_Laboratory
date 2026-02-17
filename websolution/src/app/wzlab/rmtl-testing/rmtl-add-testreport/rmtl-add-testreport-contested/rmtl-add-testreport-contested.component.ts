@@ -45,7 +45,8 @@ interface DeviceRow {
   device_id: Id;
   assignment_id: Id;
   notFound?: boolean;
-
+    testshifts?: string | null; // enum
+ 
   // AE/JE / Consumer slip
   form_no?: string;
   form_date?: string;
@@ -115,6 +116,8 @@ interface ModalState {
 })
 export class RmtlAddTestreportContestedComponent implements OnInit {
   // ===== enums/options
+    testshifts: string | null = null;
+  shifts: string[] = [];
   device_status: 'ASSIGNED' = 'ASSIGNED';
   comment_bytester: string[] = [];
   test_methods: string[] = [];
@@ -212,7 +215,7 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
         this.phases = d?.phases || [];
         this.ternal_testing_types = d?.ternal_testing_types || ['SHUNT', 'NUTRAL', 'BOTH'];
         this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
-
+        this.shifts = d?.labshifts || [];
         // normalize report/device context similar to Stop/Defective
         this.report_type = d?.test_report_types?.CONTESTED ?? 'CONTESTED';
         this.device_testing_purpose = d?.test_report_types?.CONTESTED ?? 'CONTESTED';
@@ -597,7 +600,7 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
           meter_body: r.meter_body || null,
           other: r.other || null,
           is_burned: !!r.is_burned,
-
+          testshifts: this.testshifts ?? null,  
           // SHUNT readings
           shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
           shunt_reading_after_test:  this.numOrNull(r.shunt_reading_after_test),

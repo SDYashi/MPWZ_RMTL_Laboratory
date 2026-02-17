@@ -37,6 +37,7 @@ interface CtRow {
   assignment_id?: number;
   device_id?: number;
   notFound?: boolean;
+    testshifts?: string | null; // enum
 }
 
 interface ModalState {
@@ -78,6 +79,9 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
   testing_bench: any = '';
   testing_user: any = '';
   approving_user: any = '';
+  testshifts: string | null = null;
+  shifts: string[] = [];
+  commentby_testers: string[] = [];
 
   pdf_date: string = '';
 
@@ -176,13 +180,11 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
         this.test_methods = d?.test_methods || [];
         this.test_statuses = d?.test_statuses || [];
         this.report_type = d?.test_report_types?.CT_TESTING || this.report_type;
-
         this.makes = d?.makes || [];
         this.ct_classes = d?.ct_classes || [];
-
+        this.shifts = d?.labshifts || [];
         this.device_testing_purpose = d?.test_report_types?.CT_TESTING ?? 'CT_TESTING';
         this.device_type = d?.device_types?.CT ?? 'CT';
-
         this.capacities = d?.capacities || [];
         this.fees_mtr_cts = d?.fees_mtr_cts || [];
         this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
@@ -629,6 +631,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           primary_current: this.header.primary_current || '',
           secondary_current: this.header.secondary_current || '',
           zone_dc: zone_dc,
+           testshifts: this.testshifts ?? null,  
 
           serial_number: r.serial_number || '',
           make: r.make || '',

@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environment/environment';
-import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass, TestReportPayload, TestingStatusAgg, DashboardCounts, BarChartItem, TestingBarChartItem, AssignmentBarItem, AssignmentPercentageItem, LineChartItem, TestingDashboardData, AssignmentDashboardData, DailySummaryResponse, MonthlySummaryResponse } from '../interface/models';
+import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass, TestReportPayload, TestingStatusAgg, DashboardCounts, BarChartItem, TestingBarChartItem, AssignmentBarItem, AssignmentPercentageItem, LineChartItem, TestingDashboardData, AssignmentDashboardData, DailySummaryResponse, MonthlySummaryResponse, CtTestReportPayload } from '../interface/models';
 
 export type DeviceType = 'METER' | 'CT';
 
@@ -192,6 +192,9 @@ getDevicesByInwardNo(inward_number: string) {
 // --- Testing Endpoints ---
 postTestReports( payload: TestReportPayload[]): Observable<TestReportPayload[]> {
   return this.http.post<TestReportPayload[]>(`${this.baseUrl}/testing/bulk/`, payload);
+}
+postTestReportsCT( payload: CtTestReportPayload[]): Observable<CtTestReportPayload[]> {
+  return this.http.post<CtTestReportPayload[]>(`${this.baseUrl}/testing/bulk/`, payload);
 }
 getAssignedMeterList(assignment_status :String,user_id:number,lab_id:number,device_testing_purpose:string,device_types:string): Observable<any> {
   return this.http.get<any>(`${this.baseUrl}/assignments-by-status?assignment_status=${assignment_status}&user_id=${user_id}&lab_id=${lab_id} &device_testing_purpose=${device_testing_purpose}&device_types=${device_types}`);
@@ -665,7 +668,6 @@ getDashboardStoreUser(params: any) {
 getDashboardTestingUser(params: any) {
   return this.http.get(`${this.baseUrl}/dashboard/testing-user`, { params });
 }
-
 
 
 

@@ -1,5 +1,5 @@
 <!-- rmtl-add-testreport-stopdefective.component.html -->
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-2">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex flex-wrap gap-2 justify-content-between align-items-center" style="background: rgb(71, 175, 124)">
       <h5 class="mb-0">RMTL — Stop/Defective Test Report Generation</h5>    
@@ -49,12 +49,20 @@
              </div>
 
             <div class="col-md-4">
+              <label class="form-label fw-bold">Select Working Shift <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="testshifts" name="testshifts" required>
+                <option [ngValue]="null">-- Select Testing Shift --</option>
+                <option *ngFor="let m of shifts" [value]="m">{{ m }}</option>
+              </select>
+            </div>
+
+            <div class="col-md-4">
               <label class="form-label fw-bold">Select Test Method <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method" required>
                 <option [ngValue]="null">-- Select Test Method --</option>
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
               </select>
-    </div>
+            </div>
 
             <div class="col-md-4">
               <label class="form-label fw-bold">Select Test Status <span class="text-danger">*</span></label>
@@ -359,7 +367,7 @@
     </div>
     
       <!-- Inline messages -->
-      <div class="mb-3">
+      <div class="mb-1" style="margin: 15px;">
         <small *ngIf="inlineInfo" class="alert alert-success d-block" role="status">{{ inlineInfo }}</small>
         <small *ngIf="inlineError" class="alert alert-danger d-block" role="alert">{{ inlineError }}</small>
       </div>

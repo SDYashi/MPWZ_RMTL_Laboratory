@@ -1,4 +1,4 @@
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-2">
   <div class="card shadow border-0">
     <div class="card-header text-white d-flex flex-wrap gap-2 justify-content-between align-items-center"
          style="background: rgb(71, 175, 124)">
@@ -57,8 +57,17 @@
               <input type="date" class="form-control"
                      [(ngModel)]="batchDate" name="batch_date" required>
             </div>
+            
+            
+          <div class="col-12 col-md-2">
+              <label class="form-label fw-bold">Select Working Shift <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="testshifts" name="testshifts" required>
+                <option [ngValue]="null">-- Select Testing Shift --</option>
+                <option *ngFor="let m of shifts" [value]="m">{{ m }}</option>
+              </select>
+            </div>
 
-            <div class="col-md-4">
+          <div class="col-12 col-md-2">
               <label class="form-label fw-bold">Select Test Method <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method" required>
                 <option [ngValue]="null">-- Select Test Method --</option>
@@ -66,7 +75,7 @@
               </select>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-12 col-md-2">
               <label class="form-label fw-bold">Select Test Status <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status" required>
                 <option [ngValue]="null">-- Select Test Status --</option>
@@ -75,7 +84,7 @@
             </div>
             
 
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label class="form-label fw-bold">Upload Approved PDF Report <span class="text-danger">*</span></label>           
            <input type="file"
                  accept="application/pdf"

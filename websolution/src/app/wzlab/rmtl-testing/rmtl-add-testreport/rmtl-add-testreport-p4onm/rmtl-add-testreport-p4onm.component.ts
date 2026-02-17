@@ -35,7 +35,7 @@ interface DeviceRow {
   device_id: number;
   assignment_id: number;
   notFound?: boolean;
-
+    testshifts?: string | null; // enum
   // quick remark
   remark: string;
 
@@ -103,6 +103,8 @@ interface ModalState {
 })
 export class RmtlAddTestreportP4onmComponent implements OnInit {
   // enums / options
+      testshifts: string | null = null;
+  shifts: string[] = [];
   device_status: 'ASSIGNED' = 'ASSIGNED';
   comment_bytester: any[] = [];
   test_methods: any[] = [];
@@ -193,6 +195,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
         this.fees_mtr_cts = d?.fees_mtr_cts || [];
         this.ternal_testing_types = d?.ternal_testing_types || this.ternal_testing_types;
         this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
+        this.shifts = d?.labshifts || [];
 
         this.report_type = d?.test_report_types?.ONM_CHECKING ?? 'ONM_CHECKING';
         this.device_testing_purpose = d?.test_report_types?.ONM_CHECKING ?? 'ONM_CHECKING';
@@ -540,6 +543,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
         other: null,
         is_burned: !!r.is_burned,
 
+        testshifts: this.testshifts ?? null,  
         details: r.remark || null,
         test_result: r.test_result || null,
         test_method: this.testMethod || null,

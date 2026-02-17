@@ -38,6 +38,7 @@ interface Row {
   meter_sr_no: string;
   meter_make: string;
   meter_capacity: string;
+    testshifts?: string | null; // enum
 
   // UI comment (mapped to details & final_remarks on submit)
   remark?: string;
@@ -119,6 +120,8 @@ interface ModalState {
 })
 export class RmtlAddTestreportNewmeterComponent implements OnInit {
   // ===== enums/options
+      testshifts: string | null = null;
+  shifts: string[] = [];
   commentby_testers: string[] = [];
   test_results: string[] = [];
   test_methods: string[] = [];
@@ -227,6 +230,7 @@ export class RmtlAddTestreportNewmeterComponent implements OnInit {
         this.meter_bodies = data?.meter_bodies || [];
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
+        this.shifts = data?.labshifts || [];
 
         const newMeterType =
           data?.test_report_types?.NEW ??
@@ -604,6 +608,8 @@ export class RmtlAddTestreportNewmeterComponent implements OnInit {
           test_method: this.testMethod!,
           test_status: this.testStatus!,
           test_result: r.test_result!,
+
+          testshifts: this.testshifts!,  
 
           // remarks mapping
           details: r.remark ?? r.final_remarks ?? null,

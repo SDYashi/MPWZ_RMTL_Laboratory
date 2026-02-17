@@ -1,5 +1,5 @@
 <!-- src/app/wzlab/rmtl-testing/rmtl-add-testreport/rmtl-add-testreport-p4vig/rmtl-add-testreport-p4vig.component.html -->
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-2">
   <div class="card shadow border-0">
     <!-- Header -->
     <div
@@ -50,9 +50,18 @@
             <div class="col-12 col-md-3">
               <label class="form-label fw-bold">Selected Approving User</label>
               <input class="form-control" [(ngModel)]="header.approving_user" name="approving_user" readonly disabled />
+            </div>            
+            
+          <div class="col-12 col-md-2">
+              <label class="form-label fw-bold">Select Working Shift <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="testshifts" name="testshifts" required>
+                <option [ngValue]="null">-- Select Testing Shift --</option>
+                <option *ngFor="let m of shifts" [value]="m">{{ m }}</option>
+              </select>
             </div>
+            
 
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-md-2">
               <label class="form-label fw-bold">Test Method <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method" required>
                 <option value="null" disabled>Select Testing Method</option>  
@@ -61,7 +70,7 @@
               <!-- <small *ngIf="!testMethod" class="text-danger">Select a Test Method.</small> -->
             </div>
 
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-md-2">
               <label class="form-label fw-bold">Test Status <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status" required>
                 <option value="null" disabled>Select Testing Status</option>
