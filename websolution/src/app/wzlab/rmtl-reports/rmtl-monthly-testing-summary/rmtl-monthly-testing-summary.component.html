@@ -3,95 +3,159 @@
     <div class="card-header text-white" style="background: rgb(71, 175, 124); color:#fff;">
       <h5 class="mb-0">RMTL — Monthly Testing Reports</h5>
     </div>
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-3">
-          <label class="form-label">From Date</label>
-          <input type="date" class="form-control" [(ngModel)]="from_date">
-        </div>
 
-        <div class="col-md-3">
-          <label class="form-label">To Date</label>
-          <input type="date" class="form-control" [(ngModel)]="to_date">
-        </div>
+    <!-- Filters -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label">From Date</label>
+            <input type="date" class="form-control" [(ngModel)]="from_date">
+          </div>
 
-        <div class="col-md-2">
-          <label class="form-label">Report Filter Level</label>
-          <select class="form-select" [(ngModel)]="group_level">
-            <option value="circle">Circle</option>
-            <option value="division">Division</option>
-            <option value="dc">DC</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label for=""></label>
-           <button class="btn btn-outline-secondary mt-4" (click)="clear()" [disabled]="loading">Reset</button>
-           <button class="btn btn-primary mt-4" style="margin-left: 10px;" (click)="load()" [disabled]="loading">Search Records</button>
+          <div class="col-md-3">
+            <label class="form-label">To Date</label>
+            <input type="date" class="form-control" [(ngModel)]="to_date">
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Report Filter Level</label>
+            <select class="form-select" [(ngModel)]="group_level" (change)="onGroupLevelChange()">
+              <option value="circle">Circle</option>
+              <option value="division">Division</option>
+              <option value="dc">DC</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Testing Purpose</label>           
+            <select class="form-select" [(ngModel)]="testing_purpose" (change)="onReportTypeChanged()">
+              <option value="">All</option>
+              <option *ngFor="let rt of reportTypes" [value]="rt">{{ rt }}</option>
+            </select>
+          </div>
+
+          <div class="col-md-2 d-flex gap-2">
+            <button class="btn btn-outline-secondary w-50" (click)="clear()" [disabled]="loading">
+              Reset
+            </button>
+            <button class="btn btn-primary w-50" (click)="load()" [disabled]="loading">
+              Search
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Loading / Error -->
-  <div *ngIf="loading" class="alert alert-info">Loading...</div>
-  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
-
-  <div class="card" *ngIf="data && !loading">
-    <div class="card-body table-responsive">
- <table class="table table-bordered table-sm align-middle">
-
-        <!-- Table Header -->
-        <thead class="table-light">
-          <tr>
-            <th>Circle Code</th>
-            <th>Circle Name</th>
-            <th>Division Code</th>
-            <th>Division Name</th>
-            <th>DC Code</th>
-            <th>DC Name</th>
-            <th>Installed Smart</th>
-            <th>Received Non-Smart</th>
-            <th>Tested</th>
-            <th>Not Tested</th>
-          </tr>
-        </thead>
-
-        <!-- Table Body -->
-        <tbody>
-          <tr *ngFor="let r of dataDc.rows">
-            <td>{{ r.circle_code }}</td>
-            <td>{{ r.circle_name }}</td>
-            <td>{{ r.division_code }}</td>
-            <td>{{ r.division_name }}</td>
-            <td>{{ r.dc_code }}</td>
-            <td>{{ r.dc_name }}</td>
-            <td class="fw-semibold">{{ r.installed_smart }}</td>
-            <td>{{ r.received_non_smart }}</td>
-            <td>{{ r.tested }}</td>
-            <td class="text-danger fw-semibold">{{ r.not_tested }}</td>
-          </tr>
-
-          <tr *ngIf="dataDc.rows?.length === 0">
-            <td colspan="10" class="text-center text-muted">
-              No records found
-            </td>
-          </tr>
-        </tbody>
-
-        <!-- Totals -->
-        <tfoot class="table-light">
-          <tr>
-            <th colspan="6">Total</th>
-            <th>{{ dataDc.totals.installed_smart }}</th>
-            <th>{{ dataDc.totals.received_non_smart }}</th>
-            <th>{{ dataDc.totals.tested }}</th>
-            <th>{{ dataDc.totals.not_tested }}</th>
-          </tr>
-        </tfoot>
-
-      </table>
+    <!-- Loading / Error -->
+    <div class="px-3 pb-2">
+      <div *ngIf="loading" class="alert alert-info mb-0">Loading...</div>
+      <div *ngIf="error" class="alert alert-danger mb-0">{{ error }}</div>
     </div>
-  </div>
+
+    <!-- Table -->
+    <div class="card" *ngIf="data && !loading">
+      <div class="card-body table-responsive">
+        <table class="table table-bordered table-sm align-middle">
+          <thead class="table-light">
+            <tr>
+              <!-- Dynamic group columns -->
+              <ng-container [ngSwitch]="group_level">
+                <ng-container *ngSwitchCase="'circle'">
+                  <th>Circle Code</th>
+                  <th>Circle Name</th>
+                </ng-container>
+
+                <ng-container *ngSwitchCase="'division'">
+                  <th>Circle Code</th>
+                  <th>Circle Name</th>
+                  <th>Division Code</th>
+                  <th>Division Name</th>
+                </ng-container>
+
+                <ng-container *ngSwitchDefault>
+                  <th>Circle Code</th>
+                  <th>Circle Name</th>
+                  <th>Division Code</th>
+                  <th>Division Name</th>
+                  <th>DC Code</th>
+                  <th>DC Name</th>
+                </ng-container>
+              </ng-container>
+
+              <!-- Common columns (Fast/Slow removed) -->
+              <th class="text-end">Received</th>
+              <th class="text-end">Tested Total</th>
+              <th class="text-end">Working</th>
+              <th class="text-end">Not Working</th>
+              <th class="text-end">Balance For Testing</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let r of data.rows">
+              <!-- Dynamic group cells -->
+              <ng-container [ngSwitch]="group_level">
+                <ng-container *ngSwitchCase="'circle'">
+                  <td>{{ r.circle_code }}</td>
+                  <td>{{ r.circle_name }}</td>
+                </ng-container>
+
+                <ng-container *ngSwitchCase="'division'">
+                  <td>{{ r.circle_code }}</td>
+                  <td>{{ r.circle_name }}</td>
+                  <td>{{ r.division_code }}</td>
+                  <td>{{ r.division_name }}</td>
+                </ng-container>
+
+                <ng-container *ngSwitchDefault>
+                  <td>{{ r.circle_code }}</td>
+                  <td>{{ r.circle_name }}</td>
+                  <td>{{ r.division_code }}</td>
+                  <td>{{ r.division_name }}</td>
+                  <td>{{ r.dc_code }}</td>
+                  <td>{{ r.dc_name }}</td>
+                </ng-container>
+              </ng-container>
+
+              <!-- Common cells -->
+              <td class="text-end fw-semibold">{{ r.received }}</td>
+              <td class="text-end">{{ r.tested_total }}</td>
+              <td class="text-end">{{ r.working_found }}</td>
+
+              <!-- ✅ Not Working = fast + slow + not_working_found -->
+              <td class="text-end text-danger fw-bold">
+                {{ getNotWorking(r) }}
+              </td>
+
+              <td class="text-end fw-bold">{{ r.balance_for_testing }}</td>
+            </tr>
+
+            <tr *ngIf="data.rows?.length === 0">
+              <td [attr.colspan]="colspan" class="text-center text-muted">
+                No records found
+              </td>
+            </tr>
+          </tbody>
+
+          <!-- Totals -->
+          <tfoot class="table-light" *ngIf="data.totals">
+            <tr>
+              <th [attr.colspan]="groupCols">Total</th>
+              <th class="text-end">{{ data.totals.received }}</th>
+              <th class="text-end">{{ data.totals.tested_total }}</th>
+              <th class="text-end">{{ data.totals.working_found }}</th>
+
+              <!-- ✅ totals Not Working = fast + slow + not_working_found -->
+              <th class="text-end text-danger fw-bold">
+                {{ totalsNotWorking }}
+              </th>
+
+              <th class="text-end">{{ data.totals.balance_for_testing }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
   </div>
 </div>

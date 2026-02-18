@@ -32,6 +32,7 @@ interface CTRow {
   ct_class?: string | null;
   ct_ratio?: string | null;
   make: string;
+  phase: string;
   connection_type: string;
   device_testing_purpose: string;
   remark?: string | null;
@@ -174,6 +175,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         this.initiators = data?.initiators || [];
         // this.meterDefaultPurpose = this.device_testing_purpose[0] || 'ROUTINE';
 
+
         // Defaults for serialRange
         this.serialRange.connection_type =
           this.serialRange.connection_type || (this.connection_types[0] || 'LT');
@@ -229,6 +231,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           { key: 'ct_ratio',               label: 'CT Ratio',    options: this.ct_ratios },
           { key: 'device_testing_purpose', label: 'Purpose',     options: this.device_testing_purpose },
           { key: 'initiator',              label: 'Initiator',   options: this.initiators }
+          
         ];
 
         // lab_id from localStorage / token
@@ -351,6 +354,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       ct_class: (this.ctMeta.ct_class || '').trim() || null,
       ct_ratio: (this.ctMeta.ct_ratio || '').trim() || null,
       make: this.ctMeta.make,
+      phase: this.ctMeta.phase,
       connection_type: this.ctMeta.connection_type,
       device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
       initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
@@ -463,6 +467,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       ct_class: this.ctMeta.ct_class || '',
       ct_ratio: this.ctMeta.ct_ratio || '',
       make: this.ctMeta.make,
+      phase: this.ctMeta.phase,
       connection_type: this.ctMeta.connection_type,
       device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
       initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
@@ -486,6 +491,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         ct_class: this.ctMeta.ct_class || (ct_class || '').trim() || null,
         ct_ratio: this.ctMeta.ct_ratio || (ct_ratio || '').trim() || null,
         make: this.ctMeta.make,
+        phase: this.ctMeta.phase,
         connection_type: this.ctMeta.connection_type,
         device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
         initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
@@ -524,6 +530,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           ct_class: (this.ctMeta.ct_class || '').trim() || null,
           ct_ratio: (this.ctMeta.ct_ratio || '').trim() || null,
           make: this.ctMeta.make,
+          phase: this.ctMeta.phase,
           connection_type: this.ctMeta.connection_type,
           device_testing_purpose: this.ctMeta.device_testing_purpose || this.meterDefaultPurpose,
           initiator: this.ctMeta.initiator || this.initiators[0] || 'CIS',
@@ -638,7 +645,9 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
       location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
       // date_of_entry: this.todayISO(),
-      initiator: d.initiator
+      initiator: d.initiator,
+      phases: d.phases
+      
     }));
 
     this.deviceService.addnewdevice(payload).subscribe({
@@ -748,7 +757,8 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
       location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
       // date_of_entry: this.todayISO(),
-      initiator: ct.initiator
+      initiator: ct.initiator,      
+      phases: "THREE_PHASE_CT"
     }));
 
     this.deviceService.addnewdevice(payload).subscribe({

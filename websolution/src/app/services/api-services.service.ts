@@ -645,6 +645,7 @@ getDivisions() {
     circle_code?: number | null;
     division_code?: number | null;
     dc_code?: number | null;
+    testing_purpose?: string;
     group_level?: 'circle' | 'division' | 'dc';
   }): Observable<MonthlySummaryResponse> {
     let p = new HttpParams();
@@ -653,8 +654,8 @@ getDivisions() {
     if (params.circle_code !== undefined && params.circle_code !== null) p = p.set('circle_code', String(params.circle_code));
     if (params.division_code !== undefined && params.division_code !== null) p = p.set('division_code', String(params.division_code));
     if (params.dc_code !== undefined && params.dc_code !== null) p = p.set('dc_code', String(params.dc_code));
+    if (params.testing_purpose) p = p.set('testing_purpose', params.testing_purpose);
     if (params.group_level) p = p.set('group_level', params.group_level);
-
     return this.http.get<MonthlySummaryResponse>(`${this.baseUrl}/meter-replacement-monthly-summary`, { params: p });
   }
 

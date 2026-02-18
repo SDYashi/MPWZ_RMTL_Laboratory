@@ -73,7 +73,8 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     secondary_current: '',
     testing_user: '',
     approving_user: '',
-    testing_bench: ''
+    testing_bench: '',
+    phase: '',
   };
 
   testing_bench: any = '';
@@ -601,82 +602,157 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     return undefined;
   }
 
+  // private buildPayload(): any[] {
+  //   const when = this.isoOn(this.header.date_of_testing);
+
+  //   const zone_dc =
+  //     (this.header.location_code ? this.header.location_code + ' - ' : '') +
+  //     (this.header.location_name || '');
+
+  //   return (this.ctRows || [])
+  //     .filter(r => (r.serial_number || '').trim())
+  //     .map(r => {
+  //       const working: Working =
+  //         r.working ||
+  //         this.inferWorkingFromRemark(r.remark) ||
+  //         'OK';
+
+  //       const ct_ratio_val = this.parseRatioFloat(r.ratio);
+
+  //       const detailsObj = {
+  //         consumer_name: this.header.consumer_name || '',
+  //         address: this.header.address || '',
+  //         ref_no: this.header.ref_no || '',
+  //         no_of_ct: this.header.no_of_ct || '',
+  //         city_class: this.header.city_class || '',
+  //         ct_make: this.header.ct_make || '',
+  //         mr_no: this.header.mr_no || '',
+  //         mr_date: this.header.mr_date || '',
+  //         amount_deposited: this.header.amount_deposited || '',
+  //         primary_current: this.header.primary_current || '',
+  //         secondary_current: this.header.secondary_current || '',
+  //         zone_dc: zone_dc,
+  //         testshifts: this.testshifts ?? null,  
+
+  //         serial_number: r.serial_number || '',
+  //         make: r.make || '',
+  //         cap: r.cap || '',
+  //         ratio: r.ratio || '',
+  //         polarity: r.polarity || '',
+  //         remark: r.remark || ''
+  //       };
+
+  //       return {
+  //         device_id: r.device_id ?? 0,
+  //         assignment_id: r.assignment_id ?? 0,
+
+  //         start_datetime: when,
+  //         end_datetime: when,
+
+  //         consumer_name: this.header.consumer_name || null,
+  //         consumer_address: this.header.address || null,
+  //         testing_fees: this.header.amount_deposited || null,
+  //         fees_mr_no: this.header.mr_no || null,
+  //         fees_mr_date: this.header.mr_date || null,
+  //         ref_no: this.header.ref_no || null,
+
+  //         ct_class: this.header.city_class || null,
+  //         ct_primary_current: this.parseFloatOrNull(this.header.primary_current),
+  //         ct_secondary_current: this.parseFloatOrNull(this.header.secondary_current),
+  //         ct_ratio: ct_ratio_val,
+  //         ct_polarity: r.polarity || null,
+
+  //         test_requester_name: zone_dc || null,
+
+  //         test_result: working,
+  //         test_method: this.testMethod,
+  //         test_status: this.testStatus,
+
+  //         approver_id: this.approverId ?? null,
+  //         approver_remark: null,
+
+  //         details: JSON.stringify(detailsObj),
+
+  //         report_type: this.report_type,
+  //         created_by: String(this.currentUserId || '')
+  //       };
+  //     });
+  // }
+
   private buildPayload(): any[] {
-    const when = this.isoOn(this.header.date_of_testing);
+  const whenISO = this.isoOn(this.header.date_of_testing);
 
-    const zone_dc =
-      (this.header.location_code ? this.header.location_code + ' - ' : '') +
-      (this.header.location_name || '');
+  const zone_dc =
+    (this.header.location_code ? this.header.location_code + ' - ' : '') +
+    (this.header.location_name || '');
 
-    return (this.ctRows || [])
-      .filter(r => (r.serial_number || '').trim())
-      .map(r => {
-        const working: Working =
-          r.working ||
-          this.inferWorkingFromRemark(r.remark) ||
-          'OK';
+  return (this.ctRows || [])
+    .filter(r => (r.serial_number || '').trim())
+    .map(r => {
+      const working: Working =
+        r.working ||
+        this.inferWorkingFromRemark(r.remark) ||
+        'OK';
 
-        const ct_ratio_val = this.parseRatioFloat(r.ratio);
+      const ct_ratio_val = this.parseRatioFloat(r.ratio);
 
-        const detailsObj = {
-          consumer_name: this.header.consumer_name || '',
-          address: this.header.address || '',
-          ref_no: this.header.ref_no || '',
-          no_of_ct: this.header.no_of_ct || '',
-          city_class: this.header.city_class || '',
-          ct_make: this.header.ct_make || '',
-          mr_no: this.header.mr_no || '',
-          mr_date: this.header.mr_date || '',
-          amount_deposited: this.header.amount_deposited || '',
-          primary_current: this.header.primary_current || '',
-          secondary_current: this.header.secondary_current || '',
-          zone_dc: zone_dc,
-           testshifts: this.testshifts ?? null,  
+      return {
+        assignment_id: r.assignment_id ?? 0,
+        device_id: r.device_id ?? 0,
 
-          serial_number: r.serial_number || '',
-          make: r.make || '',
-          cap: r.cap || '',
-          ratio: r.ratio || '',
-          polarity: r.polarity || '',
-          remark: r.remark || ''
-        };
+        report_type: this.report_type,
+        start_datetime: whenISO,
+        end_datetime: whenISO,
 
-        return {
-          device_id: r.device_id ?? 0,
-          assignment_id: r.assignment_id ?? 0,
+        // requester / zone
+        test_requester_name: zone_dc || null,
 
-          start_datetime: when,
-          end_datetime: when,
+        // consumer/payment/ref (from header)
+        consumer_name: this.header.consumer_name || null,
+        consumer_address: this.header.address || null,
+        testing_fees: this.header.amount_deposited || null,
+        fees_mr_no: this.header.mr_no || null,
+        fees_mr_date: this.header.mr_date || null,
+        ref_no: this.header.ref_no || null,
+        phase: this.header.phase || null,
+        // CT header fields
+        ct_class: this.header.city_class || null,
+        ct_make: this.header.ct_make || null,
+        no_of_ct: this.header.no_of_ct || null,
 
-          consumer_name: this.header.consumer_name || null,
-          consumer_address: this.header.address || null,
-          testing_fees: this.header.amount_deposited || null,
-          fees_mr_no: this.header.mr_no || null,
-          fees_mr_date: this.header.mr_date || null,
-          ref_no: this.header.ref_no || null,
+        ct_primary_current: this.parseFloatOrNull(this.header.primary_current),
+        ct_secondary_current: this.parseFloatOrNull(this.header.secondary_current),
 
-          ct_class: this.header.city_class || null,
-          ct_primary_current: this.parseFloatOrNull(this.header.primary_current),
-          ct_secondary_current: this.parseFloatOrNull(this.header.secondary_current),
-          ct_ratio: ct_ratio_val,
-          ct_polarity: r.polarity || null,
+        // CT row fields
+        serial_number: r.serial_number || null,
+        make: r.make || null,
+        cap: r.cap || null,
 
-          test_requester_name: zone_dc || null,
+        ct_ratio: ct_ratio_val,
+        ct_polarity: r.polarity || null,
 
-          test_result: working,
-          test_method: this.testMethod,
-          test_status: this.testStatus,
+        // shift
+        testshifts: this.testshifts ?? null,
 
-          approver_id: this.approverId ?? null,
-          approver_remark: null,
+        // result/meta
+        test_result: working,
+        test_method: this.testMethod,
+        test_status: this.testStatus,
 
-          details: JSON.stringify(detailsObj),
+        // details only remark (no JSON object)
+        details: r.remark || null,
 
-          report_type: this.report_type,
-          created_by: String(this.currentUserId || '')
-        };
-      });
-  }
+        // approval
+        approver_id: this.approverId ?? null,
+        approver_remark: null,
+
+        // audit
+        created_by: String(this.currentUserId || ''),
+        updated_by: String(this.currentUserId || ''),
+      };
+    });
+}
+
 
   private doSubmit() {
     const payload = this.buildPayload();

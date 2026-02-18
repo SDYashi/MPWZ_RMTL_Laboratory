@@ -19,20 +19,20 @@
       <div class="card shadow-sm mb-3">
           <div class="card-body">
           <div class="row g-3">
-            <div class="col-md-4">
+              <div class="col-12 col-md-3">
               <label class="form-label fw-bold">Name of Zone/DC</label>
               <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" readonly disabled>
             </div>
 
-            <div class="col-md-4">
+           <div class="col-12 col-md-3">
               <label class="form-label fw-bold">Selected Testing Bench</label>
               <input class="form-control" [(ngModel)]="testing_bench" name="testing_bench" readonly disabled>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-3">
               <label class="form-label fw-bold">Selected Testing User</label>
               <input class="form-control" [(ngModel)]="testing_user" name="testing_user" readonly disabled>
             </div>
-          <div class="col-12 col-md-3">
+            <div class="col-12 col-md-3">
               <label class="form-label fw-bold">Selected Approver User</label>
               <input class="form-control" [(ngModel)]="approving_user" name="approving_user" readonly disabled>
             </div>          
@@ -168,12 +168,20 @@
 
               <td>
                 <select class="form-select" [(ngModel)]="r.ratio" [name]="'ratio_'+i">
-                  <option [ngValue]="''" disabled>Select</option>
+                  <option [ngValue]="''" disabled>Select Ratio</option>
                   <option *ngFor="let opt of ratioOptions" [ngValue]="opt">{{ opt }}</option>
                 </select>
               </td>
 
-              <td><input class="form-control" [(ngModel)]="r.polarity" [name]="'pol_'+i" placeholder="OK / value"></td>
+              <td>
+                <!-- <input class="form-control" [(ngModel)]="r.polarity" [name]="'pol_'+i" placeholder="OK / value"> -->
+              <select id="polarity" class="form-control" [(ngModel)]="r.polarity" [name]="'pol_'+i">
+               <option [ngValue]="''" disabled>Select Polarity</option>
+                <option [ngValue]="1">Positive</option>
+                <option [ngValue]="0" >Neutral</option>
+                <option [ngValue]="-1">Negative</option>
+              </select>
+            </td>
 
               <td>
                 <select class="form-select" [(ngModel)]="r.working" [name]="'working_'+i">
