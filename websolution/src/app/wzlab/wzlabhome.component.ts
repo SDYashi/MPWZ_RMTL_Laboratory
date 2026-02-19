@@ -25,6 +25,7 @@ type SectionKey =
 })
 export class WzlabhomeComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+
   isDropdownOpen = false;
   currentUrl = '';
   currentUserName: string | null = null;
@@ -48,16 +49,16 @@ export class WzlabhomeComponent implements OnInit, OnDestroy {
   };
 
   private sectionRouteMap: Array<{ key: SectionKey; prefixes: string[] }> = [
-    { key: 'LABManagement',      prefixes: ['/wzlab/testing-laboratory'] },
-    { key: 'userManagement',     prefixes: ['/wzlab/user'] },
-    { key: 'benchManagement',    prefixes: ['/wzlab/testing-bench'] },
-    { key: 'vendorManagement',   prefixes: ['/wzlab/vendor', '/wzlab/supply-vendors', '/wzlab/supply-othersource' ] },
-    { key: 'storeManagement',    prefixes: ['/wzlab/store'] },
-    { key: 'userAssignments',    prefixes: ['/wzlab/assignement'] },
-    { key: 'receivedDispatch',   prefixes: ['/wzlab/devices', '/wzlab/getpass'] },
-    { key: 'testingActivities',  prefixes: ['/wzlab/testing'] },
-    { key: 'usageAnalytics',     prefixes: ['/wzlab/reports'] },
-    { key: 'approvalMenu',       prefixes: ['/wzlab/approval'] },
+    { key: 'LABManagement',       prefixes: ['/wzlab/testing-laboratory'] },
+    { key: 'userManagement',      prefixes: ['/wzlab/user'] },
+    { key: 'benchManagement',     prefixes: ['/wzlab/testing-bench'] },
+    { key: 'vendorManagement',    prefixes: ['/wzlab/vendor', '/wzlab/supply-vendors', '/wzlab/supply-othersource'] },
+    { key: 'storeManagement',     prefixes: ['/wzlab/store'] },
+    { key: 'userAssignments',     prefixes: ['/wzlab/assignement'] },
+    { key: 'receivedDispatch',    prefixes: ['/wzlab/devices', '/wzlab/getpass'] },
+    { key: 'testingActivities',   prefixes: ['/wzlab/testing'] },
+    { key: 'usageAnalytics',      prefixes: ['/wzlab/reports'] },
+    { key: 'approvalMenu',        prefixes: ['/wzlab/approval'] },
     { key: 'dbcontentManagement', prefixes: ['/wzlab/admin-console'] },
   ];
 
@@ -70,7 +71,6 @@ export class WzlabhomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // React to login / token set — updates immediately without reload
     this.authService.user$
       .pipe(
         takeUntil(this.destroy$),
@@ -81,28 +81,25 @@ export class WzlabhomeComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       });
 
-    // React to role changes
     this.authService.roles$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.cdr.markForCheck());
 
-    // If anything calls triggerRefresh()
     this.authService.refresh$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.cdr.markForCheck());
 
-    // layout + routing
     this.checkScreenSize();
     this.syncOpenSectionWithRoute();
+
     this.router.events
       .pipe(takeUntil(this.destroy$), filter(e => e instanceof NavigationEnd))
-      .subscribe(() => this.syncOpenSectionWithRoute());
+      .subscribe(() => {
+        this.closeProfileDropdown();          // ✅ close profile on route change
+        this.syncOpenSectionWithRoute();
+      });
   }
 
-  onKeyToggleSection(key: SectionKey) {
-    this.sections[key] = !this.sections[key];
-    this.cdr.markForCheck();
-  }
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
@@ -126,10 +123,49 @@ export class WzlabhomeComponent implements OnInit, OnDestroy {
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
-  toggleSection(key: SectionKey) {
+  /** ✅ Profile dropdown toggle (stop bubble so document click doesn't instantly close it) */
+  toggleDropdown(event?: Event) {
+    event?.stopPropagation();
+    this.isDropdownOpen = !this.isDropdownOpen;
+  }
+
+  /** ✅ Close profile dropdown */
+  closeProfileDropdown() {
+    this.isDropdownOpen = false;
+  }
+
+  /**
+   * ✅ Sidebar section toggle:
+   * - closes profile dropdown
+   * - allows only one open section at a time
+   */
+  toggleSection(key: SectionKey, event?: Event) {
+    event?.stopPropagation();
+    this.closeProfileDropdown();
+
     const willOpen = !this.sections[key];
     Object.keys(this.sections).forEach(k => (this.sections[k as SectionKey] = false));
     this.sections[key] = willOpen;
+  }
+
+  /** Optional keyboard toggle with same behavior */
+  onKeyToggleSection(key: SectionKey, event?: Event) {
+    this.toggleSection(key, event);
+  }
+
+  /** ✅ Close profile dropdown when clicking outside */
+  @HostListener('document:click', ['$event'])
+  onClickOutside(event: Event) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.dropdown')) {
+      this.isDropdownOpen = false;
+    }
+  }
+
+  /** ✅ Close profile dropdown when clicking any sidebar link */
+  onSidebarLinkClick(event?: Event) {
+    event?.stopPropagation();
+    this.closeProfileDropdown();
   }
 
   private syncOpenSectionWithRoute() {
@@ -138,30 +174,16 @@ export class WzlabhomeComponent implements OnInit, OnDestroy {
     if (matched) this.sections[matched.key] = true;
   }
 
-  // expose simple helpers for template
+  // helpers
   hasAny(roles: string[]) {
     return this.authService.hasAny(roles);
   }
+
   canShow(allow: string[], deny: string[] = []) {
     return this.authService.canShow(allow, deny);
   }
 
   logout() {
-    this.authService.logout(); // uses service to clear + navigate
+    this.authService.logout();
   }
-
-
-toggleDropdown() {
-  this.isDropdownOpen = !this.isDropdownOpen;
-}
-
-// Optional: close dropdown when clicking outside
-@HostListener('document:click', ['$event'])
-onClickOutside(event: Event) {
-  const target = event.target as HTMLElement;
-  if (!target.closest('.dropdown')) {
-    this.isDropdownOpen = false;
-  }
-}
-
 }
